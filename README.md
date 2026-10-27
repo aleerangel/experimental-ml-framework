@@ -32,11 +32,11 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
     - [ ] **M1.1:** Configuração do projeto (`pyproject.toml`, `.venv`), verificação empírica de compatibilidade e *smoke tests*.
     - [ ] **M1.2:** Contratos, implementação e testes de `core` (IDs, enums, `SeedManager`, `config_hash`, `dataset_hash`, exceções/alertas).
     - [ ] **M1.3:** Contratos, implementação e testes de `metrics` (`MetricValue`, `UNDEFINED_NAN` e 15 métricas com tolerâncias específicas por família).
-  - [ ] **M2 (`data` + `validation`):** Ingestão somente-leitura, `DatasetProfile`, `PreparationPlan` e `PartitionPlan` auditado (`KFold`, `StratifiedKFold`, `GroupKFold`, `TemporalSplit`, `Holdout`).
-  - [ ] **M3 (`features`):** `ExploratoryFeatureReport`, `FixedFeatureScenario` e `DynamicFeatureScenario` ajustado por *fold* com índice de estabilidade.
-  - [ ] **M4 (`models` + `tuning`):** `ModelSpec`, `ModelAdapter` com `clone_fresh`, pré-processamento em 2 camadas e *Nested Search* (`Fixed`, `GridSearch`, `RandomSearch`).
-  - [ ] **M5 (`orchestration`):** `MatrixOrchestrator`, isolamento de falhas (`FAULT_TOLERANT` / `FAIL_FAST`), paralelismo em 2 níveis e persistência com *checkpoint/resume*.
-  - [ ] **M6 (`statistics`):** Consolidação, adequação metodológica, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, relevância prática, Pareto e `StructuredConclusion`.
+  - [ ] **M2 (`data` + `validation`):** Ingestão somente-leitura (`.csv`/`.txt` com ou sem cabeçalho, `unlabeled_pool`, alvo único/multivariado), `DatasetProfile`, `PreparationPlan` (`TargetTransformSpec`) e `PartitionPlan` auditado (`KFold`, `StratifiedKFold`, `GroupKFold`, `Bootstrap`, `TemporalSplit`, `Holdout`).
+  - [ ] **M3 (`features`):** `ExploratoryFeatureReport`, `FixedFeatureScenario` e `DynamicFeatureScenario` ajustado por *fold* (seleção e redução de dimensionalidade) com índice de estabilidade.
+  - [ ] **M4 (`models` + `tuning`):** `ModelSpec`, `ModelAdapter` com `clone_fresh` e incerteza preditiva, pré-processamento em 2 camadas (incluindo kernels pré-computados) e *Nested Search* (`Fixed`, `GridSearch`, `RandomSearch`).
+  - [ ] **M5 (`orchestration`):** `MatrixOrchestrator`, isolamento de falhas (`FAULT_TOLERANT` / `FAIL_FAST`), paralelismo em 2 níveis, agregação de comitê e persistência com *checkpoint/resume*.
+  - [ ] **M6 (`statistics`):** Consolidação, adequação metodológica, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, relevância prática, Fronteira de Pareto, funções de aquisição sequencial e `StructuredConclusion`.
   - [ ] **M7 (`reporting`):** Relatórios completos (MD/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência e pacote de reprodutibilidade.
 - [ ] **Fase 5: Verificação Experimental**
   - [ ] Reprodução do baseline científico do projeto de origem com paridade matemática e conceitual.

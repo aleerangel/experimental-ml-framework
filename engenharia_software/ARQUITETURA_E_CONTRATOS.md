@@ -139,14 +139,16 @@ Para eliminar qualquer possibilidade de dependência circular (especialmente no 
 Carregar a base de dados preservando sua integridade original, mapear papéis das variáveis (`target`, `group`, `observation_id`, `time_index`, `ignore_cols`), executar um diagnóstico exploratório completo e registrar o plano explícito de preparação.
 
 #### Entradas Conceituais
-* Fonte de dados (`.csv`, `.txt` com delimitadores configuráveis/detectáveis ou `DataFrame` em memória).
+* Fonte de dados (`.csv`, `.txt` com delimitadores configuráveis/detectáveis, incluindo múltiplos espaços em branco, com ou sem cabeçalho via `has_header=True|False`, ou `DataFrame` em memória).
+* Conjunto opcional de candidatos não rotulados (`unlabeled_pool`) para inferência prospectiva e descoberta sequencial.
 * Especificação de papéis de colunas (`DatasetSchemaSpec`):
-  * `target_col`: variável resposta (contínua para regressão; discreta/categórica para classificação).
-  * `task_type`: `REGRESSION` | `BINARY_CLASSIFICATION` | `MULTICLASS_CLASSIFICATION`.
+  * `target_col`: `str | Sequence[str]` — variável resposta única ou múltiplas variáveis resposta simultâneas (contínua para regressão simples/multi-alvo; discreta/categórica para classificação).
+  * `task_type`: `REGRESSION` | `MULTI_TARGET_REGRESSION` | `BINARY_CLASSIFICATION` | `MULTICLASS_CLASSIFICATION`.
   * `group_col` *(opcional)*: variável de agrupamento hierárquico/espacial/indivíduo.
   * `observation_id_col` *(opcional)*: identificador único estável por observação (gerado de forma determinística caso omitido).
   * `time_col` *(opcional)*: variável de ordenação cronológica.
   * `ignore_cols` *(opcional)*: colunas informativas ou proibidas que não devem entrar como preditores.
+  * `target_transform_spec` *(opcional)*: especificação de transformação reversível na variável-alvo (`transform` / `inverse_transform`, como deslocamento/escalonamento afim ou transformação monotônica ajustada apenas no treino).
 
 #### Saídas Conceituais (Contratos)
 1. **`DatasetBundle`:**
@@ -193,13 +195,13 @@ Oferecer análises exploratórias sobre as relações entre os atributos e com a
    * **`FixedFeatureScenario`:**
      * Define uma lista estática e explícita de atributos (`selected_features: list[str]`), escolhida *a priori* por conhecimento de domínio ou baseline. Permanece idêntica em todas as partições.
    * **`DynamicFeatureScenario`:**
-     * Define um pipeline/regra parametrizada de seleção (`selection_strategy: FeatureSelectionStrategy`, `strategy_params: dict`) — como redução de multicolinearidade, seleção por relevância ou Top-$K$.
+     * Define um pipeline/regra parametrizada de seleção ou redução de dimensionalidade (`selection_strategy: FeatureSelectionStrategy`, `strategy_params: dict`) — como redução de multicolinearidade, seleção por relevância, Top-$K$ ou extração de componentes (ex.: `PCA`).
      * **Garantia Invariante:** Não produz uma lista única global na Etapa 2; sua regra é executada exclusivamente sobre os dados de treino de cada *fold* durante a Etapa 4.
 3. **`ScenarioRegistry`:**
    * Catálogo imutável e comparável dos cenários registrados para o experimento, permitindo inspeção pré-execução.
 
 #### Ponto de Extensão (`FeatureSelectionStrategy`)
-* Contrato `fit_select(X_train, y_train, random_state) -> SelectionResult`, retornando a lista ordenada de atributos selecionados naquele *fold*, os escores/estatísticas calculados no treino e os parâmetros aplicados.
+* Contrato `fit_select(X_train, y_train, random_state) -> SelectionResult`, retornando a lista ordenada de atributos selecionados (ou projeção reduzida) naquele *fold*, os escores/estatísticas calculados no treino e os parâmetros aplicados.
 
 ---
 
@@ -215,31 +217,36 @@ Registrar modelos heterogêneos sob um contrato unificado de orquestração, con
 1. **`ModelSpec`:**
    * `model_id`: identificador único e estável no experimento.
    * `display_name`: nome de apresentação para tabelas e gráficos.
-   * `family`: categoria metodológica (`CLASSICAL_ML`, `NEURAL_NETWORK`, `QUANTUM_CIRCUIT`, `QUANTUM_SOLVER`, `ANALYTICAL_EQUATION`, `BIOMETRIC_MODEL`, `BASELINE`, `CUSTOM`).
+   * `family`: categoria metodológica (`CLASSICAL_ML`, `NEURAL_NETWORK`, `QUANTUM_CIRCUIT`, `QUANTUM_KERNEL`, `QUANTUM_SOLVER`, `ANALYTICAL_EQUATION`, `BIOMETRIC_MODEL`, `BASELINE`, `CUSTOM`).
    * `description` e `scientific_justification`.
    * `technology_info`: biblioteca principal, versão, backend de execução (CPU, GPU, simulador quântico, QPU).
    * `random_seed_policy`: como a semente é propagada ou indicação de algoritmo determinístico/estocástico.
    * `capabilities` (`ModelCapabilities`):
      * `requires_fit: bool` (permite `False` para equações analíticas prontas).
      * `supports_predict: bool`.
+     * `supports_uncertainty: bool` (indica suporte a retorno conjunto de predição e desvio-padrão por observação $(\hat{y}_i, \hat{\sigma}_i)$, como `return_std=True` em Processos Gaussianos ou comitês).
      * `supports_predict_proba: bool` (para classificação).
      * `supports_decision_function: bool`.
      * `supports_sample_weight: bool`.
+     * `supports_precomputed_kernel: bool` (indica se o modelo espera matrizes de Gram pré-computadas).
      * `supports_internal_parallelism_control: bool`.
      * `expected_input_types`: restrições de tipo, escala, ausência de nulos ou dimensionalidade.
 2. **`ModelAdapter` (Contrato de Execução e Isolamento):**
-   * `clone_fresh(seed) -> ModelInstance`: instancia um objeto completamente novo e isolado para cada execução, impedindo contaminação de pesos, estados internos ou parâmetros entre *folds*, cenários ou tentativas de *tuning*.
+   * `clone_fresh(seed) -> ModelInstance`: instancia um objeto completamente novo e isolado para cada execução, impedindo contaminação de pesos, estados internos ou parâmetros entre *folds*, repetições de *bootstrap*, cenários ou tentativas de *tuning*.
    * `fit(model_instance, X_train, y_train, **fit_kwargs) -> FitDiagnostics` (no-op transparente quando `requires_fit == False`).
    * `predict(model_instance, X_eval) -> ndarray`.
+   * `predict_with_uncertainty(model_instance, X_eval) -> tuple[ndarray, ndarray | None]`: retorna predição pontual $\hat{y}_i$ e incerteza preditiva individual $\hat{\sigma}_i$ (quando `supports_uncertainty == True`).
    * `predict_proba(model_instance, X_eval) -> ndarray | None`.
    * `extract_diagnostics(model_instance, phase) -> ModelDiagnostics`: extrai metadados internos específicos da família algorítmica sem obrigar um esquema rígido global:
-     * *Quânticos / HHL:* número de qubits, profundidade do circuito, contagem de portas, número de *shots*, backend, fidelidade de estado, número de condição, diagnósticos do resolvedor.
+     * *Quânticos / Kernels / HHL:* tipo de mapa de atributos (*Feature Map*), tipo de kernel quântico, número de qubits, profundidade do circuito, contagem de portas, número de *shots*, backend, fidelidade de estado, número de condição, diagnósticos do resolvedor.
      * *Redes Neurais:* épocas executadas, curvas de perda de treino/validação interna, critério de parada atingido.
      * *Analíticos / Biométricos:* equação funcional, coeficientes ajustados ou fixos, parâmetros calibrados.
      * *Clássicos:* importância de atributos, suporte de vetores, profundidade de árvores, número de iterações até convergência.
 3. **`TwoLayerPreprocessingPipeline`:**
-   * **Camada 1 (Cenário):** transformações vinculadas aos atributos do cenário.
-   * **Camada 2 (Específica do Modelo):** transformações exigidas pela tecnologia do modelo (ex.: normalização angular para portas de rotação quântica, padronização $Z$-score para redes neurais/SVM, conversão para `ndarray` numérico denso).
+   * **Camada 1 (Cenário):** transformações vinculadas aos atributos do cenário (imputação, codificação, seleção/redução `PCA`).
+   * **Camada 2 (Específica do Modelo):** transformações exigidas pela tecnologia do modelo, incluindo:
+     * Escalonadores de atributos (`StandardScaler`, `MinMaxScaler`, `MaxAbsScaler`, normalização angular para portas de rotação quântica, conversão para `ndarray` numérico denso);
+     * **Transformadores de Kernel Pré-computado (`PrecomputedKernelTransformer`):** memorizam $\mathbf{X}_{\text{train}}$ durante o ajuste para produzir a matriz de Gram quadrada $K(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ de dimensão $(N_{\text{train}} \times N_{\text{train}})$ no `fit_transform` e a matriz retangular $K(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ de dimensão $(N_{\text{eval}} \times N_{\text{train}})$ no `transform`.
    * **Validador de Pipeline:**
      * Garante que ambas as camadas sejam ajustadas (`fit`) exclusivamente nos dados de treino da partição.
      * Detecta e impede duplicação acidental de transformações equivalentes entre a Camada 1 e a Camada 2 (salvo quando explicitamente forçada).
@@ -257,11 +264,11 @@ Registrar modelos heterogêneos sob um contrato unificado de orquestração, con
 ### 3.4 Etapa 4: Particionamento, Validação e Execução Matricial
 
 #### Responsabilidade
-Gerar e validar o plano de particionamento independente, garantir que todas as configurações comparadas compartilhem exatamente as mesmas partições, orquestrar a execução da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$ com tolerância a falhas, controle de paralelismo e persistência com retomada (*resume*), e coletar predições, tempos e diagnósticos granulares.
+Gerar e validar o plano de particionamento independente, garantir que todas as configurações comparadas compartilhem exatamente as mesmas partições, orquestrar a execução da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$ com tolerância a falhas, controle de paralelismo e persistência com retomada (*resume*), e coletar predições, incertezas por observação, tempos e diagnósticos granulares.
 
 #### Entradas Conceituais
 * `DatasetBundle`, `PreparationPlan`, `ScenarioRegistry`, `ModelRegistry`.
-* `ValidationConfig`: estratégia de particionamento externo, configuração opcional de *Holdout Final* e parâmetros do orquestrador (política de erro, paralelismo, diretório de persistência).
+* `ValidationConfig`: estratégia de particionamento externo, configuração opcional de *Holdout Final*, conjunto opcional de candidatos não rotulados (`unlabeled_pool`) e parâmetros do orquestrador (política de erro, paralelismo, diretório de persistência).
 
 #### Saídas Conceituais (Contratos)
 1. **`PartitionPlan`:**
@@ -270,11 +277,11 @@ Gerar e validar o plano de particionamento independente, garantir que todas as c
      * `CROSS_VALIDATION_ONLY`
      * `HOLDOUT_ONLY`
      * `DEVELOPMENT_CV_PLUS_FINAL_HOLDOUT`
-   * `cv_strategy`: `K_FOLD`, `STRATIFIED_K_FOLD`, `GROUP_K_FOLD`, `STRATIFIED_GROUP_K_FOLD`, `TEMPORAL_SPLIT`, etc.
+   * `cv_strategy`: `K_FOLD`, `STRATIFIED_K_FOLD`, `GROUP_K_FOLD`, `STRATIFIED_GROUP_K_FOLD`, `BOOTSTRAP` ($B$ reamostragens com reposição sobre o treino para estimativa de métricas e barras de erro preditivas $\hat{\sigma}_i$), `TEMPORAL_SPLIT`, etc.
    * `folds`: lista de partições contendo os `observation_id` exatos de `train` e `val` para cada `fold_id`.
    * `holdout_ids` *(quando aplicável)*: conjunto de `observation_id` estritamente isolado durante toda a exploração, seleção de atributos e ajuste de hiperparâmetros.
    * **Validador Pré-Execução de Partições:** verifica matematicamente antes de qualquer treino:
-     * Interseção nula entre treino e validação em cada *fold* ($\text{Train}_k \cap \text{Val}_k = \emptyset$).
+     * Interseção nula entre treino e validação em cada *fold* ($\text{Train}_k \cap \text{Val}_k = \emptyset$, considerando *out-of-bag* / avaliação externa no caso de `BOOTSTRAP`).
      * Interseção nula entre base de desenvolvimento e *Holdout Final*.
      * Isolamento estrito de grupos quando `group_col` for utilizado ($\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$).
      * Ordem cronológica estrita em estratégias temporais ($\max(t_{\text{train}}) < \min(t_{\text{val}})$).
@@ -301,7 +308,7 @@ Gerar e validar o plano de particionamento independente, garantir que todas as c
      * Ao concluir cada célula, seu registro e suas predições são persistidos atomicamente em disco.
      * Na retomada, o orquestrador valida a compatibilidade do `dataset_hash`, do `partition_plan_id`, das configurações de cenários/modelos e das versões relevantes, pulando as células `COMPLETED` e executando apenas as `PENDING`, `FAILED` (se solicitado) ou `CANCELLED`.
 3. **`CellResultRecord`:**
-   * Identificadores: `experiment_id`, `partition_plan_id`, `model_id`, `scenario_id`, `fold_id`, `phase` (`DEV_CV` ou `FINAL_HOLDOUT`).
+   * Identificadores: `experiment_id`, `partition_plan_id`, `model_id`, `scenario_id`, `fold_id`, `target_id` (para múltiplos alvos), `phase` (`DEV_CV` ou `FINAL_HOLDOUT`).
    * Estado final (`status`), avisos e informações de erro (se `FAILED`).
    * Lista exata de `selected_features` utilizadas naquela célula (fundamental para auditar cenários dinâmicos).
    * Configuração efetiva de hiperparâmetros selecionada e resumo das tentativas da busca interna.
@@ -309,20 +316,21 @@ Gerar e validar o plano de particionamento independente, garantir que todas as c
      * `preprocessing_time_s`
      * `feature_selection_time_s`
      * `tuning_time_s`
-     * `circuit_compilation_time_s` *(quando aplicável e reportado pelo adaptador)*
+     * `circuit_or_kernel_time_s` *(quando aplicável e reportado pelo adaptador/transformador)*
      * `fit_time_s` (treinamento final do modelo selecionado)
-     * `predict_time_s` (inferência sobre a partição de avaliação)
+     * `predict_time_s` (inferência sobre a partição de avaliação e candidatos)
      * `evaluation_time_s` (cálculo de métricas)
-   * **Métricas da Célula:** dicionário tipado com o valor de cada métrica calculada sobre aquela partição específica.
+   * **Métricas da Célula:** dicionário tipado com o valor de cada métrica calculada sobre aquela partição específica (tanto na escala transformada quanto na escala original quando `TargetTransformSpec` estiver ativo).
    * **Diagnósticos do Modelo (`ModelDiagnostics`):** metadados internos exportados pelo adaptador naquela execução.
-   * **Referência para Predições Individuais (`PredictionArtifactRef`):** ponteiro para o armazenamento estruturado sob demanda (*lazy loading*), contendo para cada `observation_id` avaliado:
-     * *Regressão:* `observation_id`, `y_true`, `y_pred`, `residual` ($y_{\text{true}} - y_{\text{pred}}$).
+   * **Referência para Predições Individuais (`PredictionArtifactRef`):** ponteiro para o armazenamento estruturado sob demanda (*lazy loading*), contendo para cada `observation_id` avaliado (e opcionalmente para os candidatos de `unlabeled_pool`):
+     * *Regressão:* `observation_id`, `y_true`, `y_pred`, `y_std` (incerteza preditiva individual $\hat{\sigma}_i$, quando disponível), `residual` ($y_{\text{true}} - y_{\text{pred}}$), além dos valores revertidos para a unidade original (`y_true_orig`, `y_pred_orig`, `y_std_orig`) quando houver `TargetTransformSpec`.
      * *Classificação:* `observation_id`, `y_true`, `y_pred_class`, e, quando disponíveis, `class_probabilities` ou `decision_scores`.
-4. **Consolidação Out-of-Fold (`OOFconsolidationPolicy`):**
+4. **Consolidação Out-of-Fold e Estatísticas de Comitê (`OOFconsolidationPolicy`):**
    * Quando a estratégia de particionamento garante que cada observação seja avaliada exatamente uma vez fora do treino (ex.: $K$-Fold convencional), o sistema permite consolidar o vetor completo *out-of-fold* indexado por `observation_id`.
+   * Quando múltiplos submodelos de *K-Fold* ou *Bootstrap* avaliam um conjunto de teste comum (`FINAL_HOLDOUT`) ou um conjunto de candidatos não rotulados (`unlabeled_pool`), o sistema consolida para cada observação $i$ a predição média do comitê ($\hat{\mu}_i$) e o desvio-padrão empírico entre as partições ($\hat{\sigma}_i$).
    * Em esquemas com janelas sobrepostas ou múltiplas avaliações por observação, cada predição mantém seu vínculo estrito com `fold_id` sem fusão implícita indevida.
    * Toda métrica distingue explicitamente seu escopo de agregação:
-     * `PER_FOLD`: valor individual no *fold* $k$.
+     * `PER_FOLD`: valor individual na partição $k$.
      * `FOLD_AGGREGATION`: estatística agregada (média, desvio-padrão, mediana, IQR) calculada sobre os $K$ valores `PER_FOLD`.
      * `POOLED_OOF`: métrica calculada globalmente sobre o conjunto consolidado de predições *out-of-fold*.
      * `FINAL_HOLDOUT`: métrica calculada sobre o conjunto de *holdout* isolado.
@@ -332,13 +340,13 @@ Gerar e validar o plano de particionamento independente, garantir que todas as c
 ### 3.5 Etapa 5: Consolidação dos Resultados e Julgamento Estatístico
 
 #### Responsabilidade
-Consolidar descritivamente os resultados da Etapa 4 e realizar comparações estatísticas, análises de tamanho de efeito, relevância prática e compromissos multiobjetivo (desempenho preditivo, estabilidade e custo computacional), produzindo conclusões estruturadas e auditáveis sem declarar vencedores arbitrários.
+Consolidar descritivamente os resultados da Etapa 4 e realizar comparações estatísticas, análises de tamanho de efeito, relevância prática, compromissos multiobjetivo (desempenho preditivo, estabilidade, custo computacional e múltiplos alvos $y_1, \dots, y_M$) e ordenação prospectiva de candidatos, produzindo conclusões estruturadas e auditáveis sem declarar vencedores arbitrários.
 
 #### Arquitetura Interna em Três Subcamadas Independentes
 1. **Subcamada 5A — Consolidação Descritiva e Cobertura (`DescriptiveConsolidator`):**
    * Reúne resultados por configuração `(model_id, scenario_id)`, verifica a completude dos *folds*, calcula estatísticas descritivas de desempenho, estabilidade de seleção de atributos e custos de tempo/recursos.
-2. **Subcamada 5B — Motor de Inferência Estatística, Efeito e Multiobjetivo (`StatisticalInferenceEngine`):**
-   * Recomenda e executa métodos estatísticos compatíveis com o desenho experimental, verifica pressupostos, calcula tamanhos de efeito, intervalos de incerteza, correções para múltiplas comparações, avaliações de relevância prática e fronteiras de Pareto.
+2. **Subcamada 5B — Motor de Inferência Estatística, Efeito, Multiobjetivo e Aquisição (`StatisticalInferenceEngine`):**
+   * Recomenda e executa métodos estatísticos compatíveis com o desenho experimental, verifica pressupostos, calcula tamanhos de efeito, intervalos de incerteza, correções para múltiplas comparações, avaliações de relevância prática, **Fronteiras de Pareto** (tanto entre métricas de avaliação quanto no espaço de múltiplos objetivos preditos $y_1, \dots, y_M$) e funções de aquisição para candidatos com incerteza $(\hat{\mu}_i, \hat{\sigma}_i)$ (*Expected Improvement* — EI, *Confidence Bound* — UCB/LCB, *Exploitation* $\hat{\mu}$ e *Exploration* $\hat{\sigma}$).
 3. **Subcamada 5C — Gerador de Conclusões Estruturadas e Rastreáveis (`ConclusionSynthesizer`):**
    * Traduz os campos tipados de 5A e 5B em conclusões estruturadas e texto explicativo em linguagem natural, vinculado estritamente aos números e limitações registradas.
 
@@ -522,11 +530,11 @@ A construção será guiada por TDD (Fase 4), priorizando um **MVP Essencial** q
 
 | Etapa | Componentes Essenciais do MVP |
 | :--- | :--- |
-| **Etapa 1**<br/>(`data`) | • Ingestão de `.csv`, `.txt` (delimitadores configuráveis/detectáveis) e `DataFrame` com cálculo de hash `SHA-256` e geração/validação de `observation_id`.<br/>• `DatasetProfile` completo: dimensões, uso de memória, tipos de colunas, ausentes, duplicatas, constantes, possíveis IDs, estatísticas descritivas numéricas, frequências categóricas, diagnóstico de escala/amplitude, perfil do `target` (regressão e classificação) e perfil de `group`.<br/>• Separação entre `CONFIRMED_ISSUE` e `HEURISTIC_WARNING`.<br/>• `PreparationPlan` explícito (imputação por média/mediana/moda/constante, codificação *One-Hot* e *Ordinal*, escalonamento *Standard* e *MinMax*, remoção explícita de colunas/linhas). |
-| **Etapa 2**<br/>(`features`) | • `ExploratoryFeatureReport` com Pearson, Spearman, Informação Mútua (regressão e classificação) e detecção de pares colineares.<br/>• `FixedFeatureScenario` (lista manual com nome, descrição e justificativa científica).<br/>• `DynamicFeatureScenario` ajustado exclusivamente no treino de cada *fold* (estratégias iniciais: filtro de multicolinearidade, seleção Top-$K$ por correlação/informação mútua e ranking ponderado multi-critério em percentis).<br/>• Registro dos atributos selecionados por *fold* e cálculo de estabilidade da seleção entre partições. |
-| **Etapa 3**<br/>(`models` & `tuning`) | • Contrato `ModelSpec`, `ModelCapabilities` e `ModelAdapter` com isolamento de instância (`clone_fresh`).<br/>• Adaptadores iniciais:<br/>  1. **Estimadores padrão Scikit-Learn / XGBoost** (regressão e classificação com `predict` e `predict_proba`);<br/>  2. **Modelos Analíticos / Equações Biométricas** (`requires_fit=False` ou com calibração customizada);<br/>  3. **Adaptador Customizado / Quântico / HHL** com suporte à exportação de `ModelDiagnostics` estruturados.<br/>• Pipeline de pré-processamento em 2 camadas (Cenário + Modelo) com validação de entrada e bloqueio de duplicação acidental.<br/>• Busca de hiperparâmetros aninhada (*Nested CV* no treino externo): configuração fixa, **Grid Search** e **Random Search** com métrica e direção explícitas. |
-| **Etapa 4**<br/>(`validation` & `orchestration`) | • `PartitionPlan` imutável e validado antes da execução.<br/>• Estratégias iniciais: **K-Fold**, **Stratified K-Fold**, **Group K-Fold**, **Temporal Split** (corte cronológico / janela expansiva sem vazamento futuro) e **Holdout Simples**, operando nos 3 regimes (somente CV, somente Holdout, ou CV na base de desenvolvimento + Holdout Final isolado).<br/>• `MatrixOrchestrator` com máquina de estados por célula, modos `FAULT_TOLERANT` e `FAIL_FAST`, paralelismo multi-core (`outer_n_jobs`) e controle de threads internas (`inner_model_threads`).<br/>• Persistência incremental em disco e retomada verificada (*Checkpoint & Resume*).<br/>• Registro de tempos desagregados, diagnósticos do modelo e armazenamento de predições/resíduos indexados por `observation_id` (*out-of-fold* e *holdout*). |
-| **Etapa 5**<br/>(`metrics` & `statistics`) | • **Métricas de Regressão e Alinhamento:** $R^2$, RMSE, RMSE relativo (%), MAE, MAPE, correlação de Pearson, Viés Médio (*Mean Bias Error*) e KTA (*Kernel Target Alignment* para avaliação de kernels/matrizes).<br/>• **Métricas de Classificação:** Acurácia, Acurácia Balanceada, Precisão, Revocação, F1-Score (macro/weighted), ROC-AUC e Log-Loss.<br/>• Escopos explícitos: `PER_FOLD`, `FOLD_AGGREGATION`, `POOLED_OOF` e `FINAL_HOLDOUT`.<br/>• Escopos de comparação: modelos em um cenário, cenários em um modelo, combinações completas, contra *baseline*, par a par e hipóteses planejadas.<br/>• Verificador de adequação metodológica e tratamento transparente de *folds* incompletos.<br/>• Métodos estatísticos iniciais: **Teste $t$ corrigido de Nadeau-Bengio**, **Teste pareado de Wilcoxon** (com verificação de pressupostos e alerta para $J \le 5$), correções de **Holm-Bonferroni** e **Benjamini-Hochberg**.<br/>• Cálculo de tamanho de efeito, intervalos de incerteza, avaliação de limiares de relevância prática, **Fronteira de Pareto** (desempenho vs. tempo/estabilidade) e gerador de `StructuredConclusion` auditável. |
+| **Etapa 1**<br/>(`data`) | • Ingestão de `.csv`, `.txt` (delimitadores configuráveis/detectáveis, `has_header=True\|False`) e `DataFrame` com cálculo de hash `SHA-256` e geração/validação de `observation_id`.<br/>• Suporte a alvo único ou multivariado (`target_col: str \| Sequence[str]`) e `unlabeled_pool` opcional para inferência prospectiva.<br/>• `DatasetProfile` completo: dimensões, uso de memória, tipos de colunas, ausentes, duplicatas, constantes, possíveis IDs, estatísticas descritivas numéricas, frequências categóricas, diagnóstico de escala/amplitude, perfil do `target` (regressão e classificação) e perfil de `group`.<br/>• Separação entre `CONFIRMED_ISSUE` e `HEURISTIC_WARNING`.<br/>• `PreparationPlan` explícito (imputação por média/mediana/moda/constante, codificação *One-Hot* e *Ordinal*, escalonamento *Standard*, *MinMax* e *MaxAbs*, `TargetTransformSpec` reversível ajustado por *fold* e remoção explícita de colunas/linhas). |
+| **Etapa 2**<br/>(`features`) | • `ExploratoryFeatureReport` com Pearson, Spearman, Informação Mútua (regressão e classificação) e detecção de pares colineares.<br/>• `FixedFeatureScenario` (lista manual com nome, descrição e justificativa científica).<br/>• `DynamicFeatureScenario` ajustado exclusivamente no treino de cada *fold* (estratégias iniciais: filtro de multicolinearidade, seleção Top-$K$ por correlação/informação mútua, ranking ponderado multi-critério em percentis e redução de dimensionalidade como `PCA`).<br/>• Registro dos atributos/componentes por *fold* e cálculo de estabilidade da seleção entre partições. |
+| **Etapa 3**<br/>(`models` & `tuning`) | • Contrato `ModelSpec`, `ModelCapabilities` (`requires_fit`, `supports_uncertainty`, `supports_predict_proba`, `supports_precomputed_kernel`) e `ModelAdapter` com isolamento de instância (`clone_fresh`).<br/>• Adaptadores iniciais:<br/>  1. **Estimadores padrão Scikit-Learn / XGBoost / GPR** (regressão, classificação e incerteza preditiva $\hat{y}_i \pm \hat{\sigma}_i$);<br/>  2. **Modelos Analíticos / Equações Biométricas** (`requires_fit=False` ou com calibração customizada);<br/>  3. **Adaptador Customizado / Quântico / Kernels / HHL** com suporte à exportação de `ModelDiagnostics` estruturados.<br/>• Pipeline de pré-processamento em 2 camadas (Cenário + Modelo, incluindo escalonadores `Standard`/`MinMax`/`MaxAbs`, `PCA` e `PrecomputedKernelTransformer` para matrizes de Gram $K_{\text{train}}, K_{\text{eval}}$) com bloqueio de duplicação acidental.<br/>• Busca de hiperparâmetros aninhada (*Nested CV* no treino externo): configuração fixa, **Grid Search** e **Random Search** com métrica e direção explícitas. |
+| **Etapa 4**<br/>(`validation` & `orchestration`) | • `PartitionPlan` imutável e validado antes da execução.<br/>• Estratégias iniciais: **K-Fold**, **Stratified K-Fold**, **Group K-Fold**, **Bootstrap** (comitê de $B$ reamostragens com reposição e validação *Out-of-Bag*), **Temporal Split** (corte cronológico / janela expansiva sem vazamento futuro) e **Holdout Simples**, operando nos 3 regimes (somente CV/Bootstrap, somente Holdout, ou CV na base de desenvolvimento + Holdout Final isolado).<br/>• `MatrixOrchestrator` com máquina de estados por célula, modos `FAULT_TOLERANT` e `FAIL_FAST`, paralelismo multi-core (`outer_n_jobs`) e controle de threads internas (`inner_model_threads`).<br/>• Persistência incremental em disco e retomada verificada (*Checkpoint & Resume*).<br/>• Registro de tempos desagregados, diagnósticos do modelo e armazenamento de predições/resíduos/incertezas (`y_std` e incerteza de comitê $\hat{\mu}_i, \hat{\sigma}_i$ sobre teste e `unlabeled_pool`) indexados por `observation_id`. |
+| **Etapa 5**<br/>(`metrics` & `statistics`) | • **Métricas de Regressão e Alinhamento:** $R^2$, RMSE, RMSE relativo (%), MAE, MAPE, correlação de Pearson, Viés Médio (*Mean Bias Error*) e KTA (*Kernel Target Alignment* para avaliação de kernels/matrizes).<br/>• **Métricas de Classificação:** Acurácia, Acurácia Balanceada, Precisão, Revocação, F1-Score (macro/weighted), ROC-AUC e Log-Loss.<br/>• Escopos explícitos: `PER_FOLD`, `FOLD_AGGREGATION`, `POOLED_OOF` e `FINAL_HOLDOUT`.<br/>• Escopos de comparação: modelos em um cenário, cenários em um modelo, combinações completas, contra *baseline*, par a par e hipóteses planejadas.<br/>• Verificador de adequação metodológica e tratamento transparente de *folds* incompletos.<br/>• Métodos estatísticos iniciais: **Teste $t$ corrigido de Nadeau-Bengio**, **Teste pareado de Wilcoxon** (com verificação de pressupostos e alerta para $J \le 5$), correções de **Holm-Bonferroni** e **Benjamini-Hochberg**.<br/>• Cálculo de tamanho de efeito, intervalos de incerteza, avaliação de limiares de relevância prática, **Fronteira de Pareto** (desempenho vs. tempo/estabilidade e múltiplos alvos $\hat{\mathbf{y}}_i$), **funções de aquisição sequencial** (`EI`, `UCB`/`LCB`, `Exploitation`, `Exploration`) e gerador de `StructuredConclusion` auditável. |
 | **Etapa 6**<br/>(`reporting` & `packaging`) | • Geração do pacote estruturado completo do experimento com manifesto, somas de verificação (`SHA-256`) e linhagem (`ArtifactProvenance`).<br/>• Relatório Científico Completo em **Markdown** e **HTML**.<br/>• Exportação modular de todas as famílias essenciais de tabelas em **CSV, Markdown e LaTeX (`booktabs`)**.<br/>• Exportação modular dos gráficos essenciais das Famílias A–G em **PNG (300 DPI), SVG e PDF**.<br/>• Regeneração de relatórios, tabelas e figuras a partir dos resultados persistidos sem retreino, e exportação de pacote reduzido/compartilhável sem caminhos absolutos. |
 
 ---
@@ -567,7 +575,7 @@ O Marco M1 é dividido em **três entregas sequenciais e independentemente verif
   * A inspeção direta do sistema confirmou dois interpretadores instalados: `/usr/bin/python3.14` (`Python 3.14.8`, com `pip 26.0.1` e `venv`) e `/usr/bin/python3.12` (`Python 3.12.15`, com `venv`).
   * Nenhum pacote científico (`numpy`, `scipy`, `pandas`, `scikit-learn`, `pytest`, `matplotlib`) está instalado no Python global do sistema operacional, e não há `.venv` pré-existente no diretório do projeto.
 * **Regra de Compatibilidade:**
-  * O `pyproject.toml` declarará `requires-python = ">=3.12"` (cobrindo os interpretadores 3.12 e 3.14 presentes na máquina), mas **uma versão de Python e de dependência só será registrada como efetivamente suportada após a instalação real no `.venv` local e aprovação da suíte de testes**.
+  * O `pyproject.toml` declarará `requires-python = ">=3.10"` (garantindo compatibilidade tanto com ambientes científicos Python 3.10–3.12 quanto com Python 3.14 presente na máquina), mas **uma versão de Python e de dependência só será registrada como efetivamente suportada após a instalação real no `.venv` local e aprovação da suíte de testes**.
 * **Escopo da Entrega M1.1:**
   * Criação do `.venv`, arquivo `pyproject.toml`, estrutura de pacotes `src/experimental_ml/` e `tests/test_smoke.py` validando importação, metadados de versão e disponibilidade real de `numpy`, `scipy` e `pytest`.
 

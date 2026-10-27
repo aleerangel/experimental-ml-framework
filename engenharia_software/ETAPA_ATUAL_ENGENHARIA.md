@@ -53,13 +53,13 @@ flowchart LR
 | :--- | :--- | :--- | :--- |
 | **Nível 0 (Fundação)** | `core` | Transversal | Identificadores tipados, `SeedSequence`, hashing `SHA-256`, serialização determinística e exceções/alertas |
 | **Nível 1 (Base)** | `metrics` | Transversal (3, 4 e 5) | `MetricSpec`, `MetricResult`, cálculo vetorizado ($R^2$, RMSE, MAE, MAPE, Pearson, Viés, KTA, Acc, F1, AUC, LogLoss) |
-| **Nível 1 (Base)** | `data` | Etapa 1 | `DatasetBundle`, `DatasetProfile`, `DiagnosticFinding`, `PreparationPlan`, `SanitizedDatasetView` |
-| **Nível 2** | `validation` | Etapa 4A | `PartitionPlan`, `KFold`, `StratifiedKFold`, `GroupKFold`, `TemporalSplit`, `Holdout`, validador de invariantes |
-| **Nível 2** | `features` | Etapa 2 | `ExploratoryFeatureReport`, `FixedFeatureScenario`, `DynamicFeatureScenario`, `ScenarioRegistry` |
-| **Nível 2** | `models` | Etapa 3A | `ModelSpec`, `ModelCapabilities`, `ModelAdapter`, `ModelDiagnostics`, `TwoLayerPreprocessingPipeline` |
+| **Nível 1 (Base)** | `data` | Etapa 1 | `DatasetBundle` (suporte a `.csv`/`.txt` com ou sem cabeçalho, `target_col` único/multivariado e `unlabeled_pool`), `DatasetProfile`, `DiagnosticFinding`, `PreparationPlan` (`TargetTransformSpec`), `SanitizedDatasetView` |
+| **Nível 2** | `validation` | Etapa 4A | `PartitionPlan`, `KFold`, `StratifiedKFold`, `GroupKFold`, `BootstrapSplit`, `TemporalSplit`, `Holdout`, validador de invariantes |
+| **Nível 2** | `features` | Etapa 2 | `ExploratoryFeatureReport`, `FixedFeatureScenario`, `DynamicFeatureScenario` (seletores e redução de dimensionalidade como `PCA`), `ScenarioRegistry` |
+| **Nível 2** | `models` | Etapa 3A | `ModelSpec`, `ModelCapabilities` (`requires_fit`, `supports_uncertainty`, `supports_precomputed_kernel`), `ModelAdapter`, `ModelDiagnostics`, `TwoLayerPreprocessingPipeline` (`PrecomputedKernelTransformer`) |
 | **Nível 3** | `tuning` | Etapa 3B | `HyperparameterSearchSpec`, executores *Nested CV* (`Fixed`, `GridSearch`, `RandomSearch`) |
-| **Nível 4** | `orchestration` | Etapa 4B | `MatrixOrchestrator`, `ExecutionCell`, `CellResultRecord`, `TimingBreakdown`, `MatrixRunStore` (*checkpoint/resume*) |
-| **Nível 5** | `statistics` | Etapa 5 | `DescriptiveConsolidation`, `MethodSuitabilityEvaluator`, `StatisticalJudgmentReport`, `MultiObjectiveSummary`, `StructuredConclusion` |
+| **Nível 4** | `orchestration` | Etapa 4B | `MatrixOrchestrator`, `ExecutionCell`, `CellResultRecord`, `PredictionRecord` (com `y_std` e comitê $\hat{\mu}_i, \hat{\sigma}_i$), `TimingBreakdown`, `MatrixRunStore` (*checkpoint/resume*) |
+| **Nível 5** | `statistics` | Etapa 5 | `DescriptiveConsolidation`, `MethodSuitabilityEvaluator`, `StatisticalJudgmentReport`, `MultiObjectiveSummary` (Pareto e funções de aquisição `EI`/`UCB`/`LCB`), `StructuredConclusion` |
 | **Nível 6** | `reporting` | Etapa 6 | `TableModel`, `PlotSpecification`, `ArtifactProvenance`, `ReproducibilityPackage` |
 
 ---
