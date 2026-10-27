@@ -1,6 +1,6 @@
 # experimental-ml-framework
 
-Harness experimental agnóstico para pesquisa científica em Machine Learning (regressão e classificação). O projeto provê infraestrutura para ingestão, gestão de cenários de atributos, validação cruzada estrita sem vazamento de dados, orquestração matricial de experimentos, inferência estatística rigorosa e exportação de tabelas e gráficos para publicação.
+Framework experimental agnóstico para pesquisa científica em Machine Learning, com suporte a tarefas de regressão e classificação. Oferece infraestrutura modular para ingestão e preparação de dados, configuração e comparação de conjuntos de atributos, execução reprodutível de experimentos, validação cruzada com prevenção de vazamento de dados, análise estatística dos resultados e geração de tabelas e visualizações prontas para publicação científica.
 
 ---
 
