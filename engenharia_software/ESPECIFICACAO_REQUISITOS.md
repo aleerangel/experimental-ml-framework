@@ -98,7 +98,7 @@ O `experimental-ml-framework` é um **harness científico agnóstico e pedagógi
 * **RNF03 (Autossuficiência 100% Offline):** Execução integralmente local, sem dependência obrigatória de serviços em nuvem, servidores externos ou conexão à internet.
 * **RNF04 (Eficiência Computacional e Armazenamento Escalável):** Vetorização numérica via NumPy/SciPy e carregamento sob demanda (*lazy loading*) de predições e artefatos volumosos para não esgotar a memória RAM em matrizes grandes.
 * **RNF05 (Testabilidade e Rigor Matemático):** Cobertura de testes automatizados (`pytest`) validando invariantes de vazamento zero, cálculos de métricas, testes de hipóteses estatísticas, isolamento de falhas e retomada de execução.
-* **RNF06 (Compatibilidade):** Suporte a Python $\ge 3.10$ com tipagem estática explícita (`typing.Protocol`, `dataclasses` / modelos tipados).
+* **RNF06 (Compatibilidade Verificada Empiricamente):** Suporte ao ecossistema Python moderno (interpretadores $\ge 3.12$ presentes no ambiente de desenvolvimento, incluindo `Python 3.12` e `Python 3.14`), sendo que nenhuma versão de Python ou biblioteca de terceiros é declarada como suportada sem verificação empírica via suíte de testes no ambiente virtual (`.venv`).
 * **RNF07 (Ergonomia Pedagógica):** API fluente para scripts Python e Jupyter Notebooks, acompanhada de diagnósticos e alertas redigidos de forma clara e instrutiva.
 
 ---

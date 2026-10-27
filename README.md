@@ -27,14 +27,17 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
   - [x] Definição do modelo de dados do experimento, máquina de estados e árvore de diretórios do pacote de reprodutibilidade.
   - [x] Separação estratégica entre o **MVP Essencial** e as **Evoluções Posteriores Plugáveis**.
   - [x] Consolidação formal em [`ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md).
-- [ ] **Fase 4: Implementação Guiada por Testes (TDD) do MVP**
-  - [ ] Configuração do empacotamento e suíte de testes (`pyproject.toml`, `src/`, `tests/`).
-  - [ ] Etapa 1: Módulo `data` e `diagnostics` (`DatasetBundle`, `DatasetProfile`, `PreparationPlan`).
-  - [ ] Etapa 2: Módulo `features` e `scenarios` (`ExploratoryFeatureReport`, `FixedScenario`, `DynamicScenario`).
-  - [ ] Etapa 3: Módulo `models` e `tuning` (`ModelSpec`, `ModelAdapter`, pipeline de 2 camadas e *Nested Search*).
-  - [ ] Etapa 4: Módulo `validation`, `orchestration` e `metrics` (`PartitionPlan`, `MatrixOrchestrator`, persistência e *resume*).
-  - [ ] Etapa 5: Módulo `statistics` (consolidação, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, Pareto e síntese estruturada).
-  - [ ] Etapa 6: Módulo `reporting` e `packaging` (tabelas CSV/MD/LaTeX, figuras PNG/SVG/PDF, relatórios completos e pacote de reprodutibilidade).
+- [ ] **Fase 4: Implementação Guiada por Testes (TDD) do MVP (Marcos M1–M7)**
+  - [ ] **M1 (`core` + `metrics`):**
+    - [ ] **M1.1:** Configuração do projeto (`pyproject.toml`, `.venv`), verificação empírica de compatibilidade e *smoke tests*.
+    - [ ] **M1.2:** Contratos, implementação e testes de `core` (IDs, enums, `SeedManager`, `config_hash`, `dataset_hash`, exceções/alertas).
+    - [ ] **M1.3:** Contratos, implementação e testes de `metrics` (`MetricValue`, `UNDEFINED_NAN` e 15 métricas com tolerâncias específicas por família).
+  - [ ] **M2 (`data` + `validation`):** Ingestão somente-leitura, `DatasetProfile`, `PreparationPlan` e `PartitionPlan` auditado (`KFold`, `StratifiedKFold`, `GroupKFold`, `TemporalSplit`, `Holdout`).
+  - [ ] **M3 (`features`):** `ExploratoryFeatureReport`, `FixedFeatureScenario` e `DynamicFeatureScenario` ajustado por *fold* com índice de estabilidade.
+  - [ ] **M4 (`models` + `tuning`):** `ModelSpec`, `ModelAdapter` com `clone_fresh`, pré-processamento em 2 camadas e *Nested Search* (`Fixed`, `GridSearch`, `RandomSearch`).
+  - [ ] **M5 (`orchestration`):** `MatrixOrchestrator`, isolamento de falhas (`FAULT_TOLERANT` / `FAIL_FAST`), paralelismo em 2 níveis e persistência com *checkpoint/resume*.
+  - [ ] **M6 (`statistics`):** Consolidação, adequação metodológica, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, relevância prática, Pareto e `StructuredConclusion`.
+  - [ ] **M7 (`reporting`):** Relatórios completos (MD/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência e pacote de reprodutibilidade.
 - [ ] **Fase 5: Verificação Experimental**
   - [ ] Reprodução do baseline científico do projeto de origem com paridade matemática e conceitual.
   - [ ] Validação de scripts e notebooks tutoriais guiados.

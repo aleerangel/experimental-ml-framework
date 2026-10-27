@@ -47,26 +47,32 @@ flowchart LR
 
 ---
 
-## 2. Síntese da Arquitetura por Etapa e Módulos
+## 2. Síntese da Arquitetura por Etapa e Módulos (`src/experimental_ml/`)
 
-| Etapa | Módulo(s) | Contratos Principais de Saída |
-| :--- | :--- | :--- |
-| **Etapa 1** | `data`, `diagnostics` | `DatasetBundle`, `DatasetProfile`, `DiagnosticFinding`, `PreparationPlan` |
-| **Etapa 2** | `features`, `scenarios` | `ExploratoryFeatureReport`, `FixedFeatureScenario`, `DynamicFeatureScenario`, `ScenarioRegistry` |
-| **Etapa 3** | `models`, `tuning` | `ModelSpec`, `ModelCapabilities`, `ModelAdapter`, `TwoLayerPreprocessingPipeline`, `HyperparameterSearchSpec` |
-| **Etapa 4** | `validation`, `orchestration` | `PartitionPlan`, `ExecutionCell`, `CellResultRecord`, `TimingBreakdown`, `MatrixRunStore` |
-| **Etapa 5** | `metrics`, `statistics` | `DescriptiveConsolidation`, `StatisticalJudgmentReport`, `MultiObjectiveSummary`, `StructuredConclusion` |
-| **Etapa 6** | `reporting`, `packaging` | `TableModel`, `PlotSpecification`, `ArtifactProvenance`, `ReproducibilityPackage` |
+| Nível Topológico | Módulo | Etapa Principal | Contratos Principais de Saída |
+| :--- | :--- | :--- | :--- |
+| **Nível 0 (Fundação)** | `core` | Transversal | Identificadores tipados, `SeedSequence`, hashing `SHA-256`, serialização determinística e exceções/alertas |
+| **Nível 1 (Base)** | `metrics` | Transversal (3, 4 e 5) | `MetricSpec`, `MetricResult`, cálculo vetorizado ($R^2$, RMSE, MAE, MAPE, Pearson, Viés, KTA, Acc, F1, AUC, LogLoss) |
+| **Nível 1 (Base)** | `data` | Etapa 1 | `DatasetBundle`, `DatasetProfile`, `DiagnosticFinding`, `PreparationPlan`, `SanitizedDatasetView` |
+| **Nível 2** | `validation` | Etapa 4A | `PartitionPlan`, `KFold`, `StratifiedKFold`, `GroupKFold`, `TemporalSplit`, `Holdout`, validador de invariantes |
+| **Nível 2** | `features` | Etapa 2 | `ExploratoryFeatureReport`, `FixedFeatureScenario`, `DynamicFeatureScenario`, `ScenarioRegistry` |
+| **Nível 2** | `models` | Etapa 3A | `ModelSpec`, `ModelCapabilities`, `ModelAdapter`, `ModelDiagnostics`, `TwoLayerPreprocessingPipeline` |
+| **Nível 3** | `tuning` | Etapa 3B | `HyperparameterSearchSpec`, executores *Nested CV* (`Fixed`, `GridSearch`, `RandomSearch`) |
+| **Nível 4** | `orchestration` | Etapa 4B | `MatrixOrchestrator`, `ExecutionCell`, `CellResultRecord`, `TimingBreakdown`, `MatrixRunStore` (*checkpoint/resume*) |
+| **Nível 5** | `statistics` | Etapa 5 | `DescriptiveConsolidation`, `MethodSuitabilityEvaluator`, `StatisticalJudgmentReport`, `MultiObjectiveSummary`, `StructuredConclusion` |
+| **Nível 6** | `reporting` | Etapa 6 | `TableModel`, `PlotSpecification`, `ArtifactProvenance`, `ReproducibilityPackage` |
 
 ---
 
-## 3. Próximos Passos Imediatos (Transição para Fase 4)
+## 3. Roadmap Incremental de Implementação TDD (Marcos M1 a M7)
 
-1. Definir a estrutura de pacotes Python (`pyproject.toml`, layout `src/experimental_ml/` e `tests/`) respeitando estritamente as fronteiras modulares de [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md).
-2. Implementar e testar com TDD cada etapa do **MVP Essencial** na ordem topológica do grafo de dependências:
-   * **Passo 4.1:** Núcleo de tipos/identificadores e Etapa 1 (`data` & `diagnostics`).
-   * **Passo 4.2:** Etapa 2 (`features` & `scenarios`) e Etapa 4A (`validation` / `PartitionPlan`).
-   * **Passo 4.3:** Etapa 3 (`models` & `tuning`).
-   * **Passo 4.4:** Etapa 4B (`orchestration` & `storage` com *checkpoint/resume* e `metrics`).
-   * **Passo 4.5:** Etapa 5 (`statistics`, análise multiobjetivo e conclusões estruturadas).
-   * **Passo 4.6:** Etapa 6 (`reporting` & `packaging`).
+1. **Marco M1 (`core` + `metrics`) — Subdividido em 3 Entregas Verificáveis:**
+   * **M1.1 (Configuração, `.venv` e *Smoke Tests*):** Criação do `.venv`, `pyproject.toml`, verificação empírica de versões (`Python 3.14` / `3.12`, `numpy`, `scipy`, `pytest`) e aprovação de `tests/test_smoke.py`.
+   * **M1.2 (Contratos, Implementação e Testes de `core`):** Identificadores imutáveis, enums, `SeedManager`, `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas) e exceções/alertas, com aprovação de `tests/unit/test_core.py`.
+   * **M1.3 (Contratos, Implementação e Testes de `metrics`):** `MetricValue`, `MetricStatus.UNDEFINED_NAN` com regras de propagação para *tuning*, agregação e rankings (ADR-005), e as 15 métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py`).
+2. **Marco M2 (`data` + `validation`):** Ingestão somente-leitura, `DatasetProfile` (problemas confirmados vs. alertas heurísticos), `PreparationPlan` e geração/validação matemática do `PartitionPlan` (`KFold`, `StratifiedKFold`, `GroupKFold`, `TemporalSplit`, `Holdout`).
+3. **Marco M3 (`features`):** `ExploratoryFeatureReport` rotulado, `FixedFeatureScenario` e `DynamicFeatureScenario` ajustado estritamente no treino de cada *fold*, com medição de estabilidade de seleção.
+4. **Marco M4 (`models` + `tuning`):** Contrato `ModelAdapter` com `clone_fresh` (clássicos, analíticos com `requires_fit=False` e quânticos/customizados), pipeline de pré-processamento em 2 camadas com bloqueio de duplicação e *Nested Tuning* (`Fixed`, `GridSearch`, `RandomSearch`).
+5. **Marco M5 (`orchestration`):** `MatrixOrchestrator` com máquina de estados, modos `FAULT_TOLERANT` / `FAIL_FAST`, paralelismo em dois níveis, persistência incremental e retomada verificada (*Checkpoint & Resume*).
+6. **Marco M6 (`statistics`):** Consolidação descritiva, adequação metodológica, tratamento de *folds* incompletos, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, tamanho de efeito, relevância prática, Fronteira de Pareto e `StructuredConclusion`.
+7. **Marco M7 (`reporting` + Verificação `prognose_florestal`):** Relatórios completos (MD/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência (`ArtifactProvenance`), pacote de reprodutibilidade e reprodução agnóstica do experimento de referência `prognose_florestal`.
