@@ -13,11 +13,11 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
   - [x] Catalogação dos resultados de referência ($R^2$, RMSE, MAE, KTA, HHL).
   - [x] Identificação de vulnerabilidades (acoplamentos a domínio, duplicações de código, distorções métricas).
 - [x] **Fase 2: Engenharia de Requisitos das 6 Etapas do Ciclo Experimental**
-  - [x] Definição da premissa arquitetural (ADR-001: framework atua como orquestrador agnóstico e não implementa modelos de ML internamente).
+  - [x] Definição da premissa arquitetural (ADR-001: framework recebe modelos e funções externas sem implementar algoritmos de ML internamente).
   - [x] Especificação da Etapa 1 (Entrada, triagem diagnóstica somente-leitura, problemas confirmados vs. alertas heurísticos e plano explícito de preparação).
   - [x] Especificação da Etapa 2 (Exploração rotulada de relações, cenários fixos e cenários dinâmicos ajustados por *fold* com rastreabilidade de estabilidade).
-  - [x] Especificação da Etapa 3 (Registro de modelos via adaptadores, suporte a equações analíticas sem `fit`, pré-processamento em 2 camadas, *tuning* aninhado e diagnósticos internos).
-  - [x] Especificação da Etapa 4 (`PartitionPlan` compartilhado, CV e *Holdout* isolado, orquestração resiliente a falhas, paralelismo em 2 níveis, *checkpoint/resume*, tempos desagregados e predições *out-of-fold*).
+  - [x] Especificação da Etapa 3 (Registro de modelos via contratos funcionais, suporte a equações analíticas sem `fit`, pré-processamento em 2 camadas, *tuning* aninhado e diagnósticos internos).
+  - [x] Especificação da Etapa 4 (`PartitionPlan` compartilhado, CV e *Holdout* isolado, orquestração da execução das células com tolerância a falhas, paralelismo em 2 níveis, *checkpoint/resume*, tempos desagregados e predições *out-of-fold*).
   - [x] Especificação da Etapa 5 (Consolidação descritiva, seleção metodológica de testes estatísticos, tratamento de incompletude, tamanho de efeito, relevância prática, Fronteira de Pareto e conclusões explicativas rastreáveis).
   - [x] Especificação da Etapa 6 (Relatório científico completo, 7 famílias de tabelas e figuras modulares, manifesto de proveniência por artefato e pacote portável de reprodutibilidade).
   - [x] Consolidação formal na [`ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md) (v2.0).
@@ -26,7 +26,7 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
   - [x] Adoção do paradigma modular procedural/funcional (sem orientação a objetos) e especificação da CLI modularizada (`expml`, ADR-008).
   - [x] Formalização dos contratos conceituais de entrada, saída, invariantes e pontos de extensão de cada módulo.
   - [x] Definição do modelo de dados do experimento, máquina de estados e árvore de diretórios do pacote de reprodutibilidade.
-  - [x] Separação estratégica entre o **MVP Essencial** e as **Evoluções Posteriores Plugáveis**.
+  - [x] Separação estratégica entre o **MVP Essencial** e as **Evoluções Posteriores**.
   - [x] Consolidação formal em [`ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md).
 - [ ] **Fase 4: Implementação Guiada por Testes (TDD) do MVP (Marcos M1–M7)**
   - [ ] **M1 (`core` + `metrics` + `cli` base):**
@@ -53,8 +53,8 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
 | **Etapa 2** | Camada 1: Definição e Triagem | `features` | `expml features` | Análise exploratória de relações (`explore_features`) e gerenciamento de cenários fixos (`mode="FIXED"`) e dinâmicos ajustados por *fold* (`select_features_in_fold`). |
 | **Etapa 3** | Camada 1: Definição e Triagem | `models`, `tuning` | `expml models` | Especificação e execução isolada de modelos (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento funcional em duas camadas, otimização aninhada (`run_nested_tuning`) e extração de diagnósticos. |
 | **Etapa 4** | Camada 2: Validação e Execução Matricial | `validation`, `orchestration` | `expml partition` / `expml run` | Geração e validação do `PartitionPlan` compartilhado (`build_partition_plan`), execução matricial (`run_experiment_matrix`) com tolerância a falhas, controle de paralelismo, *checkpoint/resume* e predições *out-of-fold*. |
-| **Etapa 5** | Camada 3: Julgamento Estatístico e Publicação | `statistics` (com `metrics`) | `expml stats` | Consolidação descritiva, avaliação de adequação de testes estatísticos, tamanho de efeito, relevância prática, análise multiobjetivo (`compute_pareto_frontier` e funções de aquisição) e conclusões rastreáveis. |
-| **Etapa 6** | Camada 3: Julgamento Estatístico e Publicação | `reporting` | `expml report` | Geração somente-leitura de relatórios científicos (Markdown/HTML), 7 famílias de tabelas e figuras modulares, manifesto de proveniência e pacote de reprodutibilidade (`build_reproducibility_package`). |
+| **Etapa 5** | Camada 3: Comparação Estatística e Publicação | `statistics` (com `metrics`) | `expml stats` | Consolidação descritiva, avaliação de adequação de testes estatísticos, tamanho de efeito, relevância prática, análise multiobjetivo (`compute_pareto_frontier` e funções de aquisição) e conclusões rastreáveis. |
+| **Etapa 6** | Camada 3: Comparação Estatística e Publicação | `reporting` | `expml report` | Geração somente-leitura de relatórios científicos (Markdown/HTML), 7 famílias de tabelas e figuras modulares, manifesto de proveniência e pacote de reprodutibilidade (`build_reproducibility_package`). |
 
 *(Os módulos `core` e `metrics` formam a fundação transversal de funções puras utilizada pelas três camadas, e `cli` provê a interface modularizada de linha de comando).*
 

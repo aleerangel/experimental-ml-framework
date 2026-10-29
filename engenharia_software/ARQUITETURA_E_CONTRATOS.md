@@ -21,7 +21,7 @@
    - [3.2 Etapa 2: Exploração de Relações e Cenários de Features](#32-etapa-2-exploração-de-relações-e-cenários-de-features)
    - [3.3 Etapa 3: Registro de Modelos, Circuitos, Pré-processamento e Hiperparâmetros](#33-etapa-3-registro-de-modelos-circuitos-pré-processamento-e-hiperparâmetros)
    - [3.4 Etapa 4: Particionamento, Validação e Execução Matricial](#34-etapa-4-particionamento-validação-e-execução-matricial)
-   - [3.5 Etapa 5: Consolidação dos Resultados e Julgamento Estatístico](#35-etapa-5-consolidação-dos-resultados-e-julgamento-estatístico)
+   - [3.5 Etapa 5: Consolidação dos Resultados e Comparação Estatística](#35-etapa-5-consolidação-dos-resultados-e-comparação-estatística)
    - [3.6 Etapa 6: Relatórios Científicos, Visualizações e Pacote de Reprodutibilidade](#36-etapa-6-relatórios-científicos-visualizações-e-pacote-de-reprodutibilidade)
 4. [Modelo de Dados do Experimento e Rastreabilidade](#4-modelo-de-dados-do-experimento-e-rastreabilidade)
 5. [Estrutura do Pacote de Reprodutibilidade em Disco](#5-estrutura-do-pacote-de-reprodutibilidade-em-disco)
@@ -33,15 +33,15 @@
 
 ## 1. Visão Geral da Arquitetura e Princípios Diretores
 
-O `experimental-ml-framework` é projetado como um **harness científico agnóstico** voltado à experimentação controlada em Aprendizado de Máquina (regressão e classificação). Sua arquitetura obedece a sete princípios estruturantes:
+O `experimental-ml-framework` é uma ferramenta de linha de comando e biblioteca modular em Python para configurar, executar e comparar experimentos de Aprendizado de Máquina (regressão e classificação) sob condições controladas de validação. Sua arquitetura obedece a sete princípios estruturantes:
 
-1. **Agnosticismo de Modelos e Bibliotecas (ADR-001):** O núcleo do framework não implementa algoritmos preditivos próprios; ele orquestra modelos externos (clássicos, redes neurais, circuitos/resolvedores quânticos, equações analíticas e biométricas) por meio de contratos e adaptadores padronizados.
+1. **Uso de Modelos Externos sem Implementação Própria (ADR-001):** O framework não implementa algoritmos preditivos nem cálculos de kernel internamente; ele recebe funções ou estimadores de bibliotecas externas (clássicos, redes neurais, circuitos/resolvedores quânticos, equações analíticas e biométricas), passa a eles os subconjuntos de treino e avaliação de cada partição e recolhe as predições e metadados resultantes.
 2. **Imutabilidade dos Dados de Origem e Zero Transformação Silenciosa:** A base original nunca é alterada durante a triagem ou exploração. Nenhuma imputação, codificação, remoção ou escalonamento ocorre sem configuração explícita ou ciência documentada do pesquisador.
 3. **Prevenção Estrutural contra Vazamento de Dados (*Zero Data Leakage by Design*):** Qualquer operação que aprenda parâmetros a partir dos dados (imputação, escalonamento, codificação baseada em frequência, seleção dinâmica de atributos e otimização de hiperparâmetros) é ajustada exclusivamente dentro dos dados de treinamento de cada partição (*fold*) externa.
 4. **Orientação Pedagógica e Transparência Metodológica:** Problemas estruturais confirmados são separados de alertas heurísticos. Limitações do desenho experimental, pressupostos estatísticos não atendidos e falhas parciais são reportados explicitamente, sem mascarar erros nem fabricar conclusões não sustentadas pelas evidências.
-5. **Desacoplamento entre Execução, Julgamento Estatístico e Apresentação:** Os resultados brutos da execução matricial (Etapa 4) são persistidos de modo que análises estatísticas (Etapa 5) e relatórios/gráficos (Etapa 6) possam ser reexecutados, reconfigurados ou reestilizados sem retreinar modelos.
-6. **Extensibilidade Aberta/Fechada (*Open/Closed Principle*):** Novos leitores de dados, estratégias de seleção de atributos, adaptadores de modelos, métodos de busca de hiperparâmetros, esquemas de particionamento, testes estatísticos e exportadores de relatórios podem ser adicionados via protocolos sem alterar o núcleo experimental.
-7. **Rastreabilidade e Linhagem Ponta a Ponta:** Cada métrica agregada, resultado estatístico, tabela ou figura mantém referência explícita aos identificadores do experimento, do plano de particionamento, das células de execução e das observações que lhe deram origem.
+5. **Desacoplamento entre Execução, Comparação Estatística e Apresentação:** Os resultados brutos da execução matricial (Etapa 4) são persistidos de modo que análises estatísticas (Etapa 5) e relatórios/gráficos (Etapa 6) possam ser reexecutados, reconfigurados ou reestilizados sem retreinar modelos.
+6. **Extensibilidade Aberta/Fechada (*Open/Closed Principle*):** Novos leitores de dados, funções de seleção de atributos, funções de integração de modelos, métodos de busca de hiperparâmetros, esquemas de particionamento, testes estatísticos e exportadores de relatórios podem ser adicionados sem alterar os módulos centrais.
+7. **Vínculo entre Resultados e Dados de Origem:** Cada métrica agregada, resultado estatístico, tabela ou figura registra os identificadores do experimento, do plano de particionamento, das células executadas e das observações que lhe deram origem.
 
 ---
 
@@ -65,7 +65,7 @@ A organização interna do framework divide-se em **três camadas arquiteturais*
 2. **Camada 2 — Camada de Validação e Execução Matricial (Etapa 4):**
    * **Responsabilidade:** Receber as especificações declaradas na Camada 1, gerar e validar matematicamente o plano de particionamento compartilhado (`PartitionPlan`) e executar a matriz experimental $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$ com isolamento de instâncias, aplicação estrita de transformações dentro do treino de cada partição, controle de paralelismo, tolerância a falhas e persistência incremental em disco (`MatrixRunStore`).
    * **Módulos principais:** `validation`, `orchestration`.
-3. **Camada 3 — Camada de Julgamento Estatístico e Publicação (Etapas 5 e 6):**
+3. **Camada 3 — Camada de Comparação Estatística e Publicação (Etapas 5 e 6):**
    * **Responsabilidade:** Consumir em modo somente-leitura os resultados, predições e metadados persistidos pela Camada 2 para consolidar métricas, realizar testes de hipóteses estatísticas, avaliar compromissos multiobjetivo (Fronteira de Pareto e funções de aquisição) e gerar relatórios científicos, tabelas, figuras e o pacote portável de reprodutibilidade.
    * **Restrição Arquitetural:** Nunca reexecuta treinamento de modelos; qualquer reanálise estatística ou regeneração visual ocorre diretamente sobre os artefatos persistidos.
    * **Módulos principais:** `statistics`, `reporting`.
@@ -87,7 +87,7 @@ flowchart TD
         M_Orchestration["orchestration<br/>(Execução Matricial e Persistência em Disco)"]
     end
 
-    subgraph Camada_3["Camada 3: Julgamento Estatístico e Publicação (Somente-Leitura)"]
+    subgraph Camada_3["Camada 3: Comparação Estatística e Publicação (Somente-Leitura)"]
         direction LR
         M_Statistics["statistics<br/>(Consolidação, Testes de Hipóteses e Pareto)"]
         M_Reporting["reporting<br/>(Relatórios, Tabelas, Figuras e Pacote)"]
@@ -118,8 +118,8 @@ flowchart LR
     E2 -->|"ExploratoryFeatureReport<br/>ScenariosCatalog"| E3["Etapa 3<br/>Registro de Modelos,<br/>Pré-processamento e Tuning"]
     E3 -->|"ModelsCatalog<br/>PreprocessingSpecs<br/>SearchSpecs"| E4A["Etapa 4A<br/>Plano de Particionamento<br/>Compartilhado"]
     E4A -->|"PartitionPlan<br/>(Validado)"| E4B["Etapa 4B<br/>Execução Matricial<br/>e Persistência"]
-    E4B -->|"Diretório runs/ & predictions/<br/>(Células + Predições)"| E5["Etapa 5<br/>Consolidação e<br/>Julgamento Estatístico"]
-    E5 -->|"StatisticalJudgmentReport<br/>MultiObjectiveSummary<br/>StructuredConclusion"| E6["Etapa 6<br/>Relatórios, Visualizações<br/>e Reprodutibilidade"]
+    E4B -->|"Diretório runs/ & predictions/<br/>(Células + Predições)"| E5["Etapa 5<br/>Consolidação e<br/>Comparação Estatística"]
+    E5 -->|"StatisticalComparisonReport<br/>MultiObjectiveSummary<br/>StructuredConclusion"| E6["Etapa 6<br/>Relatórios, Visualizações<br/>e Reprodutibilidade"]
 ```
 
 #### Resumo do Fluxo de Entradas e Saídas no Pipeline Operacional
@@ -130,8 +130,8 @@ flowchart LR
 | **Etapa 2:** Exploração e Cenários de Features | Camada 1 (Definição e Triagem) | `DatasetBundle`, `DatasetProfile`, `PreparationPlan` e especificações de cenários | Análise exploratória rotulada (`explore_features` com `EXPLORATORY_FULL_DATA`) e validação de cenários fixos e dinâmicos (`validate_scenarios`) | `ExploratoryFeatureReport`, catálogo `scenarios` (`mode="FIXED" \| "DYNAMIC"`) |
 | **Etapa 3:** Registro de Modelos e Tuning | Camada 1 (Definição e Triagem) | Especificações de modelos, funções/estimadores, regras de pré-processamento e espaços de busca | Validação de capacidades (`validate_model_spec`), validação do pipeline em 2 camadas (`validate_two_layer_preprocessing`) e especificação de *Nested CV* (`validate_search_spec`) | Catálogo `models` (`ModelSpec`, `ModelCapabilities`, `PreprocessingSpec`, `HyperparameterSearchSpec`) |
 | **Etapa 4:** Particionamento e Execução Matricial | Camada 2 (Validação e Execução) | `SanitizedDatasetView`, `PreparationPlan`, `scenarios`, `models`, `ValidationConfig` | **4A:** Geração e validação matemática de partições (`build_partition_plan`, `validate_partition_plan`).<br/>**4B:** Execução de cada célula $(m, c, f)$ (`run_experiment_matrix`, `resume_experiment_matrix`) com ajuste estrito no treino, *tuning* interno e persistência atômica | `PartitionPlan`, diretório de execução (`execution_state.json`, `CellResultRecord`, `TimingBreakdown`, `ModelDiagnostics`, `PredictionRecord` OOF e Holdout) |
-| **Etapa 5:** Consolidação e Julgamento Estatístico | Camada 3 (Julgamento e Publicação) | Artefatos de `runs/` e `predictions/`, `PartitionPlan`, `ComparisonSpec` | Consolidação descritiva (`consolidate_descriptive`), verificação de pressupostos (`evaluate_method_suitability`), testes pareados (`run_statistical_comparisons`), Pareto/aquisição (`analyze_multi_objective`) e síntese textual (`synthesize_conclusions`) | `DescriptiveConsolidation`, `StatisticalJudgmentReport`, `MultiObjectiveSummary`, `StructuredConclusion` |
-| **Etapa 6:** Relatórios, Figuras e Reprodutibilidade | Camada 3 (Julgamento e Publicação) | Artefatos persistidos das Etapas 1 a 5 (`dataset_profile.json`, `scenarios.json`, `models.json`, `partition_plan.json`, `runs/`, `statistics/`) | Seleção de conteúdo (`select_report_content`), geração de tabelas (`build_tables`) e figuras (`render_figures`) nas 7 famílias, linhagem e empacotamento (`build_reproducibility_package`) | Relatórios (`MD`/`HTML`), Tabelas (`CSV`/`MD`/`LaTeX`), Figuras (`PNG`/`SVG`/`PDF`), `ArtifactProvenance`, `ReproducibilityPackage` |
+| **Etapa 5:** Consolidação e Comparação Estatística | Camada 3 (Comparação e Publicação) | Artefatos de `runs/` e `predictions/`, `PartitionPlan`, `ComparisonSpec` | Consolidação descritiva (`consolidate_descriptive`), verificação de pressupostos (`evaluate_method_suitability`), testes pareados (`run_statistical_comparisons`), Pareto/aquisição (`analyze_multi_objective`) e síntese textual (`synthesize_conclusions`) | `DescriptiveConsolidation`, `StatisticalComparisonReport`, `MultiObjectiveSummary`, `StructuredConclusion` |
+| **Etapa 6:** Relatórios, Figuras e Reprodutibilidade | Camada 3 (Comparação e Publicação) | Artefatos persistidos das Etapas 1 a 5 (`dataset_profile.json`, `scenarios.json`, `models.json`, `partition_plan.json`, `runs/`, `statistics/`) | Seleção de conteúdo (`select_report_content`), geração de tabelas (`build_tables`) e figuras (`render_figures`) nas 7 famílias, linhagem e empacotamento (`build_reproducibility_package`) | Relatórios (`MD`/`HTML`), Tabelas (`CSV`/`MD`/`LaTeX`), Figuras (`PNG`/`SVG`/`PDF`), `ArtifactProvenance`, `ReproducibilityPackage` |
 
 ---
 
@@ -332,7 +332,7 @@ Registrar especificações de modelos heterogêneos sob estruturas de dados padr
    * **Camada 1 (Cenário):** transformações vinculadas aos atributos do cenário (imputação, codificação, seleção/redução `PCA`).
    * **Camada 2 (Específica do Modelo):** transformações exigidas pela tecnologia do modelo, incluindo:
      * Escalonadores de atributos (`standard_scale`, `minmax_scale`, `maxabs_scale`, normalização angular para portas de rotação quântica, conversão para `ndarray` numérico denso);
-     * **Orquestração de Funções Externas de Kernel Pré-computado:** quando o pesquisador fornece uma função/biblioteca externa de kernel (`supports_precomputed_kernel=True`), o framework não implementa o algoritmo de kernel (ADR-001), mas orquestra a passagem dos dados do *fold* para a função externa: envia $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ na etapa de ajuste (mantendo a referência a $\mathbf{X}_{\text{train}}$ no dicionário `fitted_preproc_state` da partição) e envia $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ na etapa de avaliação/teste, evitando vazamento de dados.
+     * **Passagem de Partições para Funções Externas de Kernel Pré-computado:** quando o modelo utiliza um kernel pré-computado externo (`supports_precomputed_kernel=True`), o framework não implementa o algoritmo de kernel (ADR-001); o pré-processamento da Camada 2 chama a função fornecida pelo pesquisador passando $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ no ajuste do *fold* (mantendo a referência a $\mathbf{X}_{\text{train}}$ no dicionário `fitted_preproc_state` da partição) e passando $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ na avaliação/teste, evitando vazamento de dados.
    * **Função Validadora (`validate_two_layer_preprocessing`):**
      * Garante que ambas as camadas recebam apenas `X_train` na etapa `fit`.
      * Detecta e impede duplicação acidental de transformações equivalentes entre a Camada 1 e a Camada 2 (salvo quando explicitamente forçada).
@@ -350,7 +350,7 @@ Registrar especificações de modelos heterogêneos sob estruturas de dados padr
 ### 3.4 Etapa 4: Particionamento, Validação e Execução Matricial
 
 #### Responsabilidade
-Gerar e validar o plano de particionamento independente, garantir que todas as configurações comparadas compartilhem exatamente as mesmas partições, orquestrar a execução da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$ com tolerância a falhas, controle de paralelismo e persistência com retomada (*resume*), e coletar predições, incertezas por observação, tempos e diagnósticos granulares.
+Gerar e validar o plano de particionamento independente, garantir que todas as configurações comparadas compartilhem exatamente as mesmas partições, coordenar a execução da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$ com tolerância a falhas, controle de paralelismo e persistência com retomada (*resume*), e coletar predições e incertezas indexadas por `observation_id`, tempos separados por subetapa da célula e metadados internos dos modelos.
 
 #### Entradas Conceituais
 * `DatasetBundle`, `PreparationPlan`, catálogos validados `scenarios` e `models`.
@@ -371,7 +371,14 @@ Gerar e validar o plano de particionamento independente, garantir que todas as c
      * Interseção nula entre base de desenvolvimento e *Holdout Final*.
      * Isolamento estrito de grupos quando `group_col` for utilizado ($\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$).
      * Ordem cronológica estrita em estratégias temporais ($\max(t_{\text{train}}) < \min(t_{\text{val}})$).
-2. **Funções de Orquestração (`run_experiment_matrix`, `resume_experiment_matrix`) e Máquina de Estados por Célula (`ExecutionCell`):**
+2. **Funções de Coordenação da Matriz (`run_experiment_matrix`, `resume_experiment_matrix`, `execute_single_cell`) e Máquina de Estados por Célula (`ExecutionCell`):**
+   * **Sequência Exata de Operações Coordenadas em Cada Célula $(m, c, f)$ (`execute_single_cell`):**
+     1. Recorta os subconjuntos `X_train, y_train` e `X_val, y_val` a partir da `SanitizedDatasetView` usando os `observation_id` definidos no `fold_id` do `PartitionPlan`;
+     2. Ajusta o pré-processamento da Camada 1 e a seleção de atributos do cenário (`select_features_in_fold`) exclusivamente sobre `X_train, y_train` e aplica a seleção sobre `X_val`;
+     3. Quando `search_type != "FIXED"`, executa `run_nested_tuning` subdividindo apenas `X_train, y_train` em partições internas para escolher a configuração $\theta^*$;
+     4. Ajusta o pré-processamento da Camada 2 (`fit_two_layer_preprocessing`) sobre `X_train` e aplica sobre `X_val`;
+     5. Instancia o modelo limpo com a semente da célula (`instantiate_fresh_model`), executa `fit_model` em `X_train, y_train`, executa `predict_model` sobre `X_val` (e opcionalmente sobre `unlabeled_pool`) e chama `extract_model_diagnostics`;
+     6. Reverte a escala das predições se `TargetTransformSpec` estiver ativo, calcula as métricas da partição e grava atomicamente `runs/cells/cell_<m>_<c>_<f>.json` e `predictions/pred_<m>_<c>_<f>.parquet`.
    * Cada combinação $(m, c, f)$ recebe um `cell_id` único e transita pelos estados:
      ```mermaid
      stateDiagram-v2
@@ -423,7 +430,7 @@ Gerar e validar o plano de particionamento independente, garantir que todas as c
 
 ---
 
-### 3.5 Etapa 5: Consolidação dos Resultados e Julgamento Estatístico
+### 3.5 Etapa 5: Consolidação dos Resultados e Comparação Estatística
 
 #### Responsabilidade
 Consolidar descritivamente os resultados da Etapa 4 e realizar comparações estatísticas, análises de tamanho de efeito, relevância prática, compromissos multiobjetivo (desempenho preditivo, estabilidade, custo computacional e múltiplos alvos $y_1, \dots, y_M$) e ordenação prospectiva de candidatos, produzindo conclusões estruturadas e auditáveis sem declarar vencedores arbitrários.
@@ -465,7 +472,7 @@ Consolidar descritivamente os resultados da Etapa 4 e realizar comparações est
   * Caso exista um subconjunto comum de partições válidas onde o pareamento seja preservado, pode apresentar a análise restrita a esse subconjunto **exclusivamente como análise condicional/alternativa**, documentando a perda de cobertura e o risco de viés caso a falha não seja aleatória.
 
 #### Saídas Conceituais (Contratos)
-1. **`StatisticalJudgmentReport`:**
+1. **`StatisticalComparisonReport`:**
    * **Contexto Experimental:** `comparison_id`, `experiment_id`, `partition_plan_id`, configurações comparadas, métrica e direção de otimização.
    * **Resumo Descritivo Pareado:** valores por *fold*, médias, desvios-padrão, medianas, IQRs, métricas *pooled OOF* e cobertura de execução (`completed_folds / total_folds`).
    * **Resultado Inferencial:**
@@ -516,7 +523,7 @@ Consumir em modo somente-leitura os artefatos estruturados das Etapas 1 a 5 para
 * **Família G — Artefatos Específicos de Famílias de Modelos (Extensível via Adaptadores):**
   * Tabelas, diagramas e arquivos próprios exportados opcionalmente pelos adaptadores (métricas e estrutura de circuitos quânticos/HHL, equações e coeficientes biométricos, importância de variáveis de modelos clássicos, histórico de épocas de redes neurais).
 
-#### Distinção Epistemológica no Relatório Completo e Ocultação de Metadados Técnicos Brutos
+#### Separação entre Dados Informados pelo Pesquisador, Resultados Medidos e Interpretações Estatísticas no Relatório Completo
 O relatório separa explicitamente três naturezas de informação (mantendo strings técnicas de hash `SHA-256` ocultas por padrão e restritas aos arquivos internos de auditoria em `reproducibility/`):
 1. **Declarações do Pesquisador (Proveniência Declarada):** objetivo científico, origem declarada dos dados, justificativas de cenários, escolhas de métricas e limiares de relevância prática.
 2. **Fatos Computacionais Registrados:** dimensões da base, versões de bibliotecas, sementes, partições, hiperparâmetros selecionados, métricas calculadas, tempos medidos, estatísticas de teste e falhas ocorridas.
@@ -610,7 +617,7 @@ experiments/run_<experiment_id>/
 
 ## 6. Recorte Estratégico: MVP Essencial vs. Evoluções Posteriores
 
-A construção será guiada por TDD (Fase 4), priorizando um **MVP Essencial** que implemente os contratos definitivos das 6 etapas ponta a ponta, permitindo adicionar as extensões posteriores como *plugins* sem refatoração arquitetural.
+A construção será guiada por TDD (Fase 4), priorizando um **MVP Essencial** que implemente os contratos definitivos das Etapas 1 a 6, permitindo adicionar as extensões posteriores como funções modulares sem refatoração arquitetural.
 
 ### 6.1 Escopo do MVP Essencial (Primeira Entrega Funcional Completa)
 
@@ -625,11 +632,11 @@ A construção será guiada por TDD (Fase 4), priorizando um **MVP Essencial** q
 
 ---
 
-### 6.2 Evoluções Posteriores (Pós-MVP, Plugáveis via Contratos Existentes)
+### 6.2 Evoluções Posteriores (Pós-MVP, Integráveis via Contratos Existentes)
 
 1. **Dados e Pré-processamento:** Leitores nativos para bancos SQL/Parquet de grande volume; imputadores multivariados iterativos/KNN; codificadores baseados em estatísticas regularizadas do alvo (*Target Encoding* aninhado por *fold*).
-2. **Seleção de Atributos:** Seletores *Wrapper* (RFE), *Embedded* ($L_1$/Lasso) e importância por permutação (*Permutation Importance*) integrados ao protocolo `FeatureSelectionStrategy`.
-3. **Modelos e Otimização:** Adaptadores especializados com gerenciamento nativo de GPU/épocas para PyTorch/TensorFlow; otimização Bayesiana (Optuna) via protocolo `TunerStrategy`.
+2. **Seleção de Atributos:** Seletores *Wrapper* (RFE), *Embedded* ($L_1$/Lasso) e importância por permutação (*Permutation Importance*) integrados como funções de seleção compatíveis com `select_features_in_fold`.
+3. **Modelos e Otimização:** Funções de integração com controle de GPU/épocas para PyTorch/TensorFlow; otimização Bayesiana (Optuna) integrada a `run_nested_tuning`.
 4. **Particionamento e Execução:** Estratégias avançadas de séries temporais com *gap/purge* (*PurgedWindowSplit*), *StratifiedGroupKFold* e execução distribuída em clusters.
 5. **Estatística Avançada:** Testes globais multi-configuração (Friedman + pós-testes de Nemenyi/Dunn), testes formais de equivalência (TOST) e testes específicos para comparação em *holdout* único (McNemar e *bootstrap* pareado de predições).
 6. **Publicação:** Compilação direta de relatórios completos para PDF via motor LaTeX local e templates pré-configurados para normas de periódicos específicos.
@@ -647,8 +654,8 @@ A ordem de implementação respeita as dependências entre os módulos de `src/e
 | **M3 — Exploração e Cenários de Features sem Vazamento** | `features`, `cli` (`features`) | • Seleção de atributos contaminada por dados de validação/teste;<br/>• Instabilidade oculta de cenários dinâmicos. | • **TA-M3.1 (Rótulo Exploratório):** Garantir que `ExploratoryFeatureReport` carregue `scope = EXPLORATORY_FULL_DATA` e não possa ser convertido silenciosamente em seleção pré-partição.<br/>• **TA-M3.2 (Prova de Zero Leakage na Seleção Dinâmica):** Inserir observações sintéticas extremas exclusivamente no conjunto de validação de um *fold* e provar que o resultado de `select_features_in_fold(X_train, y_train, scenario_spec)` é **idêntico** com ou sem a presença dessas observações na validação.<br/>• **TA-M3.3:** Registro exato das colunas selecionadas por *fold* e cálculo do índice de estabilidade de seleção entre *folds*. |
 | **M4 — Funções de Modelos, Pré-processamento em 2 Camadas e Nested Tuning** | `models`, `tuning`, `cli` (`models`) | • Contaminação de pesos/estado entre *folds*;<br/>• Transformação estatística ajustada fora do treino;<br/>• Duplicação acidental de escalonamento;<br/>• Vazamento da validação externa na escolha de hiperparâmetros. | • **TA-M4.1 (Isolamento de Instância):** Treinar um modelo com estado mutável em um *fold*, instanciar um novo para o próximo *fold* via `instantiate_fresh_model` e provar que nenhum peso/atributo ajustado anterior persiste.<br/>• **TA-M4.2 (Modelos Analíticos):** Executar função biométrica/analítica com `requires_fit=False` sem invocar etapa de ajuste artificial.<br/>• **TA-M4.3 (Zero Leakage em 2 Camadas e Bloqueio de Duplicação):** Provar que média/desvio calculados por `fit_two_layer_preprocessing` correspondem estritamente a `X_train`, e que configurar padronização idêntica nas duas camadas dispara erro/bloqueio de duplicação.<br/>• **TA-M4.4 (Nested Tuning Estrito):** Provar que `run_nested_tuning` (`grid_search` e `random_search`) subdivide apenas `X_train, y_train` do *fold* externo e nunca acessa `X_val, y_val` durante a escolha de $\theta^*$. |
 | **M5 — Execução Matricial, Tolerância a Falhas e Checkpoint/Resume** | `orchestration`, `cli` (`run`) | • Aborto completo de experimento longo por falha em uma célula;<br/>• Conversão silenciosa de falha em métrica zero;<br/>• Retomada inconsistente após alteração de dados/configuração. | • **TA-M5.1 (Sincronia de Partições):** Provar que todas as células $(m, c, f)$ executadas referenciam o mesmo `partition_plan_id` e avaliam exatamente os mesmos `observation_id` em cada *fold* $f$.<br/>• **TA-M5.2 (Isolamento de Falha):** Injetar um modelo que lança exceção no *fold* 2; verificar que em modo `FAULT_TOLERANT` a célula $(m, c, 2)$ fica com estado `FAILED` e metadados do erro, sem valor numérico zero nas métricas, enquanto as demais células concluem com `COMPLETED`.<br/>• **TA-M5.3 (Persistência e Resume Verificado):** Interromper uma matriz com 50% das células concluídas, retomar via `resume_experiment_matrix` a partir do disco e provar que apenas os 50% restantes são executados, produzindo resultado final idêntico a uma execução ininterrupta; tentar retomar após alterar o dataset ou `PartitionPlan` e verificar bloqueio de incompatibilidade. |
-| **M6 — Consolidação e Julgamento Estatístico Rigoroso** | `statistics`, `cli` (`stats`) | • Subestimação de variância em validação cruzada;<br/>• Descarte silencioso de *folds* falhos;<br/>• Confusão entre $p \ge \alpha$ e equivalência;<br/>• Afirmações textuais não sustentadas pelos números. | • **TA-M6.1 (Exatidão Estatística):** Validar as funções `paired_nadeau_bengio_test`, `paired_wilcoxon_test`, `holm_bonferroni` e `benjamini_hochberg` contra vetores analíticos de referência.<br/>• **TA-M6.2 (Cobertura Incompleta):** Avaliar comparação onde um modelo falhou em 1 *fold*; verificar que a comparação principal reporta incompletude e que qualquer análise em subconjunto comum aparece marcada como condicional.<br/>• **TA-M6.3 (Pareto e Conclusões Rastreáveis):** Validar a identificação da Fronteira de Pareto (`compute_pareto_frontier`) e verificar que toda afirmação em `StructuredConclusion` referencia campos numéricos existentes sem declarar equivalência a partir de $p \ge 0.05$. |
-| **M7 — Relatórios Científicos, Proveniência e Reprodução de Referência** | `reporting`, `cli` (`report`), integração ponta a ponta | • Recálculo oculto na camada de visualização;<br/>• Perda de linhagem entre tabela/gráfico e execução;<br/>• Caminhos absolutos quebrando portabilidade. | • **TA-M7.1 (Somente-Leitura e Regeneração Nível 1):** Gerar relatórios (Markdown/HTML), tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF) a partir de um diretório persistido na Etapa 4/5 sem carregar modelos em memória, provando que nenhum modelo é retreinado.<br/>• **TA-M7.2 (Linhagem e Portabilidade):** Verificar que cada arquivo gerado possui entrada válida em `artifact_provenance.json` e `checksums.sha256`, e que mover o diretório do experimento para outro caminho mantém todas as referências internas válidas.<br/>• **TA-M7.3 (Reprodução `prognose_florestal`):** Cumprimento integral do protocolo da Seção 8. |
+| **M6 — Consolidação e Comparação Estatística Rigorosa** | `statistics`, `cli` (`stats`) | • Subestimação de variância em validação cruzada;<br/>• Descarte silencioso de *folds* falhos;<br/>• Confusão entre $p \ge \alpha$ e equivalência;<br/>• Afirmações textuais não sustentadas pelos números. | • **TA-M6.1 (Exatidão Estatística):** Validar as funções `paired_nadeau_bengio_test`, `paired_wilcoxon_test`, `holm_bonferroni` e `benjamini_hochberg` contra vetores analíticos de referência.<br/>• **TA-M6.2 (Cobertura Incompleta):** Avaliar comparação onde um modelo falhou em 1 *fold*; verificar que a comparação principal reporta incompletude e que qualquer análise em subconjunto comum aparece marcada como condicional.<br/>• **TA-M6.3 (Pareto e Conclusões Rastreáveis):** Validar a identificação da Fronteira de Pareto (`compute_pareto_frontier`) e verificar que toda afirmação em `StructuredConclusion` referencia campos numéricos existentes sem declarar equivalência a partir de $p \ge 0.05$. |
+| **M7 — Relatórios Científicos, Proveniência e Reprodução de Referência** | `reporting`, `cli` (`report`), integração das Etapas 1 a 6 | • Recálculo oculto na camada de visualização;<br/>• Perda de linhagem entre tabela/gráfico e execução;<br/>• Caminhos absolutos quebrando portabilidade. | • **TA-M7.1 (Somente-Leitura e Regeneração Nível 1):** Gerar relatórios (Markdown/HTML), tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF) a partir de um diretório persistido na Etapa 4/5 sem carregar modelos em memória, provando que nenhum modelo é retreinado.<br/>• **TA-M7.2 (Linhagem e Portabilidade):** Verificar que cada arquivo gerado possui entrada válida em `artifact_provenance.json` e `checksums.sha256`, e que mover o diretório do experimento para outro caminho mantém todas as referências internas válidas.<br/>• **TA-M7.3 (Reprodução `prognose_florestal`):** Cumprimento integral do protocolo da Seção 8. |
 
 ---
 
@@ -738,7 +745,7 @@ Para comprovar o critério de aceitação **CA02**, o experimento original de pr
 4. **Etapa 4 (Particionamento Agrupado e Execução Matricial):**
    * O `PartitionPlan` é gerado por `build_partition_plan` com `group_kfold_split` sobre a coluna de grupo declarada, provando matematicamente interseção nula de parcelas entre treino e validação ($\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$).
    * A função `run_experiment_matrix` executa todas as combinações $(\text{Modelos} \times \text{Cenários} \times \text{Folds})$, salvando predições *out-of-fold*, resíduos e diagnósticos quânticos/biométricos.
-5. **Etapa 5 (Métricas Sem Distorção e Julgamento Estatístico):**
+5. **Etapa 5 (Métricas Sem Distorção e Comparação Estatística):**
    * O motor `metrics` calcula $R^2$, RMSE, RMSE (%), MAE, MAPE, Pearson, Viés Médio e KTA em ponto flutuante de dupla precisão (eliminando distorções como `math.ceil` identificadas na auditoria da Fase 1).
    * O módulo `statistics` executa as comparações formais entre os modelos clássicos, biométrico e quântico (Nadeau-Bengio, Wilcoxon, Holm-Bonferroni e Benjamini-Hochberg), avaliando também o compromisso entre erro preditivo e tempo de execução.
 6. **Etapa 6 (Relatório e Artefatos de Publicação):**
