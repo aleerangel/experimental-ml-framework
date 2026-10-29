@@ -40,27 +40,27 @@ flowchart LR
      * **Etapa 5:** Consolidação descritiva e julgamento estatístico separando desempenho observado, incerteza, significância estatística, tamanho de efeito, relevância prática e custo computacional (Fronteira de Pareto), com síntese textual estritamente auditável.
      * **Etapa 6:** Geração desacoplada de Relatórios Científicos Completos (Markdown/HTML) e artefatos modulares das 7 famílias de tabelas e figuras, com manifesto de proveniência (`ArtifactProvenance`) e pacote portável de reprodutibilidade.
 3. **Fase 3 — Arquitetura Geral, Contratos e Recorte de MVP ([`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)):**
-   * Definição do Grafo Direcionado Acíclico (DAG) de dependências entre módulos.
-   * Formalização das entradas, saídas, invariantes e pontos de extensão de cada módulo.
+   * Definição da arquitetura em três camadas (Definição e Triagem, Validação e Execução Matricial, Julgamento Estatístico e Publicação), do pipeline operacional de dados em seis etapas e das dependências entre os módulos de `src/experimental_ml/`.
+   * Formalização das entradas, saídas, invariantes e pontos de extensão de cada etapa e módulo.
    * Modelagem de dados completa do experimento e estrutura de diretórios do pacote de reprodutibilidade.
    * Definição explícita do **MVP Essencial** vs. **Evoluções Posteriores Plugáveis**.
 
 ---
 
-## 2. Síntese da Arquitetura por Etapa e Módulos (`src/experimental_ml/`)
+## 2. Síntese da Arquitetura em Camadas, Pipeline de Etapas e Módulos (`src/experimental_ml/`)
 
-| Nível Topológico | Módulo | Etapa Principal | Contratos Principais de Saída |
-| :--- | :--- | :--- | :--- |
-| **Nível 0 (Fundação)** | `core` | Transversal | Identificadores tipados, `SeedSequence`, hashing `SHA-256`, serialização determinística e exceções/alertas |
-| **Nível 1 (Base)** | `metrics` | Transversal (3, 4 e 5) | `MetricSpec`, `MetricResult`, cálculo vetorizado ($R^2$, RMSE, MAE, MAPE, Pearson, Viés, KTA, Acc, F1, AUC, LogLoss) |
-| **Nível 1 (Base)** | `data` | Etapa 1 | `DatasetBundle` (suporte a `.csv`/`.txt` com ou sem cabeçalho, `target_col` único/multivariado e `unlabeled_pool`), `DatasetProfile`, `DiagnosticFinding`, `PreparationPlan` (`TargetTransformSpec`), `SanitizedDatasetView` |
-| **Nível 2** | `validation` | Etapa 4A | `PartitionPlan`, `KFold`, `StratifiedKFold`, `GroupKFold`, `BootstrapSplit`, `TemporalSplit`, `Holdout`, validador de invariantes |
-| **Nível 2** | `features` | Etapa 2 | `ExploratoryFeatureReport`, `FixedFeatureScenario`, `DynamicFeatureScenario` (seletores e redução de dimensionalidade como `PCA`), `ScenarioRegistry` |
-| **Nível 2** | `models` | Etapa 3A | `ModelSpec`, `ModelCapabilities` (`requires_fit`, `supports_uncertainty`, `supports_precomputed_kernel`), `ModelAdapter`, `ModelDiagnostics`, `TwoLayerPreprocessingPipeline` (`PrecomputedKernelTransformer`) |
-| **Nível 3** | `tuning` | Etapa 3B | `HyperparameterSearchSpec`, executores *Nested CV* (`Fixed`, `GridSearch`, `RandomSearch`) |
-| **Nível 4** | `orchestration` | Etapa 4B | `MatrixOrchestrator`, `ExecutionCell`, `CellResultRecord`, `PredictionRecord` (com `y_std` e comitê $\hat{\mu}_i, \hat{\sigma}_i$), `TimingBreakdown`, `MatrixRunStore` (*checkpoint/resume*) |
-| **Nível 5** | `statistics` | Etapa 5 | `DescriptiveConsolidation`, `MethodSuitabilityEvaluator`, `StatisticalJudgmentReport`, `MultiObjectiveSummary` (Pareto e funções de aquisição `EI`/`UCB`/`LCB`), `StructuredConclusion` |
-| **Nível 6** | `reporting` | Etapa 6 | `TableModel`, `PlotSpecification`, `ArtifactProvenance`, `ReproducibilityPackage` |
+| Camada Arquitetural | Nível de Dependência | Módulo (`src/experimental_ml/`) | Etapa no Pipeline Operacional | Contratos Principais de Saída |
+| :--- | :--- | :--- | :--- | :--- |
+| **Fundação Transversal** | Nível 0 | `core` | Transversal (Etapas 1–6) | Identificadores tipados, `SeedSequence`, `config_hash`, `dataset_hash` e exceções/alertas |
+| **Fundação Transversal** | Nível 1 | `metrics` | Transversal (Etapas 2, 3, 4 e 5) | `MetricSpec`, `MetricValue`, `AggregatedMetricValue`, regras para `UNDEFINED_NAN` e 15 métricas vetorizadas |
+| **Camada 1: Definição e Triagem** | Nível 1 | `data` | Etapa 1 | `DatasetBundle` (`.csv`/`.txt` com ou sem cabeçalho, `target_col` único/multivariado, `unlabeled_pool`), `DatasetProfile`, `DiagnosticFinding`, `PreparationPlan` (`TargetTransformSpec`), `SanitizedDatasetView` |
+| **Camada 1: Definição e Triagem** | Nível 2 | `features` | Etapa 2 | `ExploratoryFeatureReport`, `FixedFeatureScenario`, `DynamicFeatureScenario` (seletores e redução de dimensionalidade como `PCA`), `ScenarioRegistry` |
+| **Camada 1: Definição e Triagem** | Nível 2 | `models` | Etapa 3A | `ModelSpec`, `ModelCapabilities` (`requires_fit`, `supports_uncertainty`, `supports_precomputed_kernel`), `ModelAdapter`, `ModelDiagnostics`, `TwoLayerPreprocessingPipeline` (`PrecomputedKernelTransformer`) |
+| **Camada 1: Definição e Triagem** | Nível 3 | `tuning` | Etapa 3B | `HyperparameterSearchSpec`, executores *Nested CV* (`Fixed`, `GridSearch`, `RandomSearch`) |
+| **Camada 2: Validação e Execução Matricial** | Nível 2 | `validation` | Etapa 4A | `PartitionPlan`, `KFold`, `StratifiedKFold`, `GroupKFold`, `BootstrapSplit`, `TemporalSplit`, `Holdout`, validador de invariantes |
+| **Camada 2: Validação e Execução Matricial** | Nível 4 | `orchestration` | Etapa 4B | `MatrixOrchestrator`, `ExecutionCell`, `CellResultRecord`, `PredictionRecord` (com `y_std` e comitê $\hat{\mu}_i, \hat{\sigma}_i$), `TimingBreakdown`, `MatrixRunStore` (*checkpoint/resume*) |
+| **Camada 3: Julgamento Estatístico e Publicação** | Nível 5 | `statistics` | Etapa 5 | `DescriptiveConsolidation`, `MethodSuitabilityEvaluator`, `StatisticalJudgmentReport`, `MultiObjectiveSummary` (Pareto e funções de aquisição `EI`/`UCB`/`LCB`), `StructuredConclusion` |
+| **Camada 3: Julgamento Estatístico e Publicação** | Nível 6 | `reporting` | Etapa 6 | `TableModel`, `PlotSpecification`, `ArtifactProvenance`, `ReproducibilityPackage` |
 
 ---
 

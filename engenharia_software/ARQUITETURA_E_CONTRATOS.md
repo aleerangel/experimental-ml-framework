@@ -11,7 +11,10 @@
 ## Sumário
 
 1. [Visão Geral da Arquitetura e Princípios Diretores](#1-visão-geral-da-arquitetura-e-princípios-diretores)
-2. [Grafo de Dependências e Fluxo Operacional das 6 Etapas](#2-grafo-de-dependências-e-fluxo-operacional-das-6-etapas)
+2. [Arquitetura em Camadas, Pipeline Operacional e Dependências entre Módulos](#2-arquitetura-em-camadas-pipeline-operacional-e-dependências-entre-módulos)
+   - [2.1 Arquitetura em Três Camadas](#21-arquitetura-em-três-camadas)
+   - [2.2 Pipeline Operacional de Dados (As 6 Etapas)](#22-pipeline-operacional-de-dados-as-6-etapas)
+   - [2.3 Dependências entre Módulos e Layout Físico (`src/experimental_ml/`)](#23-dependências-entre-módulos-e-layout-físico-srcexperimental_ml)
 3. [Especificação Detalhada dos Contratos por Etapa](#3-especificação-detalhada-dos-contratos-por-etapa)
    - [3.1 Etapa 1: Entrada, Triagem e Diagnóstico Estrutural da Base](#31-etapa-1-entrada-triagem-e-diagnóstico-estrutural-da-base)
    - [3.2 Etapa 2: Exploração de Relações e Cenários de Features](#32-etapa-2-exploração-de-relações-e-cenários-de-features)
@@ -41,61 +44,110 @@ O `experimental-ml-framework` é projetado como um **harness científico agnóst
 
 ---
 
-## 2. Grafo de Dependências e Fluxo Operacional das 6 Etapas
+## 2. Arquitetura em Camadas, Pipeline Operacional e Dependências entre Módulos
 
-O fluxo experimental organiza-se como um **Grafo Direcionado Acíclico (DAG)** dividido em três macrocamadas:
+A documentação arquitetural distingue três visões complementares do sistema:
+1. **Arquitetura em Três Camadas:** como o framework está estruturado internamente segundo as responsabilidades e o isolamento entre definição, execução e análise pós-execução.
+2. **Pipeline Operacional de Dados (6 Etapas):** a sequência de processamento pela qual os dados e objetos experimentais passam desde a leitura da base até a geração de relatórios e artefatos.
+3. **Dependências entre Módulos (`src/experimental_ml/`):** as relações de importação entre os pacotes Python que compõem o sistema.
 
-1. **Camada de Definição e Triagem (Etapas 1, 2 e 3):** Opera sem treinamento de modelos finais. Diagnostica os dados, explora relações entre variáveis, define cenários de atributos e registra especificações de modelos e espaços de busca.
-2. **Camada de Particionamento e Execução (Etapa 4):** Gera e valida o plano de particionamento independente e executa a matriz experimental $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$ com isolamento de estado, tolerância a falhas e persistência incremental.
-3. **Camada de Inferência e Publicação (Etapas 5 e 6):** Consome os artefatos persistidos da Etapa 4 para consolidar métricas, realizar testes de hipóteses estatísticas, avaliar compromissos multiobjetivo e renderizar relatórios científicos e pacotes de reprodutibilidade.
+---
+
+### 2.1 Arquitetura em Três Camadas
+
+A organização interna do framework divide-se em **três camadas arquiteturais** que se relacionam de forma unidirecional (cada camada consome exclusivamente os contratos e artefatos produzidos pela camada anterior), apoiadas por dois pacotes fundacionais transversais (`core` e `metrics`):
+
+1. **Camada 1 — Camada de Definição e Triagem (Etapas 1, 2 e 3):**
+   * **Responsabilidade:** Ingerir a base de dados em modo somente-leitura, executar o diagnóstico estrutural, definir o plano explícito de preparação, explorar relações entre variáveis, configurar cenários de atributos (fixos e dinâmicos) e registrar especificações de modelos, pré-processamento e espaços de busca de hiperparâmetros.
+   * **Restrição Arquitetural:** Opera sem executar o treinamento de modelos finais nem dividir as observações de avaliação.
+   * **Módulos principais:** `data`, `features`, `models`, `tuning`.
+2. **Camada 2 — Camada de Validação e Execução Matricial (Etapa 4):**
+   * **Responsabilidade:** Receber as especificações declaradas na Camada 1, gerar e validar matematicamente o plano de particionamento compartilhado (`PartitionPlan`) e executar a matriz experimental $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$ com isolamento de instâncias, aplicação estrita de transformações dentro do treino de cada partição, controle de paralelismo, tolerância a falhas e persistência incremental em disco (`MatrixRunStore`).
+   * **Módulos principais:** `validation`, `orchestration`.
+3. **Camada 3 — Camada de Julgamento Estatístico e Publicação (Etapas 5 e 6):**
+   * **Responsabilidade:** Consumir em modo somente-leitura os resultados, predições e metadados persistidos pela Camada 2 para consolidar métricas, realizar testes de hipóteses estatísticas, avaliar compromissos multiobjetivo (Fronteira de Pareto e funções de aquisição) e gerar relatórios científicos, tabelas, figuras e o pacote portável de reprodutibilidade.
+   * **Restrição Arquitetural:** Nunca reexecuta treinamento de modelos; qualquer reanálise estatística ou regeneração visual ocorre diretamente sobre os artefatos persistidos.
+   * **Módulos principais:** `statistics`, `reporting`.
+* **Módulos Fundacionais Transversais (`core` e `metrics`):**
+   * Fornecem identificadores tipados, controle determinístico de sementes, serialização/hashing canônico (`core`) e o cálculo vetorizado de métricas com semântica explícita para valores indefinidos (`metrics`), servindo às três camadas sem depender delas.
 
 ```mermaid
 flowchart TD
-    subgraph Camada_1["1. Camada de Definição e Triagem (Sem Treinamento de Modelos)"]
-        E1["Etapa 1: Entrada e Diagnóstico<br/>Módulo: data & diagnostics"]
-        E2["Etapa 2: Exploração e Cenários<br/>Módulo: features & scenarios"]
-        E3["Etapa 3: Registro de Modelos e Tuning<br/>Módulo: models & tuning"]
+    subgraph Camada_1["Camada 1: Definição e Triagem (Sem Treinamento Final)"]
+        direction LR
+        M_Data["data<br/>(Ingestão, Diagnóstico e PreparationPlan)"]
+        M_Features["features<br/>(Exploração e Cenários Fixos/Dinâmicos)"]
+        M_Models["models & tuning<br/>(ModelSpecs, Adaptadores e Espaços de Busca)"]
     end
 
-    subgraph Camada_2["2. Camada de Validação e Execução Matricial"]
-        E4A["Etapa 4A: Plano de Particionamento<br/>Módulo: validation"]
-        E4B["Etapa 4B: Orquestrador da Matriz<br/>Módulo: orchestration & storage"]
+    subgraph Camada_2["Camada 2: Validação e Execução Matricial"]
+        direction LR
+        M_Validation["validation<br/>(PartitionPlan Compartilhado e Auditado)"]
+        M_Orchestration["orchestration<br/>(MatrixOrchestrator e MatrixRunStore)"]
     end
 
-    subgraph Camada_3["3. Camada de Julgamento Estatístico e Publicação"]
-        E5["Etapa 5: Consolidação e Estatística<br/>Módulo: metrics & statistics"]
-        E6["Etapa 6: Relatórios e Reprodutibilidade<br/>Módulo: reporting & packaging"]
+    subgraph Camada_3["Camada 3: Julgamento Estatístico e Publicação (Somente-Leitura)"]
+        direction LR
+        M_Statistics["statistics<br/>(Consolidação, Testes de Hipóteses e Pareto)"]
+        M_Reporting["reporting<br/>(Relatórios, Tabelas, Figuras e Pacote)"]
     end
 
-    E1 -->|"DatasetBundle + DatasetProfile + PreparationPlan"| E2
-    E1 -->|"DatasetBundle (obs_id, target, group)"| E4A
-    E1 -->|"PreparationPlan (regras declaradas)"| E4B
-    E2 -->|"ScenarioRegistry (Cenários Fixos e Dinâmicos)"| E4B
-    E3 -->|"ModelRegistry (ModelSpecs + Adapters + SearchSpecs)"| E4B
-    E4A -->|"PartitionPlan (Imutável e Validado)"| E4B
-    E4B -->|"MatrixRunStore (Células, Predições OOF, Tempos, Diagnósticos)"| E5
-    E1 -.->|"Diagnóstico Inicial da Base"| E6
-    E2 -.->|"Especificação e Exploração de Cenários"| E6
-    E3 -.->|"Catálogo de Modelos e Configurações"| E6
-    E4A -.->|"Especificação das Partições"| E6
-    E4B -.->|"Histórico de Execuções, Falhas e Diagnósticos"| E6
-    E5 -->|"StatisticalJudgmentReport + MultiObjectiveSummary"| E6
+    subgraph Base_Transversal["Fundação Transversal"]
+        direction LR
+        M_Core["core (IDs, Sementes, Hashes, Exceções)"]
+        M_Metrics["metrics (Cálculo Vetorizado e Regras UNDEFINED_NAN)"]
+    end
+
+    Camada_1 ==>|"Especificações Imutáveis<br/>(DatasetBundle, PreparationPlan, ScenarioRegistry, ModelRegistry)"| Camada_2
+    Camada_2 ==>|"Artefatos de Execução Persistidos<br/>(PartitionPlan, CellResultRecords, Predições OOF/Holdout)"| Camada_3
+    Base_Transversal -.->|"Contratos Base e Cálculo de Métricas"| Camada_1
+    Base_Transversal -.->|"Contratos Base e Cálculo de Métricas"| Camada_2
+    Base_Transversal -.->|"Contratos Base e Cálculo de Métricas"| Camada_3
 ```
 
-### Regras de Dependência entre Módulos e Layout Físico (`src/experimental_ml/`)
+---
 
-Para eliminar qualquer possibilidade de dependência circular (especialmente no uso de métricas durante o *tuning* na Etapa 3, na avaliação de células na Etapa 4 e nos testes estatísticos na Etapa 5), a arquitetura física divide-se em **10 pacotes internos com ordem topológica estrita**:
+### 2.2 Pipeline Operacional de Dados (As 6 Etapas)
 
-1. **`core` (Nível 0 — Fundação):** Identificadores tipados, enumerações, protocolos base, política hierárquica de sementes (`SeedSequence`), utilitários de hash (`SHA-256`), serialização JSON determinística e hierarquia de exceções/alertas. Não depende de nenhum outro pacote do framework.
-2. **`metrics` (Nível 1 — Motor de Métricas):** Cálculo vetorizado de métricas de regressão, classificação e alinhamento (incluindo KTA quando aplicável), metadados de direção (`MAXIMIZE` / `MINIMIZE`) e escopo (`PER_FOLD`, `FOLD_AGGREGATION`, `POOLED_OOF`, `FINAL_HOLDOUT`). Depende apenas de `core`.
-3. **`data` (Nível 1 — Ingestão, Diagnóstico e Saneamento):** `DatasetBundle`, `DatasetProfile`, `DiagnosticFinding`, `PreparationPlan` e `SanitizedDatasetView`. Depende apenas de `core`.
-4. **`validation` (Nível 2 — Particionamento):** `PartitionPlan`, estratégias de divisão (`KFold`, `StratifiedKFold`, `GroupKFold`, `TemporalSplit`, `Holdout`) e validador matemático de invariantes de partição. Depende de `core` e `data`.
-5. **`features` (Nível 2 — Exploração e Cenários):** `ExploratoryFeatureReport`, `FixedFeatureScenario`, `DynamicFeatureScenario`, `ScenarioRegistry` e protocolo `FeatureSelectionStrategy` (incluindo filtro de colinearidade, Top-$K$ univariado e ranking ponderado multi-critério). Depende de `core`, `data` e `metrics`.
-6. **`models` (Nível 2 — Especificação e Adaptadores de Modelos):** `ModelSpec`, `ModelCapabilities`, `ModelAdapter` (clássicos, analíticos/biométricos com `requires_fit=False`, circuitos/resolvedores quânticos), `ModelDiagnostics` e `TwoLayerPreprocessingPipeline`. Depende de `core`.
-7. **`tuning` (Nível 3 — Otimização Aninhada):** `HyperparameterSearchSpec` e executores de busca (`Fixed`, `GridSearch`, `RandomSearch`) operando estritamente sobre partições internas do conjunto de treino externo. Depende de `core`, `metrics`, `validation`, `features` e `models`.
-8. **`orchestration` (Nível 4 — Execução Matricial e Persistência):** `MatrixOrchestrator`, máquina de estados de `ExecutionCell`, isolamento de falhas (`FAULT_TOLERANT` / `FAIL_FAST`), controle de paralelismo em dois níveis, `CellResultRecord` e `MatrixRunStore` (*checkpoint/resume*). Depende de `core`, `metrics`, `data`, `validation`, `features`, `models` e `tuning`.
-9. **`statistics` (Nível 5 — Consolidação e Julgamento Estatístico):** `DescriptiveConsolidator`, `MethodSuitabilityEvaluator`, testes de hipóteses (Nadeau-Bengio, Wilcoxon, correções de Holm-Bonferroni e Benjamini-Hochberg), tamanho de efeito, relevância prática, `MultiObjectiveSummary` (Fronteira de Pareto) e `ConclusionSynthesizer`. Depende de `core`, `metrics`, `validation` e `orchestration` (leitura de `MatrixRunStore`).
-10. **`reporting` (Nível 6 — Relatórios, Tabelas, Figuras e Pacote de Reprodutibilidade):** `ReportContentSelector`, `TableBuilder`, `FigureSpecBuilder`, renderizadores (CSV, Markdown, HTML, LaTeX `booktabs`, PNG/SVG/PDF), `ArtifactProvenance` e `ReproducibilityPackager`. Consome em modo somente-leitura os artefatos de todos os níveis anteriores.
+Do ponto de vista operacional, o processamento de um experimento segue um **pipeline de dados sequencial de seis etapas**. Cada etapa recebe artefatos estruturados das etapas anteriores e produz contratos de saída bem definidos para a etapa seguinte:
+
+```mermaid
+flowchart LR
+    E1["Etapa 1<br/>Entrada, Triagem e<br/>Diagnóstico da Base"] -->|"DatasetBundle<br/>DatasetProfile<br/>PreparationPlan"| E2["Etapa 2<br/>Exploração de Relações<br/>e Cenários de Features"]
+    E2 -->|"ExploratoryFeatureReport<br/>ScenarioRegistry"| E3["Etapa 3<br/>Registro de Modelos,<br/>Pré-processamento e Tuning"]
+    E3 -->|"ModelRegistry<br/>TwoLayerPipeline<br/>SearchSpecs"| E4A["Etapa 4A<br/>Plano de Particionamento<br/>Compartilhado"]
+    E4A -->|"PartitionPlan<br/>(Validado)"| E4B["Etapa 4B<br/>Execução Matricial<br/>e Persistência"]
+    E4B -->|"MatrixRunStore<br/>(Células + Predições)"| E5["Etapa 5<br/>Consolidação e<br/>Julgamento Estatístico"]
+    E5 -->|"StatisticalJudgmentReport<br/>MultiObjectiveSummary<br/>StructuredConclusion"| E6["Etapa 6<br/>Relatórios, Visualizações<br/>e Reprodutibilidade"]
+```
+
+#### Resumo do Fluxo de Entradas e Saídas no Pipeline Operacional
+
+| Etapa do Pipeline | Camada Arquitetural | Entradas Principais | Processamento Realizado | Saídas Principais (Contratos) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Etapa 1:** Entrada, Triagem e Diagnóstico | Camada 1 (Definição e Triagem) | Arquivos `.csv`/`.txt` ou `DataFrame`, `DatasetSchemaSpec` (`target_col`, `group_col`, `time_col`, `unlabeled_pool`) | Leitura imutável, cálculo de `dataset_hash`, diagnóstico estrutural/estatístico e declaração de tratamento | `DatasetBundle`, `DatasetProfile` (`CONFIRMED_ISSUE` vs. `HEURISTIC_WARNING`), `PreparationPlan`, `SanitizedDatasetView` |
+| **Etapa 2:** Exploração e Cenários de Features | Camada 1 (Definição e Triagem) | `DatasetBundle`, `DatasetProfile`, `PreparationPlan` e especificações de cenários | Análise exploratória rotulada (`EXPLORATORY_FULL_DATA`) e registro de cenários fixos e regras de cenários dinâmicos | `ExploratoryFeatureReport`, `FixedFeatureScenario`, `DynamicFeatureScenario`, `ScenarioRegistry` |
+| **Etapa 3:** Registro de Modelos e Tuning | Camada 1 (Definição e Triagem) | Especificações de modelos, adaptadores, transformadores de pré-processamento e espaços de busca | Catalogação de capacidades (`ModelCapabilities`), configuração do pipeline em 2 camadas e especificação de *Nested CV* | `ModelSpec`, `ModelAdapter`, `TwoLayerPreprocessingPipeline`, `HyperparameterSearchSpec`, `ModelRegistry` |
+| **Etapa 4:** Particionamento e Execução Matricial | Camada 2 (Validação e Execução) | `SanitizedDatasetView`, `PreparationPlan`, `ScenarioRegistry`, `ModelRegistry`, `ValidationConfig` | **4A:** Geração e validação matemática do plano de partições.<br/>**4B:** Execução de cada célula $(m, c, f)$ com ajuste estrito no treino, *tuning* interno, predição e persistência incremental | `PartitionPlan`, `MatrixRunStore` (`CellResultRecord`, `TimingBreakdown`, `ModelDiagnostics`, `PredictionRecord` OOF e Holdout) |
+| **Etapa 5:** Consolidação e Julgamento Estatístico | Camada 3 (Julgamento e Publicação) | `MatrixRunStore`, `PartitionPlan`, `ComparisonSpec` | Consolidação descritiva, verificação de pressupostos, testes de hipóteses pareados, correção de multiplicidade, Pareto, aquisição de candidatos e síntese textual auditável | `DescriptiveConsolidation`, `StatisticalJudgmentReport`, `MultiObjectiveSummary`, `StructuredConclusion` |
+| **Etapa 6:** Relatórios, Figuras e Reprodutibilidade | Camada 3 (Julgamento e Publicação) | Artefatos persistidos das Etapas 1 a 5 (`DatasetProfile`, `ScenarioRegistry`, `ModelRegistry`, `PartitionPlan`, `MatrixRunStore`, `StatisticalJudgmentReport`) | Seleção de conteúdo, construção de tabelas e gráficos nas 7 famílias, rastreamento de linhagem e empacotamento com hashes de integridade | Relatórios (`MD`/`HTML`), Tabelas (`CSV`/`MD`/`LaTeX`), Figuras (`PNG`/`SVG`/`PDF`), `ArtifactProvenance`, `ReproducibilityPackage` |
+
+---
+
+### 2.3 Dependências entre Módulos e Layout Físico (`src/experimental_ml/`)
+
+Separadamente do pipeline operacional, as relações de importação entre os pacotes Python em `src/experimental_ml/` seguem níveis de dependência estritos para evitar dependências circulares (especialmente porque o cálculo de métricas em `metrics` é necessário tanto no *tuning* da Etapa 3 quanto na avaliação da Etapa 4 e na consolidação da Etapa 5):
+
+1. **`core` (Nível 0 — Fundação Transversal):** Identificadores tipados, enumerações, protocolos base, política hierárquica de sementes (`SeedSequence`), utilitários de hash (`SHA-256`), serialização JSON determinística e hierarquia de exceções/alertas. Não depende de nenhum outro pacote do framework.
+2. **`metrics` (Nível 1 — Motor de Métricas Transversal):** Cálculo vetorizado de métricas de regressão, classificação e alinhamento (incluindo KTA quando aplicável), metadados de direção (`MAXIMIZE` / `MINIMIZE`) e escopo (`PER_FOLD`, `FOLD_AGGREGATION`, `POOLED_OOF`, `FINAL_HOLDOUT`). Depende apenas de `core`.
+3. **`data` (Nível 1 — Camada 1 / Etapa 1):** `DatasetBundle`, `DatasetProfile`, `DiagnosticFinding`, `PreparationPlan` e `SanitizedDatasetView` (inclui as rotinas de diagnóstico estrutural da base). Depende apenas de `core`.
+4. **`validation` (Nível 2 — Camada 2 / Etapa 4A):** `PartitionPlan`, estratégias de divisão (`KFold`, `StratifiedKFold`, `GroupKFold`, `BootstrapSplit`, `TemporalSplit`, `Holdout`) e validador matemático de invariantes de partição. Depende de `core` e `data`.
+5. **`features` (Nível 2 — Camada 1 / Etapa 2):** `ExploratoryFeatureReport`, `FixedFeatureScenario`, `DynamicFeatureScenario`, `ScenarioRegistry` e protocolo `FeatureSelectionStrategy` (incluindo filtro de colinearidade, Top-$K$ univariado, ranking ponderado multi-critério e redução `PCA`). Depende de `core`, `data` e `metrics`.
+6. **`models` (Nível 2 — Camada 1 / Etapa 3A):** `ModelSpec`, `ModelCapabilities`, `ModelAdapter` (clássicos, analíticos/biométricos com `requires_fit=False`, circuitos/resolvedores/kernels quânticos), `ModelDiagnostics` e `TwoLayerPreprocessingPipeline`. Depende de `core`.
+7. **`tuning` (Nível 3 — Camada 1 / Etapa 3B):** `HyperparameterSearchSpec` e executores de busca (`Fixed`, `GridSearch`, `RandomSearch`) operando estritamente sobre partições internas do conjunto de treino externo. Depende de `core`, `metrics`, `validation`, `features` e `models`.
+8. **`orchestration` (Nível 4 — Camada 2 / Etapa 4B):** `MatrixOrchestrator`, máquina de estados de `ExecutionCell`, isolamento de falhas (`FAULT_TOLERANT` / `FAIL_FAST`), controle de paralelismo em dois níveis, `CellResultRecord` e armazenamento em `MatrixRunStore` (*checkpoint/resume*). Depende de `core`, `metrics`, `data`, `validation`, `features`, `models` e `tuning`.
+9. **`statistics` (Nível 5 — Camada 3 / Etapa 5):** `DescriptiveConsolidator`, `MethodSuitabilityEvaluator`, testes de hipóteses (Nadeau-Bengio, Wilcoxon, correções de Holm-Bonferroni e Benjamini-Hochberg), tamanho de efeito, relevância prática, `MultiObjectiveSummary` (Fronteira de Pareto e funções de aquisição) e `ConclusionSynthesizer`. Depende de `core`, `metrics`, `validation` e `orchestration` (leitura de `MatrixRunStore`).
+10. **`reporting` (Nível 6 — Camada 3 / Etapa 6):** `ReportContentSelector`, `TableBuilder`, `FigureSpecBuilder`, renderizadores (CSV, Markdown, HTML, LaTeX `booktabs`, PNG/SVG/PDF), `ArtifactProvenance` e `ReproducibilityPackager`. Consome em modo somente-leitura os artefatos produzidos pelos pacotes anteriores.
 
 ---
 
@@ -552,7 +604,7 @@ A construção será guiada por TDD (Fase 4), priorizando um **MVP Essencial** q
 
 ## 7. Ordem de Implementação (Marcos M1–M7) e Testes de Aceitação
 
-A ordem de implementação obedece estritamente à ordenação topológica do grafo de dependências e prioriza a mitigação precoce dos **maiores riscos científicos** (vazamento de dados, mutação silenciosa, contaminação de estado entre modelos, perda de pareamento entre *folds* e inferência estatística inválida).
+A ordem de implementação respeita as dependências entre os módulos de `src/experimental_ml/` (Seção 2.3), avança pelas camadas arquiteturais e prioriza a mitigação precoce dos **maiores riscos científicos** (vazamento de dados, mutação silenciosa, contaminação de estado entre modelos, perda de pareamento entre *folds* e inferência estatística inválida).
 
 | Marco | Módulos Incluídos | Riscos Científicos Mitigados | Testes de Aceitação Objetivos (Critérios de Aprovação) |
 | :--- | :--- | :--- | :--- |

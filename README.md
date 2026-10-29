@@ -22,7 +22,7 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
   - [x] Especificação da Etapa 6 (Relatório científico completo, 7 famílias de tabelas e figuras modulares, manifesto de proveniência por artefato e pacote portável de reprodutibilidade).
   - [x] Consolidação formal na [`ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md) (v2.0).
 - [x] **Fase 3: Arquitetura Geral, Contratos Conceituais, Modelo de Dados e Recorte de MVP**
-  - [x] Definição do Grafo Direcionado Acíclico (DAG) de dependências entre as 6 etapas.
+  - [x] Definição da arquitetura em três camadas, do pipeline operacional de dados em 6 etapas e das dependências entre módulos.
   - [x] Formalização dos contratos conceituais de entrada, saída, invariantes e pontos de extensão de cada módulo.
   - [x] Definição do modelo de dados do experimento, máquina de estados e árvore de diretórios do pacote de reprodutibilidade.
   - [x] Separação estratégica entre o **MVP Essencial** e as **Evoluções Posteriores Plugáveis**.
@@ -44,16 +44,18 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
 
 ---
 
-## Arquitetura por Etapa do Ciclo Experimental
+## Arquitetura em Camadas e Pipeline Operacional (6 Etapas)
 
-| Etapa | Módulos | Responsabilidade Central |
-| :--- | :--- | :--- |
-| **Etapa 1** | `data`, `diagnostics` | Ingestão imutável (`.csv`, `.txt`, `DataFrame`), perfil diagnóstico completo (problemas confirmados vs. alertas heurísticos) e plano explícito de preparação. |
-| **Etapa 2** | `features`, `scenarios` | Análise exploratória de relações e gerenciamento de cenários de atributos fixos (`FixedScenario`) e dinâmicos ajustados por *fold* (`DynamicScenario`). |
-| **Etapa 3** | `models`, `tuning` | Registro de modelos heterogêneos via `ModelAdapter`, pré-processamento em duas camadas, otimização aninhada (*Nested CV*) e extração de diagnósticos internos. |
-| **Etapa 4** | `validation`, `orchestration` | Geração e validação do `PartitionPlan` compartilhado (CV e *Holdout* isolado), execução matricial com tolerância a falhas, controle de paralelismo, *checkpoint/resume* e predições *out-of-fold*. |
-| **Etapa 5** | `metrics`, `statistics` | Cálculo de métricas, avaliação de adequação de testes estatísticos, tamanho de efeito, relevância prática, análise multiobjetivo (Fronteira de Pareto) e conclusões rastreáveis. |
-| **Etapa 6** | `reporting`, `packaging` | Geração desacoplada de relatórios científicos (Markdown/HTML), 7 famílias de tabelas e figuras modulares, manifesto de proveniência e pacote de reprodutibilidade. |
+| Etapa do Pipeline | Camada Arquitetural | Módulos (`src/experimental_ml/`) | Responsabilidade Central |
+| :--- | :--- | :--- | :--- |
+| **Etapa 1** | Camada 1: Definição e Triagem | `data` | Ingestão imutável (`.csv`, `.txt`, `DataFrame`), perfil diagnóstico completo (problemas confirmados vs. alertas heurísticos) e plano explícito de preparação. |
+| **Etapa 2** | Camada 1: Definição e Triagem | `features` | Análise exploratória de relações e gerenciamento de cenários de atributos fixos (`FixedFeatureScenario`) e dinâmicos ajustados por *fold* (`DynamicFeatureScenario`). |
+| **Etapa 3** | Camada 1: Definição e Triagem | `models`, `tuning` | Registro de modelos heterogêneos via `ModelAdapter`, pré-processamento em duas camadas, otimização aninhada (*Nested CV*) e extração de diagnósticos internos. |
+| **Etapa 4** | Camada 2: Validação e Execução Matricial | `validation`, `orchestration` | Geração e validação do `PartitionPlan` compartilhado, execução matricial com tolerância a falhas, controle de paralelismo, *checkpoint/resume* e predições *out-of-fold*. |
+| **Etapa 5** | Camada 3: Julgamento Estatístico e Publicação | `statistics` (com `metrics`) | Consolidação descritiva, avaliação de adequação de testes estatísticos, tamanho de efeito, relevância prática, análise multiobjetivo (Fronteira de Pareto e funções de aquisição) e conclusões rastreáveis. |
+| **Etapa 6** | Camada 3: Julgamento Estatístico e Publicação | `reporting` | Geração somente-leitura de relatórios científicos (Markdown/HTML), 7 famílias de tabelas e figuras modulares, manifesto de proveniência e pacote de reprodutibilidade. |
+
+*(Os módulos `core` e `metrics` formam a fundação transversal utilizada pelas três camadas).*
 
 ---
 
@@ -63,4 +65,4 @@ Os documentos técnicos de acompanhamento e especificação estão centralizados
 
 - [`engenharia_software/ETAPA_ATUAL_ENGENHARIA.md`](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md): Registro do estado atual do ciclo de vida da engenharia.
 - [`engenharia_software/ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md): Especificação completa dos requisitos funcionais e não-funcionais das 6 etapas (SRS v2.0).
-- [`engenharia_software/ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md): Arquitetura geral, grafo de dependências, contratos conceituais, modelo de dados, pacote de reprodutibilidade e recorte de MVP.
+- [`engenharia_software/ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md): Arquitetura em camadas, pipeline operacional de 6 etapas, dependências entre módulos, contratos conceituais, modelo de dados, pacote de reprodutibilidade e recorte de MVP.
