@@ -167,7 +167,7 @@ src/experimental_ml/cli/
 ├── cmd_partition.py     # Etapa 4A: `expml partition build`, `expml partition verify`
 ├── cmd_run.py           # Etapa 4B: `expml run start`, `expml run resume`, `expml run status`
 ├── cmd_stats.py         # Etapa 5: `expml stats compare`, `expml stats pareto`, `expml stats acquire`
-└── cmd_report.py        # Etapa 6: `expml report generate`, `expml report package`
+└── cmd_report.py        # Etapa 6: `expml report generate`, `expml report package`, `expml report verify`
 ```
 
 * **Regras Arquiteturais da CLI:**
@@ -202,8 +202,13 @@ src/experimental_ml/cli/
     2. *Tipos Escalares:* Booleanos (`bool`, `np.bool_`) são verificados antes de `int` e serializados como `true`/`false`; inteiros (`int`, `np.integer`) em base 10; flutuantes (`float`, `np.floating`) convertidos para IEEE 754 `float64`, com `-0.0` normalizado para `0.0` e finitos formatados via `repr(float(x))`.
     3. *Valores Especiais:* `None` $\rightarrow$ `null`; `NaN`, `+Inf` e `-Inf` (incluindo quaisquer variantes de *payload* de `NaN`) são normalizados para objetos canônicos `{"__float_special__": "NaN" | "+Inf" | "-Inf"}`.
     4. *Coleções e Estruturas Aninhadas:* `Mapping` com chaves NFC ordenadas lexicograficamente por *code points* UTF-8 e separadores compactos `(",", ":")`; `tuple`/`NamedTuple` $\rightarrow$ `{"__type__": "tuple", "items": [...]}`; `set`/`frozenset` $\rightarrow$ `{"__type__": "set", "items": [...]}` ordenado pelos hashes canônicos de seus itens; `Enum` com qualificador explícito `{"__type__": Cls.__qualname__, "value": ...}`.
-  * **`dataset_hash(data, schema) -> str` (Dados Tabulares e Arrays):** Calcula `SHA-256` em fluxo binário sem materializar JSON gigante: concatena o `config_hash` do esquema ordenado de colunas e `observation_ids` com os buffers binários por coluna em *little-endian* (`<f8` para flutuantes com `-0.0 -> +0.0` e `NaN` normalizado para quiet NaN `0x7ff8000000000000`; `<i8` para inteiros; `|u1` para booleanos; marcador de nulo `\x00` vs `\x01` + tamanho `<Q` + UTF-8 NFC para texto/categorias).
-  * *Escopo e Limitação Declarada:* O contrato garante reprodutibilidade de hashes para os mesmos valores lógicos sob IEEE 754, mas não elimina diferenças numéricas a montante geradas por bibliotecas externas não-determinísticas (ex.: reduções paralelas em GPU/BLAS).
+  * **`dataset_hash(data_or_path, schema) -> str` (Arquivos de Entrada e Dados Tabulares em Memória):**
+    1. *Entrada via Arquivo em Disco (`.csv` / `.txt`):* Combina diretamente o `SHA-256` dos bytes do arquivo bruto (`compute_file_sha256(path)`) com o `config_hash` do `DatasetSchemaSpec`, evitando sobrecarga desnecessária de serialização coluna a coluna na leitura inicial.
+    2. *Entrada via `DataFrame` em Memória ou `SanitizedDatasetView`:* Calcula `SHA-256` em fluxo binário sem materializar JSON gigante, concatenando o `config_hash` do esquema ordenado de colunas e `observation_ids` com os buffers binários por coluna em *little-endian* (`<f8` para flutuantes com `-0.0 -> +0.0` e `NaN` normalizado para quiet NaN `0x7ff8000000000000`; `<i8` para inteiros; `|u1` para booleanos; marcador de nulo `\x00` vs `\x01` + tamanho `<Q` + UTF-8 NFC para texto/categorias).
+  * **Separação entre Auditoria Interna e Apresentação Científica (Visibilidade de Hashes):**
+    * Hashes (`dataset_hash`, `config_hash`, `checksums.sha256`) são **metadados técnicos de integridade** (distintos de proveniência científica e sem implicar autenticidade criptográfica de autoria). Eles são gravados nos arquivos internos (`data/dataset_descriptor.json`, `runs/execution_state.json`, `reproducibility/checksums.sha256`) para bloquear automaticamente retomadas inconsistentes (`expml run resume`) e permitir verificação sob demanda (`expml report verify`).
+    * Por padrão, **strings de hash nunca são exibidas na saída principal da CLI, nas tabelas de publicação nem no corpo do Relatório Científico**, apresentando-se ao usuário apenas identificadores semânticos legíveis (nome da base, dimensões, estratégia de partição, semente) e mensagens claras em linguagem natural caso uma alteração de arquivo seja detectada.
+  * *Escopo e Limitação Declarada:* O contrato garante detecção de alterações acidentais nos arquivos/dados sob IEEE 754, mas não substitui assinaturas digitais caso tanto os dados quanto os manifestos sejam editados intencionalmente, nem elimina diferenças numéricas a montante geradas por bibliotecas externas não-determinísticas (ex.: reduções paralelas em GPU/BLAS).
 * **ADR-008 (Paradigma Modular Baseado em Funções, Estruturas de Dados Simples e CLI Modularizada — Sem Orientação a Objetos):**
   * **Decisão:** O código interno do framework não utiliza orientação a objetos (classes de serviço, herança, polimorfismo de classes ou objetos com estado mutável). Cada módulo de `src/experimental_ml/` expõe **funções explícitas** com entradas, saídas, pré-condições e pós-condições bem definidas, trocando **estruturas de dados simples e imutáveis** (`dict` validados por esquema e `NamedTuple`).
   * **Justificativa:** Como o framework opera como um pipeline de transformação de dados e auditoria científica, funções puras que retornam explicitamente os parâmetros ajustados no treino (`fitted_params`) eliminam estados ocultos em instâncias e previnem vazamento de dados por reuso acidental de objetos entre *folds*.
@@ -511,10 +516,10 @@ Consumir em modo somente-leitura os artefatos estruturados das Etapas 1 a 5 para
 * **Família G — Artefatos Específicos de Famílias de Modelos (Extensível via Adaptadores):**
   * Tabelas, diagramas e arquivos próprios exportados opcionalmente pelos adaptadores (métricas e estrutura de circuitos quânticos/HHL, equações e coeficientes biométricos, importância de variáveis de modelos clássicos, histórico de épocas de redes neurais).
 
-#### Distinção Epistemológica no Relatório Completo
-O relatório separa explicitamente três naturezas de informação:
-1. **Declarações do Pesquisador:** objetivo científico, justificativas de cenários, escolhas de métricas e limiares de relevância prática.
-2. **Fatos Computacionais Registrados:** hashes, versões, partições, hiperparâmetros selecionados, métricas calculadas, tempos medidos, estatísticas de teste e falhas ocorridas.
+#### Distinção Epistemológica no Relatório Completo e Ocultação de Metadados Técnicos Brutos
+O relatório separa explicitamente três naturezas de informação (mantendo strings técnicas de hash `SHA-256` ocultas por padrão e restritas aos arquivos internos de auditoria em `reproducibility/`):
+1. **Declarações do Pesquisador (Proveniência Declarada):** objetivo científico, origem declarada dos dados, justificativas de cenários, escolhas de métricas e limiares de relevância prática.
+2. **Fatos Computacionais Registrados:** dimensões da base, versões de bibliotecas, sementes, partições, hiperparâmetros selecionados, métricas calculadas, tempos medidos, estatísticas de teste e falhas ocorridas.
 3. **Interpretações Derivadas e Condicionadas:** conclusões explicativas geradas a partir dos testes estatísticos e das regras configuradas, sempre acompanhadas de suas condições de validade e limitações.
 
 ---
