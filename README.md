@@ -23,21 +23,22 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
   - [x] Consolidação formal na [`ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md) (v2.0).
 - [x] **Fase 3: Arquitetura Geral, Contratos Conceituais, Modelo de Dados e Recorte de MVP**
   - [x] Definição da arquitetura em três camadas, do pipeline operacional de dados em 6 etapas e das dependências entre módulos.
+  - [x] Adoção do paradigma modular procedural/funcional (sem orientação a objetos) e especificação da CLI modularizada (`expml`, ADR-008).
   - [x] Formalização dos contratos conceituais de entrada, saída, invariantes e pontos de extensão de cada módulo.
   - [x] Definição do modelo de dados do experimento, máquina de estados e árvore de diretórios do pacote de reprodutibilidade.
   - [x] Separação estratégica entre o **MVP Essencial** e as **Evoluções Posteriores Plugáveis**.
   - [x] Consolidação formal em [`ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md).
 - [ ] **Fase 4: Implementação Guiada por Testes (TDD) do MVP (Marcos M1–M7)**
-  - [ ] **M1 (`core` + `metrics`):**
-    - [ ] **M1.1:** Configuração do projeto (`pyproject.toml`, `.venv`), verificação empírica de compatibilidade e *smoke tests*.
-    - [ ] **M1.2:** Contratos, implementação e testes de `core` (IDs, enums, `SeedManager`, `config_hash`, `dataset_hash`, exceções/alertas).
-    - [ ] **M1.3:** Contratos, implementação e testes de `metrics` (`MetricValue`, `UNDEFINED_NAN` e 15 métricas com tolerâncias específicas por família).
-  - [ ] **M2 (`data` + `validation`):** Ingestão somente-leitura (`.csv`/`.txt` com ou sem cabeçalho, `unlabeled_pool`, alvo único/multivariado), `DatasetProfile`, `PreparationPlan` (`TargetTransformSpec`) e `PartitionPlan` auditado (`KFold`, `StratifiedKFold`, `GroupKFold`, `Bootstrap`, `TemporalSplit`, `Holdout`).
-  - [ ] **M3 (`features`):** `ExploratoryFeatureReport`, `FixedFeatureScenario` e `DynamicFeatureScenario` ajustado por *fold* (seleção e redução de dimensionalidade) com índice de estabilidade.
-  - [ ] **M4 (`models` + `tuning`):** `ModelSpec`, `ModelAdapter` com `clone_fresh` e incerteza preditiva, pré-processamento em 2 camadas (incluindo kernels pré-computados) e *Nested Search* (`Fixed`, `GridSearch`, `RandomSearch`).
-  - [ ] **M5 (`orchestration`):** `MatrixOrchestrator`, isolamento de falhas (`FAULT_TOLERANT` / `FAIL_FAST`), paralelismo em 2 níveis, agregação de comitê e persistência com *checkpoint/resume*.
-  - [ ] **M6 (`statistics`):** Consolidação, adequação metodológica, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, relevância prática, Fronteira de Pareto, funções de aquisição sequencial e `StructuredConclusion`.
-  - [ ] **M7 (`reporting`):** Relatórios completos (MD/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência e pacote de reprodutibilidade.
+  - [ ] **M1 (`core` + `metrics` + `cli` base):**
+    - [ ] **M1.1:** Configuração do projeto (`pyproject.toml`, `.venv`), esqueleto da CLI modularizada (`expml`), verificação empírica de compatibilidade e *smoke tests*.
+    - [ ] **M1.2:** Contratos, implementação funcional e testes de `core` (IDs, constantes/enums, `derive_seeds`, `config_hash`, `dataset_hash`, validações/alertas).
+    - [ ] **M1.3:** Contratos, implementação funcional e testes de `metrics` (`MetricValue`, `METRICS_CATALOG`, `UNDEFINED_NAN` e 15 funções de métricas com tolerâncias específicas por família).
+  - [ ] **M2 (`data` + `validation` + CLI `data`/`partition`):** Funções de ingestão somente-leitura (`.csv`/`.txt` com ou sem cabeçalho, `unlabeled_pool`, alvo único/multivariado), `profile_dataset`, `create_preparation_plan` (`TargetTransformSpec`) e `build_partition_plan` auditado (`kfold_split`, `stratified_kfold_split`, `group_kfold_split`, `bootstrap_split`, `temporal_split`, `holdout_split`).
+  - [ ] **M3 (`features` + CLI `features`):** `explore_features`, validação de cenários (`FIXED` e `DYNAMIC`) e `select_features_in_fold` ajustado por *fold* (seleção e redução de dimensionalidade) com índice de estabilidade.
+  - [ ] **M4 (`models` + `tuning` + CLI `models`):** `ModelSpec`, funções `instantiate_fresh_model`, `fit_model`, `predict_model` com incerteza preditiva, pré-processamento funcional em 2 camadas (incluindo roteamento sem vazamento para funções externas de kernel pré-computado) e `run_nested_tuning` (`fixed`, `grid_search`, `random_search`).
+  - [ ] **M5 (`orchestration` + CLI `run`):** `run_experiment_matrix` e `resume_experiment_matrix`, isolamento de falhas (`FAULT_TOLERANT` / `FAIL_FAST`), paralelismo em 2 níveis, agregação de comitê e persistência com *checkpoint/resume*.
+  - [ ] **M6 (`statistics` + CLI `stats`):** Funções de consolidação, adequação metodológica, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, relevância prática, Fronteira de Pareto, funções de aquisição sequencial e `synthesize_conclusions`.
+  - [ ] **M7 (`reporting` + CLI `report`):** Funções de geração de relatórios completos (MD/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência e pacote de reprodutibilidade.
 - [ ] **Fase 5: Verificação Experimental**
   - [ ] Reprodução do baseline científico do projeto de origem com paridade matemática e conceitual.
   - [ ] Validação de scripts e notebooks tutoriais guiados.
@@ -46,16 +47,16 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
 
 ## Arquitetura em Camadas e Pipeline Operacional (6 Etapas)
 
-| Etapa do Pipeline | Camada Arquitetural | Módulos (`src/experimental_ml/`) | Responsabilidade Central |
-| :--- | :--- | :--- | :--- |
-| **Etapa 1** | Camada 1: Definição e Triagem | `data` | Ingestão imutável (`.csv`, `.txt`, `DataFrame`), perfil diagnóstico completo (problemas confirmados vs. alertas heurísticos) e plano explícito de preparação. |
-| **Etapa 2** | Camada 1: Definição e Triagem | `features` | Análise exploratória de relações e gerenciamento de cenários de atributos fixos (`FixedFeatureScenario`) e dinâmicos ajustados por *fold* (`DynamicFeatureScenario`). |
-| **Etapa 3** | Camada 1: Definição e Triagem | `models`, `tuning` | Registro de modelos heterogêneos via `ModelAdapter`, pré-processamento em duas camadas, otimização aninhada (*Nested CV*) e extração de diagnósticos internos. |
-| **Etapa 4** | Camada 2: Validação e Execução Matricial | `validation`, `orchestration` | Geração e validação do `PartitionPlan` compartilhado, execução matricial com tolerância a falhas, controle de paralelismo, *checkpoint/resume* e predições *out-of-fold*. |
-| **Etapa 5** | Camada 3: Julgamento Estatístico e Publicação | `statistics` (com `metrics`) | Consolidação descritiva, avaliação de adequação de testes estatísticos, tamanho de efeito, relevância prática, análise multiobjetivo (Fronteira de Pareto e funções de aquisição) e conclusões rastreáveis. |
-| **Etapa 6** | Camada 3: Julgamento Estatístico e Publicação | `reporting` | Geração somente-leitura de relatórios científicos (Markdown/HTML), 7 famílias de tabelas e figuras modulares, manifesto de proveniência e pacote de reprodutibilidade. |
+| Etapa do Pipeline | Camada Arquitetural | Módulos (`src/experimental_ml/`) | Subcomando CLI | Responsabilidade Central (Funções Modulares, Sem OOP) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Etapa 1** | Camada 1: Definição e Triagem | `data` | `expml data` | Ingestão imutável (`load_dataset`), perfil diagnóstico completo (`profile_dataset`: problemas confirmados vs. alertas heurísticos) e plano explícito de preparação (`create_preparation_plan`). |
+| **Etapa 2** | Camada 1: Definição e Triagem | `features` | `expml features` | Análise exploratória de relações (`explore_features`) e gerenciamento de cenários fixos (`mode="FIXED"`) e dinâmicos ajustados por *fold* (`select_features_in_fold`). |
+| **Etapa 3** | Camada 1: Definição e Triagem | `models`, `tuning` | `expml models` | Especificação e execução isolada de modelos (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento funcional em duas camadas, otimização aninhada (`run_nested_tuning`) e extração de diagnósticos. |
+| **Etapa 4** | Camada 2: Validação e Execução Matricial | `validation`, `orchestration` | `expml partition` / `expml run` | Geração e validação do `PartitionPlan` compartilhado (`build_partition_plan`), execução matricial (`run_experiment_matrix`) com tolerância a falhas, controle de paralelismo, *checkpoint/resume* e predições *out-of-fold*. |
+| **Etapa 5** | Camada 3: Julgamento Estatístico e Publicação | `statistics` (com `metrics`) | `expml stats` | Consolidação descritiva, avaliação de adequação de testes estatísticos, tamanho de efeito, relevância prática, análise multiobjetivo (`compute_pareto_frontier` e funções de aquisição) e conclusões rastreáveis. |
+| **Etapa 6** | Camada 3: Julgamento Estatístico e Publicação | `reporting` | `expml report` | Geração somente-leitura de relatórios científicos (Markdown/HTML), 7 famílias de tabelas e figuras modulares, manifesto de proveniência e pacote de reprodutibilidade (`build_reproducibility_package`). |
 
-*(Os módulos `core` e `metrics` formam a fundação transversal utilizada pelas três camadas).*
+*(Os módulos `core` e `metrics` formam a fundação transversal de funções puras utilizada pelas três camadas, e `cli` provê a interface modularizada de linha de comando).*
 
 ---
 
