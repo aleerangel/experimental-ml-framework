@@ -14,7 +14,7 @@ O `experimental-ml-framework` é especificado como uma biblioteca modular e ferr
 
 O propósito deste documento é consolidar a **fundamentação teórica, metodológica, estatística e normativa** das decisões arquiteturais e metodológicas do projeto. O objetivo é assegurar a **defensabilidade acadêmica e técnica** das escolhas de arquitetura, explicitando a lógica de estruturação dos contratos, as evidências científicas e normas técnicas que os sustentam, bem como os limites operacionais de cada abordagem.
 
-Para garantir rigor técnico e clareza conceitual, este catálogo adota quatro diretrizes editoriais:
+Para garantir rigor técnico e clareza conceitual, este catálogo adota três diretrizes editoriais:
 
 1. **Diferenciação epistemológica:** Distingue-se rigorosamente dedução matemática ou analítica, consenso e evidência empírica da literatura, padrões normativos técnicos e heurísticas de engenharia de software.
 2. **Declaração explícita de limitações:** Para cada referência citada, detalha-se o escopo suportado pela fonte e as adaptações requeridas pelo framework.
@@ -23,8 +23,6 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota quatro d
 ---
 
 ## 2. Escopo do Framework e Estado do Planejamento
-
-O planejamento do framework organiza o escopo em horizontes bem delimitados, diferenciando os contratos especificados para o MVP das extensões planejadas para etapas posteriores:
 
 * **Onda 1 (MVP Imediato — Contratos e Requisitos Especificados):**
   * **Etapa 1 (Ingestão e Diagnóstico):** Ingestão imutável de dados tabulares (`.csv`, `.txt` com/sem cabeçalho, `DataFrame`) e perfilamento diagnóstico automático (`DatasetProfile`), com separação entre anomalias confirmadas (`CONFIRMED_ISSUE`) e alertas heurísticos (`HEURISTIC_WARNING`).
@@ -252,7 +250,7 @@ O planejamento do framework organiza o escopo em horizontes bem delimitados, dif
 * **Decisões de Projeto:**
   * A orquestração da matriz experimental é modelada como uma **máquina de estados finita por célula** $(m, c, f)$, com transições entre os estados `PENDING`, `RUNNING`, `COMPLETED`, `FAILED` e `CANCELLED` ([Seção 3.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L382-L393)).
   * O mecanismo de retomada verificada (*Checkpoint & Resume*) prevê a preservação de resultados persistidos e o bloqueio de retomadas inconsistentes sob alteração de dados ou parâmetros (`CA-E4B-02`, [Seção 3.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L400-L402)).
-  * A especificação formal `MatrixExecutionAndResume.tla` foi elaborada para validar as propriedades de segurança e vivacidade do protocolo de orquestração sob execução concorrente.
+  * A especificação formal `MatrixExecutionAndResume.tla` está prevista como artefato de verificação do Marco M5, destinada a validar formalmente as propriedades de segurança e vivacidade do protocolo de orquestração sob execução concorrente.
 * **Justificativa Teórica em Métodos Formais:**
   * **Lamport (2002) — *Specifying Systems: The TLA+ Language and Tools for Hardware and Software Engineers*:** Apresenta a lógica temporal de ações (TLA+) e o verificador explícito de modelos TLC. TLA+ permite descrever formalmente sistemas de transição de estados. O model checker TLC realiza uma busca exaustiva no espaço de estados alcançáveis da especificação matemática, verificando:
     * *Invariantes de Segurança (Safety):* Assegura que estados inválidos não são atingidos (ex.: células `COMPLETED` não são sobrescritas em retomada; transições inválidas como `COMPLETED -> RUNNING` são inalcançáveis; células com falha não registram métricas como execução bem-sucedida).
