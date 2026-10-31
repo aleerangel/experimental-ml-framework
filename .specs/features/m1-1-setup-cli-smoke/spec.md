@@ -1,6 +1,6 @@
 # m1-1-setup-cli-smoke Specification
 
-**Approved**: [written when the user approves - YYYY-MM-DD - user: "their words"]
+**Approved**: 2026-10-31 - user: "A fase SPECIFY da feature m1-1-setup-cli-smoke foi aprovada."
 
 ## Problem Statement
 
