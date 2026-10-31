@@ -9,7 +9,8 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: none - change is straightforward setup/smoke CLI
-**Status**: Draft
+**Status**: Approved
+**Approved**: 2026-10-31 - user: "A fase TASKS da feature m1-1-setup-cli-smoke está aprovada."
 **Build**: none - Python interpreted package without ahead-of-time build step; quality verified via pytest gates
 **Run smoke**: `.venv/bin/pytest tests/test_smoke.py -v`
 
@@ -75,11 +76,11 @@ T3 → T4 → T5
 **Requirement**: SETUP-01, SETUP-03, SETUP-04
 
 **Done when**:
-- [ ] `pyproject.toml` defines `[build-system]` with `requires = ["hatchling"]` and `build-backend = "hatchling.build"`
-- [ ] `[project]` defines `name = "experimental-ml-framework"`, `version = "0.1.0.dev0"`, and declared `requires-python = ">=3.10"`
-- [ ] `[project.optional-dependencies]` declares `dev = ["pytest>=7.0.0"]`
-- [ ] `[project.scripts]` declares `expml = "experimental_ml.cli.main:main"`
-- [ ] Gate check passes: `.venv/bin/python -c "import tomllib; tomllib.load(open('pyproject.toml', 'rb'))"`
+- [x] `pyproject.toml` defines `[build-system]` with `requires = ["hatchling"]` and `build-backend = "hatchling.build"`
+- [x] `[project]` defines `name = "experimental-ml-framework"`, `version = "0.1.0.dev0"`, and declared `requires-python = ">=3.10"`
+- [x] `[project.optional-dependencies]` declares `dev = ["pytest>=7.0.0"]`
+- [x] `[project.scripts]` declares `expml = "experimental_ml.cli.main:main"`
+- [x] Gate check passes: `.venv/bin/python -c "import tomllib; tomllib.load(open('pyproject.toml', 'rb'))"`
 
 **Tests**: none
 **Gate**: quick
@@ -95,10 +96,10 @@ T3 → T4 → T5
 **Requirement**: SETUP-02
 
 **Done when**:
-- [ ] `src/experimental_ml/__init__.py` created
-- [ ] Exposes `__version__ = "0.1.0.dev0"`
-- [ ] Defines `__all__ = ["__version__"]`
-- [ ] Gate check passes: `.venv/bin/python -c "import sys; sys.path.insert(0, 'src'); import experimental_ml; assert experimental_ml.__version__ == '0.1.0.dev0'"`
+- [x] `src/experimental_ml/__init__.py` created
+- [x] Exposes `__version__ = "0.1.0.dev0"`
+- [x] Defines `__all__ = ["__version__"]`
+- [x] Gate check passes: `.venv/bin/python -c "import sys; sys.path.insert(0, 'src'); import experimental_ml; assert experimental_ml.__version__ == '0.1.0.dev0'"`
 
 **Tests**: none
 **Gate**: quick
@@ -116,12 +117,12 @@ T3 → T4 → T5
 **Requirement**: CLI-01, CLI-02, CLI-03, CLI-04
 
 **Done when**:
-- [ ] `src/experimental_ml/cli/main.py` created with `build_parser()` and `main(argv=None)` entrypoint
-- [ ] `--version` prints version string and exits with code 0
-- [ ] `--help` / `-h` prints usage message and exits with code 0
-- [ ] Unrecognized arguments exit with code 2 and write error message to stderr
-- [ ] No imports of unwritten modules (`core`, `metrics`, `data`)
-- [ ] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/cli/main.py`
+- [x] `src/experimental_ml/cli/main.py` created with `build_parser()` and `main(argv=None)` entrypoint
+- [x] `--version` prints version string and exits with code 0
+- [x] `--help` / `-h` prints usage message and exits with code 0
+- [x] Unrecognized arguments exit with code 2 and write error message to stderr
+- [x] No imports of unwritten modules (`core`, `metrics`, `data`)
+- [x] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/cli/main.py`
 
 **Tests**: none
 **Gate**: quick
@@ -137,12 +138,12 @@ T3 → T4 → T5
 **Requirement**: SMOKE-01, SMOKE-02, SMOKE-03
 
 **Done when**:
-- [ ] `tests/test_smoke.py` created with unit and integration tests covering ACs
-- [ ] Tests assert package import and non-empty `__version__ == "0.1.0.dev0"`
-- [ ] Tests assert `expml` CLI invocation for `--help` (exit 0), `--version` (exit 0), and invalid argument (exit 2)
-- [ ] Tests assert that `experimental_ml.cli.main` does not import unwritten modules
-- [ ] Gate check passes: `.venv/bin/pytest tests/test_smoke.py -v`
-- [ ] Test count: 12 tests pass
+- [x] `tests/test_smoke.py` created with unit and integration tests covering ACs
+- [x] Tests assert package import and non-empty `__version__ == "0.1.0.dev0"`
+- [x] Tests assert `expml` CLI invocation for `--help` (exit 0), `--version` (exit 0), and invalid argument (exit 2)
+- [x] Tests assert that `experimental_ml.cli.main` does not import unwritten modules
+- [x] Gate check passes: `.venv/bin/pytest tests/test_smoke.py -v`
+- [x] Test count: 12 tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -158,10 +159,10 @@ T3 → T4 → T5
 **Requirement**: SETUP-05
 
 **Done when**:
-- [ ] `.venv/bin/pip install -e ".[dev]"` completes with exit code 0
-- [ ] `.venv/bin/expml --version` executes directly on PATH with exit code 0
-- [ ] `.venv/bin/expml --help` executes directly on PATH with exit code 0
-- [ ] Gate check passes: `.venv/bin/expml --version && .venv/bin/pytest tests/test_smoke.py -v`
+- [x] `.venv/bin/pip install -e ".[dev]"` completes with exit code 0
+- [x] `.venv/bin/expml --version` executes directly on PATH with exit code 0
+- [x] `.venv/bin/expml --help` executes directly on PATH with exit code 0
+- [x] Gate check passes: `.venv/bin/expml --version && .venv/bin/pytest tests/test_smoke.py -v`
 
 **Tests**: integration
 **Gate**: full
@@ -214,7 +215,7 @@ The feature's live state, written as it happens - a compaction gives no warning.
 
 **Settled mid-build:** none
 **Dispatched:** none
-**Walked:** none
+**Walked:** T1, T2, T3, T4, T5 completed. All 12 checks passed in check_proofs.py and pytest. Ready for final review.
 
 ---
 
