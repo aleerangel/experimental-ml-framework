@@ -12,14 +12,13 @@
 
 O `experimental-ml-framework` é especificado como uma biblioteca modular e ferramenta de linha de comando (`expml`) em Python, voltada à execução de experimentos de Aprendizado de Máquina (*Machine Learning* — ML) para tarefas de regressão e classificação, com suporte a comparação estatística, verificação de integridade e geração reprodutível de relatórios científicos.
 
-O propósito deste documento é consolidar a **fundamentação teórica, metodológica, estatística e normativa** das decisões arquiteturais e metodológicas do projeto. O objetivo é assegurar a **defensabilidade acadêmica e técnica** das escolhas de desenho, explicitando a lógica de estruturação dos contratos, as evidências científicas e normas técnicas que os sustentam, bem como os limites operacionais de cada abordagem.
+O propósito deste documento é consolidar a **fundamentação teórica, metodológica, estatística e normativa** das decisões arquiteturais e metodológicas do projeto. O objetivo é assegurar a **defensabilidade acadêmica e técnica** das escolhas de arquitetura, explicitando a lógica de estruturação dos contratos, as evidências científicas e normas técnicas que os sustentam, bem como os limites operacionais de cada abordagem.
 
 Para garantir rigor técnico e clareza conceitual, este catálogo adota quatro diretrizes editoriais:
 
-1. **Linguagem técnica e impessoal:** As decisões são descritas a partir dos requisitos de engenharia, dos problemas metodológicos identificados e das soluções especificadas no projeto.
-2. **Diferenciação epistemológica:** Distingue-se rigorosamente dedução matemática ou analítica, consenso e evidência empírica da literatura, padrões normativos técnicos e heurísticas de engenharia de software.
-3. **Declaração explícita de limitações:** Para cada referência citada, detalha-se o escopo suportado pela fonte e as adaptações requeridas pelo framework.
-4. **Vinculação direta aos contratos:** Todas as justificativas são mapeadas para os critérios de aceitação, decisões de arquitetura (ADRs) e especificações funcionais descritas em [`ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md) e [`ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md).
+1. **Diferenciação epistemológica:** Distingue-se rigorosamente dedução matemática ou analítica, consenso e evidência empírica da literatura, padrões normativos técnicos e heurísticas de engenharia de software.
+2. **Declaração explícita de limitações:** Para cada referência citada, detalha-se o escopo suportado pela fonte e as adaptações requeridas pelo framework.
+3. **Vinculação direta aos contratos:** Todas as justificativas são mapeadas para os critérios de aceitação, decisões de arquitetura (ADRs) e especificações funcionais descritas em [`ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md) e [`ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md).
 
 ---
 
@@ -289,8 +288,6 @@ A tabela a seguir consolida a relação entre as decisões de projeto, os docume
 ---
 
 ## 11. Referências Bibliográficas e Normativas Completas
-
-Abaixo constam as referências bibliográficas, técnicas e normativas que sustentam as decisões do framework, organizadas segundo a norma ABNT NBR 6023:2018 (com identificadores DOI e endereços de acesso quando disponíveis):
 
 1. **ALTMAN, Douglas G.; BLAND, J. Martin.** Statistics notes: Absence of evidence is not evidence of absence. *BMJ*, v. 311, n. 7003, p. 485, 1995. DOI: [10.1136/bmj.311.7003.485](https://doi.org/10.1136/bmj.311.7003.485).
 2. **BENJAMINI, Yoav; HOCHBERG, Yosef.** Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing. *Journal of the Royal Statistical Society: Series B (Methodological)*, v. 57, n. 1, p. 289–300, 1995. DOI: [10.1111/j.2517-6161.1995.tb02031.x](https://doi.org/10.1111/j.2517-6161.1995.tb02031.x).
