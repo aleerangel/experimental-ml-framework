@@ -2,8 +2,8 @@
 
 > **Documento:** Arquitetura de Software, Contratos de Módulos, Modelo de Dados e Recorte de MVP  
 > **Versão:** 1.0.0  
-> **Data:** 27 de Outubro de 2026  
-> **Status:** Consolidado e Aprovado (Fases 2 e 3)  
+> **Data:** 31 de Outubro de 2026  
+> **Status:** Consolidado e Aprovado (Fases 2 e 3; Fase 4 em andamento com M1.1 concluído)  
 > **Documentos Relacionados:** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md)
 
 ---
@@ -661,7 +661,7 @@ A ordem de implementação respeita as dependências entre os módulos de `src/e
 
 | Marco | Módulos Incluídos | Riscos Científicos Mitigados | Testes de Aceitação Objetivos (Critérios Obrigatórios e Condicionais da Onda 1) |
 | :--- | :--- | :--- | :--- |
-| **M1 — Fundação, Contratos Base, Motor de Métricas e Esqueleto da CLI** | `core`, `metrics`, `cli` (base) | • Indefinição de direção de otimização;<br/>• Distorções numéricas em métricas (ex.: arredondamentos indevidos);<br/>• Falta de determinismo em sementes e hashes;<br/>• Coerção indevida de `NaN` para `0.0`. | • **TA-M1.1 (`M1.1`):** Ambiente virtual instalado, compatibilidade verificada empiricamente, ponto de entrada da CLI (`expml --version` / `--help`) e *smoke tests* aprovados.<br/>• **TA-M1.2 (`M1.2` / `CA-GER-01` / `CA-GER-02`):** Utilitários de escrita segura em 2 passos (`.tmp` + `os.replace`), validação de pré-condições de artefatos, determinismo de `derive_seeds` e canonicidade de `config_hash` e `dataset_hash` (Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas).<br/>• **TA-M1.3 (`M1.3` / `CA-GER-03` / `CA-COND-REG-01` / `CA-COND-CLAS-01`):** Exatidão das 15 funções de métricas com tolerâncias específicas (`rtol`/`atol`) por família, casos degenerados retornando `MetricStatus.UNDEFINED_NAN` e bloqueio de seleção/ranking para `UNDEFINED_NAN`. |
+| **M1 — Fundação, Contratos Base, Motor de Métricas e Esqueleto da CLI** | `core`, `metrics`, `cli` (base) | • Indefinição de direção de otimização;<br/>• Distorções numéricas em métricas (ex.: arredondamentos indevidos);<br/>• Falta de determinismo em sementes e hashes;<br/>• Coerção indevida de `NaN` para `0.0`. | • **TA-M1.1 (`M1.1` — Concluído):** Ambiente virtual instalado (`.venv` com Python 3.12), instalação editável validada (`pip install -e ".[dev]"`), ponto de entrada da CLI (`expml --version` / `--help`) e *smoke tests* aprovados (`tests/test_smoke.py`, 12/12 testes).<br/>• **TA-M1.2 (`M1.2` / `CA-GER-01` / `CA-GER-02`):** Utilitários de escrita segura em 2 passos (`.tmp` + `os.replace`), validação de pré-condições de artefatos, determinismo de `derive_seeds` e canonicidade de `config_hash` e `dataset_hash` (Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas).<br/>• **TA-M1.3 (`M1.3` / `CA-GER-03` / `CA-COND-REG-01` / `CA-COND-CLAS-01`):** Exatidão das 15 funções de métricas com tolerâncias específicas (`rtol`/`atol`) por família, casos degenerados retornando `MetricStatus.UNDEFINED_NAN` e bloqueio de seleção/ranking para `UNDEFINED_NAN`. |
 | **M2 — Ingestão Imutável, Diagnóstico e Particionamento Auditado** | `data`, `validation`, `cli` (`data`, `partition`) | • Mutação silenciosa da base original;<br/>• Avanço com `CONFIRMED_ISSUE` não tratado;<br/>• Vazamento entre treino/validação/holdout ou grupos;<br/>• Irreprodutibilidade das partições. | • **TA-M2.1 (`CA-E1-01` — Preservação e IDs):** Verificar via `dataset_hash` que os dados de entrada permanecem inalterados após `load_dataset` e `profile_dataset` e que $N$ `observation_id` únicos são gerados.<br/>• **TA-M2.2 (`CA-E1-02` — Diagnóstico e `PreparationPlan`):** Separação exata entre `CONFIRMED_ISSUE` e `HEURISTIC_WARNING`, bloqueio de `sanitize_dataset` se houver `CONFIRMED_ISSUE` sem regra no `PreparationPlan` e ausência de ajuste de estatísticas globais na Etapa 1.<br/>• **TA-M2.3 (`CA-E4A-01` & `CA-COND-PART-01` — Disjunção de Partição):** Asserção matemática em `kfold_split`, `stratified_kfold_split`, `group_kfold_split` ($G \ge K$) e `holdout_split` comprovando: $\text{Train}_k \cap \text{Val}_k = \emptyset$, $\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$, $\text{Grupos}(\text{Dev}) \cap \text{Grupos}(\text{Holdout}) = \emptyset$ e isolamento total do `holdout_ids`.<br/>• **TA-M2.4 (`CA-E4A-02` — Reprodutibilidade do `PartitionPlan`):** Comprovar que, sob a mesma `SanitizedDatasetView`, configuração e semente, `build_partition_plan` produz o mesmo `partition_plan_id` e as mesmas listas de `observation_id` por partição. |
 | **M3 — Exploração e Cenários de Features sem Vazamento** | `features`, `cli` (`features`) | • Seleção de atributos contaminada por dados de validação/teste;<br/>• Inclusão de colunas proibidas nos preditores. | • **TA-M3.1 (`CA-E2-01` — Rótulo Exploratório):** Garantir que `ExploratoryFeatureReport` carregue `scope = EXPLORATORY_FULL_DATA` e não possa ser convertido silenciosamente em seleção pré-partição.<br/>• **TA-M3.2 (`CA-E2-02` — Validação de Cenários):** Verificar que `validate_scenarios(scenarios, sanitized_view)` rejeita colunas inexistentes ou pertencentes a `{target, group, id, time} ∪ ignore_cols` e grava `scenarios.json` vinculado ao `dataset_hash`.<br/>• **TA-M3.3 (`CA-E4B-01` parcial — Seleção Dinâmica Intra-Fold):** Modificar observações exclusivamente no conjunto de validação de um *fold* e comprovar que o resultado de `select_features_in_fold(X_train, y_train, scenario_spec, seed)` permanece inalterado, além de calcular o índice de estabilidade entre *folds*. |
 | **M4 — Funções de Modelos, Pré-processamento em 2 Camadas e Nested Tuning** | `models`, `tuning`, `cli` (`models`) | • Contaminação de pesos/estado entre *folds*;<br/>• Transformação estatística ajustada fora do treino;<br/>• Duplicação acidental de escalonamento;<br/>• Vazamento da validação externa na escolha de hiperparâmetros. | • **TA-M4.1 (`CA-E3-01` — Isolamento de Instância):** Ajustar um modelo com estado mutável em um *fold*, instanciar um novo para o próximo *fold* via `instantiate_fresh_model` e comprovar que nenhum peso/atributo ajustado anterior persiste.<br/>• **TA-M4.2 (`CA-COND-MOD-01` & `CA-COND-MOD-02`):** Executar função analítica com `requires_fit=False` sem ajuste artificial e verificar a passagem de $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ para funções externas de kernel pré-computado.<br/>• **TA-M4.3 (`CA-E3-02` & `CA-E4B-01` parcial — 2 Camadas e Bloqueio de Duplicação):** Comprovar que parâmetros de `fit_two_layer_preprocessing` dependem apenas de `X_train` e que configurar padronização idêntica nas duas camadas dispara bloqueio em `validate_two_layer_preprocessing`.<br/>• **TA-M4.4 (`CA-E3-02` & `CA-E4B-01` parcial — Nested Tuning):** Comprovar que `validate_search_spec` exige métrica/direção explícitas e que `run_nested_tuning` (`grid_search` e `random_search`) subdivide apenas `X_train, y_train`, produzindo o mesmo $\theta^*$ quando `X_val, y_val` são alterados. |
@@ -675,16 +675,16 @@ A ordem de implementação respeita as dependências entre os módulos de `src/e
 
 O Marco M1 é dividido em **três entregas sequenciais e independentemente verificáveis**. Nenhuma entrega seguinte inicia antes que todos os testes da entrega anterior estejam passando.
 
-#### Entrega M1.1 — Configuração do Projeto, Verificação de Compatibilidade e *Smoke Tests*
-* **Diagnóstico Real do Ambiente Hospedeiro:**
-  * A inspeção direta do sistema confirmou dois interpretadores instalados: `/usr/bin/python3.14` (`Python 3.14.8`, com `pip 26.0.1` e `venv`) e `/usr/bin/python3.12` (`Python 3.12.15`, com `venv`).
-  * Nenhum pacote científico (`numpy`, `scipy`, `pandas`, `scikit-learn`, `pytest`, `matplotlib`) está instalado no Python global do sistema operacional, e não há `.venv` pré-existente no diretório do projeto.
-* **Regra de Compatibilidade:**
-  * O `pyproject.toml` declarará `requires-python = ">=3.10"` (garantindo compatibilidade tanto com ambientes científicos Python 3.10–3.12 quanto com Python 3.14 presente na máquina), mas **uma versão de Python e de dependência só será registrada como efetivamente suportada após a instalação real no `.venv` local e aprovação da suíte de testes**.
-* **Escopo da Entrega M1.1:**
-  * Criação do `.venv`, arquivo `pyproject.toml` (com script de entrada `expml = "experimental_ml.cli.main:main"`), estrutura modular `src/experimental_ml/` (incluindo esqueleto da CLI modularizada em `src/experimental_ml/cli/`) e `tests/test_smoke.py` validando importação, execução da CLI (`--version` e `--help`) e disponibilidade real de `numpy`, `scipy` e `pytest`.
+#### Entrega M1.1 — Configuração do Projeto, Verificação de Compatibilidade e *Smoke Tests* (Concluída)
+* **Diagnóstico e Configuração Efetiva do Ambiente:**
+  * O ambiente virtual `.venv` foi configurado e isolado com base no interpretador Python 3.12 (`Python 3.12.15`).
+  * O empacotamento foi implementado via `pyproject.toml` com build backend Hatchling (`hatchling.build`), especificando `requires-python = ">=3.10"` e dependências de desenvolvimento `dev = ["pytest>=7.0.0"]`. A compatibilidade empírica foi validada no interpretador Python 3.12 local.
+* **Implementação e Resultados:**
+  * O layout de código `src/experimental_ml/` foi estruturado, expondo `__version__ = "0.1.0.dev0"`.
+  * A interface de linha de comando base foi implementada em `src/experimental_ml/cli/main.py` com `argparse` da biblioteca padrão, registrando o comando `expml` no PATH com tratamento das opções `--version` e `--help` (código de saída 0), e código de saída 2 para argumentos inválidos.
+  * A suíte `tests/test_smoke.py` foi implementada e aprovada com 100% de sucesso (12/12 testes via `pytest`), validando os critérios de `TA-M1.1` e a instalação editável (`pip install -e ".[dev]"`).
 
-#### Entrega M1.2 — Contratos, Implementação e Testes de `experimental_ml.core`
+#### Entrega M1.2 — Contratos, Implementação e Testes de `experimental_ml.core` (Próximo Marco)
 * **Escopo (Modular e Sem Orientação a Objetos):**
   * Tipos e validadores de identificadores imutáveis (`ExperimentId`, `PartitionPlanId`, `ScenarioId`, `ModelId`, `CellId`, `ComparisonId`, `ArtifactId`, `ObservationId`).
   * Constantes e enumerações fundamentais (`TaskType`, `ExecutionStatus`, `FindingSeverity`, `MetricDirection`, `AggregationScope`, `MetricStatus`, `ErrorPolicy`).
@@ -727,10 +727,10 @@ python3 -m venv .venv
 # 2. Verificação empírica das versões instaladas no ambiente
 .venv/bin/python -c "import sys, numpy, scipy, pytest; print(sys.version); print('numpy:', numpy.__version__, 'scipy:', scipy.__version__, 'pytest:', pytest.__version__)"
 
-# 3. Gate da Entrega M1.1 (Smoke tests)
+# 3. Gate da Entrega M1.1 (Smoke tests — Concluído)
 .venv/bin/pytest tests/test_smoke.py -v
 
-# 4. Gate da Entrega M1.2 (Testes unitários do core)
+# 4. Gate da Entrega M1.2 (Testes unitários do core — Próximo Marco)
 .venv/bin/pytest tests/unit/test_core.py -v
 
 # 5. Gate da Entrega M1.3 e Conclusão do Marco M1 (Suíte completa M1)

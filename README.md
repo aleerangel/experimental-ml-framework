@@ -30,7 +30,7 @@ A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
   - [x] Consolidação formal em [`ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md).
 - [ ] **Fase 4: Implementação Guiada por Testes (TDD) do MVP (Marcos M1–M7)**
   - [ ] **M1 (`core` + `metrics` + `cli` base):**
-    - [ ] **M1.1:** Configuração do projeto (`pyproject.toml`, `.venv`), esqueleto da CLI modularizada (`expml`), verificação empírica de compatibilidade e *smoke tests*.
+    - [x] **M1.1:** Configuração do projeto (`pyproject.toml`, `.venv`), esqueleto da CLI modularizada (`expml`), verificação empírica de compatibilidade e *smoke tests*.
     - [ ] **M1.2:** Contratos, implementação funcional e testes de `core` (IDs, constantes/enums, `derive_seeds`, `config_hash`, `dataset_hash`, validações/alertas).
     - [ ] **M1.3:** Contratos, implementação funcional e testes de `metrics` (`MetricValue`, `METRICS_CATALOG`, `UNDEFINED_NAN` e 15 funções de métricas com tolerâncias específicas por família).
   - [ ] **M2 (`data` + `validation` + CLI `data`/`partition`):** Funções de ingestão somente-leitura (`.csv`/`.txt` com ou sem cabeçalho, `DataFrame` e alvo univariado), `profile_dataset` (problemas confirmados vs. alertas heurísticos), `create_preparation_plan` explícito e `build_partition_plan` auditado (`kfold_split`, `stratified_kfold_split`, `group_kfold_split`, `holdout_split`). *Extensões da Onda 2 (planejadas para etapas posteriores, fora do escopo de implementação do MVP imediato): regressão multialvo (`target_col: Sequence[str]`), conjunto de candidatos não rotulados (`unlabeled_pool`), `TargetTransformSpec`, `bootstrap_split` e `temporal_split`.*

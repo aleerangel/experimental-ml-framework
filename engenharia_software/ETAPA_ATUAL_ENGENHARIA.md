@@ -1,7 +1,7 @@
 # Engenharia de Software — `experimental-ml-framework`
 
 > **Documento de Registro de Estado da Engenharia**  
-> **Data:** 27 de Outubro de 2026  
+> **Data:** 31 de Outubro de 2026  
 > **Repositório de Origem (Referência Científica):** `prognose_florestal`  
 > **Novo Repositório (Framework Científico Agnóstico):** `experimental-ml-framework`  
 > **Especificação de Requisitos (SRS v2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)  
@@ -11,13 +11,13 @@
 
 ## 1. Etapa Atual no Ciclo de Vida da Engenharia
 
-Concluímos a **Fase 2 (Engenharia de Requisitos das 6 Etapas)** e a **Fase 3 (Concepção Arquitetural, Contratos Conceituais, Modelo de Dados e Recorte de MVP)**. Estamos prontos para iniciar a especificação dos testes de aceitação e a **Fase 4: Implementação Guiada por Testes (TDD) do MVP**.
+O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**. A primeira sub-entrega, **Marco M1.1 (`m1-1-setup-cli-smoke`)**, foi concluída e validada com 100% de sucesso. O próximo passo de desenvolvimento é o **Marco M1.2 (`core`)**.
 
 ```mermaid
 flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
-    Fase3 --> Fase4["Fase 4: Testes de Aceitação & TDD<br/>(ETAPA ATUAL)"]
+    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(ETAPA ATUAL — M1.1 Concluído)"]
     Fase4 --> Fase5["Fase 5: Verificação Experimental<br/>(Pendente)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
@@ -44,6 +44,12 @@ flowchart LR
    * Formalização das entradas, saídas, invariantes e pontos de extensão de cada etapa e módulo.
    * Modelagem de dados completa do experimento e estrutura de diretórios do pacote de reprodutibilidade.
    * Definição explícita do **MVP Essencial** vs. **Evoluções Posteriores**.
+4. **Fase 4 — Marco M1.1 Concluído (`m1-1-setup-cli-smoke`):**
+   * Configuração de empacotamento com `pyproject.toml` baseada no backend Hatchling (`hatchling.build`) e declaração `requires-python = ">=3.10"`.
+   * Inicialização do layout `src/experimental_ml/` expondo `__version__ = "0.1.0.dev0"`.
+   * Implementação do ponto de entrada da CLI modularizada em `src/experimental_ml/cli/main.py` com `argparse` da biblioteca padrão, suportando `--version`, `--help` e código de saída 2 para argumentos inválidos.
+   * Criação e aprovação integral da suíte de fumaça automatizada em `tests/test_smoke.py` (12 testes aprovados via `pytest`).
+   * Validação da instalação editável (`pip install -e ".[dev]"`) no ambiente virtual `.venv` local (Python 3.12), com o executável `expml` disponível diretamente no PATH.
 
 ---
 
@@ -68,9 +74,9 @@ flowchart LR
 ## 3. Roadmap Incremental de Implementação TDD (Marcos M1 a M7)
 
 1. **Marco M1 (`core` + `metrics` + esqueleto `cli`) — Subdividido em 3 Entregas Verificáveis:**
-   * **M1.1 (Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv`, `pyproject.toml` (com entrypoint `expml`), verificação empírica de versões (`Python 3.14` / `3.12`, `numpy`, `scipy`, `pytest`), esqueleto modular em `src/experimental_ml/cli/` e aprovação de `tests/test_smoke.py`.
-   * **M1.2 (Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função `derive_seeds`, `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas) e construtores de erros/alertas, com aprovação de `tests/unit/test_core.py`.
-   * **M1.3 (Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `METRICS_CATALOG`, regras funcionais de propagação para `MetricStatus.UNDEFINED_NAN` (`is_better`, `aggregate_fold_metrics`, `rank_configurations` — ADR-005), e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py`).
+   * **M1.1 (Concluído — Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv` (Python 3.12), `pyproject.toml` (Hatchling, declaração `requires-python = ">=3.10"`, entrypoint `expml`), esqueleto modular em `src/experimental_ml/cli/main.py` e aprovação integral de `tests/test_smoke.py` com 12/12 testes passando.
+   * **M1.2 (Próximo Marco — Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função `derive_seeds`, `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas) e construtores de erros/alertas, com aprovação de `tests/unit/test_core.py`.
+   * **M1.3 (Pendente — Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `METRICS_CATALOG`, regras funcionais de propagação para `MetricStatus.UNDEFINED_NAN` (`is_better`, `aggregate_fold_metrics`, `rank_configurations` — ADR-005), e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py`).
 2. **Marco M2 (`data` + `validation` + CLI `data`/`partition`):** Funções `load_dataset`, `profile_dataset` (problemas confirmados vs. alertas heurísticos), `create_preparation_plan` e geração/validação matemática do `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`).
 3. **Marco M3 (`features` + CLI `features`):** Função `explore_features` rotulada, validação de cenários (`FIXED` e `DYNAMIC`) e seleção dinâmica ajustada estritamente no treino de cada *fold* (`select_features_in_fold`), com medição de estabilidade de seleção.
 4. **Marco M4 (`models` + `tuning` + CLI `models`):** Funções `instantiate_fresh_model`, `fit_model`, `predict_model` (clássicos, analíticos com `requires_fit=False` e quânticos/customizados), pré-processamento funcional em 2 camadas (`fit_two_layer_preprocessing`, `apply_two_layer_preprocessing`) com bloqueio de duplicação e *Nested Tuning* (`run_nested_tuning`).
