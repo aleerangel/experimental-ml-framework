@@ -9,7 +9,8 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: none - core contracts follow ADR-007 and ADR-008
-**Status**: Draft
+**Status**: Approved
+**Approved**: 2026-10-31 - user: "avança"
 **Build**: none - Python interpreted package without ahead-of-time build step; quality verified via pytest gates
 **Run unit**: `.venv/bin/pytest tests/unit/test_core.py -v`
 
