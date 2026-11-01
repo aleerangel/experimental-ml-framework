@@ -35,10 +35,12 @@ O projeto encontra-se atualmente na **Fase 4: Implementação Guiada por Testes 
 
 - **Marco M1.1 (`m1-1-setup-cli-smoke`): CONCLUÍDO.**  
   Disponibiliza a configuração inicial de empacotamento em Python, a árvore modular do projeto, o ponto de entrada da interface de linha de comando (`expml`) e a suíte de testes de fumaça.
-- **Marco M1.2 (`core`): PRÓXIMO MARCO.**  
-  Implementação dos contratos conceituais fundamentais, gerador hierárquico determinístico de sementes (`numpy.random.SeedSequence`), serialização canônica e funções de hashing (`config_hash` e `dataset_hash` conforme **ADR-007**).
+- **Marco M1.2 (`core`): CONCLUÍDO.**  
+  Implementação e verificação formal do núcleo conceitual transversal (Nível 0): identificadores de domínio imutáveis, enumerações fundamentais, derivação hierárquica determinística de sementes (`numpy.random.SeedSequence`), serialização canônica e funções de hashing (`config_hash` e `dataset_hash` conforme **ADR-007**), além de construtores estruturados de achados diagnósticos e exceções formais de integridade.
+- **Marco M1.3 (`metrics`): PRÓXIMO MARCO.**  
+  Implementação do catálogo `METRICS_CATALOG`, regras estritas para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas.
 - **Marcos M2 a M7: PLANEJADOS.**  
-  O motor funcional completo (ingestão de dados, particionamento, execução matricial, cálculo de métricas, comparação estatística e geração de relatórios) está especificado e será implementado incrementalmente nos marcos subsequentes.
+  O motor funcional completo (ingestão de dados, particionamento, execução matricial, comparação estatística e geração de relatórios) está especificado e será implementado incrementalmente nos marcos subsequentes.
 
 ---
 
@@ -46,7 +48,7 @@ O projeto encontra-se atualmente na **Fase 4: Implementação Guiada por Testes 
 
 Na versão atual da branch `main`, as seguintes capacidades estão implementadas e operacionais:
 
-- **Empacotamento Padronizado (PEP 517 / PEP 621):** Configuração declarativa via `pyproject.toml` baseada no build backend Hatchling.
+- **Empacotamento Padronizado (PEP 517 / PEP 621):** Configuração declarativa via `pyproject.toml` baseada no build backend Hatchling, com dependência declarada de `numpy>=1.24.0`.
 - **Instalação Editável:** Suporte a instalação via `pip install -e ".[dev]"` em ambientes virtuais Python `>=3.10`.
 - **Acesso Programático à Versão:** O pacote raiz expõe a constante pública de versão via `experimental_ml.__version__` (`0.1.0.dev0`).
 - **Interface de Linha de Comando (`expml`):** Ponto de entrada executável registrado no ambiente (`PATH`), desenvolvido exclusivamente sobre a biblioteca padrão (`argparse`) sem dependências externas adicionais:
@@ -54,7 +56,14 @@ Na versão atual da branch `main`, as seguintes capacidades estão implementadas
   - Opção `--help` (ou `-h`): Apresenta o sumário descritivo de opções e instruções de uso, finalizando com código de saída `0`.
   - Execução sem argumentos: Exibe as instruções de uso e finaliza com código de saída `0`.
   - Tratamento de argumentos inválidos: Exibe mensagem de erro descritiva em `stderr` e finaliza com código de saída `2` (seguindo as convenções de integridade do requisito `RNF07`).
-- **Suíte Automatizada de Testes de Fumaça:** 12 asserções automatizadas em `tests/test_smoke.py`, cobrindo integridade do pacote, análise estática de dependências da CLI e comportamento observável de processos.
+- **Núcleo Transversal de Domínio (`experimental_ml.core` — Nível 0):**
+  - **Identificadores Imutáveis:** Tipos `ExperimentId`, `PartitionPlanId`, `ScenarioId`, `ModelId`, `CellId`, `ComparisonId`, `ArtifactId` e `ObservationId` (subtipos de `str` imutáveis com validação estrita contra strings vazias, quebras de linha e caracteres de controle).
+  - **Enumerações Fundamentais:** `TaskType`, `ExecutionStatus`, `FindingSeverity`, `MetricDirection`, `AggregationScope`, `MetricStatus` e `ErrorPolicy` (subtipos de `str, Enum` com igualdade direta a strings e compatibilidade com serialização JSON nativa).
+  - **Derivação Hierárquica de Sementes:** Funções puras `derive_seeds(master_seed, count)` e `spawn_child_seeds(parent_seed, count)` baseadas em `numpy.random.SeedSequence`, garantindo determinismo estrito e independência estatística (RNF01, ADR-007).
+  - **Hashing Canônico de Configurações (`config_hash`):** Digest SHA-256 em conformidade integral com o **ADR-007** (normalização Unicode NFC, ordenação lexicográfica de chaves por bytes UTF-8, diferenciação estrita de escalares `bool` vs `int` e `int` vs `float`, normalização de `-0.0 -> 0.0`, representação canônica de `NaN`/`Inf`, distinção entre `tuple` e `list`, ordenação determinística de `set` pelo hash de seus itens e detecção de ciclos).
+  - **Hashing Estrutural de Datasets (`dataset_hash`):** Digest SHA-256 para arquivos brutos combinados com o esquema, e fluxo contínuo little-endian para dados tabulares em memória sensível a nomes de colunas, ordenação de linhas e tipos.
+  - **Diagnósticos e Sinalizadores de Contrato:** Estrutura imutável `Finding`, construtores `make_finding` (`CONFIRMED_ISSUE`) e `make_warning` (`HEURISTIC_WARNING`), e hierarquia de exceções (`ExperimentalMLError`, `ContractViolationError`, `DataIntegrityError`, `ConfigurationError`).
+- **Suíte de Testes Automatizados:** 30 testes automatizados (12 testes de fumaça em `tests/test_smoke.py` e 18 testes unitários em `tests/unit/test_core.py`), com 100% de aprovação via `pytest`.
 
 ---
 
@@ -64,8 +73,9 @@ Na versão atual da branch `main`, as seguintes capacidades estão implementadas
 
 - **Linguagem:** Python (suporte declarado `>=3.10`; verificado no interpretador local `Python 3.12.15`).
 - **Build Backend:** [Hatchling](https://hatch.pypa.io/latest/) (`hatchling.build`).
+- **Computação Numérica:** [NumPy](https://numpy.org/) (`numpy>=1.24.0`, utilizado em `experimental_ml.core`).
 - **Testes Automatizados:** [Pytest](https://docs.pytest.org/) (`pytest>=7.0.0`).
-- **Biblioteca Padrão:** Utilização estrita de módulos padrão (`argparse`, `tomllib`, `ast`, `subprocess`, `sys`) na infraestrutura da CLI base.
+- **Biblioteca Padrão:** Utilização estrita de módulos padrão (`argparse`, `tomllib`, `ast`, `subprocess`, `sys`, `hashlib`, `unicodedata`, `struct`) na infraestrutura da CLI e no hashing canônico.
 
 ### Estrutura de Diretórios
 
@@ -74,7 +84,8 @@ experimental-ml-framework/
 ├── .specs/                          # Especificações formais e tarefas (TLC Spec-Driven)
 │   ├── STATE.md                     # Registro de decisões arquiteturais de projeto e handoff
 │   └── features/
-│       └── m1-1-setup-cli-smoke/    # Artefatos da entrega M1.1 (spec.md, tasks.md, proofs.md)
+│       ├── m1-1-setup-cli-smoke/    # Artefatos da entrega M1.1 (spec.md, tasks.md, proofs.md)
+│       └── m1-2-core/               # Artefatos da entrega M1.2 (spec.md, tasks.md, proofs.md, verification.md)
 ├── engenharia_software/             # Documentação técnica central de engenharia
 │   ├── ESPECIFICACAO_REQUISITOS.md  # Especificação formal de requisitos (SRS v2.0)
 │   ├── ARQUITETURA_E_CONTRATOS.md   # Arquitetura em camadas, contratos e modelo de dados
@@ -82,11 +93,20 @@ experimental-ml-framework/
 ├── src/
 │   └── experimental_ml/             # Código-fonte da biblioteca (layout src/)
 │       ├── __init__.py              # Raiz do pacote (exposição de __version__)
-│       └── cli/                     # Interface de linha de comando
-│           ├── __init__.py
-│           └── main.py              # Ponto de entrada e parser principal (expml)
+│       ├── cli/                     # Interface de linha de comando
+│       │   ├── __init__.py
+│       │   └── main.py              # Ponto de entrada e parser principal (expml)
+│       └── core/                    # Núcleo transversal de domínio (Nível 0)
+│           ├── __init__.py          # Re-exportação com __all__
+│           ├── enums.py             # Enumerações fundamentais
+│           ├── findings.py          # Diagnósticos Finding e exceções
+│           ├── hashing.py           # config_hash e dataset_hash (ADR-007)
+│           ├── seeds.py             # derive_seeds e spawn_child_seeds
+│           └── types.py             # Identificadores de domínio imutáveis
 ├── tests/                           # Suíte de testes automatizados
-│   └── test_smoke.py                # Testes de fumaça da instalação e da CLI
+│   ├── test_smoke.py                # Testes de fumaça da instalação e da CLI
+│   └── unit/                        # Testes unitários dos módulos
+│       └── test_core.py             # Testes de unidade do módulo core (18 verificações)
 ├── pyproject.toml                   # Configuração de build, dependências e metadados
 ├── README.md                        # Porta de entrada do repositório
 └── REFERENCIAS_E_FUNDAMENTACAO.md   # Fundamentação teórica e referências normativas (25 fontes)
@@ -161,8 +181,7 @@ expml --opcao-invalida
 
 ### Uso Programático em Python
 
-É possível verificar a disponibilidade e metadados do pacote diretamente via interpretador Python:
-
+#### Versão do Pacote
 ```python
 import experimental_ml
 
@@ -170,46 +189,64 @@ print(experimental_ml.__version__)
 # Saída: 0.1.0.dev0
 ```
 
+#### Núcleo de Domínio (`experimental_ml.core`)
+```python
+from experimental_ml.core import (
+    ExperimentId,
+    TaskType,
+    derive_seeds,
+    config_hash,
+    dataset_hash,
+    make_finding,
+)
+
+# 1. Identificadores de domínio imutáveis e validados
+exp_id = ExperimentId("exp_baseline_01")
+
+# 2. Derivação hierárquica e determinística de sementes (ADR-007)
+seeds = derive_seeds(master_seed=42, count=3)
+# Retorna tupla de 3 inteiros determinísticos
+
+# 3. Hashing canônico de configuração (ADR-007)
+h_config = config_hash({"task": TaskType.REGRESSION, "alpha": 0.01})
+# Retorna digest SHA-256 de 64 caracteres
+
+# 4. Hashing estrutural de dados tabulares em memória ou disco
+data = {"feature1": [1.0, 2.0], "feature2": [10, 20]}
+h_data = dataset_hash(data)
+
+# 5. Construtores de diagnósticos estruturados
+finding = make_finding(code="E1_ZERO_VARIANCE", message="Coluna com variância nula.")
+```
+
 ---
 
 ## 7. Testes
 
-O projeto utiliza o **Pytest** para automação de testes e garantia de integridade.
+O projeto utiliza o **Pytest** para automação de testes e garantia contínua de integridade.
 
-### Execução da Suíte de Fumaça
+### Execução da Suíte Completa de Testes
 
-Para executar os testes de fumaça em modo detalhado, utilize o comando:
+Para executar toda a suíte de testes (testes de fumaça da instalação e testes unitários do núcleo):
 
 ```bash
-pytest tests/test_smoke.py -v
+pytest tests/ -v
+```
+
+Para executar isoladamente apenas os testes unitários do módulo `core`:
+
+```bash
+pytest tests/unit/test_core.py -v
 ```
 
 ### Comportamento Verificado
 
-A suíte valida deterministicamente:
-- Declaração de build backend e metadados em `pyproject.toml`.
+A suíte valida deterministicamente 30 verificações:
+- Declaração de build backend, dependências e metadados em `pyproject.toml`.
 - Exposição correta de `__version__ = "0.1.0.dev0"` no pacote raiz.
-- Ausência de importações de módulos não escritos na CLI (`core`, `metrics`, `data`).
+- Ausência de importações de módulos não escritos na CLI (`metrics`, `data`).
 - Resposta e códigos de saída da CLI para `--version` (código `0`), `--help` (código `0`), invocação vazia (código `0`) e flags inválidas (código `2`).
-- Disponibilidade do executável `expml` no ambiente de execução.
-
-**Resultado esperado:**
-```
-tests/test_smoke.py::test_pyproject_metadata PASSED
-tests/test_smoke.py::test_package_version PASSED
-tests/test_smoke.py::test_dev_dependencies PASSED
-tests/test_smoke.py::test_cli_entrypoint_registered PASSED
-tests/test_smoke.py::test_editable_install_and_cli_on_path PASSED
-tests/test_smoke.py::test_cli_version_flag PASSED
-tests/test_smoke.py::test_cli_help_flag PASSED
-tests/test_smoke.py::test_cli_invalid_argument PASSED
-tests/test_smoke.py::test_cli_dependencies_pure_stdlib PASSED
-tests/test_smoke.py::test_smoke_discovery PASSED
-tests/test_smoke.py::test_version_non_empty PASSED
-tests/test_smoke.py::test_cli_observable_outcomes PASSED
-
-============================== 12 passed in 0.11s ==============================
-```
+- 18 critérios de aceitação do marco M1.2: imutabilidade de identificadores, integridade de enumerações, determinismo na derivação de sementes, regras canônicas de hashing do ADR-007, digest de datasets e imutabilidade de diagnósticos.
 
 ---
 
@@ -220,8 +257,8 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 | Marco | Escopo e Responsabilidade | Estado |
 | :--- | :--- | :---: |
 | **M1.1** | **Configuração e CLI Base:** `pyproject.toml`, layout `src/experimental_ml/`, comando `expml` (`--version`, `--help`) e suíte de fumaça. | **Concluído** |
-| **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, constantes/enums, gerador hierárquico `derive_seeds` (`SeedSequence`) e funções canônicas `config_hash`/`dataset_hash` (ADR-007). | **Próximo Marco** |
-| **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras estritas para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas. | Planejado |
+| **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, constantes/enums, gerador hierárquico `derive_seeds` (`SeedSequence`), funções canônicas `config_hash`/`dataset_hash` (ADR-007) e diagnósticos `Finding`. | **Concluído** |
+| **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras estritas para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas. | **Próximo Marco** |
 | **M2** | **Ingestão e Particionamento:** Ingestão imutável (`data`), perfilamento diagnóstico (`profile_dataset`), plano explícito de preparação e `PartitionPlan` compartilhado e auditado (`validation`). | Planejado |
 | **M3** | **Cenários de Features:** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários fixos e seleção dinâmica ajustada estritamente no treino de cada partição (`features`). | Planejado |
 | **M4** | **Modelos e Tuning:** Registro de modelos heterogêneos (`models`), pré-processamento em duas camadas com bloqueio de duplicação e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
@@ -242,6 +279,7 @@ Para aprofundamento nos detalhes de engenharia, requisitos, arquitetura e fundam
 | [`engenharia_software/ETAPA_ATUAL_ENGENHARIA.md`](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md) | **Registro de Estado da Engenharia:** Situação atual do projeto no ciclo de vida de desenvolvimento e roadmap detalhado de implementação. |
 | [`REFERENCIAS_E_FUNDAMENTACAO.md`](REFERENCIAS_E_FUNDAMENTACAO.md) | **Fundamentação Teórico-Técnica e Bibliografia:** Justificativas científicas, matemáticas e normativas para as decisões de projeto (ADRs), com catálogo de 25 referências bibliográficas. |
 | [`.specs/features/m1-1-setup-cli-smoke/`](.specs/features/m1-1-setup-cli-smoke/) | **Artefatos TLC da Entrega M1.1:** Especificação (`spec.md`), plano atômico de tarefas (`tasks.md`) e registro de verificação independente (`proofs.md`). |
+| [`.specs/features/m1-2-core/`](.specs/features/m1-2-core/) | **Artefatos TLC da Entrega M1.2:** Especificação (`spec.md`), tarefas (`tasks.md`), evidências (`proofs.md`) e verificação independente (`verification.md`). |
 
 ---
 
