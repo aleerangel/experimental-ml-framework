@@ -12,11 +12,11 @@
 
 ## Handoff
 
-- **Feature**: m1-1-setup-cli-smoke (.specs/features/m1-1-setup-cli-smoke)
-- **Phase / Task**: EXECUTE concluído (T1 a T5 finalizados) / Aguardando revisão do usuário
-- **Completed**: T1, T2, T3, T4, T5 (12/12 checks aprovados)
+- **Feature**: m1-2-core (.specs/features/m1-2-core)
+- **Phase / Task**: SPECIFY concluído / Aguardando aprovação do usuário
+- **Completed**: m1-1-setup-cli-smoke (concluído); m1-2-core (SPECIFY elaborado e validado)
 - **In-progress**: none
-- **Next step**: Apresentar os resultados ao usuário e aguardar autorização de commit/merge
+- **Next step**: Aguardar aprovação humana de spec.md antes de avançar para a fase TASKS
 - **Blockers**: none
-- **Uncommitted files**: pyproject.toml, src/, tests/, .specs/features/m1-1-setup-cli-smoke/tasks.md, .specs/STATE.md, .specs/features/m1-1-setup-cli-smoke/proofs.md
-- **Branch**: chore/tlc-adoption-review
+- **Uncommitted files**: .specs/features/m1-2-core/spec.md, .specs/STATE.md
+- **Branch**: feat/m1-2-core
