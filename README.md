@@ -1,69 +1,250 @@
-# experimental-ml-framework
+# Experimental ML Framework
 
-Framework experimental agnóstico para pesquisa científica em Machine Learning, com suporte a tarefas de regressão e classificação. Oferece infraestrutura modular para ingestão e preparação de dados, configuração e comparação de conjuntos de atributos, execução reprodutível de experimentos, validação cruzada com prevenção de vazamento de dados, análise estatística dos resultados e geração de tabelas e visualizações prontas para publicação científica.
+Framework experimental agnóstico para pesquisa científica em Aprendizado de Máquina (*Machine Learning* — ML), voltado a tarefas de regressão e classificação sobre dados tabulares.
 
----
-
-## Progresso do Projeto
-
-A evolução do projeto segue um ciclo de vida estruturado em 5 fases:
-
-- [x] **Fase 1: Auditoria Técnica e Baseline**
-  - [x] Auditoria do código e dados de origem (`prognose_florestal`).
-  - [x] Catalogação dos resultados de referência ($R^2$, RMSE, MAE, KTA, HHL).
-  - [x] Identificação de vulnerabilidades (acoplamentos a domínio, duplicações de código, distorções métricas).
-- [x] **Fase 2: Engenharia de Requisitos das 6 Etapas do Ciclo Experimental**
-  - [x] Definição da premissa arquitetural (ADR-001: framework recebe modelos e funções externas sem implementar algoritmos de ML internamente).
-  - [x] Especificação da Etapa 1 (Entrada, triagem diagnóstica somente-leitura, problemas confirmados vs. alertas heurísticos e plano explícito de preparação).
-  - [x] Especificação da Etapa 2 (Exploração rotulada de relações, cenários fixos e cenários dinâmicos ajustados por *fold* com rastreabilidade de estabilidade).
-  - [x] Especificação da Etapa 3 (Registro de modelos via contratos funcionais, suporte a equações analíticas sem `fit`, pré-processamento em 2 camadas, *tuning* aninhado e diagnósticos internos).
-  - [x] Especificação da Etapa 4 (`PartitionPlan` compartilhado, CV e *Holdout* isolado, orquestração da execução das células com tolerância a falhas, paralelismo em 2 níveis, *checkpoint/resume*, tempos desagregados e predições *out-of-fold*).
-  - [x] Especificação da Etapa 5 (Consolidação descritiva, seleção metodológica de testes estatísticos, tratamento de incompletude, tamanho de efeito, relevância prática, Fronteira de Pareto e conclusões explicativas rastreáveis).
-  - [x] Especificação da Etapa 6 (Relatório científico completo, 7 famílias de tabelas e figuras modulares, manifesto de proveniência por artefato e pacote portável de reprodutibilidade).
-  - [x] Consolidação formal na [`ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md) (v2.0).
-- [x] **Fase 3: Arquitetura Geral, Contratos Conceituais, Modelo de Dados e Recorte de MVP**
-  - [x] Definição da arquitetura em três camadas, do pipeline operacional de dados em 6 etapas e das dependências entre módulos.
-  - [x] Adoção do paradigma modular procedural/funcional (sem orientação a objetos) e especificação da CLI modularizada (`expml`, ADR-008).
-  - [x] Formalização dos contratos conceituais de entrada, saída, invariantes e pontos de extensão de cada módulo.
-  - [x] Definição do modelo de dados do experimento, máquina de estados e árvore de diretórios do pacote de reprodutibilidade.
-  - [x] Separação estratégica entre o **MVP Essencial** e as **Evoluções Posteriores**.
-  - [x] Consolidação formal em [`ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md).
-- [ ] **Fase 4: Implementação Guiada por Testes (TDD) do MVP (Marcos M1–M7)**
-  - [ ] **M1 (`core` + `metrics` + `cli` base):**
-    - [x] **M1.1:** Configuração do projeto (`pyproject.toml`, `.venv`), esqueleto da CLI modularizada (`expml`), verificação empírica de compatibilidade e *smoke tests*.
-    - [ ] **M1.2:** Contratos, implementação funcional e testes de `core` (IDs, constantes/enums, `derive_seeds`, `config_hash`, `dataset_hash`, validações/alertas).
-    - [ ] **M1.3:** Contratos, implementação funcional e testes de `metrics` (`MetricValue`, `METRICS_CATALOG`, `UNDEFINED_NAN` e 15 funções de métricas com tolerâncias específicas por família).
-  - [ ] **M2 (`data` + `validation` + CLI `data`/`partition`):** Funções de ingestão somente-leitura (`.csv`/`.txt` com ou sem cabeçalho, `DataFrame` e alvo univariado), `profile_dataset` (problemas confirmados vs. alertas heurísticos), `create_preparation_plan` explícito e `build_partition_plan` auditado (`kfold_split`, `stratified_kfold_split`, `group_kfold_split`, `holdout_split`). *Extensões da Onda 2 (planejadas para etapas posteriores, fora do escopo de implementação do MVP imediato): regressão multialvo (`target_col: Sequence[str]`), conjunto de candidatos não rotulados (`unlabeled_pool`), `TargetTransformSpec`, `bootstrap_split` e `temporal_split`.*
-  - [ ] **M3 (`features` + CLI `features`):** `explore_features` rotulado (`EXPLORATORY_FULL_DATA`), validação de cenários (`FIXED` e `DYNAMIC`), `select_features_in_fold` ajustado por *fold* (filtro de colinearidade, Top-$K$ e ranking ponderado multi-critério) e índice de estabilidade de seleção. *Extensão da Onda 2 (planejada para etapas posteriores, fora do escopo de implementação do MVP imediato): redução de dimensionalidade intra-fold (`PCA`).*
-  - [ ] **M4 (`models` + `tuning` + CLI `models`):** `ModelSpec`, funções `instantiate_fresh_model`, `fit_model`, `predict_model` (estimadores clássicos, analíticos com `requires_fit=False`, customizados/quânticos e modelos com incerteza nativa), pré-processamento funcional em 2 camadas (com bloqueio de duplicação e roteamento de kernels externos) e `run_nested_tuning` (`fixed`, `grid_search`, `random_search` para alvo único). *Extensão da Onda 2 (planejada para etapas posteriores, fora do escopo de implementação do MVP imediato): busca aninhada e seleção de atributos para múltiplos alvos simultâneos.*
-  - [ ] **M5 (`orchestration` + CLI `run`):** `run_experiment_matrix` e `resume_experiment_matrix`, isolamento de falhas (`FAULT_TOLERANT` / `FAIL_FAST`), paralelismo em 2 níveis, agregação de comitê e persistência com *checkpoint/resume*.
-  - [ ] **M6 (`statistics` + CLI `stats`):** Funções de consolidação descritiva, adequação metodológica, Nadeau-Bengio, Wilcoxon pareado, Holm-Bonferroni, Benjamini-Hochberg, relevância prática, Fronteira de Pareto (desempenho vs. custo/estabilidade) e `synthesize_conclusions`. *Extensões da Onda 2 (planejadas para etapas posteriores, fora do escopo de implementação do MVP imediato): Fronteira de Pareto multialvo e funções de aquisição sequencial sobre candidatos com incerteza (`EI`, `UCB`/`LCB`, `Exploitation`, `Exploration`).*
-  - [ ] **M7 (`reporting` + CLI `report`):** Funções de geração de relatórios completos (MD/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência e pacote de reprodutibilidade.
-- [ ] **Fase 5: Verificação Experimental**
-  - [ ] Reprodução do baseline científico do projeto de origem com paridade matemática e conceitual.
-  - [ ] Validação de scripts e notebooks tutoriais guiados.
+O projeto fornece infraestrutura modular, determinística e pedagógica para condução, auditoria e publicação de experimentos científicos, priorizando a integridade metodológica, a prevenção ativa de vazamento de dados e a reprodutibilidade integral dos resultados.
 
 ---
 
-## Arquitetura em Camadas e Pipeline Operacional (6 Etapas)
+## 1. Sobre o Projeto
 
-| Etapa do Pipeline | Camada Arquitetural | Módulos (`src/experimental_ml/`) | Subcomando CLI | Responsabilidade Central (Funções Modulares, Sem OOP) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Etapa 1** | Camada 1: Definição e Triagem | `data` | `expml data` | Ingestão imutável (`load_dataset`), perfil diagnóstico completo (`profile_dataset`: problemas confirmados vs. alertas heurísticos) e plano explícito de preparação (`create_preparation_plan`). |
-| **Etapa 2** | Camada 1: Definição e Triagem | `features` | `expml features` | Análise exploratória de relações (`explore_features`) e gerenciamento de cenários fixos (`mode="FIXED"`) e dinâmicos ajustados por *fold* (`select_features_in_fold`). |
-| **Etapa 3** | Camada 1: Definição e Triagem | `models`, `tuning` | `expml models` | Especificação e execução isolada de modelos (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento funcional em duas camadas, otimização aninhada (`run_nested_tuning`) e extração de diagnósticos. |
-| **Etapa 4** | Camada 2: Validação e Execução Matricial | `validation`, `orchestration` | `expml partition` / `expml run` | Geração e validação do `PartitionPlan` compartilhado (`build_partition_plan`), execução matricial (`run_experiment_matrix`) com tolerância a falhas, controle de paralelismo, *checkpoint/resume* e predições *out-of-fold*. |
-| **Etapa 5** | Camada 3: Comparação Estatística e Publicação | `statistics` (com `metrics`) | `expml stats` | Consolidação descritiva, avaliação de adequação de testes estatísticos, tamanho de efeito, relevância prática, análise multiobjetivo (`compute_pareto_frontier` e funções de aquisição) e conclusões rastreáveis. |
-| **Etapa 6** | Camada 3: Comparação Estatística e Publicação | `reporting` | `expml report` | Geração somente-leitura de relatórios científicos (Markdown/HTML), 7 famílias de tabelas e figuras modulares, manifesto de proveniência e pacote de reprodutibilidade (`build_reproducibility_package`). |
+### Propósito e Problema Abordado
 
-*(Os módulos `core` e `metrics` formam a fundação transversal de funções puras utilizada pelas três camadas, e `cli` provê a interface modularizada de linha de comando).*
+A pesquisa experimental em Aprendizado de Máquina frequentemente enfrenta desafios metodológicos que comprometem a validade e a comparabilidade dos resultados publicados:
+- **Vazamento de dados (*data leakage*):** ajuste acidental de transformações de pré-processamento, imputações ou seleção de atributos fora do laço interno de treino de cada partição.
+- **Mutações silenciosas:** alterações não declaradas ou automáticas nos dados brutos de entrada (como descarte de linhas com valores ausentes ou coerção arbitrária de tipos).
+- **Viés de seleção de hiperparâmetros:** ausência de validação cruzada aninhada (*Nested CV*), resultando em estimativas de erro superotimistas.
+- **Inferência estatística frágil:** declaração de modelos vencedores baseada em médias simples, sem testes pareados adequados, sem correção de comparações múltiplas ou confundindo ausência de significância estatística ($p \ge \alpha$) com equivalência entre algoritmos.
+- **Acoplamento entre execução e apresentação:** necessidade de reexecutar experimentos onerosos apenas para reformatar tabelas ou recalcular testes estatísticos.
+
+O `experimental-ml-framework` aborda esses problemas estruturando o ciclo experimental em **6 etapas operacionais** regidas por contratos estritos de entrada, saída e invariantes matemáticas, projetados para impedir falhas metodológicas por construção.
+
+### Objetivos Principais
+
+- **Prevenção estrutural de vazamento:** todo ajuste de parâmetros (pré-processamento, seleção de atributos e calibração de modelos) ocorre estritamente nos dados de treino de cada partição externa (**ADR-002**).
+- **Zero mutações silenciosas:** a base de dados original é estritamente imutável. Toda sanitização ou imputação exige declaração explícita em um plano auditável de preparação.
+- **Arquitetura agnóstica sem estimadores próprios (ADR-001):** o framework não reescreve algoritmos de ML internamente; recebe modelos e funções externas (Scikit-Learn, XGBoost, modelos analíticos sem `fit`, funções customizadas e circuitos quânticos) através de contratos funcionais uniformes.
+- **Rastreabilidade e proveniência retrospectiva:** vinculação ponta a ponta entre a base de dados original, identificadores imutáveis de partição, sementes determinísticas e previsões por observação.
+- **Independência entre camadas:** a geração de relatórios científicos, figuras e tabelas opera de forma somente-leitura sobre os artefatos persistidos, sem exigir retreinamento de modelos.
 
 ---
 
-## Documentação de Engenharia
+## 2. Estado de Desenvolvimento
 
-Os documentos técnicos de acompanhamento e especificação estão centralizados no diretório [`engenharia_software/`](engenharia_software/):
+O projeto encontra-se atualmente na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, utilizando a metodologia de desenvolvimento orientado por especificações (*TLC Spec-Driven Development*).
 
-- [`engenharia_software/ETAPA_ATUAL_ENGENHARIA.md`](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md): Registro do estado atual do ciclo de vida da engenharia.
-- [`engenharia_software/ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md): Especificação completa dos requisitos funcionais e não-funcionais das 6 etapas (SRS v2.0).
-- [`engenharia_software/ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md): Arquitetura em camadas, pipeline operacional de 6 etapas, dependências entre módulos, contratos conceituais, modelo de dados, pacote de reprodutibilidade e recorte de MVP.
+- **Marco M1.1 (`m1-1-setup-cli-smoke`): CONCLUÍDO.**  
+  Disponibiliza a configuração inicial de empacotamento em Python, a árvore modular do projeto, o ponto de entrada da interface de linha de comando (`expml`) e a suíte de testes de fumaça.
+- **Marco M1.2 (`core`): PRÓXIMO MARCO.**  
+  Implementação dos contratos conceituais fundamentais, gerador hierárquico determinístico de sementes (`numpy.random.SeedSequence`), serialização canônica e funções de hashing (`config_hash` e `dataset_hash` conforme **ADR-007**).
+- **Marcos M2 a M7: PLANEJADOS.**  
+  O motor funcional completo (ingestão de dados, particionamento, execução matricial, cálculo de métricas, comparação estatística e geração de relatórios) está especificado e será implementado incrementalmente nos marcos subsequentes.
+
+---
+
+## 3. Funcionalidades Disponíveis
+
+Na versão atual da branch `main`, as seguintes capacidades estão implementadas e operacionais:
+
+- **Empacotamento Padronizado (PEP 517 / PEP 621):** Configuração declarativa via `pyproject.toml` baseada no build backend Hatchling.
+- **Instalação Editável:** Suporte a instalação via `pip install -e ".[dev]"` em ambientes virtuais Python `>=3.10`.
+- **Acesso Programático à Versão:** O pacote raiz expõe a constante pública de versão via `experimental_ml.__version__` (`0.1.0.dev0`).
+- **Interface de Linha de Comando (`expml`):** Ponto de entrada executável registrado no ambiente (`PATH`), desenvolvido exclusivamente sobre a biblioteca padrão (`argparse`) sem dependências externas adicionais:
+  - Opção `--version`: Exibe o identificador do executável e a versão instalada, finalizando com código de saída `0`.
+  - Opção `--help` (ou `-h`): Apresenta o sumário descritivo de opções e instruções de uso, finalizando com código de saída `0`.
+  - Execução sem argumentos: Exibe as instruções de uso e finaliza com código de saída `0`.
+  - Tratamento de argumentos inválidos: Exibe mensagem de erro descritiva em `stderr` e finaliza com código de saída `2` (seguindo as convenções de integridade do requisito `RNF07`).
+- **Suíte Automatizada de Testes de Fumaça:** 12 asserções automatizadas em `tests/test_smoke.py`, cobrindo integridade do pacote, análise estática de dependências da CLI e comportamento observável de processos.
+
+---
+
+## 4. Tecnologias e Estrutura do Projeto
+
+### Tecnologias Utilizadas
+
+- **Linguagem:** Python (suporte declarado `>=3.10`; verificado no interpretador local `Python 3.12.15`).
+- **Build Backend:** [Hatchling](https://hatch.pypa.io/latest/) (`hatchling.build`).
+- **Testes Automatizados:** [Pytest](https://docs.pytest.org/) (`pytest>=7.0.0`).
+- **Biblioteca Padrão:** Utilização estrita de módulos padrão (`argparse`, `tomllib`, `ast`, `subprocess`, `sys`) na infraestrutura da CLI base.
+
+### Estrutura de Diretórios
+
+```
+experimental-ml-framework/
+├── .specs/                          # Especificações formais e tarefas (TLC Spec-Driven)
+│   ├── STATE.md                     # Registro de decisões arquiteturais de projeto e handoff
+│   └── features/
+│       └── m1-1-setup-cli-smoke/    # Artefatos da entrega M1.1 (spec.md, tasks.md, proofs.md)
+├── engenharia_software/             # Documentação técnica central de engenharia
+│   ├── ESPECIFICACAO_REQUISITOS.md  # Especificação formal de requisitos (SRS v2.0)
+│   ├── ARQUITETURA_E_CONTRATOS.md   # Arquitetura em camadas, contratos e modelo de dados
+│   └── ETAPA_ATUAL_ENGENHARIA.md    # Estado atual do ciclo de vida e roadmap detalhado
+├── src/
+│   └── experimental_ml/             # Código-fonte da biblioteca (layout src/)
+│       ├── __init__.py              # Raiz do pacote (exposição de __version__)
+│       └── cli/                     # Interface de linha de comando
+│           ├── __init__.py
+│           └── main.py              # Ponto de entrada e parser principal (expml)
+├── tests/                           # Suíte de testes automatizados
+│   └── test_smoke.py                # Testes de fumaça da instalação e da CLI
+├── pyproject.toml                   # Configuração de build, dependências e metadados
+├── README.md                        # Porta de entrada do repositório
+└── REFERENCIAS_E_FUNDAMENTACAO.md   # Fundamentação teórica e referências normativas (25 fontes)
+```
+
+---
+
+## 5. Instalação
+
+### Pré-requisitos
+
+- **Python:** Versão `>= 3.10` instalada no sistema operacional.
+- **Git:** Para clonar o repositório.
+
+### Instruções Passo a Passo
+
+1. **Clonar o repositório:**
+   ```bash
+   git clone https://github.com/alexandrerangel/experimental-ml-framework.git
+   cd experimental-ml-framework
+   ```
+
+2. **Criar e ativar o ambiente virtual isolado (`.venv`):**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+   *(No Windows: `.venv\Scripts\activate`)*
+
+3. **Atualizar o gerenciador `pip`:**
+   ```bash
+   pip install --upgrade pip
+   ```
+
+4. **Instalar o pacote em modo editável com as ferramentas de teste:**
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+Após esse procedimento, o comando `expml` estará acessível diretamente no terminal dentro do ambiente virtual ativo.
+
+---
+
+## 6. Como Utilizar
+
+### Comandos da Interface de Linha de Comando (`expml`)
+
+Com o ambiente virtual ativado, execute os comandos abaixo para verificar o funcionamento da interface:
+
+#### Verificar a versão instalada:
+```bash
+expml --version
+```
+
+
+#### Exibir a mensagem de ajuda e opções:
+```bash
+expml --help
+```
+
+
+#### Invocação sem argumentos:
+```bash
+expml
+```
+Imprime as informações de utilização e finaliza com código de saída `0`.
+
+#### Teste de validação de argumentos inválidos:
+```bash
+expml --opcao-invalida
+```
+
+### Uso Programático em Python
+
+É possível verificar a disponibilidade e metadados do pacote diretamente via interpretador Python:
+
+```python
+import experimental_ml
+
+print(experimental_ml.__version__)
+# Saída: 0.1.0.dev0
+```
+
+---
+
+## 7. Testes
+
+O projeto utiliza o **Pytest** para automação de testes e garantia de integridade.
+
+### Execução da Suíte de Fumaça
+
+Para executar os testes de fumaça em modo detalhado, utilize o comando:
+
+```bash
+pytest tests/test_smoke.py -v
+```
+
+### Comportamento Verificado
+
+A suíte valida deterministicamente:
+- Declaração de build backend e metadados em `pyproject.toml`.
+- Exposição correta de `__version__ = "0.1.0.dev0"` no pacote raiz.
+- Ausência de importações de módulos não escritos na CLI (`core`, `metrics`, `data`).
+- Resposta e códigos de saída da CLI para `--version` (código `0`), `--help` (código `0`), invocação vazia (código `0`) e flags inválidas (código `2`).
+- Disponibilidade do executável `expml` no ambiente de execução.
+
+**Resultado esperado:**
+```
+tests/test_smoke.py::test_pyproject_metadata PASSED
+tests/test_smoke.py::test_package_version PASSED
+tests/test_smoke.py::test_dev_dependencies PASSED
+tests/test_smoke.py::test_cli_entrypoint_registered PASSED
+tests/test_smoke.py::test_editable_install_and_cli_on_path PASSED
+tests/test_smoke.py::test_cli_version_flag PASSED
+tests/test_smoke.py::test_cli_help_flag PASSED
+tests/test_smoke.py::test_cli_invalid_argument PASSED
+tests/test_smoke.py::test_cli_dependencies_pure_stdlib PASSED
+tests/test_smoke.py::test_smoke_discovery PASSED
+tests/test_smoke.py::test_version_non_empty PASSED
+tests/test_smoke.py::test_cli_observable_outcomes PASSED
+
+============================== 12 passed in 0.11s ==============================
+```
+
+---
+
+## 8. Roadmap
+
+O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes (TDD). A tabela a seguir distingue o que já foi implementado do que está planejado:
+
+| Marco | Escopo e Responsabilidade | Estado |
+| :--- | :--- | :---: |
+| **M1.1** | **Configuração e CLI Base:** `pyproject.toml`, layout `src/experimental_ml/`, comando `expml` (`--version`, `--help`) e suíte de fumaça. | **Concluído** |
+| **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, constantes/enums, gerador hierárquico `derive_seeds` (`SeedSequence`) e funções canônicas `config_hash`/`dataset_hash` (ADR-007). | **Próximo Marco** |
+| **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras estritas para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas. | Planejado |
+| **M2** | **Ingestão e Particionamento:** Ingestão imutável (`data`), perfilamento diagnóstico (`profile_dataset`), plano explícito de preparação e `PartitionPlan` compartilhado e auditado (`validation`). | Planejado |
+| **M3** | **Cenários de Features:** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários fixos e seleção dinâmica ajustada estritamente no treino de cada partição (`features`). | Planejado |
+| **M4** | **Modelos e Tuning:** Registro de modelos heterogêneos (`models`), pré-processamento em duas camadas com bloqueio de duplicação e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
+| **M5** | **Execução Matricial:** Orquestração da matriz $M \times C \times F$ (`orchestration`), tolerância a falhas sem mascaramento, persistência atômica e retomada verificada (*Checkpoint & Resume*). | Planejado |
+| **M6** | **Estatística Rigorosa:** Consolidação descritiva, teste $t$ corrigido de Nadeau-Bengio, Wilcoxon pareado, controle de FWER/FDR (Holm/BH), Fronteira de Pareto e conclusões estruturadas (`statistics`). | Planejado |
+| **M7** | **Relatórios e Reprodutibilidade:** Relatórios desacoplados em Markdown/HTML, 7 famílias de tabelas/figuras, manifesto `ArtifactProvenance` e pacote portátil de reprodutibilidade (`reporting`). | Planejado |
+
+---
+
+## 9. Documentação Técnica
+
+Para aprofundamento nos detalhes de engenharia, requisitos, arquitetura e fundamentação científica, consulte os documentos disponíveis no repositório:
+
+| Documento | Descrição |
+| :--- | :--- |
+| [`engenharia_software/ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md) | **Especificação de Requisitos de Software (SRS v2.0):** Requisitos funcionais das 6 etapas, requisitos não-funcionais e critérios de aceitação objetivos da Onda 1 e Onda 2. |
+| [`engenharia_software/ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md) | **Arquitetura, Contratos e Modelo de Dados:** Arquitetura em camadas, pipeline operacional de dados, contratos funcionais de cada módulo, modelo de dados do experimento e árvore do pacote de reprodutibilidade. |
+| [`engenharia_software/ETAPA_ATUAL_ENGENHARIA.md`](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md) | **Registro de Estado da Engenharia:** Situação atual do projeto no ciclo de vida de desenvolvimento e roadmap detalhado de implementação. |
+| [`REFERENCIAS_E_FUNDAMENTACAO.md`](REFERENCIAS_E_FUNDAMENTACAO.md) | **Fundamentação Teórico-Técnica e Bibliografia:** Justificativas científicas, matemáticas e normativas para as decisões de projeto (ADRs), com catálogo de 25 referências bibliográficas. |
+| [`.specs/features/m1-1-setup-cli-smoke/`](.specs/features/m1-1-setup-cli-smoke/) | **Artefatos TLC da Entrega M1.1:** Especificação (`spec.md`), plano atômico de tarefas (`tasks.md`) e registro de verificação independente (`proofs.md`). |
+
+---
+
+## Licença
+
+Este projeto é distribuído sob os termos da licença MIT (conforme declarado em [`pyproject.toml`](pyproject.toml)).
