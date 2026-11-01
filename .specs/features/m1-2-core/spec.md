@@ -1,6 +1,6 @@
 # m1-2-core Specification
 
-**Approved**: [written when the user approves - YYYY-MM-DD - user: "their words"]
+**Approved**: 2026-10-31 - user: "avança"
 
 ## Problem Statement
 

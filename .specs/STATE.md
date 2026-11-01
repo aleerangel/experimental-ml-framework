@@ -13,10 +13,10 @@
 ## Handoff
 
 - **Feature**: m1-2-core (.specs/features/m1-2-core)
-- **Phase / Task**: SPECIFY concluído / Aguardando aprovação do usuário
-- **Completed**: m1-1-setup-cli-smoke (concluído); m1-2-core (SPECIFY elaborado e validado)
+- **Phase / Task**: TASKS elaborado e validado / Aguardando aprovação do usuário para EXECUTE
+- **Completed**: m1-1-setup-cli-smoke (concluído); m1-2-core (SPECIFY aprovado, TASKS elaborado e validado)
 - **In-progress**: none
-- **Next step**: Aguardar aprovação humana de spec.md antes de avançar para a fase TASKS
+- **Next step**: Aguardar aprovação humana de tasks.md antes de iniciar a execução (EXECUTE) de m1-2-core
 - **Blockers**: none
-- **Uncommitted files**: .specs/features/m1-2-core/spec.md, .specs/STATE.md
+- **Uncommitted files**: .specs/features/m1-2-core/spec.md, .specs/features/m1-2-core/tasks.md, .specs/STATE.md
 - **Branch**: feat/m1-2-core
