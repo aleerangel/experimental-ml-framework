@@ -1,7 +1,7 @@
 # m1-2-core proofs
 
-**HEAD**: 2393396
-**Tree**: dirty - pyproject.toml, src/experimental_ml/core/, tests/unit/
+**HEAD**: 479ee8d
+**Tree**: clean
 **Shell**: /bin/sh
 **Result**: 18 pass, 0 fail
 
@@ -45,5 +45,5 @@ tests/unit/test_core.py::test_dataset_hash_file_not_found PASSED         [ 88%]
 tests/unit/test_core.py::test_make_finding_and_make_warning PASSED       [ 94%]
 tests/unit/test_core.py::test_core_exceptions_and_finding_immutability PASSED [100%]
 
-============================== 18 passed in 0.13s ==============================
+============================== 18 passed in 0.20s ==============================
 ```
