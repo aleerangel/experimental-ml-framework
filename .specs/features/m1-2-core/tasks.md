@@ -80,9 +80,9 @@ T5 → T6 → T7 → T8
 **Requirement**: CORE-07, CORE-10
 
 **Done when**:
-- [ ] `pyproject.toml` defines `dependencies = ["numpy>=1.24.0"]`
-- [ ] Package is reinstalled in editable mode in `.venv` with `pip install -e ".[dev]"`
-- [ ] Gate check passes: `.venv/bin/python -c "import numpy; print(numpy.__version__)"`
+- [x] `pyproject.toml` defines `dependencies = ["numpy>=1.24.0"]`
+- [x] Package is reinstalled in editable mode in `.venv` with `pip install -e ".[dev]"`
+- [x] Gate check passes: `.venv/bin/python -c "import numpy; print(numpy.__version__)"`
 
 **Tests**: none
 **Gate**: quick
@@ -98,11 +98,11 @@ T5 → T6 → T7 → T8
 **Requirement**: CORE-01, CORE-02, CORE-03
 
 **Done when**:
-- [ ] `src/experimental_ml/core/types.py` created
-- [ ] All 8 identifier types defined as immutable string subclasses
-- [ ] Constructor validates non-empty strings and strips whitespace
-- [ ] Rejects empty strings or non-string inputs with `ValueError`
-- [ ] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/types.py`
+- [x] `src/experimental_ml/core/types.py` created
+- [x] All 8 identifier types defined as immutable string subclasses
+- [x] Constructor validates non-empty strings and strips whitespace
+- [x] Rejects empty strings or non-string inputs with `ValueError`
+- [x] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/types.py`
 
 **Tests**: unit
 **Gate**: quick
@@ -118,11 +118,11 @@ T5 → T6 → T7 → T8
 **Requirement**: CORE-04, CORE-05, CORE-06
 
 **Done when**:
-- [ ] `src/experimental_ml/core/enums.py` created
-- [ ] Enums defined inheriting from `str, Enum`
-- [ ] All specified members present with exact string values
-- [ ] Supports direct equality with string literals and native JSON serialization
-- [ ] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/enums.py`
+- [x] `src/experimental_ml/core/enums.py` created
+- [x] Enums defined inheriting from `str, Enum`
+- [x] All specified members present with exact string values
+- [x] Supports direct equality with string literals and native JSON serialization
+- [x] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/enums.py`
 
 **Tests**: unit
 **Gate**: quick
@@ -138,11 +138,11 @@ T5 → T6 → T7 → T8
 **Requirement**: CORE-17, CORE-18
 
 **Done when**:
-- [ ] `src/experimental_ml/core/findings.py` created
-- [ ] `Finding` defined as immutable dataclass/NamedTuple with severity, code, message, and context
-- [ ] `make_finding` and `make_warning` constructors implemented
-- [ ] `ContractViolationError`, `DataIntegrityError`, and `ConfigurationError` defined
-- [ ] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/findings.py`
+- [x] `src/experimental_ml/core/findings.py` created
+- [x] `Finding` defined as immutable dataclass/NamedTuple with severity, code, message, and context
+- [x] `make_finding` and `make_warning` constructors implemented
+- [x] `ContractViolationError`, `DataIntegrityError`, and `ConfigurationError` defined
+- [x] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/findings.py`
 
 **Tests**: unit
 **Gate**: quick
@@ -160,11 +160,11 @@ T5 → T6 → T7 → T8
 **Requirement**: CORE-07, CORE-08, CORE-09
 
 **Done when**:
-- [ ] `src/experimental_ml/core/seeds.py` created
-- [ ] `derive_seeds(master_seed, count)` returns deterministic tuple of integers
-- [ ] `spawn_child_seeds(parent_seed, count)` returns independent child seed tuple
-- [ ] Rejects `count < 1` with `ValueError`
-- [ ] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/seeds.py`
+- [x] `src/experimental_ml/core/seeds.py` created
+- [x] `derive_seeds(master_seed, count)` returns deterministic tuple of integers
+- [x] `spawn_child_seeds(parent_seed, count)` returns independent child seed tuple
+- [x] Rejects `count < 1` with `ValueError`
+- [x] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/seeds.py`
 
 **Tests**: unit
 **Gate**: quick
@@ -180,12 +180,12 @@ T5 → T6 → T7 → T8
 **Requirement**: CORE-10, CORE-11, CORE-12, CORE-13, CORE-14, CORE-15, CORE-16
 
 **Done when**:
-- [ ] `src/experimental_ml/core/hashing.py` created
-- [ ] `config_hash(obj)` produces 64-char lowercase SHA-256 with Unicode NFC normalization
-- [ ] Strict scalar distinction (`True != 1`, `1 != 1.0`), collection distinction (`tuple != list`), set ordering by item hash
-- [ ] Special floats normalized (`-0.0 -> 0.0`, `NaN -> {"__float_special__": "NaN"}`)
-- [ ] `dataset_hash` handles raw files (CSV/TXT) and in-memory tabular data with little-endian buffers
-- [ ] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/hashing.py`
+- [x] `src/experimental_ml/core/hashing.py` created
+- [x] `config_hash(obj)` produces 64-char lowercase SHA-256 with Unicode NFC normalization
+- [x] Strict scalar distinction (`True != 1`, `1 != 1.0`), collection distinction (`tuple != list`), set ordering by item hash
+- [x] Special floats normalized (`-0.0 -> 0.0`, `NaN -> {"__float_special__": "NaN"}`)
+- [x] `dataset_hash` handles raw files (CSV/TXT) and in-memory tabular data with little-endian buffers
+- [x] Gate check passes: `.venv/bin/python -m py_compile src/experimental_ml/core/hashing.py`
 
 **Tests**: unit
 **Gate**: quick
@@ -201,10 +201,10 @@ T5 → T6 → T7 → T8
 **Requirement**: CORE-01, CORE-04, CORE-07, CORE-10, CORE-17
 
 **Done when**:
-- [ ] `src/experimental_ml/core/__init__.py` created
-- [ ] Re-exports all public identifiers, enums, functions, and exceptions
-- [ ] `__all__` explicitly declared
-- [ ] Gate check passes: `.venv/bin/python -c "import experimental_ml.core; print(dir(experimental_ml.core))"`
+- [x] `src/experimental_ml/core/__init__.py` created
+- [x] Re-exports all public identifiers, enums, functions, and exceptions
+- [x] `__all__` explicitly declared
+- [x] Gate check passes: `.venv/bin/python -c "import experimental_ml.core; print(dir(experimental_ml.core))"`
 
 **Tests**: none
 **Gate**: quick
@@ -220,10 +220,10 @@ T5 → T6 → T7 → T8
 **Requirement**: CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, CORE-09, CORE-10, CORE-11, CORE-12, CORE-13, CORE-14, CORE-15, CORE-16, CORE-17, CORE-18
 
 **Done when**:
-- [ ] `tests/unit/test_core.py` created
-- [ ] All 18 checks C1..C18 mapped to test functions
-- [ ] Test suite executes with 100% pass via pytest
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_core.py -v`
+- [x] `tests/unit/test_core.py` created
+- [x] All 18 checks C1..C18 mapped to test functions
+- [x] Test suite executes with 100% pass via pytest
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_core.py -v`
 
 **Tests**: unit
 **Gate**: full

@@ -13,10 +13,10 @@
 ## Handoff
 
 - **Feature**: m1-2-core (.specs/features/m1-2-core)
-- **Phase / Task**: TASKS elaborado e validado / Aguardando aprovação do usuário para EXECUTE
-- **Completed**: m1-1-setup-cli-smoke (concluído); m1-2-core (SPECIFY aprovado, TASKS elaborado e validado)
+- **Phase / Task**: EXECUTE concluído com 100% dos testes e verificações mecânicas aprovados
+- **Completed**: m1-1-setup-cli-smoke (concluído); m1-2-core (SPECIFY, TASKS e EXECUTE concluídos com 18 checks C1..C18 validados)
 - **In-progress**: none
-- **Next step**: Aguardar aprovação humana de tasks.md antes de iniciar a execução (EXECUTE) de m1-2-core
+- **Next step**: Validação final pelo usuário / commit do marco M1.2
 - **Blockers**: none
-- **Uncommitted files**: .specs/features/m1-2-core/spec.md, .specs/features/m1-2-core/tasks.md, .specs/STATE.md
+- **Uncommitted files**: pyproject.toml, src/experimental_ml/core/, tests/unit/test_core.py, .specs/features/m1-2-core/
 - **Branch**: feat/m1-2-core

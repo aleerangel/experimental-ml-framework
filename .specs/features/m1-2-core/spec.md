@@ -166,24 +166,24 @@ O framework `experimental-ml-framework` necessita de uma camada fundacional tran
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| CORE-01 | P1: Identificadores Imutáveis | Specify | Pending |
-| CORE-02 | P1: Identificadores Imutáveis | Specify | Pending |
-| CORE-03 | P1: Identificadores Imutáveis | Specify | Pending |
-| CORE-04 | P1: Enumerações Fundamentais | Specify | Pending |
-| CORE-05 | P1: Enumerações Fundamentais | Specify | Pending |
-| CORE-06 | P1: Enumerações Fundamentais | Specify | Pending |
-| CORE-07 | P1: Derivação de Sementes | Specify | Pending |
-| CORE-08 | P1: Derivação de Sementes | Specify | Pending |
-| CORE-09 | P1: Derivação de Sementes | Specify | Pending |
-| CORE-10 | P1: Hashing de Configurações | Specify | Pending |
-| CORE-11 | P1: Hashing de Configurações | Specify | Pending |
-| CORE-12 | P1: Hashing de Configurações | Specify | Pending |
-| CORE-13 | P1: Hashing de Configurações | Specify | Pending |
-| CORE-14 | P1: Hashing de Dados Tabulares | Specify | Pending |
-| CORE-15 | P1: Hashing de Dados Tabulares | Specify | Pending |
-| CORE-16 | P1: Hashing de Dados Tabulares | Specify | Pending |
-| CORE-17 | P1: Construtores de Diagnósticos | Specify | Pending |
-| CORE-18 | P1: Construtores de Diagnósticos | Specify | Pending |
+| CORE-01 | P1: Identificadores Imutáveis | Execute | Implemented |
+| CORE-02 | P1: Identificadores Imutáveis | Execute | Implemented |
+| CORE-03 | P1: Identificadores Imutáveis | Execute | Implemented |
+| CORE-04 | P1: Enumerações Fundamentais | Execute | Implemented |
+| CORE-05 | P1: Enumerações Fundamentais | Execute | Implemented |
+| CORE-06 | P1: Enumerações Fundamentais | Execute | Implemented |
+| CORE-07 | P1: Derivação de Sementes | Execute | Implemented |
+| CORE-08 | P1: Derivação de Sementes | Execute | Implemented |
+| CORE-09 | P1: Derivação de Sementes | Execute | Implemented |
+| CORE-10 | P1: Hashing de Configurações | Execute | Implemented |
+| CORE-11 | P1: Hashing de Configurações | Execute | Implemented |
+| CORE-12 | P1: Hashing de Configurações | Execute | Implemented |
+| CORE-13 | P1: Hashing de Configurações | Execute | Implemented |
+| CORE-14 | P1: Hashing de Dados Tabulares | Execute | Implemented |
+| CORE-15 | P1: Hashing de Dados Tabulares | Execute | Implemented |
+| CORE-16 | P1: Hashing de Dados Tabulares | Execute | Implemented |
+| CORE-17 | P1: Construtores de Diagnósticos | Execute | Implemented |
+| CORE-18 | P1: Construtores de Diagnósticos | Execute | Implemented |
 
 ---
 
@@ -198,10 +198,10 @@ O framework `experimental-ml-framework` necessita de uma camada fundacional tran
 
 ## Success Criteria
 
-- [ ] Todos os identificadores de domínio são instanciáveis, imutáveis e rejeitam strings vazias.
-- [ ] Todas as enumerações fundamentais contêm os membros requeridos e são serializáveis para JSON.
-- [ ] `derive_seeds` e `spawn_child_seeds` produzem sementes reprodutíveis e determinísticas com `numpy.random.SeedSequence`.
-- [ ] `config_hash` cumpre 100% das regras canônicas do ADR-007 (NFC, ordenação de chaves, `-0.0 == 0.0`, distinção estrita de tipos escalares e coleções).
-- [ ] `dataset_hash` calcula hashes SHA-256 determinísticos para arquivos e dados em memória, diferenciando esquemas, nomes de colunas e dados.
-- [ ] Construtores `make_finding` e `make_warning` criam registros estruturados imutáveis e exceções do framework são devidamente hierarquizadas.
-- [ ] Suíte de testes `tests/unit/test_core.py` implementada com 100% de aprovação.
+- [x] Todos os identificadores de domínio são instanciáveis, imutáveis e rejeitam strings vazias.
+- [x] Todas as enumerações fundamentais contêm os membros requeridos e são serializáveis para JSON.
+- [x] `derive_seeds` e `spawn_child_seeds` produzem sementes reprodutíveis e determinísticas com `numpy.random.SeedSequence`.
+- [x] `config_hash` cumpre 100% das regras canônicas do ADR-007 (NFC, ordenação de chaves, `-0.0 == 0.0`, distinção estrita de tipos escalares e coleções).
+- [x] `dataset_hash` calcula hashes SHA-256 determinísticos para arquivos e dados em memória, diferenciando esquemas, nomes de colunas e dados.
+- [x] Construtores `make_finding` e `make_warning` criam registros estruturados imutáveis e exceções do framework são devidamente hierarquizadas.
+- [x] Suíte de testes `tests/unit/test_core.py` implementada com 100% de aprovação.
