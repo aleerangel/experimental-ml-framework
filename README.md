@@ -35,8 +35,8 @@ O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MV
 
 - **Marco M1.1 (`m1-1-setup-cli-smoke`): CONCLUÍDO E ACEITO.**  
   Implementação, testes automatizados (12/12) e homologação manual aprovados. Disponibiliza configuração de empacotamento em Python, estrutura modular do projeto, ponto de entrada da CLI (`expml`) e suíte de testes de fumaça.
-- **Marco M1.2 (`core`):**  
-  Implementação e testes automatizados concluídos (18/18 testes unitários aprovados; verificação independente aprovada). Fornece identificadores de domínio imutáveis, enumerações, derivação determinística de sementes (`numpy.random.SeedSequence`), serialização canônica e hashing (`config_hash` e `dataset_hash` conforme ADR-007), além de diagnósticos estruturados (`Finding`) e exceções formais. Homologação manual pendente.
+- **Marco M1.2 (`core`): CONCLUÍDO E ACEITO.**  
+  Implementação, testes automatizados (18/18) e homologação manual aprovados. Fornece identificadores de domínio imutáveis, enumerações, derivação determinística de sementes (`numpy.random.SeedSequence`), serialização canônica e hashing (`config_hash` e `dataset_hash` conforme ADR-007), além de diagnósticos estruturados (`Finding`) e exceções formais.
 - **Marco M1.3 (`metrics`): PRÓXIMO MARCO.**  
   Implementação do catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas.
 - **Marcos M2 a M7: PLANEJADOS.**  
@@ -257,7 +257,7 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 | Marco | Escopo e Responsabilidade | Estado |
 | :--- | :--- | :---: |
 | **M1.1** | **Configuração e CLI Base:** `pyproject.toml`, layout `src/experimental_ml/`, comando `expml` (`--version`, `--help`) e suíte de fumaça. | **Concluído e Aceito** |
-| **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, constantes/enums, gerador `derive_seeds` (`SeedSequence`), funções `config_hash`/`dataset_hash` (ADR-007) e diagnósticos `Finding`. | Implementado (Aceite manual pendente) |
+| **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, constantes/enums, gerador `derive_seeds` (`SeedSequence`), funções `config_hash`/`dataset_hash` (ADR-007) e diagnósticos `Finding`. | **Concluído e Aceito** |
 | **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas. | Próximo Marco |
 | **M2** | **Ingestão e Particionamento:** Ingestão imutável (`data`), perfilamento diagnóstico (`profile_dataset`), plano de preparação e `PartitionPlan` compartilhado (`validation`). | Planejado |
 | **M3** | **Cenários de Features:** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários fixos e seleção dinâmica ajustada no treino de cada partição (`features`). | Planejado |

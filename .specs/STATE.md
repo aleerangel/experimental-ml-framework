@@ -25,11 +25,11 @@
 - **Completed**:
   - `PROCESSO_DE_ACEITE_DE_MARCOS.md` criado em `engenharia_software/`.
   - M1.1 documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`; homologação manual concluída e formalmente aceita (`APROVADO`).
-  - M1.2 documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-2-core/`.
+  - M1.2 documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`; homologação manual concluída e formalmente aceita (`APROVADO`).
   - Implementação e testes automatizados de M1.1 (12/12) e M1.2 (18/18) aprovados.
   - Verificação independente de M1.2 aprovada (`verification.md` PASS).
-- **In-progress**: Homologação manual de M1.2
-- **Next step**: Execução da homologação manual de M1.2; em seguida, início da fase Specify de M1.3 (`metrics`)
+- **In-progress**: Transição para o Marco M1.3 (`metrics`)
+- **Next step**: Início da fase Specify de M1.3 (`metrics`) sob o processo de aceite de marcos
 - **Blockers**: none
-- **Uncommitted files**: engenharia_software/, .specs/
-- **Branch**: feat/m1-2-core
+- **Uncommitted files**: engenharia_software/, .specs/, README.md
+- **Branch**: main

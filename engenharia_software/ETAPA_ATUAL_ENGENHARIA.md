@@ -14,13 +14,13 @@
 
 O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
 
-A entrega **Marco M1.1 (`m1-1-setup-cli-smoke`)** foi concluída e formalmente aceita. A entrega **Marco M1.2 (`core`)** teve sua implementação e testes automatizados concluídos (18/18 testes passando), com homologação manual pendente. O próximo passo de desenvolvimento é o **Marco M1.3 (`metrics`)**.
+As entregas **Marco M1.1 (`m1-1-setup-cli-smoke`)** e **Marco M1.2 (`core`)** foram concluídas e formalmente aceitas com aprovação em testes automatizados e homologação manual. O próximo passo de desenvolvimento é o **Marco M1.3 (`metrics`)**.
 
 ```mermaid
 flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
-    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(ETAPA ATUAL — M1.1 e M1.2 Concluídos / Aceite Manual Pendente)"]
+    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(ETAPA ATUAL — M1.1 e M1.2 Concluídos e Aceitos)"]
     Fase4 --> Fase5["Fase 5: Verificação Experimental<br/>(Pendente)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
@@ -91,7 +91,7 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
 
 1. **Marco M1 (`core` + `metrics` + esqueleto `cli`) — Subdividido em 3 Entregas Verificáveis:**
    * **M1.1 (Concluído e Aceito — Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv` (Python 3.12), `pyproject.toml` (Hatchling, declaração `requires-python = ">=3.10"`, entrypoint `expml`), esqueleto modular em `src/experimental_ml/cli/main.py`, aprovação de `tests/test_smoke.py` com 12/12 testes e homologação manual aprovada. Registrado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-1-setup-cli-smoke/`.
-   * **M1.2 (Implementação Concluída / Aceite Manual Pendente — Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função pura `derive_seeds` (`SeedSequence`), `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas), construtores de achados e exceções de contrato, com aprovação de `tests/unit/test_core.py` (18/18 testes) e verificação independente TLC (`proofs.md`, `verification.md`). Documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-2-core/`.
+   * **M1.2 (Concluído e Aceito — Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função pura `derive_seeds` (`SeedSequence`), `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas), construtores de achados e exceções de contrato, com aprovação de `tests/unit/test_core.py` (18/18 testes), verificação independente TLC (`proofs.md`, `verification.md`) e homologação manual aprovada. Registrado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-2-core/`.
    * **M1.3 (Próximo Marco — Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `METRICS_CATALOG`, regras funcionais de propagação para `MetricStatus.UNDEFINED_NAN` (`is_better`, `aggregate_fold_metrics`, `rank_configurations` — ADR-005), e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py`). Exige aprovação prévia de `SPEC.md` e roteiro `ACCEPTANCE.md` antes da implementação.
 2. **Marco M2 (`data` + `validation` + CLI `data`/`partition`):** Funções `load_dataset`, `profile_dataset` (problemas confirmados vs. alertas heurísticos), `create_preparation_plan` e geração/validação matemática do `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`).
 3. **Marco M3 (`features` + CLI `features`):** Função `explore_features` rotulada, validação de cenários (`FIXED` e `DYNAMIC`) e seleção dinâmica ajustada estritamente no treino de cada *fold* (`select_features_in_fold`), com medição de estabilidade de seleção.

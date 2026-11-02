@@ -50,12 +50,15 @@ except TypeError:
 
 # 3. Validação e rejeição de entradas inválidas
 casos_invalidos = ["", "   ", "\n", "id\ncom_quebra", "id\tcom_tab", 12345]
+
 for invalido in casos_invalidos:
     try:
         ExperimentId(invalido)
-        raise AssertionError(f"FALHA: Deveria ter rejeitado: {repr(invalido)}")
     except (ValueError, TypeError):
-        pass
+        continue
+    else:
+        raise AssertionError(f"Deveria ter rejeitado: {repr(invalido)}")
+
 print("✓ Validação e rejeição de identificadores inválidos confirmada.")
 ```
 
@@ -122,6 +125,8 @@ try:
     raise AssertionError("FALHA: Deveria ter rejeitado count=0!")
 except ValueError:
     pass
+
+
 print("✓ Derivação determinística de sementes confirmada.")
 ```
 

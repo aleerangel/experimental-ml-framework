@@ -18,7 +18,7 @@
 | **Testes Unitários Automatizados** | 18 testes em `tests/unit/test_core.py` | 18 testes aprovados (100%) | **APROVADO** |
 | **Testes de Regressão Geral** | 30 testes em `pytest tests/` | 30 testes aprovados (100%) | **APROVADO** |
 | **Verificação Independente TLC** | `validate_verification.py` e auditoria | Aprovado com veredito `PASS` (0 findings) | **APROVADO** |
-| **Homologação Manual** | Roteiro `ACCEPTANCE.md` (6 itens + cenário) | Roteiro estruturado; homologação manual não executada | **PENDENTE DE HOMOLOGAÇÃO MANUAL** |
+| **Homologação Manual** | Roteiro `ACCEPTANCE.md` (6 itens + cenário) | Executada e aprovada conforme roteiro | **APROVADO** |
 
 ---
 
@@ -77,8 +77,8 @@ tests/unit/test_core.py::test_core_exceptions_and_finding_immutability PASSED [1
 | 2.4 Hashing canônico ADR-007 (`config_hash`) | Coberto por `test_config_hash_*` | **Comprovado por Automação** |
 | 2.5 Hashing estrutural (`dataset_hash`) | Coberto por `test_dataset_hash_*` | **Comprovado por Automação** |
 | 2.6 Diagnósticos e exceções formais | Coberto por `test_make_finding_*` | **Comprovado por Automação** |
-| 3. Cenário integrado de ML | Roteiro documentado em `ACCEPTANCE.md` | **PENDENTE DE HOMOLOGAÇÃO MANUAL** |
-| Homologação manual do roteiro | Procedimento documentado em `ACCEPTANCE.md` | **PENDENTE DE HOMOLOGAÇÃO MANUAL** |
+| 3. Cenário integrado de ML | Executado e aprovado | **APROVADO** |
+| Homologação manual do roteiro | Executada e confirmada sem divergências | **APROVADO** |
 
 ---
 
@@ -92,6 +92,7 @@ tests/unit/test_core.py::test_core_exceptions_and_finding_immutability PASSED [1
 ## 5. Decisão Final de Aceite do Marco M1.2
 
 - **Veredito de Engenharia:** **IMPLEMENTAÇÃO CONCLUÍDA E VERIFICADA**
-- **Veredito de Homologação Manual:** **PENDENTE DE HOMOLOGAÇÃO MANUAL**
-- **Justificativa:** Os 18 critérios de aceitação automatizados (CORE-01 a CORE-18) foram implementados, testados e verificados de forma independente. O roteiro de validação do consumidor está documentado em `ACCEPTANCE.md`. Conforme o processo de aceite de marcos, a decisão final permanece pendente até a execução da homologação manual.
+- **Veredito de Homologação Manual:** **APROVADO**
+- **Decisão Final:** **APROVADO**
+- **Justificativa:** Os 18 critérios de aceitação automatizados (CORE-01 a CORE-18) foram implementados, testados e verificados de forma independente. O roteiro de validação do consumidor (`ACCEPTANCE.md`) foi executado e aprovado, confirmando os comportamentos das interfaces públicas e o cenário integrado.
 

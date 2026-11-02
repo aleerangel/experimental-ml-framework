@@ -103,7 +103,7 @@ O processo de aceite integra-se às fases do TLC:
 | Marco | Identificador TLC | Implementação | Testes Automatizados | Verificação TLC | Validação de Aceitação | Decisão de Aceite |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **M1.1** | `m1-1-setup-cli-smoke` | Concluída (`0840603`) | 12/12 Aprovados | Aprovado | Executada e aprovada conforme roteiro | **Aprovado** |
-| **M1.2** | `m1-2-core` | Concluída (`479ee8d`) | 18/18 Aprovados (30/30 total) | Aprovado (`PASS`) | Roteiro documentado; validação manual pendente | **Pendente de homologação manual** |
+| **M1.2** | `m1-2-core` | Concluída (`479ee8d`) | 18/18 Aprovados (30/30 total) | Aprovado (`PASS`) | Executada e aprovada conforme roteiro | **Aprovado** |
 | **M1.3** | `m1-3-metrics` | Não iniciada | Pendente | Pendente | Pendente | **Não Iniciado** |
 | **M2 a M7**| — | Planejados | Pendente | Pendente | Pendente | **Planejado** |
 
