@@ -366,6 +366,15 @@ def _check_feature(fdir, name):
         errors.append(
             f"{name}: {doc} has no `**Approved**: <YYYY-MM-DD> - user: \"<their words>\"` line - the spec and "
             f"the tasks are approved by the user, in their words, before Execute")
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(fdir))))
+    if os.path.exists(os.path.join(root, "engenharia_software", "PROCESSO_DE_ACEITE_DE_MARCOS.md")):
+        has_spec = os.path.exists(os.path.join(fdir, "SPEC.md")) or os.path.exists(os.path.join(fdir, "spec.md"))
+        if not has_spec:
+            errors.append(f"{name}: no SPEC.md or spec.md - milestone specification record is required")
+        if not os.path.exists(os.path.join(fdir, "ACCEPTANCE.md")):
+            errors.append(f"{name}: no ACCEPTANCE.md - milestone acceptance walkthrough is required")
+        if not os.path.exists(os.path.join(fdir, "RESULTS.md")):
+            errors.append(f"{name}: no RESULTS.md - milestone acceptance results record is required")
     return errors, warnings
 
 

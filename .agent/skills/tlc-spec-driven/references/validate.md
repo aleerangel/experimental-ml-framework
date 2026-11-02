@@ -113,3 +113,11 @@ issue becomes a finding in `verification.md` like any other.
 
 After the gate passes, turn each finding into one lesson with `scripts/lessons.py`
 ([lessons.md](lessons.md)). A feature with no finding records nothing.
+
+## Milestone Acceptance (RESULTS.md)
+
+Validation culminates in recording actual evidence in `RESULTS.md`:
+1. Record the tested commit, environment, and automated test results from `proofs.md`.
+2. Record the independent Verifier judgement from `verification.md`.
+3. Record consumer acceptance results from `ACCEPTANCE.md`: validations executed vs those remaining PENDING. Never invent evidence or simulate approvals.
+4. Record the formal acceptance decision (`APROVADO`, `APROVADO COM RESSALVAS`, or `PENDENTE DE HOMOLOGAÇÃO MANUAL`). A milestone is only accepted when all mandatory criteria are met or reservations are explicitly approved.

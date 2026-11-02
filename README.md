@@ -17,7 +17,7 @@ A pesquisa experimental em Aprendizado de Máquina frequentemente enfrenta desaf
 - **Inferência estatística frágil:** declaração de modelos vencedores baseada em médias simples, sem testes pareados adequados, sem correção de comparações múltiplas ou confundindo ausência de significância estatística ($p \ge \alpha$) com equivalência entre algoritmos.
 - **Acoplamento entre execução e apresentação:** necessidade de reexecutar experimentos onerosos apenas para reformatar tabelas ou recalcular testes estatísticos.
 
-O `experimental-ml-framework` aborda esses problemas estruturando o ciclo experimental em **6 etapas operacionais** regidas por contratos estritos de entrada, saída e invariantes matemáticas, projetados para impedir falhas metodológicas por construção.
+O `experimental-ml-framework` aborda esses problemas estruturando o ciclo experimental em **6 etapas operacionais** regidas por contratos estritos de entrada, saída e invariantes matemáticas, projetados para reduzir falhas metodológicas por construção.
 
 ### Objetivos Principais
 
@@ -31,16 +31,16 @@ O `experimental-ml-framework` aborda esses problemas estruturando o ciclo experi
 
 ## 2. Estado de Desenvolvimento
 
-O projeto encontra-se atualmente na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, utilizando a metodologia de desenvolvimento orientado por especificações (*TLC Spec-Driven Development*).
+O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, utilizando a metodologia de desenvolvimento orientado por especificações (*TLC Spec-Driven Development*).
 
-- **Marco M1.1 (`m1-1-setup-cli-smoke`): CONCLUÍDO.**  
-  Disponibiliza a configuração inicial de empacotamento em Python, a árvore modular do projeto, o ponto de entrada da interface de linha de comando (`expml`) e a suíte de testes de fumaça.
-- **Marco M1.2 (`core`): CONCLUÍDO.**  
-  Implementação e verificação formal do núcleo conceitual transversal (Nível 0): identificadores de domínio imutáveis, enumerações fundamentais, derivação hierárquica determinística de sementes (`numpy.random.SeedSequence`), serialização canônica e funções de hashing (`config_hash` e `dataset_hash` conforme **ADR-007**), além de construtores estruturados de achados diagnósticos e exceções formais de integridade.
+- **Marco M1.1 (`m1-1-setup-cli-smoke`):**  
+  Implementação e testes automatizados concluídos (12/12 testes de fumaça aprovados). Disponibiliza configuração de empacotamento em Python, estrutura modular do projeto, ponto de entrada da CLI (`expml`) e suíte de testes de fumaça. Homologação manual pendente.
+- **Marco M1.2 (`core`):**  
+  Implementação e testes automatizados concluídos (18/18 testes unitários aprovados; verificação independente aprovada). Fornece identificadores de domínio imutáveis, enumerações, derivação determinística de sementes (`numpy.random.SeedSequence`), serialização canônica e hashing (`config_hash` e `dataset_hash` conforme ADR-007), além de diagnósticos estruturados (`Finding`) e exceções formais. Homologação manual pendente.
 - **Marco M1.3 (`metrics`): PRÓXIMO MARCO.**  
-  Implementação do catálogo `METRICS_CATALOG`, regras estritas para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas.
+  Implementação do catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas.
 - **Marcos M2 a M7: PLANEJADOS.**  
-  O motor funcional completo (ingestão de dados, particionamento, execução matricial, comparação estatística e geração de relatórios) está especificado e será implementado incrementalmente nos marcos subsequentes.
+  Ingestão de dados, particionamento, execução matricial, comparação estatística e geração de relatórios estão especificados e serão implementados nos marcos subsequentes.
 
 ---
 
@@ -256,30 +256,31 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 
 | Marco | Escopo e Responsabilidade | Estado |
 | :--- | :--- | :---: |
-| **M1.1** | **Configuração e CLI Base:** `pyproject.toml`, layout `src/experimental_ml/`, comando `expml` (`--version`, `--help`) e suíte de fumaça. | **Concluído** |
-| **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, constantes/enums, gerador hierárquico `derive_seeds` (`SeedSequence`), funções canônicas `config_hash`/`dataset_hash` (ADR-007) e diagnósticos `Finding`. | **Concluído** |
-| **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras estritas para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas. | **Próximo Marco** |
-| **M2** | **Ingestão e Particionamento:** Ingestão imutável (`data`), perfilamento diagnóstico (`profile_dataset`), plano explícito de preparação e `PartitionPlan` compartilhado e auditado (`validation`). | Planejado |
-| **M3** | **Cenários de Features:** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários fixos e seleção dinâmica ajustada estritamente no treino de cada partição (`features`). | Planejado |
-| **M4** | **Modelos e Tuning:** Registro de modelos heterogêneos (`models`), pré-processamento em duas camadas com bloqueio de duplicação e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
-| **M5** | **Execução Matricial:** Orquestração da matriz $M \times C \times F$ (`orchestration`), tolerância a falhas sem mascaramento, persistência atômica e retomada verificada (*Checkpoint & Resume*). | Planejado |
-| **M6** | **Estatística Rigorosa:** Consolidação descritiva, teste $t$ corrigido de Nadeau-Bengio, Wilcoxon pareado, controle de FWER/FDR (Holm/BH), Fronteira de Pareto e conclusões estruturadas (`statistics`). | Planejado |
-| **M7** | **Relatórios e Reprodutibilidade:** Relatórios desacoplados em Markdown/HTML, 7 famílias de tabelas/figuras, manifesto `ArtifactProvenance` e pacote portátil de reprodutibilidade (`reporting`). | Planejado |
+| **M1.1** | **Configuração e CLI Base:** `pyproject.toml`, layout `src/experimental_ml/`, comando `expml` (`--version`, `--help`) e suíte de fumaça. | Implementado (Aceite manual pendente) |
+| **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, constantes/enums, gerador `derive_seeds` (`SeedSequence`), funções `config_hash`/`dataset_hash` (ADR-007) e diagnósticos `Finding`. | Implementado (Aceite manual pendente) |
+| **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas. | Próximo Marco |
+| **M2** | **Ingestão e Particionamento:** Ingestão imutável (`data`), perfilamento diagnóstico (`profile_dataset`), plano de preparação e `PartitionPlan` compartilhado (`validation`). | Planejado |
+| **M3** | **Cenários de Features:** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários fixos e seleção dinâmica ajustada no treino de cada partição (`features`). | Planejado |
+| **M4** | **Modelos e Tuning:** Registro de modelos (`models`), pré-processamento em duas camadas e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
+| **M5** | **Execução Matricial:** Orquestração da matriz $M \times C \times F$ (`orchestration`), tolerância a falhas, persistência e retomada (*Checkpoint & Resume*). | Planejado |
+| **M6** | **Estatística:** Consolidação descritiva, teste $t$ corrigido de Nadeau-Bengio, Wilcoxon pareado, controle de FWER/FDR (Holm/BH), Fronteira de Pareto e conclusões estruturadas (`statistics`). | Planejado |
+| **M7** | **Relatórios e Reprodutibilidade:** Relatórios em Markdown/HTML, 7 famílias de tabelas/figuras, manifesto `ArtifactProvenance` e reprodução do experimento de referência `prognose_florestal`. | Planejado |
 
 ---
 
 ## 9. Documentação Técnica
 
-Para aprofundamento nos detalhes de engenharia, requisitos, arquitetura e fundamentação científica, consulte os documentos disponíveis no repositório:
+Para consultar detalhes de engenharia, requisitos, arquitetura e fundamentação científica:
 
 | Documento | Descrição |
 | :--- | :--- |
-| [`engenharia_software/ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md) | **Especificação de Requisitos de Software (SRS v2.0):** Requisitos funcionais das 6 etapas, requisitos não-funcionais e critérios de aceitação objetivos da Onda 1 e Onda 2. |
-| [`engenharia_software/ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md) | **Arquitetura, Contratos e Modelo de Dados:** Arquitetura em camadas, pipeline operacional de dados, contratos funcionais de cada módulo, modelo de dados do experimento e árvore do pacote de reprodutibilidade. |
-| [`engenharia_software/ETAPA_ATUAL_ENGENHARIA.md`](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md) | **Registro de Estado da Engenharia:** Situação atual do projeto no ciclo de vida de desenvolvimento e roadmap detalhado de implementação. |
-| [`REFERENCIAS_E_FUNDAMENTACAO.md`](REFERENCIAS_E_FUNDAMENTACAO.md) | **Fundamentação Teórico-Técnica e Bibliografia:** Justificativas científicas, matemáticas e normativas para as decisões de projeto (ADRs), com catálogo de 25 referências bibliográficas. |
-| [`.specs/features/m1-1-setup-cli-smoke/`](.specs/features/m1-1-setup-cli-smoke/) | **Artefatos TLC da Entrega M1.1:** Especificação (`spec.md`), plano atômico de tarefas (`tasks.md`) e registro de verificação independente (`proofs.md`). |
-| [`.specs/features/m1-2-core/`](.specs/features/m1-2-core/) | **Artefatos TLC da Entrega M1.2:** Especificação (`spec.md`), tarefas (`tasks.md`), evidências (`proofs.md`) e verificação independente (`verification.md`). |
+| [`engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md`](engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md) | **Processo de Aceite de Marcos:** Regras de governança, tríade documental (`SPEC.md`, `ACCEPTANCE.md`, `RESULTS.md`) e critérios objetivos de aprovação. |
+| [`engenharia_software/ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md) | **Especificação de Requisitos de Software (SRS v2.0):** Requisitos funcionais das 6 etapas, requisitos não-funcionais e critérios de aceitação. |
+| [`engenharia_software/ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md) | **Arquitetura, Contratos e Modelo de Dados:** Camadas, pipeline de 6 etapas, contratos de módulos, modelo de dados e pacote de reprodutibilidade. |
+| [`engenharia_software/ETAPA_ATUAL_ENGENHARIA.md`](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md) | **Registro de Estado da Engenharia:** Situação atual no ciclo de vida e roadmap detalhado de implementação. |
+| [`REFERENCIAS_E_FUNDAMENTACAO.md`](REFERENCIAS_E_FUNDAMENTACAO.md) | **Fundamentação Teórico-Técnica e Bibliografia:** Justificativas científicas e normativas para as decisões de projeto (ADRs), com 25 referências. |
+| [`.specs/features/m1-1-setup-cli-smoke/`](.specs/features/m1-1-setup-cli-smoke/) | **Artefatos da Entrega M1.1:** Especificação (`SPEC.md`), roteiro de aceitação (`ACCEPTANCE.md`) e resultados (`RESULTS.md`). |
+| [`.specs/features/m1-2-core/`](.specs/features/m1-2-core/) | **Artefatos da Entrega M1.2:** Especificação (`SPEC.md`), roteiro de aceitação (`ACCEPTANCE.md`), resultados (`RESULTS.md`) e verificação independente (`verification.md`). |
 
 ---
 

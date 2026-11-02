@@ -1,23 +1,26 @@
 # Engenharia de Software — `experimental-ml-framework`
 
 > **Documento de Registro de Estado da Engenharia**  
-> **Data:** 31 de Outubro de 2026  
+> **Data:** 02 de Novembro de 2026  
 > **Repositório de Origem (Referência Científica):** `prognose_florestal`  
 > **Novo Repositório (Framework Científico Agnóstico):** `experimental-ml-framework`  
 > **Especificação de Requisitos (SRS v2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)  
-> **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)
+> **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)  
+> **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
 ---
 
 ## 1. Etapa Atual no Ciclo de Vida da Engenharia
 
-O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**. As sub-entregas **Marco M1.1 (`m1-1-setup-cli-smoke`)** e **Marco M1.2 (`core`)** foram concluídas e validadas com 100% de sucesso. O próximo passo de desenvolvimento é o **Marco M1.3 (`metrics`)**.
+O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
+
+As entregas **Marco M1.1 (`m1-1-setup-cli-smoke`)** e **Marco M1.2 (`core`)** tiveram suas implementações concluídas e validadas por testes automatizados (30/30 testes passando). Ambos foram documentados com os três registros de aceite (`SPEC.md`, `ACCEPTANCE.md`, `RESULTS.md`), com homologação manual pendente. O próximo passo de desenvolvimento é o **Marco M1.3 (`metrics`)**.
 
 ```mermaid
 flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
-    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(ETAPA ATUAL — M1.1 e M1.2 Concluídos)"]
+    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(ETAPA ATUAL — M1.1 e M1.2 Concluídos / Aceite Manual Pendente)"]
     Fase4 --> Fase5["Fase 5: Verificação Experimental<br/>(Pendente)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
@@ -60,7 +63,7 @@ flowchart LR
      * `hashing.py`: implementação de `config_hash` e `dataset_hash` cumprindo 100% das regras canônicas do **ADR-007** (NFC, ordenação estável por code points UTF-8, distinção de tipos escalares e coleções, normalização de `-0.0 -> 0.0`, `NaN` e `+/-Inf`).
      * `__init__.py`: re-exportação pública via `__all__`.
    * Implementação da suíte de testes unitários `tests/unit/test_core.py` com 18 testes automatizados aprovados (totalizando 30 testes aprovados na suíte geral).
-   * Execução do portão mecânico de verificação independente da skill `tlc-spec-driven` (`proofs.md` e `verification.md` com veredito `PASS`, 18/18 checks aprovados).
+   * Execução do portão de verificação independente da skill `tlc-spec-driven` (`proofs.md` e `verification.md` com veredito `PASS`, 18/18 checks aprovados).
 
 ---
 
@@ -84,10 +87,12 @@ flowchart LR
 
 ## 3. Roadmap Incremental de Implementação TDD (Marcos M1 a M7)
 
+Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md), estruturado em `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`.
+
 1. **Marco M1 (`core` + `metrics` + esqueleto `cli`) — Subdividido em 3 Entregas Verificáveis:**
-   * **M1.1 (Concluído — Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv` (Python 3.12), `pyproject.toml` (Hatchling, declaração `requires-python = ">=3.10"`, entrypoint `expml`), esqueleto modular em `src/experimental_ml/cli/main.py` e aprovação integral de `tests/test_smoke.py` com 12/12 testes passando.
-   * **M1.2 (Concluído — Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função pura `derive_seeds` (`SeedSequence`), `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas), construtores de achados e exceções de contrato, com aprovação integral de `tests/unit/test_core.py` (18/18 testes) e verificação independente via TLC (`proofs.md`, `verification.md`).
-   * **M1.3 (Próximo Marco — Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `METRICS_CATALOG`, regras funcionais de propagação para `MetricStatus.UNDEFINED_NAN` (`is_better`, `aggregate_fold_metrics`, `rank_configurations` — ADR-005), e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py`).
+   * **M1.1 (Implementação Concluída / Aceite Manual Pendente — Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv` (Python 3.12), `pyproject.toml` (Hatchling, declaração `requires-python = ">=3.10"`, entrypoint `expml`), esqueleto modular em `src/experimental_ml/cli/main.py` e aprovação de `tests/test_smoke.py` com 12/12 testes passando. Documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-1-setup-cli-smoke/`.
+   * **M1.2 (Implementação Concluída / Aceite Manual Pendente — Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função pura `derive_seeds` (`SeedSequence`), `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas), construtores de achados e exceções de contrato, com aprovação de `tests/unit/test_core.py` (18/18 testes) e verificação independente TLC (`proofs.md`, `verification.md`). Documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-2-core/`.
+   * **M1.3 (Próximo Marco — Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `METRICS_CATALOG`, regras funcionais de propagação para `MetricStatus.UNDEFINED_NAN` (`is_better`, `aggregate_fold_metrics`, `rank_configurations` — ADR-005), e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py`). Exige aprovação prévia de `SPEC.md` e roteiro `ACCEPTANCE.md` antes da implementação.
 2. **Marco M2 (`data` + `validation` + CLI `data`/`partition`):** Funções `load_dataset`, `profile_dataset` (problemas confirmados vs. alertas heurísticos), `create_preparation_plan` e geração/validação matemática do `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`).
 3. **Marco M3 (`features` + CLI `features`):** Função `explore_features` rotulada, validação de cenários (`FIXED` e `DYNAMIC`) e seleção dinâmica ajustada estritamente no treino de cada *fold* (`select_features_in_fold`), com medição de estabilidade de seleção.
 4. **Marco M4 (`models` + `tuning` + CLI `models`):** Funções `instantiate_fresh_model`, `fit_model`, `predict_model` (clássicos, analíticos com `requires_fit=False` e quânticos/customizados), pré-processamento funcional em 2 camadas (`fit_two_layer_preprocessing`, `apply_two_layer_preprocessing`) com bloqueio de duplicação e *Nested Tuning* (`run_nested_tuning`).

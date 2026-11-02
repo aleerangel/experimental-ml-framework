@@ -353,6 +353,17 @@ Proof: browser captures/[capture].running.png
 
 ---
 
+## Acceptance Walkthrough (ACCEPTANCE.md)
+
+Alongside `tasks.md`, the author drafts or refines `ACCEPTANCE.md` (the milestone acceptance walkthrough):
+1. Prerequisites and environment preparation commands.
+2. Step-by-step consumer validation using exclusively public interfaces.
+3. An integrated end-to-end scenario demonstrating real-world usage.
+4. Expected outcomes and failure identification criteria for each step.
+5. Objective approval criteria distinguishing unit tests, integration tests, and manual acceptance.
+
+---
+
 ## Handoff
 
 The feature's live state, written as it happens - a compaction gives no warning.

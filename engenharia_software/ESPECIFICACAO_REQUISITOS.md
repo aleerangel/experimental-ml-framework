@@ -4,16 +4,16 @@
 > **Versão:** 2.0.0  
 > **Data:** 27 de Outubro de 2026  
 > **Status:** Consolidado e Aprovado  
-> **Documentos Relacionados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md)
+> **Documentos Relacionados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md) | [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
 ---
 
 ## 1. Visão Geral, Propósito e Diretrizes Científicas
 
 ### 1.1 Objetivo do Sistema
-O `experimental-ml-framework` é uma **ferramenta de linha de comando e biblioteca modular e pedagógica** para condução, auditoria e publicação de experimentos em Aprendizado de Máquina (regressão e classificação). Seu propósito é democratizar a pesquisa rigorosa para estudantes de Iniciação Científica (IC), pós-graduandos e pesquisadores, fornecendo um fluxo estruturado de 6 etapas que previne erros metodológicos por construção, preserva a rastreabilidade integral dos dados às conclusões e gera artefatos prontos para publicação acadêmica.
+O `experimental-ml-framework` é uma biblioteca modular e ferramenta de linha de comando para condução, auditoria e publicação de experimentos em Aprendizado de Máquina (regressão e classificação). Seu propósito é fornecer um fluxo estruturado de 6 etapas que previne erros metodológicos por construção, preserva a rastreabilidade dos dados às conclusões e gera artefatos padronizados para publicação científica.
 
-### 1.2 Princípios Metodológicos Inegociáveis
+### 1.2 Princípios Metodológicos
 1. **Uso de Modelos Externos sem Implementação Própria (ADR-001):** O framework não implementa algoritmos preditivos nem cálculos de kernel internamente; ele recebe funções ou estimadores externos (clássicos, redes neurais, circuitos/resolvedores quânticos, equações analíticas e biométricas), passa a eles os subconjuntos de treino e avaliação de cada partição e recolhe as predições e metadados resultantes.
 2. **Proibição de Mutações Silenciosas:** Nenhuma transformação de dados (imputação, codificação, remoção de linhas/colunas, escalonamento) ocorre automaticamente nos bastidores sem configuração explícita ou ciência documentada do pesquisador.
 3. **Zero Vazamento de Dados (*Zero Data Leakage*):** Toda operação que aprende parâmetros a partir dos dados (pré-processamento, seleção dinâmica de atributos, busca de hiperparâmetros e treinamento) é ajustada estritamente nos dados de treino de cada partição externa.
