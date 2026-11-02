@@ -1,6 +1,6 @@
 # m1-2-core proofs
 
-**HEAD**: 9ed7e01
+**HEAD**: f006e56
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 18 pass, 0 fail

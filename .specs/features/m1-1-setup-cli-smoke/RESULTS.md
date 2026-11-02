@@ -16,7 +16,7 @@
 | **Instalação e Empacotamento** | `pip install -e ".[dev]"` | Executado com sucesso no `.venv` | **APROVADO** |
 | **Suíte de Fumaça Automatizada** | 12 testes em `tests/test_smoke.py` | 12 testes aprovados (100%) | **APROVADO** |
 | **Interfaces de Linha de Comando (CLI)** | `--version`, `--help`, código 2 | Testado via subprocesso em `test_smoke.py` | **APROVADO** |
-| **Homologação Manual** | Roteiro `ACCEPTANCE.md` | Testes automatizados cobrem a CLI; homologação manual não executada | **PENDENTE DE HOMOLOGAÇÃO MANUAL** |
+| **Homologação Manual** | Roteiro `ACCEPTANCE.md` | Executada e aprovada conforme roteiro | **APROVADO** |
 
 ---
 
@@ -61,7 +61,7 @@ tests/test_smoke.py::test_cli_observable_outcomes PASSED                 [100%]
 | `expml` sem argumentos exibe ajuda (exit 0) | Coberto pelo teste `test_cli_observable_outcomes` | **Comprovado por Automação** |
 | `expml --flag-invalida` imprime erro (exit 2) | Coberto pelo teste `test_cli_invalid_argument` | **Comprovado por Automação** |
 | Importação programática via interpretador Python | Coberto pelo teste `test_package_version` | **Comprovado por Automação** |
-| Homologação manual do roteiro de aceitação | Procedimento documentado em `ACCEPTANCE.md` | **PENDENTE DE HOMOLOGAÇÃO MANUAL** |
+| Homologação manual do roteiro de aceitação | Executada e confirmada sem divergências | **APROVADO** |
 
 ---
 
@@ -75,6 +75,7 @@ tests/test_smoke.py::test_cli_observable_outcomes PASSED                 [100%]
 ## 5. Decisão Final de Aceite do Marco M1.1
 
 - **Veredito de Engenharia:** **IMPLEMENTAÇÃO VERIFICADA POR TESTES AUTOMATIZADOS**
-- **Veredito de Homologação Manual:** **PENDENTE DE HOMOLOGAÇÃO MANUAL**
-- **Justificativa:** Os 12 critérios técnicos automatizados foram atendidos e validados no commit `0840603` e preservados em `9ed7e01`. Conforme o processo de aceite de marcos, a decisão final permanece pendente até a execução da homologação manual.
+- **Veredito de Homologação Manual:** **APROVADO**
+- **Decisão Final:** **APROVADO**
+- **Justificativa:** Os 12 critérios técnicos automatizados foram atendidos no commit `0840603` (preservados em `9ed7e01`) e os testes manuais de aceitação da CLI foram executados e aprovados conforme o roteiro `ACCEPTANCE.md`.
 

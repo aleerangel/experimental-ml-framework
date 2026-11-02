@@ -14,7 +14,7 @@
 
 O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
 
-As entregas **Marco M1.1 (`m1-1-setup-cli-smoke`)** e **Marco M1.2 (`core`)** tiveram suas implementações concluídas e validadas por testes automatizados (30/30 testes passando). Ambos foram documentados com os três registros de aceite (`SPEC.md`, `ACCEPTANCE.md`, `RESULTS.md`), com homologação manual pendente. O próximo passo de desenvolvimento é o **Marco M1.3 (`metrics`)**.
+A entrega **Marco M1.1 (`m1-1-setup-cli-smoke`)** foi concluída e formalmente aceita. A entrega **Marco M1.2 (`core`)** teve sua implementação e testes automatizados concluídos (18/18 testes passando), com homologação manual pendente. O próximo passo de desenvolvimento é o **Marco M1.3 (`metrics`)**.
 
 ```mermaid
 flowchart LR
@@ -90,7 +90,7 @@ flowchart LR
 Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md), estruturado em `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`.
 
 1. **Marco M1 (`core` + `metrics` + esqueleto `cli`) — Subdividido em 3 Entregas Verificáveis:**
-   * **M1.1 (Implementação Concluída / Aceite Manual Pendente — Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv` (Python 3.12), `pyproject.toml` (Hatchling, declaração `requires-python = ">=3.10"`, entrypoint `expml`), esqueleto modular em `src/experimental_ml/cli/main.py` e aprovação de `tests/test_smoke.py` com 12/12 testes passando. Documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-1-setup-cli-smoke/`.
+   * **M1.1 (Concluído e Aceito — Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv` (Python 3.12), `pyproject.toml` (Hatchling, declaração `requires-python = ">=3.10"`, entrypoint `expml`), esqueleto modular em `src/experimental_ml/cli/main.py`, aprovação de `tests/test_smoke.py` com 12/12 testes e homologação manual aprovada. Registrado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-1-setup-cli-smoke/`.
    * **M1.2 (Implementação Concluída / Aceite Manual Pendente — Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função pura `derive_seeds` (`SeedSequence`), `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas), construtores de achados e exceções de contrato, com aprovação de `tests/unit/test_core.py` (18/18 testes) e verificação independente TLC (`proofs.md`, `verification.md`). Documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-2-core/`.
    * **M1.3 (Próximo Marco — Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `METRICS_CATALOG`, regras funcionais de propagação para `MetricStatus.UNDEFINED_NAN` (`is_better`, `aggregate_fold_metrics`, `rank_configurations` — ADR-005), e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py`). Exige aprovação prévia de `SPEC.md` e roteiro `ACCEPTANCE.md` antes da implementação.
 2. **Marco M2 (`data` + `validation` + CLI `data`/`partition`):** Funções `load_dataset`, `profile_dataset` (problemas confirmados vs. alertas heurísticos), `create_preparation_plan` e geração/validação matemática do `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`).
