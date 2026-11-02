@@ -26,7 +26,7 @@ Plan and implement features with precision. Granular tasks. Clear dependencies. 
 
 **Running this skill's scripts.** Every `scripts/*.py` lives under that same skill directory: run `python3 <skill-dir>/scripts/<name>.py ...`, never `python3 scripts/...` from the project root. Project data under `.specs/` is read and written relative to the project root (pass `--root` when the cwd is elsewhere). Run a script rather than read it: its messages say what to change. On Windows, where `python3` may be the Microsoft Store alias, run `python` or `py -3`.
 
-**Execution contract - every task, non-negotiable (holds even if you do not open the reference files):**
+**Execution contract - required for every task (holds even if you do not open the reference files):**
 
 1. **Ask, then stop for approval.** Every gray area that is the user's - scope, product behaviour, a departure from a binding source - is asked before the spec is presented; an assumption never stands in for one. Approving the spec and approving the tasks are the two stops for a human. When nobody is there to answer, end your turn with the questions. Each approval is written as `**Approved**: <date> - user: "<their words>"` in spec.md and tasks.md; one the user did not give is never written. Every answer goes into its file in the turn it arrives - the chat does not survive a compaction.
 2. Tests derive from the spec's acceptance criteria and assert spec-defined outcomes - they never mirror the implementation.
@@ -35,6 +35,7 @@ Plan and implement features with precision. Granular tasks. Clear dependencies. 
 5. **A screen is held to its design.** A capture that comes with the request binds unless the user called it inspiration; its criterion cites the capture file. Each state a capture draws is saved as `captures/<capture>.running.png` from a browser window at the capture's size - an image resized afterwards shows another layout - and a fresh screens sub-agent retakes and judges it ([verify-screens.md](references/verify-screens.md)).
 6. **Where rules run.** Every rule that changes what a user sees - including filtering, searching, sorting and counting - runs in a layer the repo's tests reach.
 7. **Blast radius:** approving a spec or tasks authorizes local implementation and local commits only. `git push`, force-push, deploy, production DB changes, and other remote or destructive operations need an explicit go-ahead for that action.
+8. **Milestone Acceptance Records:** For every milestone/feature, the three records `SPEC.md` (or `spec.md`), `ACCEPTANCE.md` (validation walkthrough from the consumer perspective using public interfaces), and `RESULTS.md` (record of executed validations, distinguishing automated from manual, with an explicit acceptance decision) must exist and be verified before declaring the milestone complete. Results not executed must remain explicitly PENDING.
 
 **Deterministic gates run before human review - not from memory.** A non-zero exit means STOP and fix:
 
@@ -82,7 +83,9 @@ Skip a script only when no code-execution tool is available; then perform the sa
 ├── lessons.json        # Canonical lessons state (machine-owned)
 └── features/
     └── [feature]/
-        ├── spec.md          # Requirements with traceable IDs, Differences from the source, Sources
+        ├── SPEC.md (spec.md) # Specification: requirements (EARS), scope, completion criteria
+        ├── ACCEPTANCE.md    # Acceptance walkthrough: prerequisites, consumer examples, approval criteria
+        ├── RESULTS.md       # Acceptance results: executed validations, evidence, issues, formal decision
         ├── captures/        # binding design files, and <capture>.running.png pictures
         ├── context.md       # User decisions for gray areas (only when discuss is triggered)
         ├── design.md        # Architecture & components (only for Large/Complex)
@@ -173,4 +176,4 @@ Test runners: none is built in. `check_proofs.py` runs the commands tasks.md nam
 
 **Do the work; do not narrate the machinery.** Produce the right artifact for the phase instead of announcing the phase. The user judges the output.
 
-**Write generated artifacts in a plain, decided voice.** Specs, decisions, reports, commit messages and chat summaries follow the writing rules in [coding-principles.md](references/coding-principles.md): lead with the verdict, state decisions definitively, cut filler and hedging. Section headings stay in English; prose follows the project; identifiers are never translated.
+**Write generated artifacts in a plain, decided voice.** Specs, decisions, reports, commit messages and chat summaries follow the writing rules in [coding-principles.md](references/coding-principles.md): lead with the verdict, state decisions definitively, cut filler and hedging. Document the project, never the user interaction or chat exchange: record objective technical states rather than conversational steps. Section headings stay in English; prose follows the project; identifiers are never translated.

@@ -3,8 +3,8 @@
 > **Documento:** Arquitetura de Software, Contratos de Módulos, Modelo de Dados e Recorte de MVP  
 > **Versão:** 1.0.0  
 > **Data:** 31 de Outubro de 2026  
-> **Status:** Consolidado e Aprovado (Fases 2 e 3; Fase 4 em andamento com M1.1 concluído)  
-> **Documentos Relacionados:** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md)
+> **Status:** Consolidado e Aprovado (Fases 2 e 3; Fase 4 em andamento com M1.1 e M1.2 implementados)  
+> **Documentos Relacionados:** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md) | [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
 ---
 
@@ -392,7 +392,7 @@ Gerar e validar o plano de particionamento independente, garantir que todas as c
          PENDING --> RUNNING : Início da execução
          RUNNING --> COMPLETED : Sucesso e persistência validada
          RUNNING --> FAILED : Exceção / Falha de convergência / Memória
-         PENDING --> CANCELLED : Interrupção pelo usuário / Fail-fast
+         PENDING --> CANCELLED : Interrupção manual (SIGINT) / Fail-fast
          RUNNING --> CANCELLED : Interrupção externa
          FAILED --> PENDING : Reexecução seletiva solicitada
          CANCELLED --> PENDING : Retomada (Resume)
