@@ -20,16 +20,14 @@
 
 ## Handoff
 
-- **Feature**: Processo de Aceite de Marcos (Milestone Acceptance)
-- **Phase / Task**: Documentação retroativa de M1.1 e M1.2 concluída; integração com TLC formalizada
+- **Feature**: m1-3-metrics (Marco M1.3 — Metrics)
+- **Phase / Task**: Specify aprovada (`SPEC.md` e `spec.md` aprovados)
 - **Completed**:
-  - `PROCESSO_DE_ACEITE_DE_MARCOS.md` criado em `engenharia_software/`.
-  - M1.1 documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`; homologação manual concluída e formalmente aceita (`APROVADO`).
-  - M1.2 documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`; homologação manual concluída e formalmente aceita (`APROVADO`).
-  - Implementação e testes automatizados de M1.1 (12/12) e M1.2 (18/18) aprovados.
-  - Verificação independente de M1.2 aprovada (`verification.md` PASS).
-- **In-progress**: Transição para o Marco M1.3 (`metrics`)
-- **Next step**: Início da fase Specify de M1.3 (`metrics`) sob o processo de aceite de marcos
+  - `PROCESSO_DE_ACEITE_DE_MARCOS.md` estabelecido em `engenharia_software/`.
+  - M1.1 e M1.2 implementados, verificados e aceitos (`APROVADO`).
+  - Especificação do Marco M1.3 (`SPEC.md` e `spec.md`) criada, refinada e aprovada.
+- **In-progress**: Transição da fase Specify para Design/Tasks
+- **Next step**: Início da fase Design/Tasks do Marco M1.3 (`design.md`, `tasks.md`, `ACCEPTANCE.md`)
 - **Blockers**: none
-- **Uncommitted files**: engenharia_software/, .specs/, README.md
-- **Branch**: main
+- **Uncommitted files**: .specs/features/m1-3-metrics/SPEC.md, .specs/features/m1-3-metrics/spec.md, .specs/STATE.md
+- **Branch**: feat/m1-3-metrics
