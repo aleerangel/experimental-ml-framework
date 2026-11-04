@@ -126,7 +126,6 @@ experimental-ml-framework/
 │   └── unit/
 │       ├── test_core.py             # Suíte unitária do módulo core (18 testes)
 │       └── test_metrics.py          # Suíte unitária do módulo metrics (22 testes)
-```
 │           ├── enums.py             # Enumerações fundamentais
 │           ├── findings.py          # Diagnósticos Finding e exceções
 │           ├── hashing.py           # config_hash e dataset_hash (ADR-007)
