@@ -25,6 +25,87 @@ from experimental_ml.metrics.validation import (
     scaled_quadratic_sum,
     validate_numeric_arrays,
 )
+from experimental_ml.metrics.regression import (
+    mae,
+    mbe,
+    rmse,
+)
+
+
+# =============================================================================
+# C8: Direct-scale errors mae, rmse, and mbe operate in float64 with zero error on identity (MET-06)
+# =============================================================================
+def test_direct_scale_errors_accuracy() -> None:
+    """Validate mae, rmse, and mbe analytical accuracy and identity zero error."""
+    yt = np.array([10.0, 20.0, 30.0, 40.0])
+    yp = np.array([12.0, 19.0, 31.0, 42.0])
+
+    # Analytical values:
+    # diffs = [2.0, -1.0, 1.0, 2.0]
+    # |diffs| = [2.0, 1.0, 1.0, 2.0] -> mean = 6.0 / 4 = 1.5
+    # diffs^2 = [4.0, 1.0, 1.0, 4.0] -> mean = 10.0 / 4 = 2.5 -> rmse = sqrt(2.5) ~ 1.5811388300841898
+    res_mae = mae(yt, yp)
+    assert res_mae.metric_id == "mae"
+    assert res_mae.status == MetricStatus.VALID
+    assert math.isclose(res_mae.value, 1.5, rel_tol=1e-12, abs_tol=1e-12)
+
+    res_rmse = rmse(yt, yp)
+    assert res_rmse.metric_id == "rmse"
+    assert res_rmse.status == MetricStatus.VALID
+    assert math.isclose(res_rmse.value, math.sqrt(2.5), rel_tol=1e-12, abs_tol=1e-12)
+
+    # Identity produces exactly 0.0 error
+    res_mae_id = mae(yt, yt)
+    assert res_mae_id.value == 0.0
+    assert res_mae_id.status == MetricStatus.VALID
+
+    res_rmse_id = rmse(yt, yt)
+    assert res_rmse_id.value == 0.0
+    assert res_rmse_id.status == MetricStatus.VALID
+
+    res_mbe_id = mbe(yt, yt)
+    assert res_mbe_id.value == 0.0
+    assert res_mbe_id.status == MetricStatus.VALID
+
+
+# =============================================================================
+# C9: mbe preserves positive and negative signed values (MET-06)
+# =============================================================================
+def test_mbe_preserves_signed_value() -> None:
+    """Validate that mbe preserves signed direction for overestimation and underestimation."""
+    yt = np.array([10.0, 20.0, 30.0, 40.0])
+
+    # Overestimation: y_pred > y_true -> positive MBE
+    yp_over = yt + 2.5
+    res_over = mbe(yt, yp_over)
+    assert math.isclose(res_over.value, 2.5, rel_tol=1e-12, abs_tol=1e-12)
+    assert res_over.status == MetricStatus.VALID
+    assert res_over.direction == MetricDirection.MINIMIZE
+
+    # Underestimation: y_pred < y_true -> negative MBE
+    yp_under = yt - 3.75
+    res_under = mbe(yt, yp_under)
+    assert math.isclose(res_under.value, -3.75, rel_tol=1e-12, abs_tol=1e-12)
+    assert res_under.status == MetricStatus.VALID
+    assert res_under.direction == MetricDirection.MINIMIZE
+
+
+# =============================================================================
+# C10: Function rmse preserves scale homoscedasticity without rounding (MET-07)
+# =============================================================================
+def test_rmse_scale_homoscedasticity() -> None:
+    """Validate RMSE(c*y, c*y_hat) == |c|*RMSE(y, y_hat) with atol=0.0 and no rounding."""
+    yt = np.array([1.2, 3.4, 5.6, 7.8])
+    yp = np.array([1.5, 3.1, 5.9, 7.4])
+
+    base_rmse = rmse(yt, yp).value
+    assert base_rmse > 0.0
+
+    scalars = [0.5, 2.0, 10.0, -3.0, -0.25, 123.456]
+    for c in scalars:
+        scaled_rmse = rmse(c * yt, c * yp).value
+        expected = abs(c) * base_rmse
+        assert math.isclose(scaled_rmse, expected, rel_tol=1e-12, abs_tol=1e-12)
 
 
 # =============================================================================

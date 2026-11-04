@@ -101,12 +101,12 @@ T4 → T5 → T6 → T7
 **Requirement**: MET-06, MET-07
 
 **Done when**:
-- [ ] `mae`, `rmse`, and `mbe` implemented in `src/experimental_ml/metrics/regression.py`
-- [ ] Accuracy within `rtol=1e-12`, `atol=1e-12` against analytical vectors
-- [ ] `rmse(c*y, c*y_hat) == |c|*rmse(y, y_hat)` verified with `atol=0.0`
-- [ ] `mbe.value` preserves positive and negative signs
-- [ ] Unit tests for direct-scale errors written in `tests/unit/test_metrics.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
+- [x] `mae`, `rmse`, and `mbe` implemented in `src/experimental_ml/metrics/regression.py`
+- [x] Accuracy within `rtol=1e-12`, `atol=1e-12` against analytical vectors
+- [x] `rmse(c*y, c*y_hat) == |c|*rmse(y, y_hat)` verified with `atol=0.0`
+- [x] `mbe.value` preserves positive and negative signs
+- [x] Unit tests for direct-scale errors written in `tests/unit/test_metrics.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
 
 **Tests**: unit
 **Gate**: quick
