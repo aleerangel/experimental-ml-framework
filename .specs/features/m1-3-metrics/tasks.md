@@ -80,12 +80,12 @@ T4 → T5 → T6 → T7
 **Requirement**: MET-01, MET-04, MET-05, MET-21, MET-22
 
 **Done when**:
-- [ ] `src/experimental_ml/metrics/types.py` and `src/experimental_ml/metrics/validation.py` created
-- [ ] `MetricEvaluationScope` defined with 4 canonical members and strict validation in `MetricValue` and `AggregatedMetricValue`
-- [ ] `scaled_quadratic_sum` protects against intermediate overflow for $|diff| > \sqrt{\text{float64.max}}$
-- [ ] Non-finite inputs (`NaN`/`Inf`) and dimension mismatches raise `DataIntegrityError`
-- [ ] Unit tests for types, scopes, and validation written in `tests/unit/test_metrics.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
+- [x] `src/experimental_ml/metrics/types.py` and `src/experimental_ml/metrics/validation.py` created
+- [x] `MetricEvaluationScope` defined with 4 canonical members and strict validation in `MetricValue` and `AggregatedMetricValue`
+- [x] `scaled_quadratic_sum` protects against intermediate overflow for $|diff| > \sqrt{\text{float64.max}}$
+- [x] Non-finite inputs (`NaN`/`Inf`) and dimension mismatches raise `DataIntegrityError`
+- [x] Unit tests for types, scopes, and validation written in `tests/unit/test_metrics.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
 
 **Tests**: unit
 **Gate**: quick
