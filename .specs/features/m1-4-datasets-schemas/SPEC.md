@@ -4,8 +4,8 @@
 > **Identificador do Marco:** M1.4 (`m1-4-datasets-schemas`)  
 > **Pacote Python:** `experimental_ml.data` (`src/experimental_ml/data/`)  
 > **Camada Arquitetural:** Camada 1 — Definição e Triagem (Nível 1 de dependência; Etapa 1 do Pipeline Operacional)  
-> **Status:** Proposta de Especificação Submetida à Revisão (Fase Specify)  
-> **Aprovação da Especificação:** *Pendente de revisão do usuário*  
+> **Status:** Proposta de Especificação Refinada Submetida à Revisão (Fase Specify)  
+> **Aprovação da Especificação:** *Pendente de revisão técnica do usuário*  
 > **Especificação EARS Detalhada:** [`spec.md`](./spec.md)  
 > **Documentos de Referência:** [`ARQUITETURA_E_CONTRATOS.md`](../../../engenharia_software/ARQUITETURA_E_CONTRATOS.md), [`ESPECIFICACAO_REQUISITOS.md`](../../../engenharia_software/ESPECIFICACAO_REQUISITOS.md), [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](../../../engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md), [`REFERENCIAS_E_FUNDAMENTACAO.md`](../../../REFERENCIAS_E_FUNDAMENTACAO.md)
 
@@ -15,223 +15,199 @@
 
 O marco **M1.4 — Datasets & Schemas** estabelece a fundação do pacote `experimental_ml.data` (Nível 1 da arquitetura), responsável pela declaração formal de papéis de variáveis (`DatasetSchemaSpec`), pela ingestão determinística e imutável de dados tabulares (`load_dataset`), pela validação de consistência entre esquema e dados (`validate_dataset_schema`) e pela construção do artefato em memória somente-leitura (`DatasetBundle`) vinculado ao `dataset_hash` canônico (**ADR-007**) e aos identificadores únicos de observação (`ObservationId`).
 
-### 1.1 Por que dividir a Etapa 1 entre M1.4 e M2?
-Na especificação arquitetural original ([`ARQUITETURA_E_CONTRATOS.md`](../../../engenharia_software/ARQUITETURA_E_CONTRATOS.md) Seção 7), o Marco M2 concentrava simultaneamente toda a Etapa 1 (`load_dataset`, `profile_dataset`, `create_preparation_plan`, `sanitize_dataset`), toda a Etapa 4A (`build_partition_plan`, `validate_partition_plan`) e dois subcomandos de CLI (`expml data`, `expml partition`).
+### 1.1 Por que isolar a Fundação da Etapa 1 no Marco M1.4?
+Na especificação arquitetural consolidada ([`ARQUITETURA_E_CONTRATOS.md`](../../../engenharia_software/ARQUITETURA_E_CONTRATOS.md) Seção 7), o Marco M2 concentrava simultaneamente a leitura de dados, perfilamento diagnóstico, plano de preparação, saneamento pré-partição, plano de validação cruzada/holdout e interface de terminal (`expml data` e `expml partition`).
 
-A introdução do **M1.4 (`m1-4-datasets-schemas`)** como entrega final da fundação M1 isola e consolida os contratos de **representação, tipagem estrutural, identificação e imutabilidade dos dados de origem** antes da construção dos algoritmos de perfilamento estatístico (`DatasetProfile`), saneamento (`PreparationPlan` / `SanitizedDatasetView`) e particionamento (`PartitionPlan`) no Marco M2.
+A introdução do **M1.4 (`m1-4-datasets-schemas`)** isola e consolida os contratos de **representação, tipagem estrutural, identificação e imutabilidade dos dados de origem** antes da construção dos algoritmos de perfilamento estatístico (`DatasetProfile`), saneamento (`PreparationPlan` / `SanitizedDatasetView`) e particionamento (`PartitionPlan`) no Marco M2.
 
 Essa separação atende diretamente a quatro princípios estruturantes do framework:
-1. **Imutabilidade dos Dados de Origem e Zero Transformação Silenciosa (Princípio 2, `RF1.7`, Heil et al., 2021; REFORMS, 2024):** A ingestão não descarta observações com valores ausentes, não preenche lacunas, não codifica categorias nem altera escalas. Os dados originais ficam protegidos em buffers somente-leitura (`flags.writeable = False`).
+1. **Imutabilidade dos Dados de Origem e Propriedade Exclusiva (Princípio 2, `RF1.7`, Heil et al., 2021; REFORMS, 2024):** A ingestão assume propriedade dos dados através de cópias defensivas estritas (`copy=True`), protegendo as matrizes contra mutações acidentais na fonte de origem ou através de referências expostas, sem qualquer imputação ou descarte silencioso.
 2. **Prevenção Estrutural contra Vazamento de Papéis de Colunas (Princípio 3, `RF1.1`, Kapoor & Narayanan, 2023):** O esquema força a disjunção estrita entre variável-alvo (`target_col`), agrupamento (`group_col`), identificador (`observation_id_col`), tempo (`time_col`) e colunas ignoradas (`ignore_cols`), derivando automaticamente o conjunto candidato de atributos preditores (`feature_cols`) sem contaminação.
-3. **Vínculo de Proveniência e Rastreabilidade por Observação (Princípio 7, `CA-E1-01`, Freire et al., 2008):** Toda linha recebe um `ObservationId` único, estável e não-nulo desde o instante da leitura, e todo `DatasetBundle` carrega seu `dataset_hash` (`SHA-256`) calculado pelo `core` (**ADR-007**).
+3. **Vínculo de Proveniência e Rastreabilidade por Observação (Princípio 7, `CA-E1-01`, Freire et al., 2008):** Toda linha recebe um `ObservationId` único, estável e não-nulo desde a leitura, e todo `DatasetBundle` carrega seu `dataset_hash` canônico do conteúdo em memória e o `raw_source_hash` da fonte original (**ADR-007**).
 4. **Ocultamento de Informação e Paradigma Funcional Sem OOP (**ADR-008**, Parnas, 1972):** O módulo expõe apenas estruturas de dados imutáveis (`@dataclass(frozen=True, slots=True)`) e funções puras, sem classes de serviço com estado interno mutável.
 
 ---
 
-## 2. Limites de Responsabilidade e Escopo do Marco
+## 2. Decisões Arquiteturais e Aprofundamento dos 5 Pontos de Revisão
 
-### 2.1 Incluído no Marco M1.4 (`src/experimental_ml/data/`)
-1. **Tipagem Semântica e Estruturas Imutáveis (`types.py` / `schema.py`):**
-   - Enumeração `ColumnSemanticType(StrEnum)` com os 6 tipos semânticos estruturais: `"NUMERIC_CONTINUOUS"`, `"NUMERIC_DISCRETE"`, `"CATEGORICAL"`, `"BOOLEAN"`, `"TEMPORAL"` e `"IDENTIFIER"`.
-   - Estrutura declarativa imutável `DatasetSchemaSpec` com validação intrínseca de papéis de colunas, normalização Unicode NFC e fronteira Onda 1 vs. Onda 2.
-   - Estrutura descritiva por coluna `ColumnDescriptor` (`name`, `index`, `role`, `semantic_type`, `dtype_str`, `n_missing`, `memory_bytes`).
-   - Estrutura imutável `DatasetBundle` representando a base carregada em modo somente-leitura, metadados estruturais, `observation_ids` e `dataset_hash`.
-2. **Validação de Esquema e Consistência Esquema-Dados (`validation.py`):**
-   - Validação intrínseca do `DatasetSchemaSpec` (nomes válidos, disjunção de papéis, restrições da Onda 1).
-   - Função pública `validate_dataset_schema(columns, schema)` verificando existência de todas as colunas declaradas, ausência de colunas duplicadas após normalização NFC, homogeneidade de comprimento ($N \ge 1$), existência de pelo menos 1 coluna preditora candidata (`len(feature_cols) >= 1`) e validade/unicidade de `observation_id_col`.
-3. **Ingestão Tabular Determinística e Consultas Somente-Leitura (`loader.py`):**
-   - Função pública `load_dataset(source, schema, *, delimiter=None, has_header=True, column_names=None, encoding="utf-8") -> DatasetBundle`.
-   - Suporte a arquivos em disco (`.csv`, `.txt`, `.tsv` com delimitadores explícitos, auto-detectados ou sequências de espaços em branco `r"\s+"`, com ou sem cabeçalho) e estruturas tabulares em memória (`Mapping[str, Sequence]`, `np.ndarray` 2D, `Sequence[Mapping[str, Any]]` e objetos `DataFrame` via *duck-typing*).
-   - Funções utilitárias puras de consulta: `get_column_array(bundle, col_name) -> np.ndarray` e `slice_bundle_by_observation_ids(bundle, observation_ids) -> DatasetBundle`.
-   - Re-exportação pública em `src/experimental_ml/data/__init__.py` via `__all__`.
-4. **Suíte de Testes Unitários (`tests/unit/test_data_schemas.py`):**
-   - Cobertura verificável 1:1 dos 20 requisitos (`DATA-01` a `DATA-20`).
+### 2.1 Ponto 1: Imutabilidade e Propriedade dos Dados
 
-### 2.2 Explicitamente Fora de Escopo (Não Antecipado no M1.4)
-Para preservar a modularidade e respeitar as restrições de não antecipar contratos de marcos futuros:
-- **Diagnóstico Estatístico e Perfilamento Completo (`profile_dataset`, `DatasetProfile`):** Cálculo de quartis, assimetria, amplitude, diferenças de ordem de grandeza, linhas duplicadas, colunas quase-constantes e emissão de diagnósticos `CONFIRMED_ISSUE` vs. `HEURISTIC_WARNING` sobre anomalias estatísticas — pertencem ao **Marco M2**.
-- **Plano de Preparação e Saneamento Pré-Partição (`create_preparation_plan`, `PreparationPlan`, `sanitize_dataset`, `SanitizedDatasetView`):** Regras declarativas de resolução de `CONFIRMED_ISSUE` e filtragem estrutural de linhas com `target` nulo — pertencem ao **Marco M2**.
-- **Particionamento e Validação Cruzada (`build_partition_plan`, `validate_partition_plan`, `PartitionPlan`):** Estratégias K-Fold, Stratified K-Fold, Group K-Fold e Holdout — pertencem ao **Marco M2 (`experimental_ml.validation`)**.
-- **Subcomandos da CLI (`expml data profile`, `expml data sanitize`, `expml partition`):** A CLI permanece inalterada no M1.4 (inclusive mantendo a verificação de `tests/test_smoke.py`); os subcomandos `cmd_data.py` e `cmd_partition.py` pertencem ao **Marco M2**.
-- **Funcionalidades da Onda 2 do MVP:** Regressão multialvo (`MULTI_TARGET_REGRESSION` com `target_col: Sequence[str]`), transformações reversíveis da variável-alvo (`TargetTransformSpec` / `fit_apply_target_transform`) e conjunto externo não rotulado (`unlabeled_pool`) — pertencem à **Onda 2** (`ARQUITETURA_E_CONTRATOS.md` Seção 6.1).
-- **Transformações de Pré-processamento ou Seleção de Atributos:** Imputação, codificação de categorias (`OneHot`, `Ordinal`), escalonamento ou filtragem de variáveis — pertencem às Etapas 2 e 3 (**Marcos M3 e M4**).
+#### O Problema Identificado
+A aplicação isolada de `arr.flags.writeable = False` é insuficiente para garantir imutabilidade real em dois cenários críticos:
+1. **Compartilhamento de Memória com a Fonte:** Se o array NumPy foi criado por `np.asarray(orig_data)` ou fatiamento de um array existente, `write=False` afeta apenas aquela visão (*view*), mas alterações na matriz ou buffer original do chamador modificariam silenciosamente os dados internos do bundle.
+2. **Colunas com `dtype=object` e Objetos Mutáveis Internos:** Em arrays de objetos do NumPy, a flag `writeable = False` impede apenas a reatribuição de ponteiros no array (ex.: `arr[0] = novo_objeto`), mas **não impede** a mutação interna do objeto referenciado (ex.: `arr[0].append(x)` ou `arr[0]["chave"] = y`).
+
+#### Regras Formais Adotadas
+1. **Propriedade Exclusiva e Cópia Defensiva na Ingestão:**
+   - O `DatasetBundle` assume propriedade integral e exclusiva dos dados.
+   - Na função `load_dataset`, toda coluna é materializada através de cópia defensiva contígua (`np.array(..., copy=True)` ou clonagem de buffers) completamente desacoplada da estrutura de entrada do chamador.
+   - Qualquer mutação posterior na estrutura original do chamador (ex.: `orig_dict["col"][0] = 999`, `orig_array[0, 0] = 999` ou `orig_df.iloc[0, 0] = 999`) tem **efeito zero** sobre `DatasetBundle.columns`.
+2. **Tratamento Rigoroso de Colunas `object`:**
+   - Colunas com tipo físico `object` são permitidas exclusivamente para representação de textos/categorias (`str`), identificadores (`str`), ou colunas booleanas com valores ausentes (`True`, `False`, `None`).
+   - É terminantemente **proibido** armazenar objetos mutáveis (como `list`, `dict`, `set`, `bytearray`, instâncias de classes mutáveis) dentro de colunas do `DatasetBundle`. A ingestão inspeciona os elementos e lança `DataIntegrityError` se qualquer elemento mutável for detectado.
+   - Strings são convertidas em objetos `str` imutáveis normalizados em Unicode NFC.
+3. **Garantias Oferecidas ao Consumidor:**
+   - `bundle.columns` é um `types.MappingProxyType` imutável (`bundle.columns["nova"] = ...` levanta `TypeError`).
+   - Cada array colunar `bundle.columns[col]` tem `flags.writeable = False` (`bundle.columns[col][0] = ...` levanta `ValueError`).
+   - A função `get_column_array(bundle, col_name)` retorna um array com `flags.writeable = False` diretamente ou visão segura; se o consumidor tentar forçar `arr.setflags(write=True)` em uma cópia desacoplada, o estado interno de `bundle.columns` permanece protegido contra efeitos colaterais.
 
 ---
 
-## 3. Dependências e Integração com `core` e `metrics` (Sem Duplicação)
+### 2.2 Ponto 2: Semântica Tripartite do `dataset_hash`
 
-O pacote `experimental_ml.data` situa-se no **Nível 1** de dependências (`ARQUITETURA_E_CONTRATOS.md` Seção 2.3) e importa **exclusivamente** a biblioteca padrão do Python, `numpy>=1.24.0` e `experimental_ml.core` (Nível 0). Não há dependência entre `experimental_ml.data` e `experimental_ml.metrics` (ambos são pacotes independentes de Nível 1).
+#### O Problema Identificado
+Identificar um dataset apenas pelos bytes brutos do arquivo físico em disco confunde a *identidade do transporte* com a *identidade matemática/estrutural do conteúdo*. Por exemplo, um mesmo conjunto de dados salvo com quebras de linha Windows (`\r\n`) ou Unix (`\n`), ou carregado de um arquivo TSV vs. de um dicionário em memória (após normalização NFC de strings, coerção correta de tipos e padronização de nulos), possui representações em disco com SHA-256 distintos, mas contém rigorosamente a mesma informação experimental.
 
-| Componente de `experimental_ml.core` | Uso em `experimental_ml.data` (M1.4) | Responsabilidade Preservada (Sem Duplicação) |
-| :--- | :--- | :--- |
-| `ObservationId` (`core.types`) | Identificador validado de cada linha em `DatasetBundle.observation_ids`. | A validação contra strings vazias, whitespace e caracteres de controle é feita pelo construtor `ObservationId` já existente no `core`. |
-| `TaskType`, `StrEnum` (`core.enums`) | Tipagem da modalidade em `DatasetSchemaSpec.task_type` e base para `ColumnSemanticType`. | Reutiliza `TaskType` canônico sem recriar enums de tarefa. |
-| `config_hash`, `dataset_hash` (`core.hashing`) | Cálculo de `DatasetBundle.dataset_hash` e serialização canônica de `DatasetSchemaSpec`. | `load_dataset` delega 100% do cálculo de hash a `dataset_hash(source, schema)` do `core` (**ADR-007**), sem reimplementar SHA-256 ou serialização binária. |
-| `ConfigurationError`, `DataIntegrityError` (`core.findings`) | Exceções para configuração inválida de esquema (`ConfigurationError`) ou violação estrutural dos dados (`DataIntegrityError`). | Reutiliza a hierarquia oficial de exceções do `core`. |
+#### Formalização das Três Identidades no M1.4
+Sem alterar os contratos já implementados no Core (**ADR-007**, `hashing.py`), o `DatasetBundle` explicita e distingue três resumos criptográficos (`SHA-256` de 64 caracteres hexadecimais):
 
----
-
-## 4. Decisões Arquiteturais, Requisitos Não Funcionais e Restrições
-
-### 4.1 Decisões Arquiteturais do Marco
-1. **DA-M1.4-01 — Unificação no Pacote `experimental_ml.data`:**
-   - Embora o título descritivo do marco no roadmap seja *Datasets & Schemas*, o módulo físico é `src/experimental_ml/data/` conforme definido na Seção 2.3 de `ARQUITETURA_E_CONTRATOS.md` e em `tests/test_smoke.py`. Isso evita criar um pacote órfão `experimental_ml.datasets` que quebraria os caminhos de importação previstos para o Marco M2.
-2. **DA-M1.4-02 — Armazenamento Colunar Imutável Baseado em `numpy.ndarray` + `MappingProxyType` (Zero Dependência de `pandas`):**
-   - Cada coluna é armazenada em `DatasetBundle.columns` como um array `numpy.ndarray` 1D de comprimento $N$ com `arr.flags.writeable = False`, exposto através de `types.MappingProxyType`.
-   - Objetos `pandas.DataFrame` passados em memória pelo usuário são suportados via protocolo *duck-typing* (`hasattr(source, "columns") and hasattr(source, "__getitem__")`), extraindo cópias imutáveis das colunas sem exigir `pandas` no `pyproject.toml` (`RNF03`, `RNF04`).
-3. **DA-M1.4-03 — Preservação Fiel de Valores Ausentes e Tipos Sem Coerção Destrutiva:**
-   - Colunas numéricas com valores ausentes em arquivos texto (`""`, `"NA"`, `"NaN"`, `"null"`, `"None"`, `"nan"`) são convertidas para `float64` com `np.nan` nas posições ausentes.
-   - Colunas inteiras sem valores ausentes utilizam `int64` (`np.int64`).
-   - Colunas booleanas sem valores ausentes utilizam `bool` (`np.bool_`); se contiverem valores ausentes, utilizam dtype `object` contendo apenas `True`, `False` e `None` (evitando converter `None` em `False` ou em `float`).
-   - Colunas textuais, categóricas, temporais ou identificadoras utilizam dtype `object` com strings normalizadas em Unicode NFC e entradas ausentes mapeadas para `None`.
-4. **DA-M1.4-04 — Fronteira Explícita Onda 1 vs. Onda 2 em `DatasetSchemaSpec`:**
-   - A assinatura de `DatasetSchemaSpec` inclui `target_col: str | Sequence[str]`, `task_type: TaskType`, `group_col: str | None = None`, `observation_id_col: str | None = None`, `time_col: str | None = None`, `ignore_cols: Sequence[str] = ()` e `target_transform_spec: Any | None = None`.
-   - Na Onda 1 (`ARQUITETURA_E_CONTRATOS.md` Seção 6.1), `DatasetSchemaSpec.__post_init__` valida que `task_type` pertence a `{REGRESSION, BINARY_CLASSIFICATION, MULTICLASS_CLASSIFICATION}`, que `target_col` é `str` (alvo univariado) e que `target_transform_spec is None`. Caso o usuário acione `MULTI_TARGET_REGRESSION`, passe uma sequência de múltiplos alvos em `target_col` ou forneça `target_transform_spec`, é lançado `ConfigurationError` instrutivo informando que o recurso pertence à Onda 2.
-
-### 4.2 Requisitos Não Funcionais e Restrições Aplicáveis
-- **`RNF01` (Determinismo):** A leitura de arquivos, a inferência de tipos, a geração de `observation_ids` e o cálculo de `dataset_hash` são 100% determinísticos e independentes de estado global.
-- **`RNF02` (Independência de Domínio):** Nenhum nome de coluna de domínio específico (ex.: inventário florestal) é assumido por padrão.
-- **`RNF03` e `RNF06` (Autossuficiência Offline e Compatibilidade):** Implementação restrita à biblioteca padrão do Python (`>=3.10`, testada em `3.12`) e `numpy>=1.24.0`.
-- **`RNF04` (Eficiência de Memória):** Representação colunar 1D contígua em NumPy com estimativa exata de consumo de memória em bytes (`memory_bytes`).
-- **`ADR-008` (Sem OOP para Lógica de Negócio):** Todas as estruturas são `@dataclass(frozen=True, slots=True)` e todas as operações são funções puras.
+1. **Identidade do Conteúdo Tabular Efetivo (`dataset_hash: str`):**
+   - É o digest criptográfico SHA-256 calculado diretamente sobre os arrays normalizados, congelados e ordenados em memória (`bundle.columns`), vinculados à ordem dos `observation_ids` e ao `schema`, através do ramo in-memory da função existente:
+     `core.dataset_hash(bundle.columns, schema)`.
+   - **Garantia Invariante:** Se a mesma informação tabular for carregada de um arquivo CSV (com qualquer padrão de quebras de linha `\r\n` ou `\n`), de um TSV ou de uma estrutura em memória (`dict`, `DataFrame`), o `DatasetBundle.dataset_hash` resultante será **rigorosamente idêntico bit a bit**.
+   - É este `dataset_hash` que serve de chave primária para a proveniência dos artefatos das etapas subsequentes (Marco M2 a M7).
+2. **Identidade da Fonte Original (`raw_source_hash: str`):**
+   - Registra o hash da fonte bruta de entrada antes do parsing:
+     - Quando carregado de arquivo em disco (`.csv`, `.txt`, `.tsv`): é o hash dos bytes físicos do arquivo em disco combinado com o esquema, calculado via `core.dataset_hash(source_path, schema)`.
+     - Quando carregado de estrutura em memória: é o hash da estrutura original antes de qualquer cópia interna.
+   - Permite verificar a integridade física do arquivo em disco (detectando se o arquivo físico foi adulterado ou corrompido).
+3. **Identidade do Esquema Estrutural (`schema_hash: str`):**
+   - É o digest canônico do `DatasetSchemaSpec` calculado via `core.config_hash(schema)`.
 
 ---
 
-## 5. Contratos Públicos e Invariantes (`experimental_ml.data`)
+### 2.3 Ponto 3: Parsing e Detecção de Delimitadores
 
-### 5.1 Enumeração `ColumnSemanticType(StrEnum)`
-Classifica a natureza estrutural e semântica de cada coluna em `ColumnDescriptor`:
-- `NUMERIC_CONTINUOUS = "NUMERIC_CONTINUOUS"` (valores em ponto flutuante `float64`)
-- `NUMERIC_DISCRETE = "NUMERIC_DISCRETE"` (valores inteiros `int64`)
-- `CATEGORICAL = "CATEGORICAL"` (strings/categorias nominais ou ordinais)
-- `BOOLEAN = "BOOLEAN"` (valores lógicos booleanos)
-- `TEMPORAL = "TEMPORAL"` (coluna designada como `time_col` no esquema)
-- `IDENTIFIER = "IDENTIFIER"` (coluna designada como `observation_id_col` no esquema)
-
-### 5.2 Estrutura `DatasetSchemaSpec`
-```python
-@dataclass(frozen=True, slots=True)
-class DatasetSchemaSpec:
-    target_col: str | Sequence[str]
-    task_type: TaskType
-    group_col: str | None = None
-    observation_id_col: str | None = None
-    time_col: str | None = None
-    ignore_cols: tuple[str, ...] = ()
-    target_transform_spec: Any | None = None
-```
-- **Invariantes garantidas em `__post_init__`:**
-  1. `task_type` é instância de `TaskType` (ou string canônica convertida para `TaskType`); se `task_type == TaskType.MULTI_TARGET_REGRESSION`, levanta `ConfigurationError` (Onda 2).
-  2. `target_col` na Onda 1 deve ser `str` não vazia (rejeitando `Sequence[str]` não-string com `ConfigurationError` da Onda 2 e strings vazias/whitespace/caracteres de controle com `ConfigurationError`).
-  3. `target_transform_spec` deve ser `None` na Onda 1 (caso contrário, levanta `ConfigurationError`).
-  4. Todos os nomes de colunas (`target_col`, `group_col`, `observation_id_col`, `time_col` e itens de `ignore_cols`) são normalizados via `unicodedata.normalize("NFC", col.strip())` (rejeitando strings vazias, somente espaços ou com caracteres de controle `\n`, `\r`, `\t`, `\x00`).
-  5. `ignore_cols` é armazenado como `tuple[str, ...]` imutável e sem duplicatas internas (preservando a ordem de declaração).
-  6. **Disjunção Estrita de Papéis:** Os conjuntos `{target_col}`, `{group_col}` (se não nulo), `{observation_id_col}` (se não nulo), `{time_col}` (se não nulo) e `set(ignore_cols)` são mutuamente disjuntos dois a dois. Qualquer colisão levanta `ConfigurationError`.
-
-### 5.3 Estrutura `ColumnDescriptor`
-```python
-@dataclass(frozen=True, slots=True)
-class ColumnDescriptor:
-    name: str
-    index: int
-    role: str  # "target" | "group" | "observation_id" | "time" | "ignored" | "feature"
-    semantic_type: ColumnSemanticType
-    dtype_str: str
-    n_missing: int
-    memory_bytes: int
-```
-- **Invariantes:** `index >= 0`, `0 <= n_missing <= n_rows`, `memory_bytes >= 0`, e `role` reflete exatamente o papel atribuído por `DatasetSchemaSpec` (ou `"feature"` para as demais colunas).
-
-### 5.4 Estrutura `DatasetBundle`
-```python
-@dataclass(frozen=True, slots=True)
-class DatasetBundle:
-    schema: DatasetSchemaSpec
-    n_rows: int
-    n_cols: int
-    column_names: tuple[str, ...]
-    feature_cols: tuple[str, ...]
-    columns: Mapping[str, np.ndarray]
-    descriptors: Mapping[str, ColumnDescriptor]
-    observation_ids: tuple[ObservationId, ...]
-    dataset_hash: str
-    memory_bytes: int
-    source_path: str | None = None
-```
-- **Invariantes de Integridade:**
-  1. `n_rows >= 1` e `n_cols >= 2` (ao menos 1 coluna de `target_col` e 1 coluna em `feature_cols`).
-  2. `len(column_names) == n_cols` e `len(set(column_names)) == n_cols` (nomes únicos em NFC).
-  3. `len(feature_cols) >= 1`, mantendo a ordem original em `column_names` e satisfazendo `set(feature_cols) == set(column_names) - ({target_col, group_col, observation_id_col, time_col} | set(ignore_cols))`.
-  4. `columns` e `descriptors` são encapsulados em `MappingProxyType` (somente-leitura).
-  5. Para todo `c in column_names`, `columns[c]` é um `np.ndarray` 1D com `shape == (n_rows,)` e `columns[c].flags.writeable is False`.
-  6. `len(observation_ids) == n_rows`, todos os elementos são instâncias válidas de `ObservationId` e `len(set(observation_ids)) == n_rows` (`CA-E1-01`).
-  7. `len(dataset_hash) == 64` (digest SHA-256 hexadecimal minúsculo idêntico a `core.dataset_hash(source, schema)`).
-
-### 5.5 Funções Públicas do Módulo
-1. **`validate_dataset_schema(columns: Mapping[str, np.ndarray], schema: DatasetSchemaSpec) -> tuple[str, ...]`:**
-   - Verifica a consistência estrutural entre o dicionário ordenado de colunas e o `DatasetSchemaSpec`.
-   - Confirma que todas as colunas referenciadas no esquema existem em `columns`, que todas as colunas têm o mesmo comprimento $N \ge 1$, que a coluna `observation_id_col` (quando declarada) não possui nulos nem duplicatas, e que resta pelo menos uma coluna preditora candidata (`feature_cols`), retornando a tupla ordenada `feature_cols`.
-   - Lança `DataIntegrityError` em qualquer violação estrutural.
-2. **`load_dataset(source, schema, *, delimiter=None, has_header=True, column_names=None, encoding="utf-8") -> DatasetBundle`:**
-   - Carrega dados tabulares de caminho em disco (`str | Path`) ou estrutura em memória (`Mapping[str, Sequence]`, `np.ndarray` 2D, `Sequence[Mapping[str, Any]]` ou `DataFrame` duck-typed).
-   - Em arquivos texto (`.csv`, `.txt`, `.tsv`):
-     - Se `delimiter` for informado, utiliza-o diretamente no parser CSV.
-     - Se `delimiter=None`, detecta automaticamente entre `","`, `";"`, `"\t"`, `"|"` ou, quando se tratar de arquivo separado por espaços em branco múltiplos (comum em `.txt` científicos), divide por sequências de espaços `r"\s+"`.
-     - Verifica que todas as linhas possuem o mesmo número de colunas $M$ (lançando `DataIntegrityError` para linhas irregulares/truncadas ou arquivo vazio).
-     - Se `has_header=True`, extrai os nomes das colunas da primeira linha não vazia (rejeitando nomes vazios ou duplicados após normalização NFC com `DataIntegrityError`).
-     - Se `has_header=False`, utiliza `column_names` (validando `len(column_names) == M`) ou gera `("col_0", "col_1", ..., f"col_{M-1}")`.
-   - Infere os tipos colunares sem coerção destrutiva, congela os arrays (`writeable = False`), valida o esquema via `validate_dataset_schema`, extrai/gera `observation_ids`, constrói `ColumnDescriptor` por coluna, calcula `dataset_hash` via `core.dataset_hash(source, schema)` e retorna `DatasetBundle`.
-3. **`get_column_array(bundle: DatasetBundle, col_name: str) -> np.ndarray`:**
-   - Retorna o array 1D somente-leitura correspondente a `col_name` (normalizado em NFC), ou levanta `DataIntegrityError` se a coluna não existir no `bundle`.
-4. **`slice_bundle_by_observation_ids(bundle: DatasetBundle, observation_ids: Sequence[ObservationId | str]) -> DatasetBundle`:**
-   - Retorna um novo `DatasetBundle` imutável contendo exclusivamente as linhas correspondentes aos `observation_ids` solicitados, na exata ordem informada, recalculando `n_rows`, `descriptors`, `memory_bytes` e o `dataset_hash` em memória (`core.dataset_hash(sliced_columns, bundle.schema)`).
-   - Rejeita sequência vazia, IDs duplicados na requisição ou IDs ausentes do `bundle` original com `DataIntegrityError`.
+#### Regras de Parsing e Suporte a Delimitadores
+1. **Delimitadores Suportados:**
+   - Vírgula (`,`), ponto-e-vírgula (`;`), tabulação (`\t`), barra vertical (`|`), e blocos de espaços em branco contíguos (`r"[ \t]+"`) para arquivos científicos tabulares `.txt`.
+2. **Regras de Detecção Automática (`delimiter=None`):**
+   - Lê uma amostra inicial de até 100 linhas não-vazias do arquivo.
+   - Avalia os delimitadores candidatos na ordem: `,`, `;`, `\t`, `|`.
+   - Utiliza `csv.Sniffer` restrito a esses delimitadores e verifica se a contagem de colunas $M$ é estritamente uniforme em todas as linhas da amostra ($M \ge 2$).
+   - Se nenhum delimitador caractere produzir contagem uniforme $\ge 2$, avalia divisão por múltiplos espaços (`r"[ \t]+"`), verificando contagem uniforme de campos em todas as linhas.
+3. **Tratamento de Ambiguidade ou Falha na Detecção:**
+   - Se múltiplos delimitadores produzirem contagens válidas concorrentes, ou se nenhum delimitador produzir contagem de colunas estritamente uniforme em todas as linhas da amostra, `load_dataset` **não adivinha** nem assume valores padrão: lança `DataIntegrityError` com diagnóstico detalhado instruindo o pesquisador a especificar o delimitador manualmente via parâmetro `delimiter`.
+4. **Sobrescrita Manual:**
+   - Passar `delimiter=","`, `";"`, `"\t"`, `"|"` ou `" "` desativa integralmente a detecção automática e aplica estritamente o delimitador informado.
+5. **Tratamento de Campos Entre Aspas (Quoting — RFC 4180):**
+   - Campos delimitados por aspas duplas (`"`) são processados conforme a RFC 4180: caracteres delimitadores e quebras de linha contidos dentro de aspas são preservados como texto literal do campo; aspas duplas escapadas (`""`) são convertidas para uma única aspa literal (`"`).
+6. **Linhas Irregulares (*Ragged Rows*):**
+   - Toda linha de dados (exceto linhas em branco descartadas) deve conter exatamente o mesmo número de colunas $M$.
+   - Se qualquer linha contiver número divergente de colunas em relação ao cabeçalho ou à primeira linha, a leitura falha imediatamente com `DataIntegrityError` indicando o número da linha (1-based), a contagem esperada e a contagem encontrada. Nenhuma linha é descartada silenciosamente e nenhuma coluna é preenchida com valores nulos artificiais.
+7. **Arquivos Vazios e Cabeçalhos:**
+   - Arquivos com zero bytes ou compostos apenas por espaços/linhas em branco lançam `DataIntegrityError`.
+   - Arquivos contendo apenas a linha de cabeçalho e nenhuma linha de dados ($N = 0$) lançam `DataIntegrityError` (a base exige $N \ge 1$).
+   - Cabeçalhos com nomes de coluna vazios (`col1,,col3`) ou nomes duplicados após normalização NFC lançam `DataIntegrityError`.
 
 ---
 
-## 6. Matriz de Requisitos Rastreáveis e Critérios de Aceitação (DATA-01 a DATA-20)
+### 2.4 Ponto 4: Tipagem Semântica das Colunas vs. Representação Física
+
+#### Distinção Conceitual
+A representação computacional de um dado em memória não determina unívocamente seu papel científico:
+- Uma coluna física `int64` pode representar uma contagem discreta (`NUMERIC_DISCRETE`), um código de categoria (`CATEGORICAL`) ou um identificador (`IDENTIFIER`).
+- Uma coluna física `float64` pode representar uma grandeza contínua (`NUMERIC_CONTINUOUS`) ou uma variável discreta com valores ausentes.
+- Uma coluna física `object` (string) pode representar texto/categoria (`CATEGORICAL`), data/hora (`TEMPORAL`) ou código identificador (`IDENTIFIER`).
+
+#### Repartição de Responsabilidades
+1. **Semântica Intrínseca a Papéis do Esquema:**
+   - A coluna designada como `observation_id_col` recebe compulsoriamente `ColumnSemanticType.IDENTIFIER`.
+   - A coluna designada como `time_col` recebe compulsoriamente `ColumnSemanticType.TEMPORAL`.
+   - A coluna designada como `group_col` recebe compulsoriamente `ColumnSemanticType.CATEGORICAL`.
+2. **Declaração Explícita pelo Pesquisador no Schema:**
+   - O `DatasetSchemaSpec` suporta o campo opcional:
+     `column_semantic_types: Mapping[str, ColumnSemanticType] = MappingProxyType({})`
+   - O pesquisador pode explicitar, por exemplo, `column_semantic_types={"cod_ibge": ColumnSemanticType.CATEGORICAL}`, impedindo que códigos inteiros sejam tratados como contagens matemáticas.
+3. **Inferência Padrão Neutra (Fallback Documentado):**
+   - Quando o pesquisador não declarar o tipo semântico de uma coluna de atributo (`feature_cols`):
+     - `physical_type == "bool"` (ou booleano com nulos): `ColumnSemanticType.BOOLEAN`.
+     - `physical_type == "float64"`: `ColumnSemanticType.NUMERIC_CONTINUOUS`.
+     - `physical_type == "int64"`: `ColumnSemanticType.NUMERIC_DISCRETE`.
+     - `physical_type == "object"` (strings): `ColumnSemanticType.CATEGORICAL`.
+   - Para a variável `target_col`:
+     - Em `REGRESSION`: `NUMERIC_CONTINUOUS` (se float) ou `NUMERIC_DISCRETE` (se int).
+     - Em `BINARY_CLASSIFICATION` ou `MULTICLASS_CLASSIFICATION`: `CATEGORICAL` (ou `BOOLEAN` se bool).
+4. **Estrutura `ColumnDescriptor`:**
+   - Registra explicitamente:
+     - `physical_type: str`: `"float64"`, `"int64"`, `"bool"`, `"object"`.
+     - `semantic_type: ColumnSemanticType`: classificação semântica efetiva.
+     - `is_semantic_declared: bool`: `True` se informada explicitamente pelo usuário no schema; `False` se resultante da inferência padrão neutra.
+
+---
+
+### 2.5 Ponto 5: Geração e Estabilidade de `ObservationId`
+
+#### Geração na Ausência de Coluna Identificadora (`observation_id_col=None`)
+1. **Regra de Geração:**
+   - O framework gera determinísticamente $N$ identificadores únicos com formato padronizado:
+     `ObservationId(f"obs_{i:06d}")` para $i \in \{0, \dots, N-1\}$.
+   - Exemplos: `obs_000000`, `obs_000001`, ..., `obs_000999`.
+2. **Ordem de Atribuição:**
+   - Em arquivos em disco: a atribuição segue estritamente a sequência física de leitura das linhas de dados (linha 1 de dados $\rightarrow$ `obs_000000`, linha 2 $\rightarrow$ `obs_000001`).
+   - Em estruturas em memória (`Mapping[str, Sequence]`, `np.ndarray` 2D, `DataFrame` duck-typed): segue estritamente a indexação posicional de linhas ($0 \le i < N$).
+3. **Determinismo e Estabilidade sob Reordenação:**
+   - Duas leituras da mesma fonte preservando a ordem das linhas produzem exatamente a mesma tupla de `observation_ids`.
+   - Se a fonte for reordenada antes da leitura (por exemplo, linhas embaralhadas no CSV), os IDs posicionais acompanharão a nova ordem de leitura. A especificação documenta explicitamente que **bases que necessitem de estabilidade sob permutações arbitrárias de linhas devem conter uma coluna identificadora intrínseca na fonte (`observation_id_col`)**.
+
+#### Validação Quando `observation_id_col` é Fornecida
+1. **Extração e Normalização:**
+   - Extrai os valores originais da coluna na ordem das observações.
+   - Converte e normaliza strings em Unicode NFC.
+2. **Validação Estrita de Integridade:**
+   - Nenhum valor pode ser ausente (`None`, `NaN`, string vazia `""` ou whitespace puro `"   "`).
+   - Nenhum valor pode conter caracteres inválidos para identificadores (`\n`, `\r`, `\t`, `\x00`).
+   - Unicidade estrita: se houver qualquer repetição (`len(set(ids)) < N`), a carga é abortada imediatamente com `DataIntegrityError`, identificando o primeiro valor duplicado e as linhas onde ocorre.
+
+#### Vínculo com Particionamento e Rastreabilidade Futura (Marcos M2 a M7)
+- No Marco M2, o `PartitionPlan` registrará partições utilizando exclusivamente as tuplas de `ObservationId` (`train_ids`, `val_ids`, `holdout_ids`).
+- A função pura `slice_bundle_by_observation_ids(bundle, observation_ids)` do M1.4 garante que qualquer partição futura recupere exatamente os registros originais através de busca por identificador estável, eliminando desalinhamentos por índices inteiros voláteis.
+
+---
+
+## 3. Matriz de Requisitos Rastreáveis e Critérios de Aceitação (DATA-01 a DATA-25)
 
 | ID | Categoria | Requisito EARS (`spec.md`) | Critério Objetivo de Aceitação |
 | :--- | :---: | :--- | :--- |
-| **DATA-01** | Funcional / Contrato | Estruturas imutáveis `DatasetSchemaSpec`, `ColumnDescriptor`, `DatasetBundle` e enum `ColumnSemanticType` | Instâncias são congeladas (`frozen=True`); tentativa de mutação levanta `FrozenInstanceError` / `AttributeError`; `ColumnSemanticType` expõe os 6 membros canônicos. |
-| **DATA-02** | Funcional / Esquema | Normalização Unicode NFC e deduplicação ordenada de `ignore_cols` em `DatasetSchemaSpec` | Nomes em NFD e NFC produzem atributos idênticos em `DatasetSchemaSpec`; `ignore_cols` torna-se `tuple[str, ...]` sem duplicatas preservando a ordem. |
-| **DATA-03** | Funcional / Validação | Rejeição de nomes de colunas vazios, whitespace ou com caracteres de controle | Passar `""`, `"   "`, `"col\n1"` ou `"\t"` em qualquer campo de coluna de `DatasetSchemaSpec` levanta `ConfigurationError`. |
-| **DATA-04** | Restrição / Escopo | Bloqueio explícito de recursos da Onda 2 em `DatasetSchemaSpec` | `TaskType.MULTI_TARGET_REGRESSION`, `target_col=["y1", "y2"]` ou `target_transform_spec != None` levantam `ConfigurationError` explícito. |
-| **DATA-05** | Funcional / Invariante | Disjunção estrita entre papéis de colunas no `DatasetSchemaSpec` | Qualquer repetição de coluna entre `target_col`, `group_col`, `observation_id_col`, `time_col` e `ignore_cols` levanta `ConfigurationError`. |
-| **DATA-06** | Não Funcional / Hash | Determinismo de `config_hash(schema)` sob Unicode NFC/NFD | `config_hash` de esquemas equivalentes em NFC e NFD produz exatamente o mesmo digest SHA-256 de 64 caracteres. |
-| **DATA-07** | Funcional / Ingestão | Ingestão via `load_dataset` de arquivos `.csv`/`.txt` e estruturas em memória | Carrega `.csv`, `.txt`, `dict` de colunas, `ndarray` 2D, lista de dicts e objeto `DataFrame` duck-typed sem mutar os objetos de entrada. |
-| **DATA-08** | Funcional / Ingestão | Suporte a delimitadores explícitos, auto-detectados e múltiplos espaços em `.txt` | `load_dataset` lê corretamente arquivos separados por `,`, `;`, `\t`, `\|` e múltiplos espaços em branco (`delimiter=None`), rejeitando linhas irregulares com `DataIntegrityError`. |
-| **DATA-09** | Funcional / Ingestão | Suporte a arquivos e matrizes sem cabeçalho (`has_header=False` e `column_names`) | Gera `("col_0", ..., f"col_{M-1}")` quando `has_header=False` e `column_names=None`, ou aplica `column_names` validando comprimento $M$ (`DataIntegrityError` se divergir). |
-| **DATA-10** | Não Funcional / Imutabilidade | Imutabilidade em memória dos arrays colunares e mapeamentos em `DatasetBundle` | Todo array em `bundle.columns.values()` possui `flags.writeable == False` (mutação in-place levanta `ValueError`) e `bundle.columns` / `bundle.descriptors` são `MappingProxyType` (`TypeError` ao atribuir chave). |
-| **DATA-11** | Funcional / Integridade | Preservação de valores ausentes sem imputação ou descarte silencioso e derivação de `feature_cols` | Valores ausentes em colunas numéricas (`np.nan`) e categóricas (`None`) são preservados nas linhas originais; `feature_cols` exclui exatamente `{target, group, id, time} ∪ ignore_cols`. |
-| **DATA-12** | Não Funcional / Hash | Paridade exata de `DatasetBundle.dataset_hash` com `core.dataset_hash(source, schema)` | `bundle.dataset_hash` coincide bit a bit com `dataset_hash(source, schema)` para arquivos em disco e dados em memória (`CA-E1-01`, **ADR-007**). |
-| **DATA-13** | Funcional / Identidade | Geração determinística de `ObservationId` quando `observation_id_col=None` | Produz `("obs_0", "obs_1", ..., f"obs_{N-1}")` como instâncias válidas de `ObservationId` (`CA-E1-01`). |
-| **DATA-14** | Funcional / Identidade | Extração e validação de `observation_id_col` explícita | Converte os valores da coluna em `ObservationId` preservando a ordem das linhas quando todos os $N$ valores são válidos, não-nulos e únicos. |
-| **DATA-15** | Funcional / Validação | Rejeição de `observation_id_col` com valores ausentes, inválidos ou duplicados | Qualquer `None`, `NaN`, string vazia ou identificador repetido em `observation_id_col` levanta `DataIntegrityError`. |
-| **DATA-16** | Funcional / Validação | Validação de existência das colunas do esquema nos dados (`validate_dataset_schema`) | Se `target_col`, `group_col`, `observation_id_col`, `time_col` ou item de `ignore_cols` não existir nos dados, levanta `DataIntegrityError`. |
-| **DATA-17** | Funcional / Validação | Rejeição de bases vazias, cabeçalhos duplicados, colunas de tamanhos distintos ou sem `feature_cols` | $N = 0$, $M = 0$, nomes de colunas duplicados, tamanhos de colunas divergentes ou `len(feature_cols) == 0` levantam `DataIntegrityError`. |
-| **DATA-18** | Funcional / Metadados | Preenchimento exato de `ColumnDescriptor` e `ColumnSemanticType` por coluna | `bundle.descriptors[col]` registra `name`, `index`, `role`, `semantic_type`, `dtype_str`, `n_missing` e `memory_bytes` consistentes com os dados carregados. |
-| **DATA-19** | Funcional / Consulta | Consulta segura de coluna via `get_column_array` | Retorna array 1D com `flags.writeable == False` para coluna existente e levanta `DataIntegrityError` para coluna inexistente. |
-| **DATA-20** | Funcional / Consulta | Recorte imutável de observações via `slice_bundle_by_observation_ids` | Retorna novo `DatasetBundle` imutável na ordem solicitada de `observation_ids` com `dataset_hash` atualizado, sem alterar o `bundle` original; rejeita IDs ausentes, vazios ou duplicados com `DataIntegrityError`. |
+| **DATA-01** | Contrato | Estruturas imutáveis `DatasetSchemaSpec`, `ColumnDescriptor`, `DatasetBundle` e enum `ColumnSemanticType` | Instâncias são congeladas (`frozen=True`); tentativa de mutação levanta `FrozenInstanceError` / `AttributeError`; `ColumnSemanticType` expõe os 6 membros canônicos. |
+| **DATA-02** | Esquema | Normalização NFC, deduplicação de `ignore_cols` e encapsulamento de `column_semantic_types` | Nomes em NFD e NFC produzem atributos idênticos em `DatasetSchemaSpec`; `ignore_cols` torna-se `tuple[str, ...]` sem duplicatas; `column_semantic_types` é somente-leitura. |
+| **DATA-03** | Validação | Rejeição de nomes de colunas vazios, whitespace ou com caracteres de controle | Passar `""`, `"   "`, `"col\n1"` ou `"\t"` em qualquer campo de coluna de `DatasetSchemaSpec` levanta `ConfigurationError`. |
+| **DATA-04** | Escopo | Bloqueio explícito de recursos da Onda 2 em `DatasetSchemaSpec` | `TaskType.MULTI_TARGET_REGRESSION`, `target_col=["y1", "y2"]` ou `target_transform_spec != None` levantam `ConfigurationError` explícito. |
+| **DATA-05** | Invariante | Disjunção estrita entre papéis de colunas no `DatasetSchemaSpec` | Qualquer repetição de coluna entre `target_col`, `group_col`, `observation_id_col`, `time_col` e `ignore_cols` levanta `ConfigurationError`. |
+| **DATA-06** | Hashing | Determinismo de `config_hash(schema)` sob Unicode NFC/NFD | `config_hash` de esquemas equivalentes em NFC e NFD produz exatamente o mesmo digest SHA-256 de 64 caracteres. |
+| **DATA-07** | Ingestão | Ingestão com propriedade exclusiva e cópia defensiva da fonte de dados | Carrega `.csv`, `.txt`, `.tsv`, `dict`, `ndarray` 2D, lista de dicts e `DataFrame` duck-typed; mutações na fonte original após a carga não afetam `bundle.columns`. |
+| **DATA-08** | Ingestão | Cópia defensiva e isolamento de arrays numéricos e colunas | Mutar in-place a matriz original do chamador tem efeito zero sobre `bundle.columns`. |
+| **DATA-09** | Integridade | Proibição de tipos mutáveis em colunas de tipo físico `object` | Tentar carregar coluna `object` contendo `list`, `dict`, `set` ou `bytearray` levanta `DataIntegrityError`; apenas escalares imutáveis (`str`, `int`, `float`, `bool`, `None`) são aceitos. |
+| **DATA-10** | Imutabilidade | Imutabilidade profunda em memória dos arrays colunares e mapeamentos em `DatasetBundle` | Todo array em `bundle.columns.values()` possui `flags.writeable == False` (mutação levanta `ValueError`) e `bundle.columns` / `bundle.descriptors` são `MappingProxyType` (`TypeError` ao atribuir). |
+| **DATA-11** | Integridade | Preservação fiel de valores ausentes originais sem imputação ou descarte | Valores ausentes em colunas numéricas (`np.nan`) e categóricas/booleanas (`None`) são preservados; `feature_cols` exclui exatamente `{target, group, id, time} ∪ ignore_cols`. |
+| **DATA-12** | Hashing | `DatasetBundle.dataset_hash` representando o conteúdo canônico em memória | `bundle.dataset_hash` reflete os dados tabulares normalizados em memória via `core.dataset_hash(bundle.columns, schema)`, sendo idêntico para mesma base via CSV (`\r\n` vs `\n`) ou dict. |
+| **DATA-13** | Hashing | `DatasetBundle.raw_source_hash` e `schema_hash` para proveniência | `bundle.raw_source_hash` preserva o hash da fonte bruta original via `core.dataset_hash(source, schema)` e `bundle.schema_hash` preserva `core.config_hash(schema)`. |
+| **DATA-14** | Parsing | Parsing estrito com suporte a delimitadores `,`, `;`, `\t`, `|`, múltiplos espaços e aspas RFC 4180 | Lê delimitadores padrão e múltiplos espaços `r"[ \t]+"`, preservando delimitadores e quebras de linha dentro de aspas duplas (`"a,b"`) e convertendo `""` em `"`. |
+| **DATA-15** | Parsing | Detecção automática de delimitadores sobre amostra (100 linhas) | Identifica delimitador uniforme ($M \ge 2$) em amostra de até 100 linhas não-vazias. |
+| **DATA-16** | Parsing | Falha explícita sob ambiguidade ou inconsistência de delimitadores | Sob múltiplos delimitadores válidos ou contagens não uniformes na amostra, lança `DataIntegrityError` com diagnóstico em vez de adivinhar. |
+| **DATA-17** | Parsing | Sobrescrita manual via parâmetro `delimiter` | Informar `delimiter` explícito desativa detecção automática e aplica estritamente o separador configurado. |
+| **DATA-18** | Parsing | Falha imediata para linhas irregulares (*ragged rows*) | Qualquer linha com contagem de colunas diferente da esperada levanta `DataIntegrityError` indicando o número da linha e contagens. |
+| **DATA-19** | Metadados | `ColumnDescriptor` registrando separadamente representação física e tipo semântico | Registra `name`, `index`, `role`, `physical_type` (`"float64"`, etc.), `semantic_type`, `is_semantic_declared`, `n_missing` e `memory_bytes`. |
+| **DATA-20** | Semântica | Respeito à declaração explícita de `column_semantic_types` e fallback neutro | Se declarada no schema, aplica o tipo e marca `is_semantic_declared=True`; se omitida, aplica inferência neutra padrão documentada e marca `False`. |
+| **DATA-21** | Identidade | Geração determinística de `ObservationId` (`obs_000000` a `obs_NNNNNN`) | Na ausência de coluna de ID, gera identificadores sequenciais com 6 dígitos baseados na ordem física de leitura da fonte (`CA-E1-01`). |
+| **DATA-22** | Identidade | Validação estrita de não-nulidade e unicidade de `observation_id_col` | Extrai valores da coluna de ID e levanta `DataIntegrityError` se contiver valor ausente (`None`, `NaN`, `""`), caracteres proibidos ou duplicações. |
+| **DATA-23** | Validação | Validação de existência de colunas do esquema e de preditores candidatos | Se coluna do esquema faltar nos dados ou se restar zero coluna em `feature_cols`, levanta `DataIntegrityError`. |
+| **DATA-24** | Consulta | Consulta segura de coluna via `get_column_array` | Retorna array 1D com `flags.writeable == False` para coluna existente e levanta `DataIntegrityError` para coluna inexistente. |
+| **DATA-25** | Consulta | Recorte imutável de observações via `slice_bundle_by_observation_ids` | Retorna novo `DatasetBundle` imutável na ordem solicitada de `observation_ids` com `dataset_hash` recalculado; rejeita IDs inexistentes ou duplicados com `DataIntegrityError`. |
 
 ---
 
-## 7. Riscos Identificados, Casos-Limite e Mitigações
+## 4. Riscos Remanescentes e Mitigações
 
-| Risco / Caso-Limite | Impacto Potencial | Mitigação Especificada no M1.4 |
-| :--- | :--- | :--- |
-| **R1: Mutação acidental de arrays em etapas consumidoras** | Alteração in-place de valores em `bundle.columns[col][i] = ...` corromperia a base original sem atualizar `dataset_hash`, violando `CA-E1-01`. | Todos os arrays NumPy internos são copiados/convertidos na entrada e marcados com `arr.setflags(write=False)`, e os dicionários são protegidos com `MappingProxyType` (**DATA-10**). |
-| **R2: Coerção silenciosa de booleanos ou inteiros com valores ausentes** | Em NumPy padrão, converter `[True, None]` para `bool` transforma `None` em `False`, e converter `[1, None]` para `int64` falha ou corrompe dados. | Colunas inteiras com ausentes são promovidas para `float64` com `np.nan`; colunas booleanas com ausentes e colunas textuais/categóricas preservam `None` em array `object` imutável (**DATA-11**, **DA-M1.4-03**). |
-| **R3: Ambiguidade de delimitadores em arquivos `.txt` / `.csv`** | `csv.Sniffer` da biblioteca padrão pode falhar em arquivos pequenos ou separados por múltiplos espaços (comuns em bases científicas legadas). | `load_dataset` implementa detecção determinística sobre as linhas de amostra priorizando delimitadores explícitos (`,`, `;`, `\t`, `\|`) e fallback para separação por blocos de espaços em branco (`r"\s+"`), exigindo contagem constante de colunas em todas as linhas (**DATA-08**). |
-| **R4: Divergência de `dataset_hash` entre arquivo em disco e estrutura em memória** | Se `load_dataset` calculasse o hash sobre os arrays já convertidos quando a entrada foi um caminho de arquivo, o hash divergiria de `core.dataset_hash(path, schema)` especificado no **ADR-007**. | `load_dataset` invoca diretamente `core.dataset_hash(source, schema)` sobre o argumento `source` original (caminho de arquivo quando carregado de disco; estrutura tabular quando carregado em memória), garantindo paridade de 100% com o M1.2 (**DATA-12**). |
-| **R5: Colisões de nomes de colunas por variantes Unicode (NFD vs. NFC)** | Duas colunas com mesma aparência visual mas bytes UTF-8 distintos poderiam burlar a verificação de unicidade ou falhar no casamento com `DatasetSchemaSpec`. | Normalização obrigatória Unicode NFC tanto nos campos de `DatasetSchemaSpec` quanto nos nomes de colunas lidos do arquivo/memória antes da verificação de unicidade (**DATA-02**, **DATA-17**). |
+1. **Tentativa de contornar `arr.flags.writeable = False` por consumidores via código C ou APIs internas:**
+   - *Mitigação:* `DatasetBundle` é congelado (`slots=True`, `frozen=True`) e encapsula arrays em `MappingProxyType`. `get_column_array` e `slice_bundle_by_observation_ids` retornam referências controladas. O consumidor é orientado metodologicamente a tratar os arrays como somente-leitura.
+2. **Arquivos texto com encodings exóticos ou caracteres corrompidos:**
+   - *Mitigação:* `load_dataset` aceita o parâmetro explícito `encoding="utf-8"`, com detecção e falha imediata via `DataIntegrityError` em caso de erro de decodificação, sem mascarar bytes corrompidos.
+3. **Bases tabulares com volume muito grande de linhas ($N > 10^7$):**
+   - *Mitigação:* A representação colunar em NumPy contíguo (`float64`, `int64`) oferece a máxima eficiência de memória disponível em Python puro. O diagnóstico registra `memory_bytes` para permitir verificações de consumo na Etapa 1 do Marco M2.
 
 ---
 
-## 8. Pontos Submetidos à Revisão e Validação do Usuário
+## 5. Próximos Passos no Ciclo TLC
 
-Antes de avançarmos para a fase **Design** do TLC, submetemos à sua revisão as decisões estruturais registradas na seção *Assumptions & Open Questions* de [`spec.md`](./spec.md):
-1. **Alocação física em `src/experimental_ml/data/`:** Confirmação de que o M1.4 inaugura o pacote oficial `experimental_ml.data` (Nível 1 de `ARQUITETURA_E_CONTRATOS.md`), entregando os contratos de esquemas e ingestão imutável (`DatasetSchemaSpec`, `ColumnDescriptor`, `DatasetBundle`, `load_dataset`, `validate_dataset_schema`, `get_column_array`, `slice_bundle_by_observation_ids`), enquanto `profile_dataset`, `create_preparation_plan`, `sanitize_dataset`, `validation` e CLI permanecem no Marco M2.
-2. **Zero dependência obrigatória de `pandas`:** Confirmação do uso exclusivo de `stdlib` + `numpy>=1.24.0` para leitura e armazenamento colunar imutável, mantendo suporte a objetos `DataFrame` em memória por *duck-typing*.
-3. **Tratamento da Onda 2 em `DatasetSchemaSpec`:** Confirmação de que `time_col` já é aceito e validado estruturalmente na disjunção de colunas, enquanto `MULTI_TARGET_REGRESSION`, múltiplos alvos (`target_col: Sequence[str]`) e `target_transform_spec` levantam `ConfigurationError` explícito informando que pertencem à Onda 2.
-
+A especificação refinada permanece na fase **Specify**, aguardando sua revisão técnica detalhada dos pontos consolidados antes de ser submetida à aprovação formal.
