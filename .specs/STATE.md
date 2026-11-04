@@ -21,13 +21,16 @@
 ## Handoff
 
 - **Feature**: m1-3-metrics (Marco M1.3 — Metrics)
-- **Phase / Task**: Specify aprovada (`SPEC.md` e `spec.md` aprovados)
+- **Phase / Task**: Tasks aprovadas (`tasks.md`, `design.md`, `ACCEPTANCE.md`)
 - **Completed**:
   - `PROCESSO_DE_ACEITE_DE_MARCOS.md` estabelecido em `engenharia_software/`.
   - M1.1 e M1.2 implementados, verificados e aceitos (`APROVADO`).
-  - Especificação do Marco M1.3 (`SPEC.md` e `spec.md`) criada, refinada e aprovada.
-- **In-progress**: Transição da fase Specify para Design/Tasks
-- **Next step**: Início da fase Design/Tasks do Marco M1.3 (`design.md`, `tasks.md`, `ACCEPTANCE.md`)
+  - Especificação do Marco M1.3 (`SPEC.md` e `spec.md`) aprovada.
+  - Arquitetura técnica (`design.md`) aprovada.
+  - Roteiro de aceitação do consumidor (`ACCEPTANCE.md`) criado.
+  - Plano de tarefas atômicas (`tasks.md`) aprovado e validado via `validate_tasks.py`.
+- **In-progress**: Início da fase Execute de M1.3
+- **Next step**: Execução sequencial das tarefas T1 a T7 conforme `tasks.md`
 - **Blockers**: none
-- **Uncommitted files**: .specs/features/m1-3-metrics/SPEC.md, .specs/features/m1-3-metrics/spec.md, .specs/STATE.md
+- **Uncommitted files**: .specs/features/m1-3-metrics/design.md, .specs/features/m1-3-metrics/ACCEPTANCE.md, .specs/features/m1-3-metrics/tasks.md, .specs/STATE.md
 - **Branch**: feat/m1-3-metrics
