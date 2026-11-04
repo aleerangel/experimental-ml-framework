@@ -350,3 +350,13 @@ EOF
 | **AC-M1.3-9** | Suíte geral de regressão (`pytest tests/`) | Regressão | Runner / Pytest | 100% de aprovação (smoke + core + metrics) |
 | **AC-M1.3-10**| Portão TLC (`validate_verification.py`) | Verificação Mecânica | Agente Verificador | 0 erros, 0 avisos |
 
+---
+
+## 5. Homologação Manual do Marco M1.3
+
+- **Data da Homologação:** 03 de Novembro de 2026
+- **Status:** **HOMOLOGADO E APROVADO**
+- **Manifestação Formal do Usuário:** *"O M1.3 — Metrics foi formalmente aprovado na homologação manual."*
+- **Conclusão:** Roteiro de aceitação do consumidor cumprido em sua totalidade (seções 2.1 a 3), com comportamento verificado nas 15 métricas, agregação e ranqueamento ADR-005. Marco aprovado para encerramento.
+
+

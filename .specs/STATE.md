@@ -21,15 +21,15 @@
 ## Handoff
 
 - **Feature**: m1-3-metrics (Marco M1.3 — Metrics)
-- **Phase / Task**: Execute & Verification concluídos (Aguardando homologação manual do usuário)
+- **Phase / Task**: Concluído e Formalmente Homologado (`APROVADO`)
 - **Completed**:
   - `PROCESSO_DE_ACEITE_DE_MARCOS.md` estabelecido em `engenharia_software/`.
-  - M1.1 e M1.2 implementados, verificados e aceitos (`APROVADO`).
-  - M1.3 especificado, planejado, implementado (T1 a T7) e testado (22 checks unitários + 52 testes gerais).
-  - Comprovações automatizadas registradas em `proofs.md` (22 pass, 0 fail).
-  - Verificação independente concluída com veredito `PASS` em `verification.md` (`validate_verification.py` com 0 erros).
-  - Roteiro de aceitação do consumidor (`ACCEPTANCE.md`) e cenário integrado executados com 100% de sucesso e registrados em `RESULTS.md`.
-- **In-progress**: Homologação manual do Marco M1.3 pelo usuário
-- **Next step**: Homologação do usuário e transição para o Marco M1.4 — Datasets & Schemas
+  - M1.1 (`m1-1-setup-cli-smoke`) e M1.2 (`core`) implementados, verificados e formalmente aceitos (`APROVADO`).
+  - M1.3 (`metrics`) especificado, implementado (T1 a T7), testado (22 checks unitários, 52 testes no total) e verificado (`proofs.md`, `verification.md` PASS).
+  - Roteiro de aceitação do consumidor (`ACCEPTANCE.md`) executado com 100% de sucesso.
+  - Homologação manual do usuário formalmente concedida em 03/11/2026: *"O M1.3 — Metrics foi formalmente aprovado na homologação manual."* Registrada em `RESULTS.md` e `ACCEPTANCE.md`.
+  - Encerramento documental do M1.3 finalizado e sincronizado com `README.md` e `ETAPA_ATUAL_ENGENHARIA.md`.
+- **In-progress**: Transição para o próximo marco do roadmap
+- **Next step**: Iniciar o Marco M1.4 — Datasets & Schemas
 - **Blockers**: none
-- **Branch**: feat/m1-3-metrics
+- **Branch**: feat/m1-3-metrics (pronto para merge em main conforme governança do projeto)

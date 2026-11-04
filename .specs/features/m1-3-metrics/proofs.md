@@ -1,7 +1,7 @@
 # m1-3-metrics proofs
 
-**HEAD**: 002fa9a
-**Tree**: clean
+**HEAD**: 7afe8ba
+**Tree**: dirty - engenharia_software/ETAPA_ATUAL_ENGENHARIA.md
 **Shell**: /bin/sh
 **Result**: 22 pass, 0 fail
 
@@ -49,5 +49,5 @@ tests/unit/test_metrics.py::test_catalog_query_and_dispatch PASSED       [ 90%]
 tests/unit/test_metrics.py::test_is_better_adr005_rules PASSED           [ 95%]
 tests/unit/test_metrics.py::test_aggregate_and_rank_configurations PASSED [100%]
 
-============================== 22 passed in 0.08s ==============================
+============================== 22 passed in 0.09s ==============================
 ```

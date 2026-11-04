@@ -308,7 +308,7 @@ The feature's live state, written as it happens - a compaction gives no warning.
 
 **Settled mid-build:** none
 **Dispatched:** none
-**Walked:** none
+**Walked:** ACCEPTANCE.md (roteiro de homologação manual concluído com sucesso e aprovado pelo usuário)
 
 ---
 

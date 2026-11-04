@@ -1,7 +1,7 @@
 # Engenharia de Software — `experimental-ml-framework`
 
 > **Documento de Registro de Estado da Engenharia**  
-> **Data:** 02 de Novembro de 2026  
+> **Data:** 03 de Novembro de 2026  
 > **Repositório de Origem (Referência Científica):** `prognose_florestal`  
 > **Novo Repositório (Framework Científico Agnóstico):** `experimental-ml-framework`  
 > **Especificação de Requisitos (SRS v2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)  

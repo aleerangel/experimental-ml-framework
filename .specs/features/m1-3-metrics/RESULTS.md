@@ -94,6 +94,24 @@ tests/unit/test_metrics.py::test_aggregate_and_rank_configurations PASSED [100%]
 ## 5. Decisão Final de Aceite do Marco M1.3
 
 - **Veredito de Engenharia:** **IMPLEMENTAÇÃO CONCLUÍDA E VERIFICADA**
-- **Veredito de Homologação Manual:** **APROVADO**
+- **Veredito de Homologação Manual:** **APROVADO** (Homologado formalmente pelo usuário em 03/11/2026: *"O M1.3 — Metrics foi formalmente aprovado na homologação manual."*)
 - **Decisão Final:** **APROVADO**
-- **Justificativa:** Todos os 22 checks automatizados (C1 a C22) foram rigorosamente implementados, testados e auditados por agente verificador independente. O roteiro de aceitação do consumidor (`ACCEPTANCE.md`) foi validado integralmente com sucesso, garantindo estabilidade numérica, precisão flutuante float64, preservação de sinais em MBE e cumprimento estrito de regras de agregação e ordenação ADR-005.
+- **Situação Final do Marco:** **CONCLUÍDO E HOMOLOGADO (APROVADO)**
+- **Rastreabilidade e Evidências:**
+  - Branch: `feat/m1-3-metrics`
+  - Sequência de commits atômicos de implementação:
+    - `e0a1e08`: `feat(metrics): implementar tipos, escopos e validacao numerica` (T1)
+    - `16dbeb8`: `feat(metrics): implementar metricas de regressao mae, rmse e mbe` (T2)
+    - `8e64ea9`: `feat(metrics): implementar r2, rmse_rel_pct, mape, pearson e kta` (T3)
+    - `f214e5a`: `feat(metrics): implementar metricas discretas de classificacao` (T4)
+    - `c3d3eb1`: `feat(metrics): implementar roc_auc e log_loss` (T5)
+    - `2e6b687`: `feat(metrics): implementar catalogo de metricas e despacho` (T6)
+    - `632a235`: `feat(metrics): implementar agregacao, comparacao e ranqueamento` (T7)
+    - `1957b72`: `test(metrics): alinhar nomes de funcoes de teste para checks c21 e c22`
+    - `002fa9a`: `test(specs): registrar comprovacoes automatizadas em proofs.md`
+    - `7afe8ba`: `docs(specs): concluir verificacao e aceite do marco m1-3-metrics`
+  - Veredito da Verificação Independente: `PASS` em `verification.md` auditado por agente independente (`author != verifier`), validado pelo portão mecânico `validate_verification.py` com **0 erros e 0 avisos**.
+  - Comprovações automatizadas: 22/22 checks aprovados em `proofs.md`.
+  - Suíte de regressão geral: 52/52 testes aprovados (`pytest tests/`).
+  - Roteiro de aceitação do consumidor: seções 2.1 a 3 de `ACCEPTANCE.md` executadas com 100% de sucesso.
+- **Justificativa:** Todos os 22 checks automatizados (C1 a C22) foram rigorosamente implementados, testados e auditados por agente verificador independente. O roteiro de aceitação do consumidor (`ACCEPTANCE.md`) foi validado integralmente com sucesso, garantindo estabilidade numérica, precisão flutuante float64, preservação de sinais em MBE e cumprimento estrito de regras de agregação e ordenação ADR-005. O marco está apto para transição ao Marco M1.4 (`datasets`).
