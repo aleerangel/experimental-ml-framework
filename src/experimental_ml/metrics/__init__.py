@@ -11,8 +11,10 @@ from experimental_ml.metrics.classification import (
     accuracy,
     balanced_accuracy,
     f1,
+    log_loss,
     precision,
     recall,
+    roc_auc,
 )
 from experimental_ml.metrics.regression import (
     kta,
@@ -51,4 +53,6 @@ __all__ = [
     "precision",
     "recall",
     "f1",
+    "roc_auc",
+    "log_loss",
 ]

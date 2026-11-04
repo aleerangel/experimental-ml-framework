@@ -530,6 +530,340 @@ def f1(
     )
 
 
+def _compute_midranks(scores: np.ndarray) -> np.ndarray:
+    """Compute 1-based mid-ranks for scores resolving ties by average rank."""
+    order = np.argsort(scores, kind="mergesort")
+    ranks = np.empty(len(scores), dtype=np.float64)
+    sorted_scores = scores[order]
+    n = len(scores)
+    i = 0
+    while i < n:
+        j = i
+        while j < n - 1 and sorted_scores[j + 1] == sorted_scores[i]:
+            j += 1
+        midrank = (i + j + 2) / 2.0
+        for k in range(i, j + 1):
+            ranks[order[k]] = midrank
+        i = j + 1
+    return ranks
+
+
+def _binary_roc_auc(y_true_bin: np.ndarray, scores: np.ndarray) -> float:
+    """Compute binary ROC AUC via Mann-Whitney U with mid-ranks."""
+    n_pos = int(np.sum(y_true_bin))
+    n_neg = len(y_true_bin) - n_pos
+
+    if n_pos == 0 or n_neg == 0:
+        return float("nan")
+
+    ranks = _compute_midranks(scores)
+    sum_ranks_pos = float(np.sum(ranks[y_true_bin]))
+    u_stat = sum_ranks_pos - (n_pos * (n_pos + 1)) / 2.0
+    auc = u_stat / (n_pos * n_neg)
+    return float(max(0.0, min(1.0, auc)))
+
+
+def roc_auc(
+    y_true: Any,
+    y_score: Any,
+    *,
+    average: str = "macro",
+    labels: Sequence[Any] | None = None,
+    scope: MetricEvaluationScope | AggregationScope = MetricEvaluationScope.PER_FOLD,
+) -> MetricValue:
+    """Calculate Area Under the Receiver Operating Characteristic Curve (ROC AUC) in float64.
+
+    Computes exact Mann-Whitney U statistic with mid-ranks for ties (0.5 for constant scores).
+    Supports 1D or 2D binary scores and multiclass One-vs-Rest (OVR) with macro or weighted averaging.
+    Returns UNDEFINED_NAN if y_true has < 2 unique classes or any class has zero positive/negative support.
+    """
+    if average not in ("macro", "weighted"):
+        raise ConfigurationError(
+            f"Invalid average '{average}'. Must be one of: 'macro', 'weighted'"
+        )
+
+    try:
+        yt = np.asarray(y_true)
+        ys = np.asarray(y_score, dtype=np.float64)
+    except (ValueError, TypeError) as exc:
+        raise DataIntegrityError(f"Could not convert inputs to arrays: {exc}") from exc
+
+    if yt.ndim == 2 and yt.shape[1] == 1:
+        yt = yt.squeeze(axis=1)
+
+    if yt.ndim != 1:
+        raise DataIntegrityError(f"y_true must be a 1D sequence or (n, 1) vector, got shape {yt.shape}")
+
+    n = len(yt)
+    if n == 0:
+        raise DataIntegrityError("Target array y_true cannot be empty (n_samples must be >= 1)")
+
+    if len(ys) != n:
+        raise DataIntegrityError(
+            f"Sample length mismatch: y_true has {n} samples, but y_score has {len(ys)} samples"
+        )
+
+    if not np.all(np.isfinite(ys)):
+        raise DataIntegrityError("y_score contains non-finite values (NaN, +Inf, or -Inf)")
+
+    if np.issubdtype(yt.dtype, np.number) and not np.all(np.isfinite(yt)):
+        raise DataIntegrityError("y_true contains non-finite values (NaN, +Inf, or -Inf)")
+
+    classes = _extract_classes(yt, np.array([]), labels=labels)
+    unique_yt = np.unique(yt)
+
+    if len(unique_yt) < 2:
+        return MetricValue(
+            metric_id="roc_auc",
+            value=float("nan"),
+            status=MetricStatus.UNDEFINED_NAN,
+            direction=MetricDirection.MAXIMIZE,
+            scope=scope,
+            n_samples=n,
+            warnings=(
+                make_warning(
+                    "W_METRIC_INSUFFICIENT_CLASSES",
+                    f"ROC AUC requires at least 2 distinct classes in y_true, got {len(unique_yt)}",
+                    {"n_classes": len(unique_yt)},
+                ),
+            ),
+        )
+
+    # Binary case
+    if len(classes) == 2:
+        c_pos = classes[1]
+        y_bin = (yt == c_pos)
+
+        # 1D or (n, 1) or (n, 2)
+        if ys.ndim == 1:
+            score_col = ys
+        elif ys.ndim == 2:
+            if ys.shape[1] == 1:
+                score_col = ys.squeeze(axis=1)
+            elif ys.shape[1] == 2:
+                score_col = ys[:, 1]
+            else:
+                raise DataIntegrityError(
+                    f"Binary ROC AUC expected y_score with 1 or 2 columns, got shape {ys.shape}"
+                )
+        else:
+            raise DataIntegrityError(f"y_score has invalid ndim {ys.ndim}")
+
+        val = _binary_roc_auc(y_bin, score_col)
+        if math.isnan(val):
+            return MetricValue(
+                metric_id="roc_auc",
+                value=float("nan"),
+                status=MetricStatus.UNDEFINED_NAN,
+                direction=MetricDirection.MAXIMIZE,
+                scope=scope,
+                n_samples=n,
+                warnings=(
+                    make_warning(
+                        "W_METRIC_ABSENT_CLASS",
+                        f"Binary ROC AUC is undefined because class {c_pos} has zero positive or negative support",
+                    ),
+                ),
+            )
+
+        return MetricValue(
+            metric_id="roc_auc",
+            value=val,
+            status=MetricStatus.VALID,
+            direction=MetricDirection.MAXIMIZE,
+            scope=scope,
+            n_samples=n,
+            warnings=(),
+        )
+
+    # Multiclass OVR (K >= 3)
+    k_classes = len(classes)
+    if ys.ndim != 2 or ys.shape[1] != k_classes:
+        raise DataIntegrityError(
+            f"Multiclass OVR ROC AUC expected 2D y_score with shape ({n}, {k_classes}), got {ys.shape}"
+        )
+
+    aucs: list[float] = []
+    supports: list[int] = []
+
+    for k, c in enumerate(classes):
+        y_bin = (yt == c)
+        n_pos = int(np.sum(y_bin))
+        n_neg = n - n_pos
+
+        if n_pos == 0 or n_neg == 0:
+            return MetricValue(
+                metric_id="roc_auc",
+                value=float("nan"),
+                status=MetricStatus.UNDEFINED_NAN,
+                direction=MetricDirection.MAXIMIZE,
+                scope=scope,
+                n_samples=n,
+                warnings=(
+                    make_warning(
+                        "W_METRIC_ABSENT_CLASS",
+                        f"Multiclass OVR ROC AUC is undefined because class {c} has zero positive or negative support",
+                        {"class": str(c), "n_pos": n_pos, "n_neg": n_neg},
+                    ),
+                ),
+            )
+
+        auc_k = _binary_roc_auc(y_bin, ys[:, k])
+        aucs.append(auc_k)
+        supports.append(n_pos)
+
+    if average == "macro":
+        val = float(np.mean(aucs))
+    else:  # weighted
+        total_pos = sum(supports)
+        val = float(sum(a * s for a, s in zip(aucs, supports)) / total_pos)
+
+    return MetricValue(
+        metric_id="roc_auc",
+        value=val,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MAXIMIZE,
+        scope=scope,
+        n_samples=n,
+        warnings=(),
+    )
+
+
+def log_loss(
+    y_true: Any,
+    y_prob: Any,
+    *,
+    eps: float = 1e-15,
+    labels: Sequence[Any] | None = None,
+    scope: MetricEvaluationScope | AggregationScope = MetricEvaluationScope.PER_FOLD,
+) -> MetricValue:
+    """Calculate Logarithmic Loss (Cross-Entropy) in float64.
+
+    Validates probability distribution bounds in [-1e-12, 1 + 1e-12] and row sums within 1e-6 of 1.0.
+    Applies numerical clipping to [eps, 1 - eps] with default eps=1e-15.
+    Returns UNDEFINED_NAN if y_true has < 2 unique classes.
+    """
+    try:
+        yt = np.asarray(y_true)
+        yp = np.asarray(y_prob, dtype=np.float64)
+    except (ValueError, TypeError) as exc:
+        raise DataIntegrityError(f"Could not convert inputs to arrays: {exc}") from exc
+
+    if yt.ndim == 2 and yt.shape[1] == 1:
+        yt = yt.squeeze(axis=1)
+
+    if yt.ndim != 1:
+        raise DataIntegrityError(f"y_true must be a 1D sequence or (n, 1) vector, got shape {yt.shape}")
+
+    n = len(yt)
+    if n == 0:
+        raise DataIntegrityError("Target array y_true cannot be empty (n_samples must be >= 1)")
+
+    if len(yp) != n:
+        raise DataIntegrityError(
+            f"Sample length mismatch: y_true has {n} samples, but y_prob has {len(yp)} samples"
+        )
+
+    if not np.all(np.isfinite(yp)):
+        raise DataIntegrityError("y_prob contains non-finite values (NaN, +Inf, or -Inf)")
+
+    if np.issubdtype(yt.dtype, np.number) and not np.all(np.isfinite(yt)):
+        raise DataIntegrityError("y_true contains non-finite values (NaN, +Inf, or -Inf)")
+
+    # Validate probability bounds [-1e-12, 1 + 1e-12]
+    if np.any(yp < -1e-12) or np.any(yp > 1.0 + 1e-12):
+        raise DataIntegrityError("Probabilities in y_prob must be within [0, 1]")
+
+    # Clip slight floating-point violations to [0, 1]
+    yp = np.clip(yp, 0.0, 1.0)
+
+    classes = _extract_classes(yt, np.array([]), labels=labels)
+    unique_yt = np.unique(yt)
+
+    if len(unique_yt) < 2:
+        return MetricValue(
+            metric_id="log_loss",
+            value=float("nan"),
+            status=MetricStatus.UNDEFINED_NAN,
+            direction=MetricDirection.MINIMIZE,
+            scope=scope,
+            n_samples=n,
+            warnings=(
+                make_warning(
+                    "W_METRIC_INSUFFICIENT_CLASSES",
+                    f"log_loss requires at least 2 distinct classes in y_true, got {len(unique_yt)}",
+                    {"n_classes": len(unique_yt)},
+                ),
+            ),
+        )
+
+    # Check that all elements of y_true exist in classes
+    classes_set = set(classes)
+    for y_val in unique_yt:
+        if y_val not in classes_set:
+            raise DataIntegrityError(f"Target contains class {y_val} not in specified labels")
+
+    # Format probabilities into 2D matrix (n, K)
+    k_classes = len(classes)
+    if k_classes == 2:
+        if yp.ndim == 1:
+            yp_2d = np.column_stack([1.0 - yp, yp])
+        elif yp.ndim == 2:
+            if yp.shape[1] == 1:
+                col = yp.squeeze(axis=1)
+                yp_2d = np.column_stack([1.0 - col, col])
+            elif yp.shape[1] == 2:
+                # Row sum check within 1e-6
+                row_sums = np.sum(yp, axis=1)
+                if np.any(np.abs(row_sums - 1.0) > 1e-6):
+                    raise DataIntegrityError("Probability row sums must equal 1.0 within 1e-6")
+                yp_2d = yp
+            else:
+                raise DataIntegrityError(
+                    f"Binary log_loss expected 1 or 2 columns, got shape {yp.shape}"
+                )
+        else:
+            raise DataIntegrityError(f"y_prob has invalid ndim {yp.ndim}")
+    else:
+        # Multiclass case (K >= 3)
+        if yp.ndim != 2:
+            raise DataIntegrityError(
+                f"Multiclass log_loss requires 2D array of probabilities, got ndim {yp.ndim}"
+            )
+        if yp.shape[1] != k_classes:
+            raise DataIntegrityError(
+                f"Multiclass log_loss expected shape ({n}, {k_classes}), got {yp.shape}"
+            )
+
+        row_sums = np.sum(yp, axis=1)
+        if np.any(np.abs(row_sums - 1.0) > 1e-6):
+            raise DataIntegrityError("Probability row sums must equal 1.0 within 1e-6")
+        yp_2d = yp
+
+    # Normalize rows, clip to [eps, 1 - eps], and re-normalize
+    row_sums = np.sum(yp_2d, axis=1, keepdims=True)
+    yp_norm = yp_2d / row_sums
+    yp_clipped = np.clip(yp_norm, eps, 1.0 - eps)
+    yp_final = yp_clipped / np.sum(yp_clipped, axis=1, keepdims=True)
+
+    class_to_idx = {c: i for i, c in enumerate(classes)}
+    y_indices = np.array([class_to_idx[y_val] for y_val in yt])
+    sample_probs = yp_final[np.arange(n), y_indices]
+
+    losses = -np.log(sample_probs)
+    val = float(np.mean(losses))
+
+    return MetricValue(
+        metric_id="log_loss",
+        value=val,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=scope,
+        n_samples=n,
+        warnings=(),
+    )
+
+
 __all__ = [
     "validate_discrete_arrays",
     "accuracy",
@@ -537,4 +871,6 @@ __all__ = [
     "precision",
     "recall",
     "f1",
+    "roc_auc",
+    "log_loss",
 ]

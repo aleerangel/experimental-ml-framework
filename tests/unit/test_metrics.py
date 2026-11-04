@@ -29,8 +29,10 @@ from experimental_ml.metrics.classification import (
     accuracy,
     balanced_accuracy,
     f1,
+    log_loss,
     precision,
     recall,
+    roc_auc,
 )
 from experimental_ml.metrics.regression import (
     kta,
@@ -580,5 +582,113 @@ def test_f1_own_denominator_rules() -> None:
     res_f1_c = f1(yt_c, yp_c, pos_label=1)
     assert res_f1_c.status == MetricStatus.VALID
     assert res_f1_c.value == 0.0
+
+
+# =============================================================================
+# C19: roc_auc resolves ties via mid-ranks and computes multiclass OVR macro/weighted (MET-15)
+# =============================================================================
+def test_roc_auc_ties_and_ovr() -> None:
+    """Validate ROC AUC calculation, tie resolution via mid-ranks, and multiclass OVR."""
+    # Constant scores yield exactly 0.5
+    yt_bin = np.array([0, 0, 1, 1])
+    scores_const = np.array([0.5, 0.5, 0.5, 0.5])
+    res_const = roc_auc(yt_bin, scores_const)
+    assert res_const.metric_id == "roc_auc"
+    assert res_const.status == MetricStatus.VALID
+    assert math.isclose(res_const.value, 0.5, rel_tol=1e-12, abs_tol=1e-12)
+
+    # Ties resolved via mid-ranks: scores [0.1, 0.4, 0.4, 0.8] -> AUC = 0.875
+    scores_ties = np.array([0.1, 0.4, 0.4, 0.8])
+    res_ties = roc_auc(yt_bin, scores_ties)
+    assert res_ties.status == MetricStatus.VALID
+    assert math.isclose(res_ties.value, 0.875, rel_tol=1e-12, abs_tol=1e-12)
+
+    # Input dimensionality: (n, 1) and (n, 2) give same result as 1D
+    res_2d_col = roc_auc(yt_bin, scores_ties[:, np.newaxis])
+    assert math.isclose(res_2d_col.value, 0.875, rel_tol=1e-12, abs_tol=1e-12)
+
+    scores_2col = np.column_stack([1.0 - scores_ties, scores_ties])
+    res_2col = roc_auc(yt_bin, scores_2col)
+    assert math.isclose(res_2col.value, 0.875, rel_tol=1e-12, abs_tol=1e-12)
+
+    # Single-class target yields UNDEFINED_NAN
+    res_single = roc_auc(np.array([1, 1, 1]), np.array([0.2, 0.4, 0.6]))
+    assert res_single.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_single.value)
+    assert any(w.code == "W_METRIC_INSUFFICIENT_CLASSES" for w in res_single.warnings)
+
+    # Multiclass OVR (3 classes)
+    yt_multi = np.array([0, 1, 2, 0, 1, 2])
+    # Perfectly separated scores
+    scores_multi = np.array([
+        [0.9, 0.05, 0.05],
+        [0.1, 0.8, 0.1],
+        [0.05, 0.05, 0.9],
+        [0.85, 0.1, 0.05],
+        [0.05, 0.9, 0.05],
+        [0.1, 0.1, 0.8],
+    ])
+    res_multi_macro = roc_auc(yt_multi, scores_multi, average="macro")
+    assert res_multi_macro.status == MetricStatus.VALID
+    assert math.isclose(res_multi_macro.value, 1.0, rel_tol=1e-12, abs_tol=1e-12)
+
+    res_multi_weighted = roc_auc(yt_multi, scores_multi, average="weighted")
+    assert res_multi_weighted.status == MetricStatus.VALID
+    assert math.isclose(res_multi_weighted.value, 1.0, rel_tol=1e-12, abs_tol=1e-12)
+
+    # Multiclass OVR with absent class in labels yields UNDEFINED_NAN
+    res_multi_absent = roc_auc(yt_multi, np.zeros((6, 4)), labels=[0, 1, 2, 3])
+    assert res_multi_absent.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_multi_absent.value)
+    assert any(w.code == "W_METRIC_ABSENT_CLASS" for w in res_multi_absent.warnings)
+
+
+# =============================================================================
+# C20: log_loss validates distributions, applies clipping eps=1e-15, and single-class y_true returns UNDEFINED_NAN (MET-16, MET-17)
+# =============================================================================
+def test_log_loss_validation_and_clipping() -> None:
+    """Validate log_loss probability bounds, clipping, row-sum validation and single-class handling."""
+    # Binary analytical accuracy
+    yt_bin = np.array([0, 1])
+    yp_bin = np.array([0.1, 0.8])
+    # loss = -0.5 * (log(1 - 0.1) + log(0.8)) = -0.5 * (log(0.9) + log(0.8))
+    expected_loss = float(-0.5 * (math.log(0.9) + math.log(0.8)))
+    res_bin = log_loss(yt_bin, yp_bin)
+    assert res_bin.metric_id == "log_loss"
+    assert res_bin.status == MetricStatus.VALID
+    assert math.isclose(res_bin.value, expected_loss, rel_tol=1e-9, abs_tol=1e-11)
+
+    # Clipping: exact 0.0 and 1.0 probabilities clipped to eps=1e-15 without overflow/inf
+    yt_edge = np.array([0, 1])
+    yp_edge = np.array([1.0, 0.0])  # Completely wrong predictions
+    res_edge = log_loss(yt_edge, yp_edge, eps=1e-15)
+    assert res_edge.status == MetricStatus.VALID
+    assert math.isfinite(res_edge.value)
+    # Expected: -0.5 * (log(1e-15) + log(1e-15)) = -log(1e-15) ~ 34.538776394910684
+    assert math.isclose(res_edge.value, -math.log(1e-15), rel_tol=1e-9, abs_tol=1e-11)
+
+    # Single-class target yields UNDEFINED_NAN
+    res_single = log_loss(np.array([1, 1, 1]), np.array([0.5, 0.5, 0.5]))
+    assert res_single.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_single.value)
+    assert any(w.code == "W_METRIC_INSUFFICIENT_CLASSES" for w in res_single.warnings)
+
+    # Invalid probability (< -1e-12 or > 1 + 1e-12) raises DataIntegrityError
+    with pytest.raises(DataIntegrityError):
+        log_loss(yt_bin, np.array([-0.05, 0.8]))
+
+    with pytest.raises(DataIntegrityError):
+        log_loss(yt_bin, np.array([0.1, 1.2]))
+
+    # Row sums not summing to 1.0 raises DataIntegrityError in 2D
+    yp_bad_sum = np.array([[0.3, 0.3], [0.5, 0.5]])  # Row 0 sums to 0.6
+    with pytest.raises(DataIntegrityError):
+        log_loss(yt_bin, yp_bad_sum)
+
+    # 1D for 3 classes raises DataIntegrityError
+    yt_3class = np.array([0, 1, 2])
+    with pytest.raises(DataIntegrityError):
+        log_loss(yt_3class, np.array([0.2, 0.5, 0.3]))
+
 
 

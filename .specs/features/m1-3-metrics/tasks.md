@@ -168,12 +168,12 @@ T4 → T5 → T6 → T7
 **Requirement**: MET-15, MET-16, MET-17
 
 **Done when**:
-- [ ] `roc_auc` and `log_loss` implemented
-- [ ] `roc_auc` resolves ties via mid-ranks returning `0.5` for constant scores and supports multiclass OVR (`macro`/`weighted`)
-- [ ] `log_loss` validates distribution bounds $[-10^{-12}, 1 + 10^{-12}]$ and row sums, applying clipping $\epsilon = 10^{-15}$
-- [ ] Single-class $y_{\text{true}}$ returns `UNDEFINED_NAN` with `Finding`
-- [ ] Unit tests for probabilistic metrics written in `tests/unit/test_metrics.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
+- [x] `roc_auc` and `log_loss` implemented
+- [x] `roc_auc` resolves ties via mid-ranks returning `0.5` for constant scores and supports multiclass OVR (`macro`/`weighted`)
+- [x] `log_loss` validates distribution bounds $[-10^{-12}, 1 + 10^{-12}]$ and row sums, applying clipping $\epsilon = 10^{-15}$
+- [x] Single-class $y_{\text{true}}$ returns `UNDEFINED_NAN` with `Finding`
+- [x] Unit tests for probabilistic metrics written in `tests/unit/test_metrics.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
 
 **Tests**: unit
 **Gate**: quick
