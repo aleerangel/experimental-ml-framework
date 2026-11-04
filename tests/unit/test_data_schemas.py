@@ -5,12 +5,15 @@ Covers all 29 acceptance criteria (DATA-01 to DATA-29, C1 to C29).
 
 from dataclasses import FrozenInstanceError
 import unicodedata
+import numpy as np
 import pytest
 
 from experimental_ml.core.enums import TaskType
-from experimental_ml.core.findings import ConfigurationError
+from experimental_ml.core.findings import ConfigurationError, DataIntegrityError
 from experimental_ml.core.hashing import config_hash
+from experimental_ml.core.types import ObservationId
 from experimental_ml.data.schema import ColumnSemanticType, DatasetSchemaSpec, validate_schema_spec
+from experimental_ml.data.types import ColumnDescriptor, DatasetBundle
 
 
 # ==============================================================================
@@ -39,6 +42,42 @@ def test_domain_structures_and_enum_immutable() -> None:
     validate_schema_spec(schema)
     with pytest.raises(ConfigurationError):
         validate_schema_spec({"target_col": "target"})
+
+    # ColumnDescriptor test
+    desc = ColumnDescriptor(
+        name="target",
+        index=0,
+        role="target",
+        physical_type="float64",
+        semantic_type=ColumnSemanticType.NUMERIC_CONTINUOUS,
+        is_semantic_declared=False,
+        n_missing=0,
+        memory_bytes=800,
+    )
+    with pytest.raises(FrozenInstanceError):
+        desc.name = "new_name"  # type: ignore[misc]
+
+    # DatasetBundle test
+    bundle = DatasetBundle(
+        schema=schema,
+        n_rows=10,
+        n_cols=1,
+        column_names=("target",),
+        feature_cols=(),
+        columns={"target": np.zeros(10)},
+        descriptors={"target": desc},
+        observation_ids=tuple(ObservationId(f"obs_{i:06d}") for i in range(10)),
+        dataset_hash="a" * 64,
+        raw_source_hash="b" * 64,
+        schema_hash="c" * 64,
+        memory_bytes=800,
+    )
+    with pytest.raises(FrozenInstanceError):
+        bundle.n_rows = 999  # type: ignore[misc]
+
+    # MappingProxy encapsulation
+    with pytest.raises(TypeError):
+        bundle.columns["target"] = np.ones(10)  # type: ignore[index]
 
 
 def test_schema_spec_nfc_normalization_and_encapsulation() -> None:
