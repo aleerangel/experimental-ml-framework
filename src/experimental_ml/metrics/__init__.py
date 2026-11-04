@@ -7,7 +7,16 @@ aggregation and ranking.
 
 from __future__ import annotations
 
-from experimental_ml.metrics.regression import mae, mbe, rmse
+from experimental_ml.metrics.regression import (
+    kta,
+    mae,
+    mape,
+    mbe,
+    pearson,
+    r2,
+    rmse,
+    rmse_rel_pct,
+)
 from experimental_ml.metrics.types import (
     AggregatedMetricValue,
     MetricEvaluationScope,
@@ -25,4 +34,9 @@ __all__ = [
     "mae",
     "rmse",
     "mbe",
+    "r2",
+    "rmse_rel_pct",
+    "mape",
+    "pearson",
+    "kta",
 ]

@@ -26,9 +26,14 @@ from experimental_ml.metrics.validation import (
     validate_numeric_arrays,
 )
 from experimental_ml.metrics.regression import (
+    kta,
     mae,
+    mape,
     mbe,
+    pearson,
+    r2,
     rmse,
+    rmse_rel_pct,
 )
 
 
@@ -277,3 +282,148 @@ def test_numerical_stability_and_overflow() -> None:
     m0, s0 = scaled_quadratic_sum(np.zeros(5))
     assert m0 == 0.0
     assert s0 == 0.0
+
+
+# =============================================================================
+# C11: Dimensionless ratios r2, rmse_rel_pct, mape, pearson, and kta operate within rtol=1e-10, atol=1e-12 (MET-08)
+# =============================================================================
+def test_dimensionless_ratios_accuracy() -> None:
+    """Validate analytical accuracy of r2, rmse_rel_pct, mape, pearson, and kta."""
+    yt = np.array([10.0, 20.0, 30.0, 40.0])
+    yp = np.array([12.0, 19.0, 31.0, 42.0])
+
+    # R2: y_mean=25, SS_tot=500, SS_res=10 -> R2 = 1 - 10/500 = 0.98
+    res_r2 = r2(yt, yp)
+    assert res_r2.metric_id == "r2"
+    assert res_r2.status == MetricStatus.VALID
+    assert math.isclose(res_r2.value, 0.98, rel_tol=1e-10, abs_tol=1e-12)
+
+    # RMSE relative %: 100 * sqrt(2.5) / 25.0 = 4 * sqrt(2.5) ~ 6.324555320336759
+    res_rel = rmse_rel_pct(yt, yp)
+    assert res_rel.metric_id == "rmse_rel_pct"
+    assert res_rel.status == MetricStatus.VALID
+    expected_rel = 100.0 * (math.sqrt(2.5) / 25.0)
+    assert math.isclose(res_rel.value, expected_rel, rel_tol=1e-10, abs_tol=1e-12)
+
+    # MAPE: (100 / 4) * (2/10 + 1/20 + 1/30 + 2/40) = 25 * (1/3) = 8.333333333333334
+    res_mape = mape(yt, yp)
+    assert res_mape.metric_id == "mape"
+    assert res_mape.status == MetricStatus.VALID
+    expected_mape = 100.0 / 12.0
+    assert math.isclose(res_mape.value, expected_mape, rel_tol=1e-10, abs_tol=1e-12)
+
+    # Pearson: 510 / sqrt(500 * 526) ~ 0.9943632439169647
+    res_pearson = pearson(yt, yp)
+    assert res_pearson.metric_id == "pearson"
+    assert res_pearson.status == MetricStatus.VALID
+    expected_pearson = 510.0 / math.sqrt(500.0 * 526.0)
+    assert math.isclose(res_pearson.value, expected_pearson, rel_tol=1e-10, abs_tol=1e-12)
+
+    # KTA: identity Gram matrices yield alignment of 1.0
+    k_id = np.eye(4)
+    res_kta = kta(k_id, k_id, centered=False)
+    assert res_kta.metric_id == "kta"
+    assert res_kta.status == MetricStatus.VALID
+    assert math.isclose(res_kta.value, 1.0, rel_tol=1e-10, abs_tol=1e-12)
+
+    # Identity predictions for R2 yield 1.0
+    res_r2_id = r2(yt, yt)
+    assert math.isclose(res_r2_id.value, 1.0, rel_tol=1e-10, abs_tol=1e-12)
+
+    # Identity predictions for MAPE yield 0.0
+    res_mape_id = mape(yt, yt)
+    assert math.isclose(res_mape_id.value, 0.0, rel_tol=1e-10, abs_tol=1e-12)
+
+
+# =============================================================================
+# C12: Functions r2 and pearson return UNDEFINED_NAN with Finding for n < 2 or zero target variance (MET-09)
+# =============================================================================
+def test_r2_and_pearson_zero_variance() -> None:
+    """Validate r2 and pearson returning UNDEFINED_NAN for small n or zero variance."""
+    # n < 2
+    r2_n1 = r2(np.array([10.0]), np.array([10.0]))
+    assert r2_n1.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(r2_n1.value)
+    assert any(w.code == "W_METRIC_INSUFFICIENT_SAMPLES" for w in r2_n1.warnings)
+
+    pearson_n1 = pearson(np.array([10.0]), np.array([10.0]))
+    assert pearson_n1.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(pearson_n1.value)
+    assert any(w.code == "W_METRIC_INSUFFICIENT_SAMPLES" for w in pearson_n1.warnings)
+
+    # Zero target variance
+    yt_const = np.array([5.0, 5.0, 5.0, 5.0])
+    yp_var = np.array([4.0, 5.0, 6.0, 7.0])
+    r2_zero_var = r2(yt_const, yp_var)
+    assert r2_zero_var.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(r2_zero_var.value)
+    assert any(w.code == "W_METRIC_ZERO_VARIANCE" for w in r2_zero_var.warnings)
+
+    pearson_zero_var = pearson(yt_const, yp_var)
+    assert pearson_zero_var.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(pearson_zero_var.value)
+    assert any(w.code == "W_METRIC_ZERO_VARIANCE" for w in pearson_zero_var.warnings)
+
+    # Zero predictor variance in pearson
+    pearson_pred_zero_var = pearson(yp_var, yt_const)
+    assert pearson_pred_zero_var.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(pearson_pred_zero_var.value)
+    assert any(w.code == "W_METRIC_ZERO_VARIANCE" for w in pearson_pred_zero_var.warnings)
+
+
+# =============================================================================
+# C13: Functions rmse_rel_pct and mape return UNDEFINED_NAN with Finding for zero mean or zero target observations (MET-10)
+# =============================================================================
+def test_rmse_rel_pct_and_mape_degenerate() -> None:
+    """Validate rmse_rel_pct and mape returning UNDEFINED_NAN for zero mean or zero targets."""
+    # Zero mean target for rmse_rel_pct
+    yt_zero_mean = np.array([-10.0, 10.0])
+    yp = np.array([-9.0, 9.0])
+    res_rel_zero = rmse_rel_pct(yt_zero_mean, yp)
+    assert res_rel_zero.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_rel_zero.value)
+    assert any(w.code == "W_METRIC_ZERO_MEAN" for w in res_rel_zero.warnings)
+
+    # Zero observation in target for mape (no arbitrary epsilon added)
+    yt_with_zero = np.array([0.0, 10.0, 20.0])
+    yp_test = np.array([1.0, 11.0, 21.0])
+    res_mape_zero = mape(yt_with_zero, yp_test)
+    assert res_mape_zero.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_mape_zero.value)
+    assert any(w.code == "W_METRIC_ZERO_TARGET" for w in res_mape_zero.warnings)
+
+
+# =============================================================================
+# C14: Function kta computes uncentered and centered alignment and returns UNDEFINED_NAN for zero Gram norm (MET-11)
+# =============================================================================
+def test_kta_centered_and_uncentered() -> None:
+    """Validate kta uncentered and centered alignment and zero Frobenius norm handling."""
+    # 1D vector inputs: v1, v2 converted to outer products
+    v1 = np.array([1.0, 2.0, 3.0])
+    v2 = np.array([2.0, 4.0, 6.0])  # collinear with v1 -> outer product identical up to scale
+    res_1d = kta(v1, v2, centered=False)
+    assert res_1d.status == MetricStatus.VALID
+    assert math.isclose(res_1d.value, 1.0, rel_tol=1e-10, abs_tol=1e-12)
+
+    # Centered alignment with double centering HKH
+    # If K is constant matrix 1*1^T, H K H = 0, so Frobenius norm is zero
+    k_const = np.ones((4, 4))
+    res_centered_zero = kta(k_const, np.eye(4), centered=True)
+    assert res_centered_zero.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_centered_zero.value)
+    assert any(w.code == "W_METRIC_ZERO_GRAM_NORM" for w in res_centered_zero.warnings)
+
+    # Zero Gram norm uncentered
+    k_zeros = np.zeros((3, 3))
+    res_uncentered_zero = kta(k_zeros, np.eye(3), centered=False)
+    assert res_uncentered_zero.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_uncentered_zero.value)
+    assert any(w.code == "W_METRIC_ZERO_GRAM_NORM" for w in res_uncentered_zero.warnings)
+
+    # Valid centered KTA between two distinct non-trivial Gram matrices
+    k_a = np.array([[2.0, 1.0], [1.0, 3.0]])
+    k_b = np.array([[3.0, 0.5], [0.5, 2.0]])
+    res_centered = kta(k_a, k_b, centered=True)
+    assert res_centered.status == MetricStatus.VALID
+    assert -1.0 <= res_centered.value <= 1.0
+

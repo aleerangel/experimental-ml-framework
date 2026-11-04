@@ -122,13 +122,13 @@ T4 → T5 → T6 → T7
 **Requirement**: MET-08, MET-09, MET-10, MET-11
 
 **Done when**:
-- [ ] `r2`, `rmse_rel_pct`, `mape`, `pearson`, and `kta` implemented
-- [ ] $n < 2$ or zero variance in `r2`/`pearson` returns `UNDEFINED_NAN` with `Finding`
-- [ ] $y_i == 0$ in `mape` returns `UNDEFINED_NAN` with `Finding` without adding $\epsilon$
-- [ ] $|\bar{y}| == 0$ in `rmse_rel_pct` returns `UNDEFINED_NAN` with `Finding`
-- [ ] `kta` supports both `centered=False` and `centered=True` ($HKH$), returning `UNDEFINED_NAN` if Gram norm is zero
-- [ ] Unit tests for ratios and alignment written in `tests/unit/test_metrics.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
+- [x] `r2`, `rmse_rel_pct`, `mape`, `pearson`, and `kta` implemented
+- [x] $n < 2$ or zero variance in `r2`/`pearson` returns `UNDEFINED_NAN` with `Finding`
+- [x] $y_i == 0$ in `mape` returns `UNDEFINED_NAN` with `Finding` without adding $\epsilon$
+- [x] $|\bar{y}| == 0$ in `rmse_rel_pct` returns `UNDEFINED_NAN` with `Finding`
+- [x] `kta` supports both `centered=False` and `centered=True` ($HKH$), returning `UNDEFINED_NAN` if Gram norm is zero
+- [x] Unit tests for ratios and alignment written in `tests/unit/test_metrics.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
 
 **Tests**: unit
 **Gate**: quick
