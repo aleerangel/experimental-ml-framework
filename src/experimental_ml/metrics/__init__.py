@@ -7,6 +7,12 @@ aggregation and ranking.
 
 from __future__ import annotations
 
+from experimental_ml.metrics.catalog import (
+    METRICS_CATALOG,
+    compute_metric,
+    get_metric_spec,
+    list_metrics,
+)
 from experimental_ml.metrics.classification import (
     accuracy,
     balanced_accuracy,
@@ -40,6 +46,10 @@ __all__ = [
     "AggregatedMetricValue",
     "MetricSpec",
     "RankedCandidate",
+    "METRICS_CATALOG",
+    "get_metric_spec",
+    "list_metrics",
+    "compute_metric",
     "mae",
     "rmse",
     "mbe",

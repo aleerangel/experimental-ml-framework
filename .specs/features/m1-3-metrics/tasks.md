@@ -189,12 +189,12 @@ T4 → T5 → T6 → T7
 **Requirement**: MET-02, MET-03
 
 **Done when**:
-- [ ] `METRICS_CATALOG` contains all 15 metrics with complete metadata and reference tolerances
-- [ ] `compare_by_abs` is `True` for `mbe` and `False` for the other 14 metrics
-- [ ] `get_metric_spec` resolves case-insensitively and raises `ConfigurationError` for unknown metrics
-- [ ] `compute_metric` dispatches execution and returns `MetricValue`
-- [ ] Unit tests for catalog functions written in `tests/unit/test_metrics.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
+- [x] `METRICS_CATALOG` contains all 15 metrics with complete metadata and reference tolerances
+- [x] `compare_by_abs` is `True` for `mbe` and `False` for the other 14 metrics
+- [x] `get_metric_spec` resolves case-insensitively and raises `ConfigurationError` for unknown metrics
+- [x] `compute_metric` dispatches execution and returns `MetricValue`
+- [x] Unit tests for catalog functions written in `tests/unit/test_metrics.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
 
 **Tests**: unit
 **Gate**: quick

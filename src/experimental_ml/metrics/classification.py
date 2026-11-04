@@ -200,6 +200,11 @@ def precision(
         )
 
     if average == "binary":
+        classes_present = set(yt).union(set(yp))
+        if len(classes_present) > 2:
+            raise DataIntegrityError(
+                f"average='binary' requires at most 2 classes, got {len(classes_present)}: {classes_present}"
+            )
         tp = int(np.sum((yt == pos_label) & (yp == pos_label)))
         fp = int(np.sum((yt != pos_label) & (yp == pos_label)))
 
@@ -317,6 +322,11 @@ def recall(
         )
 
     if average == "binary":
+        classes_present = set(yt).union(set(yp))
+        if len(classes_present) > 2:
+            raise DataIntegrityError(
+                f"average='binary' requires at most 2 classes, got {len(classes_present)}: {classes_present}"
+            )
         tp = int(np.sum((yt == pos_label) & (yp == pos_label)))
         fn = int(np.sum((yt == pos_label) & (yp != pos_label)))
 
@@ -433,6 +443,11 @@ def f1(
         )
 
     if average == "binary":
+        classes_present = set(yt).union(set(yp))
+        if len(classes_present) > 2:
+            raise DataIntegrityError(
+                f"average='binary' requires at most 2 classes, got {len(classes_present)}: {classes_present}"
+            )
         tp = int(np.sum((yt == pos_label) & (yp == pos_label)))
         fp = int(np.sum((yt != pos_label) & (yp == pos_label)))
         fn = int(np.sum((yt == pos_label) & (yp != pos_label)))

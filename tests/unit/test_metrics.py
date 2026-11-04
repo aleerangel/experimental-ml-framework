@@ -15,11 +15,15 @@ import pytest
 from experimental_ml.core.enums import AggregationScope, MetricDirection, MetricStatus, TaskType
 from experimental_ml.core.findings import ConfigurationError, DataIntegrityError, Finding, FindingSeverity
 from experimental_ml.metrics import (
+    METRICS_CATALOG,
     AggregatedMetricValue,
     MetricEvaluationScope,
     MetricSpec,
     MetricValue,
     RankedCandidate,
+    compute_metric,
+    get_metric_spec,
+    list_metrics,
 )
 from experimental_ml.metrics.validation import (
     scaled_quadratic_sum,
@@ -689,6 +693,98 @@ def test_log_loss_validation_and_clipping() -> None:
     yt_3class = np.array([0, 1, 2])
     with pytest.raises(DataIntegrityError):
         log_loss(yt_3class, np.array([0.2, 0.5, 0.3]))
+
+
+# =============================================================================
+# C3: METRICS_CATALOG registers all 15 metrics with compare_by_abs=True on mbe and False on others (MET-02)
+# =============================================================================
+def test_metrics_catalog_registration() -> None:
+    """Validate METRICS_CATALOG registration, immutability, and compare_by_abs flags."""
+    expected_metrics = {
+        "mae",
+        "rmse",
+        "mbe",
+        "r2",
+        "rmse_rel_pct",
+        "mape",
+        "pearson",
+        "kta",
+        "accuracy",
+        "balanced_accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "roc_auc",
+        "log_loss",
+    }
+    assert len(METRICS_CATALOG) == 15
+    assert set(METRICS_CATALOG.keys()) == expected_metrics
+
+    # mbe is the only metric with compare_by_abs=True
+    assert METRICS_CATALOG["mbe"].compare_by_abs is True
+    assert METRICS_CATALOG["mbe"].direction == MetricDirection.MINIMIZE
+
+    for m_id, spec in METRICS_CATALOG.items():
+        if m_id != "mbe":
+            assert spec.compare_by_abs is False, f"Expected compare_by_abs=False for {m_id}"
+
+    # Immutability: catalog cannot be modified
+    with pytest.raises((TypeError, AttributeError)):
+        METRICS_CATALOG["new_metric"] = METRICS_CATALOG["mae"]  # type: ignore[index]
+
+
+# =============================================================================
+# C4: get_metric_spec and compute_metric resolve metrics and reject unknown ids with ConfigurationError (MET-03)
+# =============================================================================
+def test_catalog_query_and_dispatch() -> None:
+    """Validate get_metric_spec resolution, list_metrics filtering, and compute_metric dispatch."""
+    # Exact and case-insensitive resolution
+    spec_exact = get_metric_spec("rmse")
+    assert spec_exact.metric_id == "rmse"
+
+    spec_upper = get_metric_spec("  RMSE  ")
+    assert spec_upper.metric_id == "rmse"
+
+    # Unknown metric raises ConfigurationError
+    with pytest.raises(ConfigurationError):
+        get_metric_spec("non_existent_metric")
+
+    # list_metrics returns sorted tuple
+    all_metrics = list_metrics()
+    assert len(all_metrics) == 15
+    assert all_metrics == tuple(sorted(all_metrics))
+
+    # list_metrics filtered by task
+    reg_metrics = list_metrics(TaskType.REGRESSION)
+    assert "rmse" in reg_metrics
+    assert "accuracy" not in reg_metrics
+
+    clf_metrics = list_metrics(TaskType.BINARY_CLASSIFICATION)
+    assert "accuracy" in clf_metrics
+    assert "rmse" not in clf_metrics
+
+    # String task type coercion
+    clf_str_metrics = list_metrics("BINARY_CLASSIFICATION")
+    assert clf_str_metrics == clf_metrics
+
+    with pytest.raises(ConfigurationError):
+        list_metrics("UNKNOWN_TASK")
+
+    # compute_metric dispatch
+    res = compute_metric("mae", [1.0, 2.0], [1.5, 2.5])
+    assert res.metric_id == "mae"
+    assert res.status == MetricStatus.VALID
+    assert math.isclose(res.value, 0.5)
+
+    # compute_metric with forwarded kwargs
+    res_scope = compute_metric(
+        "mae",
+        [1.0, 2.0],
+        [1.5, 2.5],
+        scope=MetricEvaluationScope.POOLED_OOF,
+    )
+    assert res_scope.scope == MetricEvaluationScope.POOLED_OOF
+
 
 
 
