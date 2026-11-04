@@ -80,15 +80,15 @@ T4 → T5 → T6 → T7
 **Requirement**: DATA-01, DATA-02, DATA-03, DATA-04, DATA-05, DATA-06
 
 **Done when**:
-- [ ] `src/experimental_ml/data/schema.py` created
-- [ ] `ColumnSemanticType(StrEnum)` defined with 6 canonical members
-- [ ] `DatasetSchemaSpec` frozen dataclass with NFC normalization and read-only mappings
-- [ ] Empty or whitespace-only column names and control characters raise `ConfigurationError`
-- [ ] `MULTI_TARGET_REGRESSION`, non-string targets, or `target_transform_spec != None` raise `ConfigurationError`
-- [ ] Overlapping column roles raise `ConfigurationError`
-- [ ] `config_hash(schema)` produces deterministic 64-hex SHA-256 invariant to NFD/NFC and key order
-- [ ] Unit tests for schema specification pass in `tests/unit/test_data_schemas.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
+- [x] `src/experimental_ml/data/schema.py` created
+- [x] `ColumnSemanticType(StrEnum)` defined with 6 canonical members
+- [x] `DatasetSchemaSpec` frozen dataclass with NFC normalization and read-only mappings
+- [x] Empty or whitespace-only column names and control characters raise `ConfigurationError`
+- [x] `MULTI_TARGET_REGRESSION`, non-string targets, or `target_transform_spec != None` raise `ConfigurationError`
+- [x] Overlapping column roles raise `ConfigurationError`
+- [x] `config_hash(schema)` produces deterministic 64-hex SHA-256 invariant to NFD/NFC and key order
+- [x] Unit tests for schema specification pass in `tests/unit/test_data_schemas.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
 
 **Tests**: unit
 **Gate**: quick
@@ -104,11 +104,11 @@ T4 → T5 → T6 → T7
 **Requirement**: DATA-01, DATA-12
 
 **Done when**:
-- [ ] `src/experimental_ml/data/types.py` created with `ColumnDescriptor` and `DatasetBundle`
-- [ ] Both structures are `@dataclass(frozen=True, slots=True)`
-- [ ] Columns and descriptors encapsulated via `MappingProxyType`
-- [ ] Unit tests for domain types pass in `tests/unit/test_data_schemas.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
+- [x] `src/experimental_ml/data/types.py` created with `ColumnDescriptor` and `DatasetBundle`
+- [x] Both structures are `@dataclass(frozen=True, slots=True)`
+- [x] Columns and descriptors encapsulated via `MappingProxyType`
+- [x] Unit tests for domain types pass in `tests/unit/test_data_schemas.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
 
 **Tests**: unit
 **Gate**: quick
@@ -124,16 +124,16 @@ T4 → T5 → T6 → T7
 **Requirement**: DATA-15, DATA-16, DATA-17, DATA-18, DATA-19, DATA-20, DATA-21, DATA-22
 
 **Done when**:
-- [ ] `src/experimental_ml/data/parsing.py` created with `SUPPORTED_DELIMITERS`, `detect_delimiter`, and `parse_tabular_text`
-- [ ] Strict sniffer inspects up to 100 lines; raises `DataIntegrityError` on ambiguity or inconsistent counts
-- [ ] Explicit delimiter overrides automatic detection
-- [ ] Ragged rows raise `DataIntegrityError` with 1-based line number and expected vs actual column count
-- [ ] Empty files, whitespace-only files, or zero data rows raise `DataIntegrityError`
-- [ ] RFC 4180 double-quoted fields with internal delimiters and escaped quotes supported
-- [ ] Missing tokens mapped to sentinels (`None` / `np.nan`)
-- [ ] Header NFC normalization and duplicate/empty column detection
-- [ ] Unit tests for parsing pass in `tests/unit/test_data_schemas.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
+- [x] `src/experimental_ml/data/parsing.py` created with `SUPPORTED_DELIMITERS`, `detect_delimiter`, and `parse_tabular_text`
+- [x] Strict sniffer inspects up to 100 lines; raises `DataIntegrityError` on ambiguity or inconsistent counts
+- [x] Explicit delimiter overrides automatic detection
+- [x] Ragged rows raise `DataIntegrityError` with 1-based line number and expected vs actual column count
+- [x] Empty files, whitespace-only files, or zero data rows raise `DataIntegrityError`
+- [x] RFC 4180 double-quoted fields with internal delimiters and escaped quotes supported
+- [x] Missing tokens mapped to sentinels (`None` / `np.nan`)
+- [x] Header NFC normalization and duplicate/empty column detection
+- [x] Unit tests for parsing pass in `tests/unit/test_data_schemas.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
 
 **Tests**: unit
 **Gate**: quick
@@ -151,14 +151,14 @@ T4 → T5 → T6 → T7
 **Requirement**: DATA-23, DATA-24, DATA-25, DATA-26, DATA-27
 
 **Done when**:
-- [ ] `src/experimental_ml/data/validation.py` created
-- [ ] `assign_or_validate_observation_ids` deterministically generates `obs_000000` when `observation_id_col` is None
-- [ ] When `observation_id_col` is provided, non-nullness and strict uniqueness are verified; duplicates/nulls raise `DataIntegrityError`
-- [ ] `ColumnDescriptor` correctly populates index, role, physical_type, semantic_type, and is_semantic_declared (declared vs default fallback)
-- [ ] Undeclared semantic type column missing from data raises `DataIntegrityError`
-- [ ] Datasets with $N=0$, $M=0$, missing schema columns, or `len(feature_cols) == 0` raise `DataIntegrityError`
-- [ ] Unit tests for validation and observation IDs pass in `tests/unit/test_data_schemas.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
+- [x] `src/experimental_ml/data/validation.py` created
+- [x] `assign_or_validate_observation_ids` deterministically generates `obs_000000` when `observation_id_col` is None
+- [x] When `observation_id_col` is provided, non-nullness and strict uniqueness are verified; duplicates/nulls raise `DataIntegrityError`
+- [x] `ColumnDescriptor` correctly populates index, role, physical_type, semantic_type, and is_semantic_declared (declared vs default fallback)
+- [x] Undeclared semantic type column missing from data raises `DataIntegrityError`
+- [x] Datasets with $N=0$, $M=0$, missing schema columns, or `len(feature_cols) == 0` raise `DataIntegrityError`
+- [x] Unit tests for validation and observation IDs pass in `tests/unit/test_data_schemas.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
 
 **Tests**: unit
 **Gate**: quick
@@ -174,17 +174,17 @@ T4 → T5 → T6 → T7
 **Requirement**: DATA-07, DATA-08, DATA-09, DATA-10, DATA-11, DATA-12, DATA-13, DATA-14
 
 **Done when**:
-- [ ] `src/experimental_ml/data/loader.py` created
-- [ ] `load_dataset` accepts file paths (`.csv`, `.txt`, `.tsv`) and in-memory structures (`dict`, `ndarray`, records, `DataFrame` duck-typing)
-- [ ] Defensive copies ensure mutations on caller's source post-load have zero effect on `bundle.columns`
-- [ ] Numeric/bool arrays backed by `bytes` buffer: calling `arr.setflags(write=True)` raises `ValueError`
-- [ ] Object columns contain strictly immutable scalars (`str`, `int`, `float`, `bool`, `None`); mutable objects (`list`, `dict`) raise `DataIntegrityError`
-- [ ] Missing values preserved (`np.nan` in float64, `None` in object) without silent dropping
-- [ ] Metadata fields (`schema`, `n_rows`, `n_cols`, `column_names`, `feature_cols`, `descriptors`, `observation_ids`, `dataset_hash`, `raw_source_hash`, `schema_hash`, `memory_bytes`, `source_path`) populated
-- [ ] `dataset_hash` canonical binary digest invariant to line endings (`\r\n` vs `\n`) or CSV vs memory
-- [ ] `raw_source_hash` reflects disk bytes or memory source
-- [ ] Unit tests for loader and immutability pass in `tests/unit/test_data_schemas.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
+- [x] `src/experimental_ml/data/loader.py` created
+- [x] `load_dataset` accepts file paths (`.csv`, `.txt`, `.tsv`) and in-memory structures (`dict`, `ndarray`, records, `DataFrame` duck-typing)
+- [x] Defensive copies ensure mutations on caller's source post-load have zero effect on `bundle.columns`
+- [x] Numeric/bool arrays backed by `bytes` buffer: calling `arr.setflags(write=True)` raises `ValueError`
+- [x] Object columns contain strictly immutable scalars (`str`, `int`, `float`, `bool`, `None`); mutable objects (`list`, `dict`) raise `DataIntegrityError`
+- [x] Missing values preserved (`np.nan` in float64, `None` in object) without silent dropping
+- [x] Metadata fields (`schema`, `n_rows`, `n_cols`, `column_names`, `feature_cols`, `descriptors`, `observation_ids`, `dataset_hash`, `raw_source_hash`, `schema_hash`, `memory_bytes`, `source_path`) populated
+- [x] `dataset_hash` canonical binary digest invariant to line endings (`\r\n` vs `\n`) or CSV vs memory
+- [x] `raw_source_hash` reflects disk bytes or memory source
+- [x] Unit tests for loader and immutability pass in `tests/unit/test_data_schemas.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
 
 **Tests**: unit
 **Gate**: quick
@@ -200,12 +200,12 @@ T4 → T5 → T6 → T7
 **Requirement**: DATA-28, DATA-29
 
 **Done when**:
-- [ ] `src/experimental_ml/data/query.py` created
-- [ ] `get_column_array(bundle, col, copy=False)` returns read-only array; `copy=True` returns writeable copy; non-existent column raises `DataIntegrityError`
-- [ ] `slice_bundle_by_observation_ids` slices bundle strictly preserving the requested ID order, recalculating `n_rows`, `descriptors`, and `dataset_hash`
-- [ ] Empty ID list, duplicates, or non-existent IDs raise `DataIntegrityError`
-- [ ] Unit tests for query utilities pass in `tests/unit/test_data_schemas.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
+- [x] `src/experimental_ml/data/query.py` created
+- [x] `get_column_array(bundle, col, copy=False)` returns read-only array; `copy=True` returns writeable copy; non-existent column raises `DataIntegrityError`
+- [x] `slice_bundle_by_observation_ids` slices bundle strictly preserving the requested ID order, recalculating `n_rows`, `descriptors`, and `dataset_hash`
+- [x] Empty ID list, duplicates, or non-existent IDs raise `DataIntegrityError`
+- [x] Unit tests for query utilities pass in `tests/unit/test_data_schemas.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_data_schemas.py -v`
 
 **Tests**: unit
 **Gate**: quick
@@ -221,10 +221,10 @@ T4 → T5 → T6 → T7
 **Requirement**: All 29 requirements (DATA-01 to DATA-29)
 
 **Done when**:
-- [ ] `src/experimental_ml/data/__init__.py` exposes all public symbols in `__all__`
-- [ ] Full test suite in `tests/unit/test_data_schemas.py` passes all 29 checks
-- [ ] Zero regressions in existing smoke, core, and metrics tests: `.venv/bin/pytest tests/ -v` passes 100%
-- [ ] Gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] `src/experimental_ml/data/__init__.py` exposes all public symbols in `__all__`
+- [x] Full test suite in `tests/unit/test_data_schemas.py` passes all 29 checks
+- [x] Zero regressions in existing smoke, core, and metrics tests: `.venv/bin/pytest tests/ -v` passes 100%
+- [x] Gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: unit
 **Gate**: build
