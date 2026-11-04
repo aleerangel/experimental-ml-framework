@@ -4,6 +4,7 @@ Covers all 29 acceptance criteria (DATA-01 to DATA-29, C1 to C29).
 """
 
 from dataclasses import FrozenInstanceError
+from typing import Any
 import unicodedata
 import numpy as np
 import pytest
@@ -24,6 +25,7 @@ from experimental_ml.data.validation import (
     derive_column_descriptor,
     validate_dataset_schema,
 )
+from experimental_ml.data.loader import load_dataset
 
 
 # ==============================================================================
@@ -495,5 +497,219 @@ def test_dataset_schema_validation_structural_errors() -> None:
     )
     with pytest.raises(DataIntegrityError, match="zero candidate predictor feature columns"):
         validate_dataset_schema(["y", "x"], 10, schema_all_ignored)
+
+
+# ==============================================================================
+# Phase 2: Ingestion & Immutability Tests (C7 - C14)
+# ==============================================================================
+
+
+def test_load_dataset_sources_and_bundle_ownership(tmp_path: Any) -> None:
+    """C7: load_dataset loads tabular files and memory structures returning DatasetBundle (DATA-07)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+
+    # 1. CSV file
+    csv_file = tmp_path / "test.csv"
+    csv_file.write_text("y,x1,x2\n10.0,1.0,2.0\n20.0,3.0,4.0\n", encoding="utf-8")
+    bundle_csv = load_dataset(str(csv_file), schema)
+    assert isinstance(bundle_csv, DatasetBundle)
+    assert bundle_csv.n_rows == 2
+    assert bundle_csv.n_cols == 3
+    assert bundle_csv.column_names == ("y", "x1", "x2")
+
+    # 2. In-memory dict
+    data_dict = {"y": [1.0, 2.0], "x1": [10.0, 20.0]}
+    bundle_dict = load_dataset(data_dict, schema)
+    assert isinstance(bundle_dict, DatasetBundle)
+    assert bundle_dict.n_rows == 2
+
+    # 3. 2D ndarray
+    arr_2d = np.array([[10.0, 1.0], [20.0, 2.0]])
+    bundle_arr = load_dataset(arr_2d, schema, column_names=["y", "x1"])
+    assert isinstance(bundle_arr, DatasetBundle)
+    assert bundle_arr.n_rows == 2
+
+    # 4. Sequence of row dicts
+    records = [{"y": 1.0, "x1": 10.0}, {"y": 2.0, "x1": 20.0}]
+    bundle_rec = load_dataset(records, schema)
+    assert isinstance(bundle_rec, DatasetBundle)
+    assert bundle_rec.n_rows == 2
+
+
+def test_load_dataset_defensive_copies_isolation() -> None:
+    """C8: Ingestion creates defensive memory copies so modifying caller source has 0 effect (DATA-08)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    orig_y = [10.0, 20.0]
+    orig_x = [1.0, 2.0]
+    orig_dict = {"y": orig_y, "x": orig_x}
+
+    bundle = load_dataset(orig_dict, schema)
+
+    # Mutate caller source
+    orig_y[0] = 9999.0
+    orig_dict["x"] = [888.0, 777.0]
+
+    assert bundle.columns["y"][0] == 10.0
+    assert bundle.columns["x"][0] == 1.0
+
+
+def test_bundle_numeric_columns_buffer_immutability() -> None:
+    """C9: Numeric/boolean columns backed by bytes buffers refuse setflags writeable=True (DATA-09)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    data = {"y": [1.5, 2.5], "count": [10, 20], "flag": [True, False]}
+
+    bundle = load_dataset(data, schema)
+
+    # 1. float64 array
+    y_arr = bundle.columns["y"]
+    assert y_arr.flags.writeable is False
+    with pytest.raises(ValueError):
+        y_arr[0] = 999.0
+    with pytest.raises(ValueError, match="cannot set WRITEABLE flag to True of this array"):
+        y_arr.setflags(write=True)
+
+    # 2. int64 array
+    count_arr = bundle.columns["count"]
+    assert count_arr.flags.writeable is False
+    with pytest.raises(ValueError):
+        count_arr[0] = 999
+    with pytest.raises(ValueError, match="cannot set WRITEABLE flag to True of this array"):
+        count_arr.setflags(write=True)
+
+    # 3. bool array
+    flag_arr = bundle.columns["flag"]
+    assert flag_arr.flags.writeable is False
+    with pytest.raises(ValueError):
+        flag_arr[0] = False
+    with pytest.raises(ValueError, match="cannot set WRITEABLE flag to True of this array"):
+        flag_arr.setflags(write=True)
+
+
+def test_bundle_object_columns_scalar_immutability() -> None:
+    """C10: Object columns contain strictly immutable scalars, mutable objects raise error (DATA-10)."""
+    schema = DatasetSchemaSpec(target_col="label", task_type=TaskType.BINARY_CLASSIFICATION)
+
+    # Valid string and None scalars
+    valid_data = {"label": ["pos", "neg"], "cat": ["A", None]}
+    bundle = load_dataset(valid_data, schema)
+    assert bundle.columns["cat"].flags.writeable is False
+
+    # Mutable objects (list, dict, set) must raise DataIntegrityError
+    invalid_data = {
+        "label": ["pos", "neg"],
+        "bad_col": [["mutable", "list"], ["ok"]],
+    }
+    with pytest.raises(DataIntegrityError, match="mutable object of type 'list'"):
+        load_dataset(invalid_data, schema)
+
+    invalid_dict = {
+        "label": ["pos", "neg"],
+        "bad_col": [{"key": "val"}, {"key": "val2"}],
+    }
+    with pytest.raises(DataIntegrityError, match="mutable object of type 'dict'"):
+        load_dataset(invalid_dict, schema)
+
+
+def test_load_dataset_preserves_missing_values(tmp_path: Any) -> None:
+    """C11: Ingestion preserves original missing values (np.nan in float, None in object) (DATA-11)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    csv_file = tmp_path / "missing.csv"
+    csv_file.write_text(
+        "y,num_feat,obj_feat\n"
+        "10.0,1.5,hello\n"
+        "20.0,NA,null\n"
+        "30.0,NaN,\n",
+        encoding="utf-8",
+    )
+    bundle = load_dataset(str(csv_file), schema)
+    assert bundle.n_rows == 3
+
+    # Float feature: NA and NaN become np.nan without dropping rows
+    num_arr = bundle.columns["num_feat"]
+    assert num_arr[0] == 1.5
+    assert np.isnan(num_arr[1])
+    assert np.isnan(num_arr[2])
+
+    # Object feature: "null" and "" become None
+    obj_arr = bundle.columns["obj_feat"]
+    assert obj_arr[0] == "hello"
+    assert obj_arr[1] is None
+    assert obj_arr[2] is None
+
+
+def test_bundle_structural_metadata_completeness(tmp_path: Any) -> None:
+    """C12: DatasetBundle records complete structural metadata including descriptors and hashes (DATA-12)."""
+    schema = DatasetSchemaSpec(
+        target_col="y",
+        task_type=TaskType.REGRESSION,
+        group_col="grp",
+        ignore_cols=("drop_me",),
+    )
+    csv_file = tmp_path / "meta.csv"
+    csv_file.write_text(
+        "y,grp,x1,x2,drop_me\n"
+        "10.0,A,1.0,2.0,junk1\n"
+        "20.0,B,3.0,4.0,junk2\n",
+        encoding="utf-8",
+    )
+    bundle = load_dataset(str(csv_file), schema)
+
+    assert bundle.schema == schema
+    assert bundle.n_rows == 2
+    assert bundle.n_cols == 5
+    assert bundle.column_names == ("y", "grp", "x1", "x2", "drop_me")
+    assert bundle.feature_cols == ("x1", "x2")
+    assert set(bundle.columns.keys()) == set(bundle.column_names)
+    assert set(bundle.descriptors.keys()) == set(bundle.column_names)
+    assert len(bundle.observation_ids) == 2
+    assert len(bundle.dataset_hash) == 64
+    assert len(bundle.raw_source_hash) == 64
+    assert len(bundle.schema_hash) == 64
+    assert bundle.memory_bytes > 0
+    assert bundle.source_path == str(csv_file.resolve())
+
+
+def test_dataset_hash_canonical_in_memory_digest(tmp_path: Any) -> None:
+    """C13: dataset_hash matches between CSV and memory and distinguishes int vs float (DATA-13)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+
+    # CRLF CSV
+    csv_crlf = tmp_path / "data_crlf.csv"
+    csv_crlf.write_bytes(b"y,x\r\n10.0,1.0\r\n20.0,2.0\r\n")
+
+    # LF CSV
+    csv_lf = tmp_path / "data_lf.csv"
+    csv_lf.write_bytes(b"y,x\n10.0,1.0\n20.0,2.0\n")
+
+    bundle_crlf = load_dataset(str(csv_crlf), schema)
+    bundle_lf = load_dataset(str(csv_lf), schema)
+
+    # In-memory dict
+    mem_data = {"y": [10.0, 20.0], "x": [1.0, 2.0]}
+    bundle_mem = load_dataset(mem_data, schema)
+
+    # All produce identical canonical in-memory dataset_hash
+    assert bundle_crlf.dataset_hash == bundle_lf.dataset_hash
+    assert bundle_crlf.dataset_hash == bundle_mem.dataset_hash
+
+    # int64 vs float64 produces distinct hashes (ADR-007)
+    mem_data_int = {"y": [10.0, 20.0], "x": [1, 2]}  # x is int64 here
+    bundle_mem_int = load_dataset(mem_data_int, schema)
+    assert bundle_mem_int.dataset_hash != bundle_mem.dataset_hash
+
+
+def test_raw_source_hash_file_and_memory(tmp_path: Any) -> None:
+    """C14: raw_source_hash computes digest of raw source input matching disk or memory (DATA-14)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    csv_file = tmp_path / "source.csv"
+    csv_file.write_text("y,x\n1.0,2.0\n", encoding="utf-8")
+
+    bundle_file = load_dataset(str(csv_file), schema)
+    assert len(bundle_file.raw_source_hash) == 64
+
+    mem_data = {"y": [1.0], "x": [2.0]}
+    bundle_mem = load_dataset(mem_data, schema)
+    assert len(bundle_mem.raw_source_hash) == 64
+
 
 
