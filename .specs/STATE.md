@@ -20,16 +20,16 @@
 
 ## Handoff
 
-- **Feature**: Processo de Aceite de Marcos (Milestone Acceptance)
-- **Phase / Task**: Documentação retroativa de M1.1 e M1.2 concluída; integração com TLC formalizada
+- **Feature**: m1-3-metrics (Marco M1.3 — Metrics)
+- **Phase / Task**: Concluído e Formalmente Homologado (`APROVADO`)
 - **Completed**:
-  - `PROCESSO_DE_ACEITE_DE_MARCOS.md` criado em `engenharia_software/`.
-  - M1.1 documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`; homologação manual concluída e formalmente aceita (`APROVADO`).
-  - M1.2 documentado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`; homologação manual concluída e formalmente aceita (`APROVADO`).
-  - Implementação e testes automatizados de M1.1 (12/12) e M1.2 (18/18) aprovados.
-  - Verificação independente de M1.2 aprovada (`verification.md` PASS).
-- **In-progress**: Transição para o Marco M1.3 (`metrics`)
-- **Next step**: Início da fase Specify de M1.3 (`metrics`) sob o processo de aceite de marcos
+  - `PROCESSO_DE_ACEITE_DE_MARCOS.md` estabelecido em `engenharia_software/`.
+  - M1.1 (`m1-1-setup-cli-smoke`) e M1.2 (`core`) implementados, verificados e formalmente aceitos (`APROVADO`).
+  - M1.3 (`metrics`) especificado, implementado (T1 a T7), testado (22 checks unitários, 52 testes no total) e verificado (`proofs.md`, `verification.md` PASS).
+  - Roteiro de aceitação do consumidor (`ACCEPTANCE.md`) executado com 100% de sucesso.
+  - Homologação manual do usuário formalmente concedida em 03/11/2026: *"O M1.3 — Metrics foi formalmente aprovado na homologação manual."* Registrada em `RESULTS.md` e `ACCEPTANCE.md`.
+  - Encerramento documental do M1.3 finalizado e sincronizado com `README.md` e `ETAPA_ATUAL_ENGENHARIA.md`.
+- **In-progress**: Transição para o próximo marco do roadmap
+- **Next step**: Iniciar o Marco M1.4 — Datasets & Schemas
 - **Blockers**: none
-- **Uncommitted files**: engenharia_software/, .specs/, README.md
-- **Branch**: main
+- **Branch**: feat/m1-3-metrics (pronto para merge em main conforme governança do projeto)
