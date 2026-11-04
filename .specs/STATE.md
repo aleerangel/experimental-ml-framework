@@ -20,16 +20,13 @@
 
 ## Handoff
 
-- **Feature**: m1-3-metrics (Marco M1.3 — Metrics)
-- **Phase / Task**: Concluído e Formalmente Homologado (`APROVADO`)
+- **Feature**: m1-4-datasets-schemas (Marco M1.4 — Datasets & Schemas)
+- **Phase / Task**: Proposta de Especificação em Revisão (Specify)
 - **Completed**:
-  - `PROCESSO_DE_ACEITE_DE_MARCOS.md` estabelecido em `engenharia_software/`.
-  - M1.1 (`m1-1-setup-cli-smoke`) e M1.2 (`core`) implementados, verificados e formalmente aceitos (`APROVADO`).
-  - M1.3 (`metrics`) especificado, implementado (T1 a T7), testado (22 checks unitários, 52 testes no total) e verificado (`proofs.md`, `verification.md` PASS).
-  - Roteiro de aceitação do consumidor (`ACCEPTANCE.md`) executado com 100% de sucesso.
-  - Homologação manual do usuário formalmente concedida em 03/11/2026: *"O M1.3 — Metrics foi formalmente aprovado na homologação manual."* Registrada em `RESULTS.md` e `ACCEPTANCE.md`.
-  - Encerramento documental do M1.3 finalizado e sincronizado com `README.md` e `ETAPA_ATUAL_ENGENHARIA.md`.
-- **In-progress**: Transição para o próximo marco do roadmap
-- **Next step**: Iniciar o Marco M1.4 — Datasets & Schemas
+  - Marcos M1.1, M1.2 e M1.3 concluídos e homologados.
+  - Proposta de especificação do Marco M1.4 elaborada (`spec.md` e `SPEC.md`) com 20 requisitos rastreáveis em notação EARS (`DATA-01` a `DATA-20`).
+  - Validação determinística de especificação executada com 0 erros e 0 alertas (`validate_spec.py m1-4-datasets-schemas --strict`).
+- **In-progress**: Revisão da especificação do Marco M1.4 pelo usuário
+- **Next step**: Aguardar revisão/aprovação da especificação antes de avançar para a fase Design
 - **Blockers**: none
-- **Branch**: feat/m1-3-metrics (pronto para merge em main conforme governança do projeto)
+- **Branch**: feat/m1-4-datasets-schemas
