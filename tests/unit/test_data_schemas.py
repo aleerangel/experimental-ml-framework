@@ -26,6 +26,10 @@ from experimental_ml.data.validation import (
     validate_dataset_schema,
 )
 from experimental_ml.data.loader import load_dataset
+from experimental_ml.data.query import (
+    get_column_array,
+    slice_bundle_by_observation_ids,
+)
 
 
 # ==============================================================================
@@ -710,6 +714,74 @@ def test_raw_source_hash_file_and_memory(tmp_path: Any) -> None:
     mem_data = {"y": [1.0], "x": [2.0]}
     bundle_mem = load_dataset(mem_data, schema)
     assert len(bundle_mem.raw_source_hash) == 64
+
+
+# ==============================================================================
+# Phase 2: Query Utilities Tests (C28 - C29)
+# ==============================================================================
+
+
+def test_get_column_array_view_and_copy() -> None:
+    """C28: get_column_array returns read-only view or writeable copy, checks errors (DATA-28)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    data = {"y": [10.0, 20.0], "feat": [1.0, 2.0]}
+    bundle = load_dataset(data, schema)
+
+    # 1. Non-existent column raises DataIntegrityError
+    with pytest.raises(DataIntegrityError, match="does not exist"):
+        get_column_array(bundle, "non_existent_col")
+
+    # 2. copy=False returns read-only array backed by bytes buffer (cannot set writeable)
+    view = get_column_array(bundle, "feat", copy=False)
+    assert view.flags.writeable is False
+    with pytest.raises(ValueError):
+        view[0] = 999.0
+    with pytest.raises(ValueError, match="cannot set WRITEABLE flag to True of this array"):
+        view.setflags(write=True)
+
+    # 3. copy=True returns writeable independent copy
+    copied = get_column_array(bundle, "feat", copy=True)
+    assert copied.flags.writeable is True
+    copied[0] = 999.0
+    assert bundle.columns["feat"][0] == 1.0
+
+
+def test_slice_bundle_by_observation_ids_ordering_and_hash() -> None:
+    """C29: slice_bundle_by_observation_ids orders sub-bundle, recalculates hash (DATA-29)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    data = {"y": [10.0, 20.0, 30.0], "feat": [1.0, 2.0, 3.0]}
+    bundle = load_dataset(data, schema)
+    orig_ids = bundle.observation_ids
+    assert len(orig_ids) == 3
+
+    # Slice in reverse order: [obs_2, obs_0]
+    requested_order = (orig_ids[2], orig_ids[0])
+    sliced = slice_bundle_by_observation_ids(bundle, requested_order)
+
+    assert isinstance(sliced, DatasetBundle)
+    assert sliced.n_rows == 2
+    assert sliced.observation_ids == requested_order
+    assert sliced.columns["y"][0] == 30.0
+    assert sliced.columns["y"][1] == 10.0
+    assert sliced.columns["feat"][0] == 3.0
+    assert sliced.columns["feat"][1] == 1.0
+    assert sliced.dataset_hash != bundle.dataset_hash
+
+    # Original bundle unchanged
+    assert bundle.n_rows == 3
+
+    # Empty sequence raises error
+    with pytest.raises(DataIntegrityError, match="cannot be empty"):
+        slice_bundle_by_observation_ids(bundle, ())
+
+    # Duplicate IDs raise error
+    with pytest.raises(DataIntegrityError, match="Duplicate ObservationId"):
+        slice_bundle_by_observation_ids(bundle, (orig_ids[0], orig_ids[0]))
+
+    # Unknown ID raises error
+    with pytest.raises(DataIntegrityError, match="not present in DatasetBundle"):
+        slice_bundle_by_observation_ids(bundle, (ObservationId("unknown_id"),))
+
 
 
 
