@@ -1,6 +1,6 @@
 # m1-3-metrics proofs
 
-**HEAD**: c06958b
+**HEAD**: 1b649a6
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 22 pass, 0 fail

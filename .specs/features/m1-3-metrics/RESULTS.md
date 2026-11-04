@@ -110,6 +110,7 @@ tests/unit/test_metrics.py::test_aggregate_and_rank_configurations PASSED [100%]
     - `1957b72`: `test(metrics): alinhar nomes de funcoes de teste para checks c21 e c22`
     - `002fa9a`: `test(specs): registrar comprovacoes automatizadas em proofs.md`
     - `7afe8ba`: `docs(specs): concluir verificacao e aceite do marco m1-3-metrics`
+    - `c06958b`: `docs(specs): homologar e encerrar marco m1-3-metrics`
   - Veredito da Verificação Independente: `PASS` em `verification.md` auditado por agente independente (`author != verifier`), validado pelo portão mecânico `validate_verification.py` com **0 erros e 0 avisos**.
   - Comprovações automatizadas: 22/22 checks aprovados em `proofs.md`.
   - Suíte de regressão geral: 52/52 testes aprovados (`pytest tests/`).
