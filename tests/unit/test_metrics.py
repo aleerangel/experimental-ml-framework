@@ -790,10 +790,10 @@ def test_catalog_query_and_dispatch() -> None:
 
 
 # =============================================================================
-# C21: is_better respects compare_by_abs, coverage precedence, and aggregate_fold_metrics assigns VALID, PARTIAL_COVERAGE, UNDEFINED_NAN (MET-18, MET-19)
+# C21: Function is_better respects compare_by_abs, coverage precedence, and UNDEFINED_NAN rules (MET-18)
 # =============================================================================
-def test_is_better_and_aggregation() -> None:
-    """Validate is_better comparison rules, compare_by_abs, and aggregate_fold_metrics statuses."""
+def test_is_better_adr005_rules() -> None:
+    """Validate is_better comparison rules, compare_by_abs, and coverage precedence."""
     # MBE: compare_by_abs -> abs(-0.1) = 0.1 < abs(0.5) = 0.5 -> -0.1 is better!
     mv_mbe1 = MetricValue(
         metric_id="mbe",
@@ -914,6 +914,37 @@ def test_is_better_and_aggregation() -> None:
     assert is_better(mv_undef, mv_rmse1) is False
     assert is_better(mv_undef, mv_undef) is False
 
+
+# =============================================================================
+# C22: aggregate_fold_metrics and rank_configurations enforce coverage stats and strict lexicographic ordering (MET-19, MET-20)
+# =============================================================================
+def test_aggregate_and_rank_configurations() -> None:
+    """Validate aggregate_fold_metrics statistics and rank_configurations lexicographic sorting."""
+    mv_rmse1 = MetricValue(
+        metric_id="rmse",
+        value=1.2,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+    mv_mbe1 = MetricValue(
+        metric_id="mbe",
+        value=-0.1,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+    mv_undef = MetricValue(
+        metric_id="rmse",
+        value=float("nan"),
+        status=MetricStatus.UNDEFINED_NAN,
+        direction=MetricDirection.MINIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+
     # aggregate_fold_metrics: 5/5 valid -> VALID
     folds_valid = [
         MetricValue(
@@ -960,12 +991,7 @@ def test_is_better_and_aggregation() -> None:
     with pytest.raises(ConfigurationError):
         aggregate_fold_metrics(folds_valid, scope="PER_FOLD")  # type: ignore[arg-type]
 
-
-# =============================================================================
-# C22: rank_configurations sorts lexicographically, handles PARTIAL_COVERAGE and marks UNDEFINED_NAN as UNRANKABLE with rank=None (MET-20)
-# =============================================================================
-def test_rank_configurations_lexicographic() -> None:
-    """Validate rank_configurations lexicographic sorting and rank=None assignment."""
+    # Rank configurations lexicographic sorting
     cand_a = AggregatedMetricValue(
         metric_id="rmse",
         mean=1.5,
@@ -1100,6 +1126,7 @@ def test_rank_configurations_lexicographic() -> None:
     assert mbe_ranking[1].rank == 2
     assert mbe_ranking[2].candidate_id == "model_neg_large"
     assert mbe_ranking[2].rank == 3
+
 
 
 
