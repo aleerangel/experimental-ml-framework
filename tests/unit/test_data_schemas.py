@@ -19,6 +19,11 @@ from experimental_ml.data.parsing import (
     detect_delimiter,
     parse_tabular_text,
 )
+from experimental_ml.data.validation import (
+    assign_or_validate_observation_ids,
+    derive_column_descriptor,
+    validate_dataset_schema,
+)
 
 
 # ==============================================================================
@@ -338,4 +343,157 @@ def test_header_validation_empty_or_duplicate_names() -> None:
     # Duplicate column name
     with pytest.raises(DataIntegrityError, match="duplicate column name"):
         parse_tabular_text(["a,b,a\n", "1,2,3\n"], delimiter=",")
+
+
+# ==============================================================================
+# Phase 2: Schema Validation & ObservationId Tests (C23 - C27)
+# ==============================================================================
+
+
+def test_column_descriptor_fields_and_roles() -> None:
+    """C23: ColumnDescriptor correctly populated with index, role, physical, semantic, nulls (DATA-23)."""
+    schema = DatasetSchemaSpec(
+        target_col="price",
+        task_type=TaskType.REGRESSION,
+        group_col="city",
+        observation_id_col="id",
+        time_col="timestamp",
+        ignore_cols=("junk",),
+    )
+    desc_target = derive_column_descriptor(
+        name="price",
+        index=0,
+        role="target",
+        physical_type="float64",
+        n_missing=5,
+        memory_bytes=800,
+        schema=schema,
+    )
+    assert desc_target.name == "price"
+    assert desc_target.index == 0
+    assert desc_target.role == "target"
+    assert desc_target.physical_type == "float64"
+    assert desc_target.semantic_type == ColumnSemanticType.NUMERIC_CONTINUOUS
+    assert desc_target.is_semantic_declared is False
+    assert desc_target.n_missing == 5
+    assert desc_target.memory_bytes == 800
+
+
+def test_semantic_types_declared_vs_default_fallbacks() -> None:
+    """C24: Explicit column_semantic_types sets is_declared=True, default fallbacks tested (DATA-24)."""
+    schema = DatasetSchemaSpec(
+        target_col="status",
+        task_type=TaskType.BINARY_CLASSIFICATION,
+        column_semantic_types={"feature_int": ColumnSemanticType.CATEGORICAL},
+    )
+    # Explicitly declared
+    desc_declared = derive_column_descriptor(
+        name="feature_int",
+        index=1,
+        role="feature",
+        physical_type="int64",
+        n_missing=0,
+        memory_bytes=800,
+        schema=schema,
+    )
+    assert desc_declared.semantic_type == ColumnSemanticType.CATEGORICAL
+    assert desc_declared.is_semantic_declared is True
+
+    # Fallback for target under binary classification
+    desc_target = derive_column_descriptor(
+        name="status",
+        index=0,
+        role="target",
+        physical_type="object",
+        n_missing=0,
+        memory_bytes=800,
+        schema=schema,
+    )
+    assert desc_target.semantic_type == ColumnSemanticType.CATEGORICAL
+    assert desc_target.is_semantic_declared is False
+
+    # Fallback for bool feature
+    desc_bool = derive_column_descriptor(
+        name="is_active",
+        index=2,
+        role="feature",
+        physical_type="bool",
+        n_missing=0,
+        memory_bytes=100,
+        schema=schema,
+    )
+    assert desc_bool.semantic_type == ColumnSemanticType.BOOLEAN
+    assert desc_bool.is_semantic_declared is False
+
+    # Unknown column in column_semantic_types raises error during validation
+    schema_bad = DatasetSchemaSpec(
+        target_col="status",
+        task_type=TaskType.BINARY_CLASSIFICATION,
+        column_semantic_types={"unknown_col": ColumnSemanticType.CATEGORICAL},
+    )
+    with pytest.raises(DataIntegrityError, match="not found in dataset columns"):
+        validate_dataset_schema(["status", "feature1"], 10, schema_bad)
+
+
+def test_observation_ids_positional_generation() -> None:
+    """C25: observation_id_col=None generates obs_000000..obs_{N-1} deterministically (DATA-25)."""
+    ids = assign_or_validate_observation_ids({}, 5, None)
+    assert len(ids) == 5
+    assert ids[0] == ObservationId("obs_000000")
+    assert ids[1] == ObservationId("obs_000001")
+    assert ids[4] == ObservationId("obs_000004")
+
+
+def test_observation_ids_source_column_validation() -> None:
+    """C26: observation_id_col non-nullness and strict uniqueness validation (DATA-26)."""
+    # Valid IDs
+    raw_valid = {"id": ["row_1", "row_2", "row_3"]}
+    ids = assign_or_validate_observation_ids(raw_valid, 3, "id")
+    assert ids == (ObservationId("row_1"), ObservationId("row_2"), ObservationId("row_3"))
+
+    # Missing / Null value
+    raw_null = {"id": ["row_1", None, "row_3"]}
+    with pytest.raises(DataIntegrityError, match="Row 2: observation_id_col 'id' contains missing/null"):
+        assign_or_validate_observation_ids(raw_null, 3, "id")
+
+    # Duplicate ID
+    raw_dup = {"id": ["row_1", "row_2", "row_1"]}
+    with pytest.raises(DataIntegrityError, match="Row 3: duplicate ObservationId 'row_1'"):
+        assign_or_validate_observation_ids(raw_dup, 3, "id")
+
+    # Invalid ID character (control char / newline)
+    raw_invalid = {"id": ["row\n1", "row_2"]}
+    with pytest.raises(DataIntegrityError, match="invalid ObservationId format"):
+        assign_or_validate_observation_ids(raw_invalid, 2, "id")
+
+
+def test_dataset_schema_validation_structural_errors() -> None:
+    """C27: Structural errors N=0, M=0, missing schema cols, len(feature_cols)==0 raise error (DATA-27)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+
+    # N = 0
+    with pytest.raises(DataIntegrityError, match="zero rows"):
+        validate_dataset_schema(["y", "x"], 0, schema)
+
+    # M = 0
+    with pytest.raises(DataIntegrityError, match="zero columns"):
+        validate_dataset_schema([], 10, schema)
+
+    # Duplicate column name
+    with pytest.raises(DataIntegrityError, match="Duplicate column name"):
+        validate_dataset_schema(["y", "x", "y"], 10, schema)
+
+    # Missing target column
+    with pytest.raises(DataIntegrityError, match="target_col: 'y'"):
+        validate_dataset_schema(["x1", "x2"], 10, schema)
+
+    # Zero feature columns
+    schema_all_ignored = DatasetSchemaSpec(
+        target_col="y",
+        task_type=TaskType.REGRESSION,
+        ignore_cols=("x",),
+    )
+    with pytest.raises(DataIntegrityError, match="zero candidate predictor feature columns"):
+        validate_dataset_schema(["y", "x"], 10, schema_all_ignored)
+
 
