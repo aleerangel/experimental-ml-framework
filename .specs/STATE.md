@@ -21,12 +21,13 @@
 ## Handoff
 
 - **Feature**: m1-4-datasets-schemas (Marco M1.4 — Datasets & Schemas)
-- **Phase / Task**: Proposta de Especificação em Revisão (Specify)
+- **Phase / Task**: Especificação Aprovada (Transição para Design)
 - **Completed**:
   - Marcos M1.1, M1.2 e M1.3 concluídos e homologados.
-  - Proposta de especificação do Marco M1.4 elaborada (`spec.md` e `SPEC.md`) com 20 requisitos rastreáveis em notação EARS (`DATA-01` a `DATA-20`).
+  - Especificação formal do Marco M1.4 elaborada e refinada (`spec.md` e `SPEC.md`) com 29 requisitos rastreáveis em notação EARS (`DATA-01` a `DATA-29`).
   - Validação determinística de especificação executada com 0 erros e 0 alertas (`validate_spec.py m1-4-datasets-schemas --strict`).
-- **In-progress**: Revisão da especificação do Marco M1.4 pelo usuário
-- **Next step**: Aguardar revisão/aprovação da especificação antes de avançar para a fase Design
+  - Especificação formalmente aprovada pelo usuário em 04/11/2026: `**Approved**: 2026-11-04 - user: "aprovado. commita e espera"`.
+- **In-progress**: Transição para a fase Design do Marco M1.4
+- **Next step**: Elaborar o documento de Design arquitetural (`design.md`) do Marco M1.4
 - **Blockers**: none
 - **Branch**: feat/m1-4-datasets-schemas
