@@ -14,13 +14,13 @@
 
 O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
 
-As entregas **Marco M1.1 (`m1-1-setup-cli-smoke`)** e **Marco M1.2 (`core`)** foram concluídas e formalmente aceitas com aprovação em testes automatizados e homologação manual. O próximo passo de desenvolvimento é o **Marco M1.3 (`metrics`)**.
+As entregas **Marco M1.1 (`m1-1-setup-cli-smoke`)**, **Marco M1.2 (`core`)** e **Marco M1.3 (`metrics`)** foram concluídas e formalmente aceitas com aprovação em testes automatizados e homologação manual. O próximo passo de desenvolvimento é o **Marco M1.4 (`datasets`)**.
 
 ```mermaid
 flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
-    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(ETAPA ATUAL — M1.1 e M1.2 Concluídos e Aceitos)"]
+    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(ETAPA ATUAL — M1.1, M1.2 e M1.3 Concluídos e Aceitos)"]
     Fase4 --> Fase5["Fase 5: Verificação Experimental<br/>(Pendente)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
@@ -64,6 +64,18 @@ flowchart LR
      * `__init__.py`: re-exportação pública via `__all__`.
    * Implementação da suíte de testes unitários `tests/unit/test_core.py` com 18 testes automatizados aprovados (totalizando 30 testes aprovados na suíte geral).
    * Execução do portão de verificação independente da skill `tlc-spec-driven` (`proofs.md` e `verification.md` com veredito `PASS`, 18/18 checks aprovados).
+6. **Fase 4 — Marco M1.3 Concluído (`m1-3-metrics`):**
+   * Implementação do módulo `src/experimental_ml/metrics/` (Nível 1 transversal, sem lógica de negócio em OOP):
+     * `types.py`: estruturas imutáveis de avaliação (`MetricValue`, `AggregatedMetricValue`, `MetricSpec`, `RankedCandidate`) e enumeração canônica fechada `MetricEvaluationScope` com validação estrita.
+     * `validation.py`: validações numéricas puras em `float64`, integridade dimensional e mitigação de overflow quadrático intermediário via `scaled_quadratic_sum`.
+     * `regression.py`: funções puramente vetorizadas em `float64` de erros em escala direta (`mae`, `rmse`, `mbe` preservando viés assinado), razões adimensionais (`r2`, `rmse_rel_pct`, `mape`, `pearson`) e alinhamento de Gram (`kta` uncentered e centered $HKH$), tratando casos degenerados com `MetricStatus.UNDEFINED_NAN`.
+     * `classification.py`: métricas discretas (`accuracy`, `balanced_accuracy`, `precision`, `recall`, `f1` avaliado diretamente pelo próprio denominador $2TP + FP + FN$) e probabilísticas (`roc_auc` com empates exatos via postos médios e OVR, `log_loss` com validação estrita de distribuições e clipping $\epsilon = 10^{-15}$).
+     * `catalog.py`: registro imutável centralizado `METRICS_CATALOG` com as 15 especificações canônicas (`compare_by_abs=True` exclusivamente em `mbe`), funções de consulta `get_metric_spec`, `list_metrics` e despacho `compute_metric`.
+     * `aggregation.py`: comparador `is_better` compatível com `compare_by_abs`, agregador inter-dobras `aggregate_fold_metrics` gerando `VALID`, `PARTIAL_COVERAGE` e `UNDEFINED_NAN`, e ranqueador lexicográfico `rank_configurations` (ADR-005) com precedência estrita de cobertura.
+     * `__init__.py`: re-exportação de 27 símbolos públicos com `__all__`.
+   * Aprovação integral da suíte de testes unitários `tests/unit/test_metrics.py` com 22/22 checks automatizados aprovados (totalizando 52 testes aprovados na suíte geral).
+   * Verificação independente TLC (`proofs.md` e `verification.md` com veredito `PASS`, 0 findings e 0 erros em `validate_verification.py`).
+   * Execução e aprovação completa do roteiro de aceitação do consumidor (`ACCEPTANCE.md`) e cenário integrado registrado em `RESULTS.md`.
 
 ---
 
@@ -89,10 +101,11 @@ flowchart LR
 
 Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md), estruturado em `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`.
 
-1. **Marco M1 (`core` + `metrics` + esqueleto `cli`) — Subdividido em 3 Entregas Verificáveis:**
+1. **Marco M1 (`core` + `metrics` + `datasets` + esqueleto `cli`) — Entregas Verificáveis:**
    * **M1.1 (Concluído e Aceito — Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv` (Python 3.12), `pyproject.toml` (Hatchling, declaração `requires-python = ">=3.10"`, entrypoint `expml`), esqueleto modular em `src/experimental_ml/cli/main.py`, aprovação de `tests/test_smoke.py` com 12/12 testes e homologação manual aprovada. Registrado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-1-setup-cli-smoke/`.
    * **M1.2 (Concluído e Aceito — Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função pura `derive_seeds` (`SeedSequence`), `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas), construtores de achados e exceções de contrato, com aprovação de `tests/unit/test_core.py` (18/18 testes), verificação independente TLC (`proofs.md`, `verification.md`) e homologação manual aprovada. Registrado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-2-core/`.
-   * **M1.3 (Próximo Marco — Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `METRICS_CATALOG`, regras funcionais de propagação para `MetricStatus.UNDEFINED_NAN` (`is_better`, `aggregate_fold_metrics`, `rank_configurations` — ADR-005), e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py`). Exige aprovação prévia de `SPEC.md` e roteiro `ACCEPTANCE.md` antes da implementação.
+   * **M1.3 (Concluído e Aceito — Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `AggregatedMetricValue`, `MetricSpec`, `RankedCandidate`, catálogo `METRICS_CATALOG` com as 15 métricas, regras de propagação de `MetricStatus.UNDEFINED_NAN`, `is_better`, `aggregate_fold_metrics`, `rank_configurations` (ADR-005) e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py` com 22/22 checks aprovados), verificação independente TLC (`proofs.md`, `verification.md`) e roteiro `ACCEPTANCE.md` com evidências em `RESULTS.md`.
+   * **M1.4 (Próximo Marco — `datasets` e esquemas):** Ingestão tabular, validação estrutural de esquemas, imutabilidade em memória e hashing estrutural (`dataset_hash`).
 2. **Marco M2 (`data` + `validation` + CLI `data`/`partition`):** Funções `load_dataset`, `profile_dataset` (problemas confirmados vs. alertas heurísticos), `create_preparation_plan` e geração/validação matemática do `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`).
 3. **Marco M3 (`features` + CLI `features`):** Função `explore_features` rotulada, validação de cenários (`FIXED` e `DYNAMIC`) e seleção dinâmica ajustada estritamente no treino de cada *fold* (`select_features_in_fold`), com medição de estabilidade de seleção.
 4. **Marco M4 (`models` + `tuning` + CLI `models`):** Funções `instantiate_fresh_model`, `fit_model`, `predict_model` (clássicos, analíticos com `requires_fit=False` e quânticos/customizados), pré-processamento funcional em 2 camadas (`fit_two_layer_preprocessing`, `apply_two_layer_preprocessing`) com bloqueio de duplicação e *Nested Tuning* (`run_nested_tuning`).

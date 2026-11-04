@@ -37,8 +37,10 @@ O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MV
   Implementação, testes automatizados (12/12) e homologação manual aprovados. Disponibiliza configuração de empacotamento em Python, estrutura modular do projeto, ponto de entrada da CLI (`expml`) e suíte de testes de fumaça.
 - **Marco M1.2 (`core`): CONCLUÍDO E ACEITO.**  
   Implementação, testes automatizados (18/18) e homologação manual aprovados. Fornece identificadores de domínio imutáveis, enumerações, derivação determinística de sementes (`numpy.random.SeedSequence`), serialização canônica e hashing (`config_hash` e `dataset_hash` conforme ADR-007), além de diagnósticos estruturados (`Finding`) e exceções formais.
-- **Marco M1.3 (`metrics`): PRÓXIMO MARCO.**  
-  Implementação do catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas.
+- **Marco M1.3 (`metrics`): CONCLUÍDO E ACEITO.**  
+  Implementação, testes automatizados (22/22) e homologação manual aprovados. Disponibiliza catálogo centralizado `METRICS_CATALOG` com as 15 métricas canônicas, funções puramente vetorizadas em dupla precisão `float64`, mitigação de overflow quadrático intermediário, tratamento determinístico de casos degenerados via `MetricStatus.UNDEFINED_NAN` sem coerção silenciosa para zero (ADR-005), e ranqueamento lexicográfico com precedência estrita de cobertura.
+- **Marco M1.4 (`datasets`): PRÓXIMO MARCO.**  
+  Ingestão tabular, validação estrutural de esquemas, imutabilidade em memória e hashing estrutural (`dataset_hash`).
 - **Marcos M2 a M7: PLANEJADOS.**  
   Ingestão de dados, particionamento, execução matricial, comparação estatística e geração de relatórios estão especificados e serão implementados nos marcos subsequentes.
 
@@ -63,7 +65,12 @@ Na versão atual da branch `main`, as seguintes capacidades estão implementadas
   - **Hashing Canônico de Configurações (`config_hash`):** Digest SHA-256 em conformidade integral com o **ADR-007** (normalização Unicode NFC, ordenação lexicográfica de chaves por bytes UTF-8, diferenciação estrita de escalares `bool` vs `int` e `int` vs `float`, normalização de `-0.0 -> 0.0`, representação canônica de `NaN`/`Inf`, distinção entre `tuple` e `list`, ordenação determinística de `set` pelo hash de seus itens e detecção de ciclos).
   - **Hashing Estrutural de Datasets (`dataset_hash`):** Digest SHA-256 para arquivos brutos combinados com o esquema, e fluxo contínuo little-endian para dados tabulares em memória sensível a nomes de colunas, ordenação de linhas e tipos.
   - **Diagnósticos e Sinalizadores de Contrato:** Estrutura imutável `Finding`, construtores `make_finding` (`CONFIRMED_ISSUE`) e `make_warning` (`HEURISTIC_WARNING`), e hierarquia de exceções (`ExperimentalMLError`, `ContractViolationError`, `DataIntegrityError`, `ConfigurationError`).
-- **Suíte de Testes Automatizados:** 30 testes automatizados (12 testes de fumaça em `tests/test_smoke.py` e 18 testes unitários em `tests/unit/test_core.py`), com 100% de aprovação via `pytest`.
+- **Camada de Métricas de Avaliação (`experimental_ml.metrics` — Nível 1):**
+  - **Catálogo Centralizado (`METRICS_CATALOG`):** Registro formal das 15 especificações (`MetricSpec`), com metadados de direção, famílias e tolerâncias de referência.
+  - **Funções de Regressão e Alinhamento:** Implementação vetorizada em `float64` de `mae`, `rmse`, `mbe` (preservando o viés assinado e comparando por magnitude absoluta), `r2`, `rmse_rel_pct`, `mape`, `pearson` e `kta` (com suporte a centralização $HKH$).
+  - **Funções de Classificação:** Métricas discretas `accuracy`, `balanced_accuracy`, `precision`, `recall` e `f1` (com avaliação pelo próprio denominador $2TP + FP + FN$), além de probabilísticas `roc_auc` (empates exatos via postos médios e OVR) e `log_loss` (com validação estrita de distribuições e clipping $\epsilon = 10^{-15}$).
+  - **Comparação, Agregação e Ranqueamento (ADR-005):** Comparador `is_better` compatível com `compare_by_abs`, agregador entre dobras `aggregate_fold_metrics` gerando `VALID`, `PARTIAL_COVERAGE` e `UNDEFINED_NAN`, e ranqueador lexicográfico `rank_configurations` com precedência estrita de cobertura.
+- **Suíte de Testes Automatizados:** 52 testes automatizados (12 testes de fumaça em `tests/test_smoke.py`, 18 testes unitários em `tests/unit/test_core.py` e 22 testes unitários em `tests/unit/test_metrics.py`), com 100% de aprovação via `pytest`.
 
 ---
 
@@ -73,9 +80,9 @@ Na versão atual da branch `main`, as seguintes capacidades estão implementadas
 
 - **Linguagem:** Python (suporte declarado `>=3.10`; verificado no interpretador local `Python 3.12.15`).
 - **Build Backend:** [Hatchling](https://hatch.pypa.io/latest/) (`hatchling.build`).
-- **Computação Numérica:** [NumPy](https://numpy.org/) (`numpy>=1.24.0`, utilizado em `experimental_ml.core`).
+- **Computação Numérica:** [NumPy](https://numpy.org/) (`numpy>=1.24.0`, utilizado em `experimental_ml.core` e `experimental_ml.metrics`).
 - **Testes Automatizados:** [Pytest](https://docs.pytest.org/) (`pytest>=7.0.0`).
-- **Biblioteca Padrão:** Utilização estrita de módulos padrão (`argparse`, `tomllib`, `ast`, `subprocess`, `sys`, `hashlib`, `unicodedata`, `struct`) na infraestrutura da CLI e no hashing canônico.
+- **Biblioteca Padrão:** Utilização estrita de módulos padrão (`argparse`, `tomllib`, `ast`, `subprocess`, `sys`, `hashlib`, `unicodedata`, `struct`, `types`, `math`) na infraestrutura da CLI, no hashing canônico e nas métricas.
 
 ### Estrutura de Diretórios
 
@@ -84,20 +91,42 @@ experimental-ml-framework/
 ├── .specs/                          # Especificações formais e tarefas (TLC Spec-Driven)
 │   ├── STATE.md                     # Registro de decisões arquiteturais de projeto e handoff
 │   └── features/
-│       ├── m1-1-setup-cli-smoke/    # Artefatos da entrega M1.1 (spec.md, tasks.md, proofs.md)
-│       └── m1-2-core/               # Artefatos da entrega M1.2 (spec.md, tasks.md, proofs.md, verification.md)
+│       ├── m1-1-setup-cli-smoke/    # Artefatos da entrega M1.1 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
+│       ├── m1-2-core/               # Artefatos da entrega M1.2 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
+│       └── m1-3-metrics/            # Artefatos da entrega M1.3 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 ├── engenharia_software/             # Documentação técnica central de engenharia
 │   ├── ESPECIFICACAO_REQUISITOS.md  # Especificação formal de requisitos (SRS v2.0)
 │   ├── ARQUITETURA_E_CONTRATOS.md   # Arquitetura em camadas, contratos e modelo de dados
+│   ├── PROCESSO_DE_ACEITE_DE_MARCOS.md # Governança de três documentos para aceite formal de marcos
 │   └── ETAPA_ATUAL_ENGENHARIA.md    # Estado atual do ciclo de vida e roadmap detalhado
 ├── src/
 │   └── experimental_ml/             # Código-fonte da biblioteca (layout src/)
 │       ├── __init__.py              # Raiz do pacote (exposição de __version__)
-│       ├── cli/                     # Interface de linha de comando
+│       ├── cli/                     # Interface de linha de comando (Nível 5)
 │       │   ├── __init__.py
 │       │   └── main.py              # Ponto de entrada e parser principal (expml)
-│       └── core/                    # Núcleo transversal de domínio (Nível 0)
+│       ├── core/                    # Núcleo transversal de domínio (Nível 0)
+│       │   ├── __init__.py          # Re-exportação com __all__
+│       │   ├── enums.py             # Tipos de tarefas, direções e status
+│       │   ├── exceptions.py        # Exceções formais e hierarquia
+│       │   ├── findings.py          # Diagnósticos auditáveis e advertências heurísticas
+│       │   ├── hashing.py           # config_hash e dataset_hash (ADR-007)
+│       │   ├── identifiers.py       # Identificadores canônicos e imutáveis
+│       │   └── seeds.py             # Derivação hierárquica SeedSequence
+│       └── metrics/                 # Camada de métricas e alinhamento (Nível 1)
 │           ├── __init__.py          # Re-exportação com __all__
+│           ├── aggregation.py       # is_better, aggregate_fold_metrics, rank_configurations (ADR-005)
+│           ├── catalog.py           # METRICS_CATALOG, compute_metric, get_metric_spec
+│           ├── classification.py    # accuracy, balanced_accuracy, precision, recall, f1, roc_auc, log_loss
+│           ├── regression.py        # mae, rmse, mbe, r2, rmse_rel_pct, mape, pearson, kta
+│           ├── types.py             # MetricValue, AggregatedMetricValue, MetricSpec, RankedCandidate
+│           └── validation.py        # validate_numeric_arrays, scaled_quadratic_sum
+├── tests/
+│   ├── test_smoke.py                # Suíte de testes de fumaça da CLI e empacotamento (12 testes)
+│   └── unit/
+│       ├── test_core.py             # Suíte unitária do módulo core (18 testes)
+│       └── test_metrics.py          # Suíte unitária do módulo metrics (22 testes)
+```
 │           ├── enums.py             # Enumerações fundamentais
 │           ├── findings.py          # Diagnósticos Finding e exceções
 │           ├── hashing.py           # config_hash e dataset_hash (ADR-007)
