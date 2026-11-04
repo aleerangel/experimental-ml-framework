@@ -210,12 +210,12 @@ T4 → T5 → T6 → T7
 **Requirement**: MET-18, MET-19, MET-20
 
 **Done when**:
-- [ ] `is_better` resolves `compare_by_abs` via `MetricSpec` without literal string checks and enforces that `VALID` beats `PARTIAL_COVERAGE` and `UNDEFINED_NAN`
-- [ ] `aggregate_fold_metrics` computes descriptive stats and sets `VALID` ($K/K$), `PARTIAL_COVERAGE` ($k/K$) or `UNDEFINED_NAN` ($0/K$)
-- [ ] `rank_configurations` applies strict lexicographic sort `(0 if VALID else 1, -coverage, directed_value, candidate_id)`, placing `UNDEFINED_NAN` at end with `rank=None`
-- [ ] `src/experimental_ml/metrics/__init__.py` re-exports all public symbols in `__all__`
-- [ ] Comprehensive unit test suite in `tests/unit/test_metrics.py` covers all 22 checks with 100% pass
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v` and `.venv/bin/pytest tests/ -v`
+- [x] `is_better` resolves `compare_by_abs` via `MetricSpec` without literal string checks and enforces that `VALID` beats `PARTIAL_COVERAGE` and `UNDEFINED_NAN`
+- [x] `aggregate_fold_metrics` computes descriptive stats and sets `VALID` ($K/K$), `PARTIAL_COVERAGE` ($k/K$) or `UNDEFINED_NAN` ($0/K$)
+- [x] `rank_configurations` applies strict lexicographic sort `(0 if VALID else 1, -coverage, directed_value, candidate_id)`, placing `UNDEFINED_NAN` at end with `rank=None`
+- [x] `src/experimental_ml/metrics/__init__.py` re-exports all public symbols in `__all__`
+- [x] Comprehensive unit test suite in `tests/unit/test_metrics.py` covers all 22 checks with 100% pass
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v` and `.venv/bin/pytest tests/ -v`
 
 **Tests**: unit
 **Gate**: full

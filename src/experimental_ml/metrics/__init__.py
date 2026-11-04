@@ -7,6 +7,11 @@ aggregation and ranking.
 
 from __future__ import annotations
 
+from experimental_ml.metrics.aggregation import (
+    aggregate_fold_metrics,
+    is_better,
+    rank_configurations,
+)
 from experimental_ml.metrics.catalog import (
     METRICS_CATALOG,
     compute_metric,
@@ -41,15 +46,22 @@ from experimental_ml.metrics.types import (
 )
 
 __all__ = [
+    # Core domain types
     "MetricEvaluationScope",
     "MetricValue",
     "AggregatedMetricValue",
     "MetricSpec",
     "RankedCandidate",
+    # Catalog and registry
     "METRICS_CATALOG",
     "get_metric_spec",
     "list_metrics",
     "compute_metric",
+    # Aggregation and ranking (ADR-005)
+    "is_better",
+    "aggregate_fold_metrics",
+    "rank_configurations",
+    # Regression metrics
     "mae",
     "rmse",
     "mbe",
@@ -58,6 +70,7 @@ __all__ = [
     "mape",
     "pearson",
     "kta",
+    # Classification metrics
     "accuracy",
     "balanced_accuracy",
     "precision",

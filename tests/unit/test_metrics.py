@@ -21,9 +21,12 @@ from experimental_ml.metrics import (
     MetricSpec,
     MetricValue,
     RankedCandidate,
+    aggregate_fold_metrics,
     compute_metric,
     get_metric_spec,
+    is_better,
     list_metrics,
+    rank_configurations,
 )
 from experimental_ml.metrics.validation import (
     scaled_quadratic_sum,
@@ -784,6 +787,320 @@ def test_catalog_query_and_dispatch() -> None:
         scope=MetricEvaluationScope.POOLED_OOF,
     )
     assert res_scope.scope == MetricEvaluationScope.POOLED_OOF
+
+
+# =============================================================================
+# C21: is_better respects compare_by_abs, coverage precedence, and aggregate_fold_metrics assigns VALID, PARTIAL_COVERAGE, UNDEFINED_NAN (MET-18, MET-19)
+# =============================================================================
+def test_is_better_and_aggregation() -> None:
+    """Validate is_better comparison rules, compare_by_abs, and aggregate_fold_metrics statuses."""
+    # MBE: compare_by_abs -> abs(-0.1) = 0.1 < abs(0.5) = 0.5 -> -0.1 is better!
+    mv_mbe1 = MetricValue(
+        metric_id="mbe",
+        value=-0.1,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+    mv_mbe2 = MetricValue(
+        metric_id="mbe",
+        value=0.5,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+    assert is_better(mv_mbe1, mv_mbe2) is True
+    assert is_better(mv_mbe2, mv_mbe1) is False
+
+    # Standard RMSE: 1.2 is better than 1.5
+    mv_rmse1 = MetricValue(
+        metric_id="rmse",
+        value=1.2,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+    mv_rmse2 = MetricValue(
+        metric_id="rmse",
+        value=1.5,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+    assert is_better(mv_rmse1, mv_rmse2) is True
+    assert is_better(mv_rmse2, mv_rmse1) is False
+
+    # Accuracy (MAXIMIZE): 0.9 is better than 0.8
+    mv_acc1 = MetricValue(
+        metric_id="accuracy",
+        value=0.9,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MAXIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+    mv_acc2 = MetricValue(
+        metric_id="accuracy",
+        value=0.8,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MAXIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+    assert is_better(mv_acc1, mv_acc2) is True
+    assert is_better(mv_acc2, mv_acc1) is False
+
+    # Status precedence: VALID beats PARTIAL_COVERAGE even with higher RMSE
+    agg_valid = AggregatedMetricValue(
+        metric_id="rmse",
+        mean=1.5,
+        std=0.1,
+        median=1.5,
+        iqr=0.05,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=AggregationScope.FOLD_AGGREGATION,
+        valid_folds=5,
+        total_folds=5,
+        coverage=1.0,
+    )
+    agg_partial = AggregatedMetricValue(
+        metric_id="rmse",
+        mean=0.8,  # numerically lower, but partial coverage!
+        std=0.1,
+        median=0.8,
+        iqr=0.05,
+        status=MetricStatus.PARTIAL_COVERAGE,
+        direction=MetricDirection.MINIMIZE,
+        scope=AggregationScope.FOLD_AGGREGATION,
+        valid_folds=4,
+        total_folds=5,
+        coverage=0.8,
+    )
+    assert is_better(agg_valid, agg_partial) is True
+    assert is_better(agg_partial, agg_valid) is False
+
+    # Higher coverage beats lower coverage between two PARTIAL_COVERAGE candidates
+    agg_partial_lower_cov = AggregatedMetricValue(
+        metric_id="rmse",
+        mean=0.5,
+        std=0.1,
+        median=0.5,
+        iqr=0.05,
+        status=MetricStatus.PARTIAL_COVERAGE,
+        direction=MetricDirection.MINIMIZE,
+        scope=AggregationScope.FOLD_AGGREGATION,
+        valid_folds=3,
+        total_folds=5,
+        coverage=0.6,
+    )
+    assert is_better(agg_partial, agg_partial_lower_cov) is True
+    assert is_better(agg_partial_lower_cov, agg_partial) is False
+
+    # Rankable beats UNDEFINED_NAN; two UNDEFINED_NAN return False
+    mv_undef = MetricValue(
+        metric_id="rmse",
+        value=float("nan"),
+        status=MetricStatus.UNDEFINED_NAN,
+        direction=MetricDirection.MINIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+    assert is_better(mv_rmse1, mv_undef) is True
+    assert is_better(mv_undef, mv_rmse1) is False
+    assert is_better(mv_undef, mv_undef) is False
+
+    # aggregate_fold_metrics: 5/5 valid -> VALID
+    folds_valid = [
+        MetricValue(
+            metric_id="rmse",
+            value=1.0 + i * 0.1,
+            status=MetricStatus.VALID,
+            direction=MetricDirection.MINIMIZE,
+            scope=MetricEvaluationScope.PER_FOLD,
+            n_samples=20,
+        )
+        for i in range(5)
+    ]
+    res_agg_valid = aggregate_fold_metrics(folds_valid)
+    assert res_agg_valid.status == MetricStatus.VALID
+    assert res_agg_valid.valid_folds == 5
+    assert res_agg_valid.total_folds == 5
+    assert res_agg_valid.coverage == 1.0
+    assert math.isclose(res_agg_valid.mean, 1.2, rel_tol=1e-12)
+
+    # 4/5 valid, 1 UNDEFINED_NAN -> PARTIAL_COVERAGE
+    folds_partial = list(folds_valid[:4]) + [mv_undef]
+    res_agg_part = aggregate_fold_metrics(folds_partial)
+    assert res_agg_part.status == MetricStatus.PARTIAL_COVERAGE
+    assert res_agg_part.valid_folds == 4
+    assert res_agg_part.total_folds == 5
+    assert res_agg_part.coverage == 0.8
+    assert any(w.code == "W_METRIC_PARTIAL_COVERAGE" for w in res_agg_part.warnings)
+
+    # 0/5 valid -> UNDEFINED_NAN
+    folds_zero = [mv_undef, mv_undef, mv_undef]
+    res_agg_zero = aggregate_fold_metrics(folds_zero)
+    assert res_agg_zero.status == MetricStatus.UNDEFINED_NAN
+    assert res_agg_zero.valid_folds == 0
+    assert res_agg_zero.coverage == 0.0
+    assert math.isnan(res_agg_zero.mean)
+    assert any(w.code == "W_METRIC_ZERO_COVERAGE" for w in res_agg_zero.warnings)
+
+    # Inconsistent metric_id raises DataIntegrityError
+    mismatched = [mv_rmse1, mv_mbe1]
+    with pytest.raises(DataIntegrityError):
+        aggregate_fold_metrics(mismatched)
+
+    # Invalid scope (PER_FOLD) raises ConfigurationError
+    with pytest.raises(ConfigurationError):
+        aggregate_fold_metrics(folds_valid, scope="PER_FOLD")  # type: ignore[arg-type]
+
+
+# =============================================================================
+# C22: rank_configurations sorts lexicographically, handles PARTIAL_COVERAGE and marks UNDEFINED_NAN as UNRANKABLE with rank=None (MET-20)
+# =============================================================================
+def test_rank_configurations_lexicographic() -> None:
+    """Validate rank_configurations lexicographic sorting and rank=None assignment."""
+    cand_a = AggregatedMetricValue(
+        metric_id="rmse",
+        mean=1.5,
+        std=0.1,
+        median=1.5,
+        iqr=0.05,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=AggregationScope.FOLD_AGGREGATION,
+        valid_folds=5,
+        total_folds=5,
+        coverage=1.0,
+    )
+    cand_b = AggregatedMetricValue(
+        metric_id="rmse",
+        mean=1.2,
+        std=0.1,
+        median=1.2,
+        iqr=0.05,
+        status=MetricStatus.VALID,
+        direction=MetricDirection.MINIMIZE,
+        scope=AggregationScope.FOLD_AGGREGATION,
+        valid_folds=5,
+        total_folds=5,
+        coverage=1.0,
+    )
+    cand_c = AggregatedMetricValue(
+        metric_id="rmse",
+        mean=0.8,
+        std=0.1,
+        median=0.8,
+        iqr=0.05,
+        status=MetricStatus.PARTIAL_COVERAGE,
+        direction=MetricDirection.MINIMIZE,
+        scope=AggregationScope.FOLD_AGGREGATION,
+        valid_folds=4,
+        total_folds=5,
+        coverage=0.8,
+    )
+    cand_d = AggregatedMetricValue(
+        metric_id="rmse",
+        mean=0.6,
+        std=0.1,
+        median=0.6,
+        iqr=0.05,
+        status=MetricStatus.PARTIAL_COVERAGE,
+        direction=MetricDirection.MINIMIZE,
+        scope=AggregationScope.FOLD_AGGREGATION,
+        valid_folds=3,
+        total_folds=5,
+        coverage=0.6,
+    )
+    cand_e = MetricValue(
+        metric_id="rmse",
+        value=float("nan"),
+        status=MetricStatus.UNDEFINED_NAN,
+        direction=MetricDirection.MINIMIZE,
+        scope=MetricEvaluationScope.PER_FOLD,
+        n_samples=50,
+    )
+
+    candidates = {
+        "model_a": cand_a,
+        "model_b": cand_b,
+        "model_c": cand_c,
+        "model_d": cand_d,
+        "model_e": cand_e,
+    }
+
+    ranking = rank_configurations(candidates)
+    assert len(ranking) == 5
+
+    # Rank 1: model_b (VALID, mean 1.2)
+    assert ranking[0].candidate_id == "model_b"
+    assert ranking[0].rank == 1
+    assert ranking[0].status == MetricStatus.VALID
+
+    # Rank 2: model_a (VALID, mean 1.5)
+    assert ranking[1].candidate_id == "model_a"
+    assert ranking[1].rank == 2
+    assert ranking[1].status == MetricStatus.VALID
+
+    # Rank 3: model_c (PARTIAL_COVERAGE, coverage 0.8)
+    assert ranking[2].candidate_id == "model_c"
+    assert ranking[2].rank == 3
+    assert ranking[2].status == MetricStatus.PARTIAL_COVERAGE
+
+    # Rank 4: model_d (PARTIAL_COVERAGE, coverage 0.6)
+    assert ranking[3].candidate_id == "model_d"
+    assert ranking[3].rank == 4
+    assert ranking[3].status == MetricStatus.PARTIAL_COVERAGE
+
+    # Rank None: model_e (UNRANKABLE)
+    assert ranking[4].candidate_id == "model_e"
+    assert ranking[4].rank is None
+    assert ranking[4].status == MetricStatus.UNRANKABLE
+
+    # MBE ranking with compare_by_abs
+    mbe_candidates = {
+        "model_pos": MetricValue(
+            metric_id="mbe",
+            value=0.2,
+            status=MetricStatus.VALID,
+            direction=MetricDirection.MINIMIZE,
+            scope=MetricEvaluationScope.PER_FOLD,
+            n_samples=10,
+        ),
+        "model_neg_small": MetricValue(
+            metric_id="mbe",
+            value=-0.05,
+            status=MetricStatus.VALID,
+            direction=MetricDirection.MINIMIZE,
+            scope=MetricEvaluationScope.PER_FOLD,
+            n_samples=10,
+        ),
+        "model_neg_large": MetricValue(
+            metric_id="mbe",
+            value=-0.8,
+            status=MetricStatus.VALID,
+            direction=MetricDirection.MINIMIZE,
+            scope=MetricEvaluationScope.PER_FOLD,
+            n_samples=10,
+        ),
+    }
+
+    mbe_ranking = rank_configurations(mbe_candidates)
+    assert len(mbe_ranking) == 3
+    # abs(-0.05)=0.05 (rank 1), abs(0.2)=0.2 (rank 2), abs(-0.8)=0.8 (rank 3)
+    assert mbe_ranking[0].candidate_id == "model_neg_small"
+    assert mbe_ranking[0].rank == 1
+    assert mbe_ranking[1].candidate_id == "model_pos"
+    assert mbe_ranking[1].rank == 2
+    assert mbe_ranking[2].candidate_id == "model_neg_large"
+    assert mbe_ranking[2].rank == 3
+
 
 
 
