@@ -25,6 +25,13 @@ from experimental_ml.metrics.validation import (
     scaled_quadratic_sum,
     validate_numeric_arrays,
 )
+from experimental_ml.metrics.classification import (
+    accuracy,
+    balanced_accuracy,
+    f1,
+    precision,
+    recall,
+)
 from experimental_ml.metrics.regression import (
     kta,
     mae,
@@ -426,4 +433,152 @@ def test_kta_centered_and_uncentered() -> None:
     res_centered = kta(k_a, k_b, centered=True)
     assert res_centered.status == MetricStatus.VALID
     assert -1.0 <= res_centered.value <= 1.0
+
+
+# =============================================================================
+# C15: Discrete classification metrics accuracy, balanced_accuracy, precision, recall, and f1 operate within rtol=1e-14, atol=1e-15 (MET-12)
+# =============================================================================
+def test_discrete_classification_accuracy() -> None:
+    """Validate discrete classification metrics analytical accuracy on known matrix."""
+    yt = np.array([0, 0, 1, 1, 1, 1])
+    yp = np.array([0, 1, 0, 1, 1, 1])
+
+    # Accuracy: 4 / 6 = 2/3
+    res_acc = accuracy(yt, yp)
+    assert res_acc.metric_id == "accuracy"
+    assert res_acc.status == MetricStatus.VALID
+    assert math.isclose(res_acc.value, 4.0 / 6.0, rel_tol=1e-14, abs_tol=1e-15)
+
+    # Precision (binary, pos_label=1): TP=3, FP=1 -> 3/4 = 0.75
+    res_prec_bin = precision(yt, yp, average="binary", pos_label=1)
+    assert res_prec_bin.metric_id == "precision"
+    assert res_prec_bin.status == MetricStatus.VALID
+    assert math.isclose(res_prec_bin.value, 0.75, rel_tol=1e-14, abs_tol=1e-15)
+
+    # Recall (binary, pos_label=1): TP=3, FN=1 -> 3/4 = 0.75
+    res_rec_bin = recall(yt, yp, average="binary", pos_label=1)
+    assert res_rec_bin.metric_id == "recall"
+    assert res_rec_bin.status == MetricStatus.VALID
+    assert math.isclose(res_rec_bin.value, 0.75, rel_tol=1e-14, abs_tol=1e-15)
+
+    # F1 (binary, pos_label=1): 2*3 / (2*3 + 1 + 1) = 6/8 = 0.75
+    res_f1_bin = f1(yt, yp, average="binary", pos_label=1)
+    assert res_f1_bin.metric_id == "f1"
+    assert res_f1_bin.status == MetricStatus.VALID
+    assert math.isclose(res_f1_bin.value, 0.75, rel_tol=1e-14, abs_tol=1e-15)
+
+    # Balanced accuracy: Recall_0 = 1/2 = 0.5, Recall_1 = 3/4 = 0.75 -> mean = 0.625
+    res_bacc = balanced_accuracy(yt, yp)
+    assert res_bacc.metric_id == "balanced_accuracy"
+    assert res_bacc.status == MetricStatus.VALID
+    assert math.isclose(res_bacc.value, 0.625, rel_tol=1e-14, abs_tol=1e-15)
+
+    # Multiclass macro & weighted
+    # Precisions: class 0 -> 1/2 = 0.5, class 1 -> 3/4 = 0.75
+    res_prec_macro = precision(yt, yp, average="macro")
+    assert math.isclose(res_prec_macro.value, 0.625, rel_tol=1e-14, abs_tol=1e-15)
+
+    res_prec_weighted = precision(yt, yp, average="weighted")
+    # weighted: (0.5 * 2 + 0.75 * 4) / 6 = (1.0 + 3.0) / 6 = 4/6 = 2/3
+    assert math.isclose(res_prec_weighted.value, 4.0 / 6.0, rel_tol=1e-14, abs_tol=1e-15)
+
+    # F1 macro: F1_0 = 2*1 / (2*1 + 1 + 1) = 2/4 = 0.5, F1_1 = 0.75 -> mean = 0.625
+    res_f1_macro = f1(yt, yp, average="macro")
+    assert math.isclose(res_f1_macro.value, 0.625, rel_tol=1e-14, abs_tol=1e-15)
+
+
+# =============================================================================
+# C16: precision returns UNDEFINED_NAN when TP + FP = 0 and valid 0.0 when TP = 0 with FP > 0 (MET-13)
+# =============================================================================
+def test_precision_division_by_zero_rules() -> None:
+    """Validate precision division by zero rules and valid 0.0."""
+    # TP + FP == 0 (no positive predictions made) -> UNDEFINED_NAN
+    yt_bin = np.array([0, 1, 1])
+    yp_zero_pred = np.array([0, 0, 0])
+    res_undef = precision(yt_bin, yp_zero_pred, pos_label=1)
+    assert res_undef.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_undef.value)
+    assert any(w.code == "W_METRIC_ZERO_PREDICTIONS" for w in res_undef.warnings)
+
+    # TP == 0 with FP > 0 -> valid 0.0
+    yt_zeros = np.array([0, 0, 0])
+    yp_fps = np.array([1, 0, 0])  # 1 false positive, 0 true positives
+    res_valid_zero = precision(yt_zeros, yp_fps, pos_label=1)
+    assert res_valid_zero.status == MetricStatus.VALID
+    assert res_valid_zero.value == 0.0
+
+
+# =============================================================================
+# C17: recall and balanced_accuracy return UNDEFINED_NAN for absent classes (TP + FN = 0) and valid 0.0 when TP = 0 with FN > 0 (MET-14)
+# =============================================================================
+def test_recall_and_balanced_accuracy_rules() -> None:
+    """Validate recall and balanced_accuracy absent class and valid 0.0 rules."""
+    # TP + FN == 0 (pos_label absent in y_true) -> UNDEFINED_NAN
+    yt_no_pos = np.array([0, 0, 0])
+    yp_any = np.array([0, 1, 0])
+    res_rec_undef = recall(yt_no_pos, yp_any, pos_label=1)
+    assert res_rec_undef.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_rec_undef.value)
+    assert any(w.code == "W_METRIC_ABSENT_CLASS" for w in res_rec_undef.warnings)
+
+    # Balanced accuracy with single class target -> UNDEFINED_NAN
+    res_bacc_mono = balanced_accuracy(np.array([1, 1, 1]), np.array([1, 1, 1]))
+    assert res_bacc_mono.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_bacc_mono.value)
+    assert any(w.code == "W_METRIC_INSUFFICIENT_CLASSES" for w in res_bacc_mono.warnings)
+
+    # Balanced accuracy with explicit labels containing absent class -> UNDEFINED_NAN
+    res_bacc_absent = balanced_accuracy(np.array([0, 0]), np.array([0, 1]), labels=[0, 1])
+    assert res_bacc_absent.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_bacc_absent.value)
+    assert any(w.code == "W_METRIC_ABSENT_CLASS" for w in res_bacc_absent.warnings)
+
+    # TP == 0 with FN > 0 -> valid 0.0 for recall
+    yt_has_pos = np.array([1, 1, 0])
+    yp_no_pos = np.array([0, 0, 0])
+    res_rec_zero = recall(yt_has_pos, yp_no_pos, pos_label=1)
+    assert res_rec_zero.status == MetricStatus.VALID
+    assert res_rec_zero.value == 0.0
+
+    # Balanced accuracy with all classes present and one having recall 0.0 -> valid
+    # class 0: TP=1, FN=0 -> recall=1.0; class 1: TP=0, FN=2 -> recall=0.0 -> mean = 0.5
+    res_bacc_valid = balanced_accuracy(yt_has_pos, yp_no_pos)
+    assert res_bacc_valid.status == MetricStatus.VALID
+    assert math.isclose(res_bacc_valid.value, 0.5, rel_tol=1e-14, abs_tol=1e-15)
+
+
+# =============================================================================
+# C18: f1 computes 2*TP / (2*TP + FP + FN), returning UNDEFINED_NAN only for zero denominator and valid 0.0 when denominator > 0 with TP = 0 (MET-14)
+# =============================================================================
+def test_f1_own_denominator_rules() -> None:
+    """Validate F1 own denominator evaluation, UNDEFINED_NAN and valid 0.0."""
+    # Denominator (2*TP + FP + FN) == 0 -> UNDEFINED_NAN
+    yt_zeros = np.array([0, 0, 0])
+    yp_zeros = np.array([0, 0, 0])
+    res_f1_undef = f1(yt_zeros, yp_zeros, pos_label=1)
+    assert res_f1_undef.status == MetricStatus.UNDEFINED_NAN
+    assert math.isnan(res_f1_undef.value)
+    assert any(w.code == "W_METRIC_F1_ZERO_SUPPORT" for w in res_f1_undef.warnings)
+
+    # Subcase A: TP=0, FP=0, FN=2 > 0 -> Denominator=2, Numerator=0 -> valid 0.0
+    yt_a = np.array([1, 1, 0])
+    yp_a = np.array([0, 0, 0])
+    res_f1_a = f1(yt_a, yp_a, pos_label=1)
+    assert res_f1_a.status == MetricStatus.VALID
+    assert res_f1_a.value == 0.0
+
+    # Subcase B: TP=0, FP=2 > 0, FN=0 -> Denominator=2, Numerator=0 -> valid 0.0
+    yt_b = np.array([0, 0, 0])
+    yp_b = np.array([1, 1, 0])
+    res_f1_b = f1(yt_b, yp_b, pos_label=1)
+    assert res_f1_b.status == MetricStatus.VALID
+    assert res_f1_b.value == 0.0
+
+    # Subcase C: TP=0, FP=1, FN=1 -> Denominator=2, Numerator=0 -> valid 0.0
+    yt_c = np.array([1, 0])
+    yp_c = np.array([0, 1])
+    res_f1_c = f1(yt_c, yp_c, pos_label=1)
+    assert res_f1_c.status == MetricStatus.VALID
+    assert res_f1_c.value == 0.0
+
 

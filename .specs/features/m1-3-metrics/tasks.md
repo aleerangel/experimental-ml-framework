@@ -146,13 +146,13 @@ T4 → T5 → T6 → T7
 **Requirement**: MET-12, MET-13, MET-14
 
 **Done when**:
-- [ ] `accuracy`, `balanced_accuracy`, `precision`, `recall`, and `f1` implemented
-- [ ] `precision` returns `UNDEFINED_NAN` when $TP_c + FP_c = 0$, but returns valid `0.0` when $TP_c = 0$ with $FP_c > 0$
-- [ ] `recall` returns `UNDEFINED_NAN` when $TP_c + FN_c = 0$, but returns valid `0.0` when $TP_c = 0$ with $FN_c > 0$
-- [ ] `f1` evaluates $\frac{2 TP}{2 TP + FP + FN}$, returning `UNDEFINED_NAN` only if denominator is zero ($2 TP + FP + FN == 0$) and returning valid `0.0` if denominator is positive with $TP = 0$
-- [ ] `balanced_accuracy` returns `UNDEFINED_NAN` if $|\mathcal{C}| < 2$ or any class lacks positive support
-- [ ] Unit tests for discrete classification written in `tests/unit/test_metrics.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
+- [x] `accuracy`, `balanced_accuracy`, `precision`, `recall`, and `f1` implemented
+- [x] `precision` returns `UNDEFINED_NAN` when $TP_c + FP_c = 0$, but returns valid `0.0` when $TP_c = 0$ with $FP_c > 0$
+- [x] `recall` returns `UNDEFINED_NAN` when $TP_c + FN_c = 0$, but returns valid `0.0` when $TP_c = 0$ with $FN_c > 0$
+- [x] `f1` evaluates $\frac{2 TP}{2 TP + FP + FN}$, returning `UNDEFINED_NAN` only if denominator is zero ($2 TP + FP + FN == 0$) and returning valid `0.0` if denominator is positive with $TP = 0$
+- [x] `balanced_accuracy` returns `UNDEFINED_NAN` if $|\mathcal{C}| < 2$ or any class lacks positive support
+- [x] Unit tests for discrete classification written in `tests/unit/test_metrics.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/test_metrics.py -v`
 
 **Tests**: unit
 **Gate**: quick

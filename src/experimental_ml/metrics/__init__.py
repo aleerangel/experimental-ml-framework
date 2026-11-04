@@ -7,6 +7,13 @@ aggregation and ranking.
 
 from __future__ import annotations
 
+from experimental_ml.metrics.classification import (
+    accuracy,
+    balanced_accuracy,
+    f1,
+    precision,
+    recall,
+)
 from experimental_ml.metrics.regression import (
     kta,
     mae,
@@ -39,4 +46,9 @@ __all__ = [
     "mape",
     "pearson",
     "kta",
+    "accuracy",
+    "balanced_accuracy",
+    "precision",
+    "recall",
+    "f1",
 ]
