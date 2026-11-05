@@ -237,13 +237,13 @@ A atividade é exclusivamente de auditoria e diagnóstico. Nenhum código-fonte,
 | TEST-06 | P1: Testes - validadores TLC | Phase 1 (T3, T7) | Verified |
 | TEST-07 | P1: Testes - critério→check→proof | Phase 1 (T3, T7) | Verified |
 | TEST-08 | P1: Testes - confiabilidade dos validadores | Phase 1 (T3, T7) | Verified |
-| DOC-01 | P1: Documentação - exemplos do README | Phase 1 (T4, T7) | In Tasks |
-| DOC-02 | P1: Documentação - árvore de diretórios | Phase 1 (T4, T7) | In Tasks |
-| DOC-03 | P1: Documentação - contagens e estados | Phase 1 (T4, T7) | In Tasks |
-| DOC-04 | P1: Documentação - símbolos citados | Phase 1 (T4, T7) | In Tasks |
-| DOC-05 | P1: Documentação - contradições de hash | Phase 1 (T4, T7) | In Tasks |
-| DOC-06 | P1: Documentação - matriz RF/CA/TA | Phase 1 (T4, T7) | In Tasks |
-| DOC-07 | P1: Documentação - governança | Phase 1 (T4, T7) | In Tasks |
+| DOC-01 | P1: Documentação - exemplos do README | Phase 1 (T4, T7) | Verified |
+| DOC-02 | P1: Documentação - árvore de diretórios | Phase 1 (T4, T7) | Verified |
+| DOC-03 | P1: Documentação - contagens e estados | Phase 1 (T4, T7) | Verified |
+| DOC-04 | P1: Documentação - símbolos citados | Phase 1 (T4, T7) | Verified |
+| DOC-05 | P1: Documentação - contradições de hash | Phase 1 (T4, T7) | Verified |
+| DOC-06 | P1: Documentação - matriz RF/CA/TA | Phase 1 (T4, T7) | Verified |
+| DOC-07 | P1: Documentação - governança | Phase 1 (T4, T7) | Verified |
 | READY-01 | P1: Prontidão - interfaces consumidas pelo M2 | Phase 2 (T6, T7) | In Tasks |
 | READY-02 | P1: Prontidão - decisões em aberto | Phase 2 (T6, T7) | In Tasks |
 | READY-03 | P1: Prontidão - registro de achados | Phase 2 (T5, T7) | In Tasks |

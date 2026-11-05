@@ -135,10 +135,10 @@ T5 → T6 → T7
 
 **Done when**:
 
-- [ ] `probes/docs_and_traceability_probe.py` executed
-- [ ] `reports/05-rastreabilidade.md` records execution results of all `README.md` Python blocks, directory tree discrepancies, symbol import checks, ADR-007 vs M1.4 hash semantics comparison, full `RF/RNF/CA/TA` traceability matrix, and M1.1–M1.4 governance audit
-- [ ] Gate check passes: `.venv/bin/pytest tests/ -q`
-- [ ] Test count: 81 project tests pass
+- [x] `probes/docs_and_traceability_probe.py` executed
+- [x] `reports/05-rastreabilidade.md` records execution results of all `README.md` Python blocks, directory tree discrepancies, symbol import checks, ADR-007 vs M1.4 hash semantics comparison, full `RF/RNF/CA/TA` traceability matrix, and M1.1–M1.4 governance audit
+- [x] Gate check passes: `.venv/bin/pytest tests/ -q`
+- [x] Test count: 81 project tests pass
 
 **Tests**: integration
 **Gate**: quick
