@@ -9,8 +9,8 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/m1-integrity-review/design.md`
-**Status**: Draft
-**Approved**: pending
+**Status**: Approved
+**Approved**: 2026-11-05 - user: "aprovado"
 **Build**: none - Read-only project integrity review; verification executed via pytest audit checks and non-interference diff gate
 **Run audit**: .venv/bin/pytest .specs/features/m1-integrity-review/probes/test_audit_checks.py -v
 
@@ -73,12 +73,12 @@ T5 → T6 → T7
 
 **Done when**:
 
-- [ ] `probes/ast_and_arch_probe.py` executed and outputs recorded
-- [ ] `reports/00-baseline.md` records `HEAD` commit hash (`6acf6f8`), clean status, `.venv` Python/NumPy/pytest versions, and `81 passed` baseline
-- [ ] `reports/01-especificacao-criterios.md` documents the 48 objective criteria and verdict decision rule
-- [ ] `reports/02-arquitetura.md` documents full AST import graph, ADR-008 compliance, duplicated logic analysis, unused symbol check, and doc-vs-API comparison
-- [ ] Gate check passes: `.venv/bin/pytest tests/ -q`
-- [ ] Test count: 81 project tests pass (0 files modified in `src/` or `tests/`)
+- [x] `probes/ast_and_arch_probe.py` executed and outputs recorded
+- [x] `reports/00-baseline.md` records `HEAD` commit hash (`6acf6f8`), clean status, `.venv` Python/NumPy/pytest versions, and `81 passed` baseline
+- [x] `reports/01-especificacao-criterios.md` documents the 48 objective criteria and verdict decision rule
+- [x] `reports/02-arquitetura.md` documents full AST import graph, ADR-008 compliance, duplicated logic analysis, unused symbol check, and doc-vs-API comparison
+- [x] Gate check passes: `.venv/bin/pytest tests/ -q`
+- [x] Test count: 81 project tests pass (0 files modified in `src/` or `tests/`)
 
 **Tests**: integration
 **Gate**: quick
@@ -385,3 +385,4 @@ Phase 1 → Phase 2
 Phase 1:  T1 ------→ T2 ------→ T3 ------→ T4
 Phase 2:  T5 ------→ T6 ------→ T7
 ```
+

@@ -112,3 +112,4 @@ flowchart TD
 | 6. Registro consolidado de achados e riscos | `reports/06-achados.md` | `READY-03`, `READY-04` |
 | 7. Plano de correções priorizadas | `reports/07-plano-correcoes.md` | `READY-05` |
 | 8. Parecer final de prontidão para o M2 | `reports/08-parecer.md` + `RESULTS.md` | `READY-01`, `READY-02`, `READY-06`, `READY-07`, `READY-08` |
+

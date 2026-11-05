@@ -204,17 +204,17 @@ A atividade é exclusivamente de auditoria e diagnóstico. Nenhum código-fonte,
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| AUD-01 | P1: Protocolo - baseline | Phase 1 (T1, T7) | In Tasks |
+| AUD-01 | P1: Protocolo - baseline | Phase 1 (T1, T7) | Verified |
 | AUD-02 | P1: Protocolo - não interferência | Phase 2 (T6, T7) | In Tasks |
-| AUD-03 | P1: Protocolo - evidência por achado | Phase 1 (T1, T7) | In Tasks |
-| AUD-04 | P1: Protocolo - NÃO VERIFICÁVEL | Phase 1 (T1, T7) | In Tasks |
-| ARCH-01 | P1: Arquitetura - grafo de importações | Phase 1 (T1, T7) | In Tasks |
-| ARCH-02 | P1: Arquitetura - níveis de dependência | Phase 1 (T1, T7) | In Tasks |
-| ARCH-03 | P1: Arquitetura - ciclos | Phase 1 (T1, T7) | In Tasks |
-| ARCH-04 | P1: Arquitetura - ADR-008 | Phase 1 (T1, T7) | In Tasks |
-| ARCH-05 | P1: Arquitetura - responsabilidades duplicadas | Phase 1 (T1, T7) | In Tasks |
-| ARCH-06 | P1: Arquitetura - abstrações sem consumidor | Phase 1 (T1, T7) | In Tasks |
-| ARCH-07 | P1: Arquitetura - doc vs API pública | Phase 1 (T1, T7) | In Tasks |
+| AUD-03 | P1: Protocolo - evidência por achado | Phase 1 (T1, T7) | Verified |
+| AUD-04 | P1: Protocolo - NÃO VERIFICÁVEL | Phase 1 (T1, T7) | Verified |
+| ARCH-01 | P1: Arquitetura - grafo de importações | Phase 1 (T1, T7) | Verified |
+| ARCH-02 | P1: Arquitetura - níveis de dependência | Phase 1 (T1, T7) | Verified |
+| ARCH-03 | P1: Arquitetura - ciclos | Phase 1 (T1, T7) | Verified |
+| ARCH-04 | P1: Arquitetura - ADR-008 | Phase 1 (T1, T7) | Verified |
+| ARCH-05 | P1: Arquitetura - responsabilidades duplicadas | Phase 1 (T1, T7) | Verified |
+| ARCH-06 | P1: Arquitetura - abstrações sem consumidor | Phase 1 (T1, T7) | Verified |
+| ARCH-07 | P1: Arquitetura - doc vs API pública | Phase 1 (T1, T7) | Verified |
 | INT-01 | P1: Integração - fluxo ponta a ponta | Phase 1 (T2, T7) | In Tasks |
 | INT-02 | P1: Integração - identificadores e enums | Phase 1 (T2, T7) | In Tasks |
 | INT-03 | P1: Integração - hierarquia de exceções | Phase 1 (T2, T7) | In Tasks |

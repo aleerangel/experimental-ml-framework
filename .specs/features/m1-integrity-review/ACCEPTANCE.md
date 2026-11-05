@@ -84,3 +84,4 @@ git diff 6acf6f8 -- src tests pyproject.toml .agent \
 | **6** | Registro Consolidado de Achados e Riscos | `.specs/features/m1-integrity-review/reports/06-achados.md` | Achados `AUD-F-NNN` classificados por categoria e severidade com evidência e impacto. |
 | **7** | Plano de Correções Priorizadas | `.specs/features/m1-integrity-review/reports/07-plano-correcoes.md` | Ordenação priorizada de ações recomendadas antes e durante o Marco M2. |
 | **8** | Parecer Final de Prontidão para o M2 | `.specs/features/m1-integrity-review/reports/08-parecer.md` | Veredito formal (`APTO`, `APTO COM RESSALVAS` ou `NÃO APTO`) e verificação independente. |
+
