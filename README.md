@@ -80,7 +80,7 @@ Na versão atual da branch `main`, as seguintes capacidades estão implementadas
   - **Identificadores de Observação (`ObservationId`):** Atribuição determinística sequencial `obs_000000` na ausência de coluna de ID e validação estrita de não-nulidade e unicidade quando informada na fonte.
   - **Semântica Tripartite de Hashes:** `dataset_hash` canônico do conteúdo em memória invariante a quebras de linha (`\r\n` vs `\n`), sensível à ordem das colunas e aos `observation_ids`, `raw_source_hash` para proveniência do arquivo em disco e `schema_hash` para a configuração estrutural.
   - **Utilitários de Consulta:** `get_column_array` (view somente-leitura ou cópia mutável independente) e `slice_bundle_by_observation_ids` preservando a ordem solicitada pelo chamador com recálculo de hash.
-- **Suíte de Testes Automatizados:** 81 testes automatizados (12 testes de fumaça em `tests/test_smoke.py`, 18 testes unitários em `tests/unit/test_core.py`, 22 testes unitários em `tests/unit/test_metrics.py` e 29 testes unitários em `tests/unit/test_data_schemas.py`), com 100% de aprovação via `pytest`.
+- **Suíte de Testes Automatizados:** 96 testes automatizados (12 testes de fumaça em `tests/test_smoke.py`, 22 testes unitários em `tests/unit/test_core.py`, 22 testes unitários em `tests/unit/test_metrics.py`, 36 testes unitários em `tests/unit/test_data_schemas.py` e 4 testes de integração transversal em `tests/integration/test_m1_foundation_integration.py`), com 100% de aprovação via `pytest`.
 
 ---
 
@@ -104,7 +104,8 @@ experimental-ml-framework/
 │       ├── m1-1-setup-cli-smoke/    # Artefatos da entrega M1.1 (spec.md, tasks.md, proofs.md, ACCEPTANCE.md, RESULTS.md)
 │       ├── m1-2-core/               # Artefatos da entrega M1.2 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 │       ├── m1-3-metrics/            # Artefatos da entrega M1.3 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
-│       └── m1-4-datasets-schemas/   # Artefatos da entrega M1.4 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
+│       ├── m1-4-datasets-schemas/   # Artefatos da entrega M1.4 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
+│       └── m1-5-foundation-hardening/ # Artefatos da entrega M1.5 Hardening (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 ├── engenharia_software/             # Documentação técnica central de engenharia
 │   ├── ESPECIFICACAO_REQUISITOS.md  # Especificação formal de requisitos (SRS v2.0)
 │   ├── ARQUITETURA_E_CONTRATOS.md   # Arquitetura em camadas, contratos e modelo de dados
@@ -139,12 +140,14 @@ experimental-ml-framework/
 │           ├── schema.py            # DatasetSchemaSpec, normalização NFC e validação de papéis
 │           ├── types.py             # ColumnSemanticType, ColumnDescriptor e DatasetBundle
 │           └── validation.py        # Validação estrutural e integridade de ObservationId
-├── tests/                           # Suíte de testes automatizados (81 testes aprovados)
+├── tests/                           # Suíte de testes automatizados (96 testes aprovados)
+│   ├── integration/                 # Testes de integração transversal entre core, data e metrics
+│   │   └── test_m1_foundation_integration.py # Fluxos integrados, determinismo entre processos e blocos do README
 │   ├── test_smoke.py                # Suíte de testes de fumaça da CLI e empacotamento (12 testes)
 │   └── unit/
-│       ├── test_core.py             # Suíte unitária do módulo core (18 testes)
+│       ├── test_core.py             # Suíte unitária do módulo core (22 testes)
 │       ├── test_metrics.py          # Suíte unitária do módulo metrics (22 testes)
-│       └── test_data_schemas.py     # Suíte unitária do módulo data / schemas (29 testes)
+│       └── test_data_schemas.py     # Suíte unitária do módulo data / schemas (36 testes)
 ├── pyproject.toml                   # Configuração de build, dependências e metadados
 ├── README.md                        # Porta de entrada do repositório
 └── REFERENCIAS_E_FUNDAMENTACAO.md   # Fundamentação teórica e referências normativas (25 fontes)
@@ -335,12 +338,13 @@ Para executar toda a suíte de testes (testes de fumaça da instalação e teste
 pytest tests/ -v
 ```
 
-Para executar isoladamente os módulos unitários:
+Para executar isoladamente os módulos unitários e de integração:
 
 ```bash
 pytest tests/unit/test_core.py -v
 pytest tests/unit/test_metrics.py -v
 pytest tests/unit/test_data_schemas.py -v
+pytest tests/integration/test_m1_foundation_integration.py -v
 ```
 
 ### Comportamento Verificado
