@@ -20,6 +20,40 @@ import unicodedata
 
 import numpy as np
 
+from experimental_ml.core.findings import ConfigurationError
+
+
+def is_nan_scalar(val: Any) -> bool:
+    """Check if a scalar value is a NaN float (native Python float or NumPy floating).
+
+    Returns False for boolean types (bool, np.bool_) and non-float types.
+
+    Args:
+        val: Any value to check.
+
+    Returns:
+        True if val is a NaN float scalar, False otherwise.
+    """
+    if isinstance(val, (bool, np.bool_)):
+        return False
+    if isinstance(val, float):
+        return math.isnan(val)
+    if isinstance(val, np.floating):
+        return bool(np.isnan(val))
+    return False
+
+
+def is_missing_scalar(val: Any) -> bool:
+    """Check if a scalar value represents a missing state (None or NaN scalar).
+
+    Args:
+        val: Any value to check.
+
+    Returns:
+        True if val is None or a NaN float scalar, False otherwise.
+    """
+    return val is None or is_nan_scalar(val)
+
 
 def _canonical_transform(obj: Any, stack: set[int] | None = None) -> Any:
     """Recursively transform an object into canonical JSON-serializable primitives.
@@ -155,7 +189,7 @@ def config_hash(obj: Any) -> str:
 
 
 def _hash_column_binary(col: Any, hasher: Any) -> None:
-    """Hash a single data column into binary stream using little-endian representations."""
+    """Hash a single data column into binary stream using unambiguous typed representations."""
     if hasattr(col, "to_numpy"):
         arr = col.to_numpy()
     elif isinstance(col, np.ndarray):
@@ -186,83 +220,144 @@ def _hash_column_binary(col: Any, hasher: Any) -> None:
     else:
         hasher.update(b"object")
         for item in arr:
-            if item is None or (isinstance(item, float) and math.isnan(item)):
+            if is_missing_scalar(item):
                 hasher.update(b"\x00")
-            else:
-                hasher.update(b"\x01")
+            elif isinstance(item, (bool, np.bool_)):
+                hasher.update(b"\x01b" + (b"\x01" if bool(item) else b"\x00"))
+            elif isinstance(item, (int, np.integer)):
+                try:
+                    val_int = int(item)
+                    hasher.update(b"\x01i" + struct.pack("<q", val_int))
+                except OverflowError:
+                    s_int = str(item).encode("ascii")
+                    hasher.update(b"\x01I" + struct.pack("<Q", len(s_int)) + s_int)
+            elif isinstance(item, (float, np.floating)):
+                f_val = float(item)
+                if f_val == 0.0:
+                    f_val = 0.0
+                f_bytes = struct.pack("<d", f_val)
+                hasher.update(b"\x01f" + f_bytes)
+            elif isinstance(item, (bytes, np.bytes_)):
+                raw_b = bytes(item)
+                hasher.update(b"\x01y" + struct.pack("<Q", len(raw_b)) + raw_b)
+            elif isinstance(item, (str, np.str_)):
                 s_nfc = unicodedata.normalize("NFC", str(item)).encode("utf-8")
-                hasher.update(struct.pack("<Q", len(s_nfc)))
-                hasher.update(s_nfc)
+                hasher.update(b"\x01s" + struct.pack("<Q", len(s_nfc)) + s_nfc)
+            else:
+                raise ConfigurationError(
+                    f"Scalar value of type '{type(item).__name__}' is not supported for canonical tabular hashing"
+                )
 
 
-def _hash_in_memory_tabular(data: Any, schema: Any | None, hasher: Any) -> None:
-    """Compute deterministic binary digest of in-memory tabular data."""
+def _hash_in_memory_tabular(
+    data: Any,
+    schema: Any | None,
+    hasher: Any,
+    *,
+    observation_ids: Sequence[Any] | None = None,
+) -> None:
+    """Compute deterministic binary digest of in-memory tabular data without ambiguities."""
+    # 1. Schema frame
     if schema is not None:
-        hasher.update(config_hash(schema).encode("utf-8"))
+        hasher.update(b"\x01" + config_hash(schema).encode("ascii"))
+    else:
+        hasher.update(b"\x00")
 
+    # 2. Observation IDs frame
+    if observation_ids is not None:
+        if isinstance(observation_ids, (str, bytes, bytearray, memoryview)) or not isinstance(
+            observation_ids, Sequence
+        ):
+            raise ConfigurationError(
+                "observation_ids must be a non-string Sequence of identifiers"
+            )
+        hasher.update(b"\x01" + struct.pack("<Q", len(observation_ids)))
+        for oid in observation_ids:
+            if oid is None or not isinstance(oid, str):
+                raise ConfigurationError(
+                    f"observation_id element must be a non-empty string identifier, got {type(oid).__name__}"
+                )
+            oid_bytes = str(oid).encode("utf-8")
+            hasher.update(struct.pack("<Q", len(oid_bytes)) + oid_bytes)
+    else:
+        hasher.update(b"\x00")
+
+    # 3. Tabular columns framing
     # Pandas DataFrame or duck-typed tabular object
     if hasattr(data, "columns") and hasattr(data, "__getitem__"):
-        col_names = [unicodedata.normalize("NFC", str(c)) for c in data.columns]
-        for col_name in col_names:
-            hasher.update(col_name.encode("utf-8"))
-        for col in data.columns:
+        cols = list(data.columns)
+        hasher.update(b"TABULAR" + struct.pack("<Q", len(cols)))
+        for col in cols:
+            col_name_nfc = unicodedata.normalize("NFC", str(col)).encode("utf-8")
+            hasher.update(struct.pack("<Q", len(col_name_nfc)) + col_name_nfc)
             _hash_column_binary(data[col], hasher)
         return
 
     # Mapping of column names to columns
     if isinstance(data, Mapping):
-        col_names = [unicodedata.normalize("NFC", str(k)) for k in data.keys()]
-        for col_name in col_names:
-            hasher.update(col_name.encode("utf-8"))
+        hasher.update(b"TABULAR" + struct.pack("<Q", len(data)))
         for k in data.keys():
+            col_name_nfc = unicodedata.normalize("NFC", str(k)).encode("utf-8")
+            hasher.update(struct.pack("<Q", len(col_name_nfc)) + col_name_nfc)
             _hash_column_binary(data[k], hasher)
         return
 
     # 2D NumPy array
     if isinstance(data, np.ndarray) and data.ndim == 2:
         n_rows, n_cols = data.shape
-        hasher.update(struct.pack("<QQ", n_rows, n_cols))
+        hasher.update(b"TABULAR" + struct.pack("<Q", n_cols))
         for j in range(n_cols):
-            hasher.update(f"col_{j}".encode("utf-8"))
+            col_name_bytes = f"col_{j}".encode("utf-8")
+            hasher.update(struct.pack("<Q", len(col_name_bytes)) + col_name_bytes)
             _hash_column_binary(data[:, j], hasher)
         return
 
     # Sequence of row records (list of dicts)
     if isinstance(data, Sequence) and len(data) > 0 and isinstance(data[0], Mapping):
         keys = list(data[0].keys())
+        hasher.update(b"TABULAR" + struct.pack("<Q", len(keys)))
         for k in keys:
-            hasher.update(unicodedata.normalize("NFC", str(k)).encode("utf-8"))
-        for k in keys:
+            col_name_nfc = unicodedata.normalize("NFC", str(k)).encode("utf-8")
+            hasher.update(struct.pack("<Q", len(col_name_nfc)) + col_name_nfc)
             col_vals = [row.get(k) for row in data]
             _hash_column_binary(col_vals, hasher)
         return
 
-    # Fallback to column array if 1D sequence or 1D array
+    # Fallback to single column array if 1D sequence or 1D array
+    hasher.update(b"TABULAR" + struct.pack("<Q", 1))
+    col_name_bytes = b"col_0"
+    hasher.update(struct.pack("<Q", len(col_name_bytes)) + col_name_bytes)
     _hash_column_binary(data, hasher)
 
 
 def dataset_hash(
     data_or_path: Union[str, Path, Any],
     schema: Any | None = None,
+    *,
+    observation_ids: Sequence[Any] | None = None,
 ) -> str:
     """Compute the structural integrity hash of a dataset.
 
     Complies with ADR-007:
     - For files on disk (.csv, .txt): computes SHA-256 of raw file bytes combined
-      with the canonical config_hash of schema (if provided).
+      with schema and observation_ids frames (if provided).
     - For in-memory tabular datasets: computes a deterministic binary digest across
-      columns and observations using little-endian buffers, NFC text, and schema hash.
+      columns and observations using little-endian buffers, NFC text, column lengths,
+      typed scalar tags, and observation IDs.
+    - Preserves architectural boundary: does not import or couple to dataset bundle classes.
     - Raises FileNotFoundError if a file path is provided but does not exist.
 
     Args:
         data_or_path: Path to dataset file on disk, or in-memory tabular data structure.
         schema: Optional schema specification to bind into the hash.
+        observation_ids: Optional sequence of observation identifiers to bind into the hash.
 
     Returns:
         Lowercase 64-character hexadecimal SHA-256 digest.
 
     Raises:
         FileNotFoundError: If a file path is passed but does not exist on disk.
+        ConfigurationError: If observation_ids structure or scalar types are invalid.
     """
     hasher = hashlib.sha256()
 
@@ -281,17 +376,39 @@ def dataset_hash(
         if not file_path.exists() or not file_path.is_file():
             raise FileNotFoundError(f"Dataset file not found: {data_or_path}")
 
+        # 1. Schema frame
+        if schema is not None:
+            hasher.update(b"\x01" + config_hash(schema).encode("ascii"))
+        else:
+            hasher.update(b"\x00")
+
+        # 2. Observation IDs frame
+        if observation_ids is not None:
+            if isinstance(observation_ids, (str, bytes, bytearray, memoryview)) or not isinstance(
+                observation_ids, Sequence
+            ):
+                raise ConfigurationError(
+                    "observation_ids must be a non-string Sequence of identifiers"
+                )
+            hasher.update(b"\x01" + struct.pack("<Q", len(observation_ids)))
+            for oid in observation_ids:
+                if oid is None or not isinstance(oid, str):
+                    raise ConfigurationError(
+                        f"observation_id element must be a non-empty string identifier, got {type(oid).__name__}"
+                    )
+                oid_bytes = str(oid).encode("utf-8")
+                hasher.update(struct.pack("<Q", len(oid_bytes)) + oid_bytes)
+        else:
+            hasher.update(b"\x00")
+
+        # 3. Raw file stream
         with open(file_path, "rb") as f:
             while chunk := f.read(65536):
                 hasher.update(chunk)
 
-        if schema is not None:
-            schema_digest = config_hash(schema)
-            hasher.update(schema_digest.encode("utf-8"))
-
         return hasher.hexdigest()
 
     # In-memory tabular data
-    _hash_in_memory_tabular(data_or_path, schema, hasher)
+    _hash_in_memory_tabular(data_or_path, schema, hasher, observation_ids=observation_ids)
     return hasher.hexdigest()
 
