@@ -21,7 +21,7 @@
 ## Handoff
 
 - **Feature**: m1-4-datasets-schemas (Marco M1.4 — Datasets & Schemas)
-- **Phase / Task**: Concluído e Homologado (Fase 1 100% Concluída)
+- **Phase / Task**: Concluído e Integrado na `main` (PR #4 Merged)
 - **Completed**:
   - Marcos M1.1, M1.2, M1.3 e M1.4 concluídos e formalmente homologados.
   - Marco M1.4 implementado com 100% de conformidade: módulo `experimental_ml.data` (`schema`, `types`, `parsing`, `validation`, `loader`, `query`, `__init__`).
@@ -31,7 +31,9 @@
   - Portões TLC validados: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
   - Homologação manual executada e formalmente aprovada pelo usuário em 2026-11-04 (`user: "aprovado"`).
   - Fase 1 (Setup e Fundações Transversais) integralmente concluída com sucesso (M1.1, M1.2, M1.3 e M1.4).
-- **In-progress**: Encerramento documental do Marco M1.4
-- **Next step**: Integração da branch `feat/m1-4-datasets-schemas` e preparação da Fase 2 (M2 — Partições, Sanitização e Validação)
+  - Pull Request #4 (`feat/m1-4-datasets-schemas`) integrado na branch `main` (commit `c3eb1e6`).
+  - Documentação geral do projeto atualizada (`ARQUITETURA_E_CONTRATOS.md`, `ESPECIFICACAO_REQUISITOS.md`, `ETAPA_ATUAL_ENGENHARIA.md`, `README.md`, `.specs/STATE.md`).
+- **In-progress**: Concluído
+- **Next step**: Iniciar o ciclo de planejamento e especificação do Marco M2 (`data` + `validation` + CLI `data`/`partition`) da Fase 2 (Camada 1 / Triagem e Particionamento)
 - **Blockers**: none
-- **Branch**: feat/m1-4-datasets-schemas
+- **Branch**: main

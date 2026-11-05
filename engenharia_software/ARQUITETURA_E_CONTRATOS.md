@@ -2,8 +2,8 @@
 
 > **Documento:** Arquitetura de Software, Contratos de Módulos, Modelo de Dados e Recorte de MVP  
 > **Versão:** 1.0.0  
-> **Data:** 31 de Outubro de 2026  
-> **Status:** Consolidado e Aprovado (Fases 2 e 3; Fase 4 em andamento com M1.1 e M1.2 implementados)  
+> **Data:** 04 de Novembro de 2026  
+> **Status:** Consolidado e Aprovado (Fases 2 e 3; Fase 4 em andamento com M1.1, M1.2, M1.3 e M1.4 implementados e aceitos)  
 > **Documentos Relacionados:** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md) | [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
 ---
@@ -141,7 +141,7 @@ Separadamente do pipeline operacional, as relações de importação entre os pa
 
 1. **`core` (Nível 0 — Fundação Transversal):** Tipos de identificadores, constantes/enumerações, derivação determinística de sementes (`derive_seeds` sobre `SeedSequence`), utilitários de hash (`config_hash` e `dataset_hash` via `SHA-256`), serialização JSON determinística e funções de validação/erros. Não depende de nenhum outro pacote do framework.
 2. **`metrics` (Nível 1 — Motor de Métricas Transversal):** Funções puras vetorizadas de métricas de regressão, classificação e alinhamento (incluindo KTA), catálogo `METRICS_CATALOG`, metadados de direção (`MAXIMIZE` / `MINIMIZE`), escopo (`PER_FOLD`, `FOLD_AGGREGATION`, `POOLED_OOF`, `FINAL_HOLDOUT`) e funções de comparação/agregação (`is_better`, `aggregate_fold_metrics`). Depende apenas de `core`.
-3. **`data` (Nível 1 — Camada 1 / Etapa 1):** Funções `load_dataset`, `profile_dataset`, `create_preparation_plan`, `sanitize_dataset` e `fit_apply_target_transform`, operando sobre estruturas de dados imutáveis (`DatasetBundle`, `DatasetProfile`, `PreparationPlan`, `SanitizedDatasetView`). Depende apenas de `core`.
+3. **`data` (Nível 1 — Camada 1 / Etapa 1):** Ingestão tabular imutável com buffers na C-API (`load_dataset`, `DatasetBundle`), especificação estrutural e papéis de variáveis (`DatasetSchemaSpec`), tipagem física e semântica (`ColumnSemanticType`, `ColumnDescriptor`), integridade RFC 4180 com sniffer automático de delimitadores, identificadores estáveis (`ObservationId`), hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários de consulta (`get_column_array`, `slice_bundle_by_observation_ids`) — integralmente implementados no Marco M1.4. As funções de diagnóstico estrutural estatístico (`profile_dataset` gerando `DatasetProfile`), plano explícito de preparação (`create_preparation_plan`), visão saneada (`sanitize_dataset` gerando `SanitizedDatasetView`) e transformações reversíveis de alvo (`fit_apply_target_transform`) são responsabilidade do Marco M2. Depende apenas de `core`.
 4. **`validation` (Nível 2 — Camada 2 / Etapa 4A):** Funções `build_partition_plan` e `validate_partition_plan`, implementando as estratégias de divisão (`kfold_split`, `stratified_kfold_split`, `group_kfold_split`, `bootstrap_split`, `temporal_split`, `holdout_split`). Depende de `core` e `data`.
 5. **`features` (Nível 2 — Camada 1 / Etapa 2):** Funções `explore_features`, `validate_scenarios`, `select_features_in_fold` (despachando para funções de filtro de colinearidade, Top-$K$ univariado, ranking ponderado multi-critério e redução `PCA`) e `compute_selection_stability`. Depende de `core`, `data` e `metrics`.
 6. **`models` (Nível 2 — Camada 1 / Etapa 3A):** Estruturas declarativas `ModelSpec` e `ModelCapabilities`, e funções de execução isolada `instantiate_fresh_model`, `fit_model`, `predict_model`, `extract_model_diagnostics` e `fit_apply_two_layer_preprocessing` (incluindo o roteamento sem vazamento de $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ para funções externas de kernel pré-computado). Depende de `core`.
@@ -241,11 +241,17 @@ Carregar a base de dados preservando sua integridade original, mapear papéis da
   * `target_transform_spec` *(opcional)*: especificação de transformação reversível na variável-alvo (`transform` / `inverse_transform`, como deslocamento/escalonamento afim ou transformação monotônica ajustada apenas no treino).
 
 #### Saídas Conceituais (Contratos)
-1. **`DatasetBundle`:**
-   * Referência somente-leitura aos dados originais.
-   * Hash criptográfico (`SHA-256`) da fonte de dados e esquema de colunas.
-   * Vetor de identificadores estáveis de observação (`observation_ids`).
-2. **`DatasetProfile`:**
+
+1. **`DatasetBundle` (Implementado no Marco M1.4):**
+   * Estrutura imutável (`frozen dataclass` com `__slots__`) detentora de posse exclusiva dos dados tabulares em memória.
+   * Colunas numéricas e booleanas respaldadas por buffers `bytes` imutáveis na camada C do NumPy, recusando tentativas de reativação de escrita (`setflags(write=True)` levanta `ValueError`). Colunas `object` restritas a escalares imutáveis com `writeable=False`.
+   * Mapeamentos de colunas e descritores encapsulados via `MappingProxyType`, impedindo adição, remoção ou reatribuição de atributos.
+   * Descritores detalhados por coluna (`ColumnDescriptor`) contendo índice posicional, papel, tipo físico (`float64`, `int64`, `bool`, `object`), tipo semântico (`ColumnSemanticType`: contínuo, discreto, categórico, booleana, temporal ou identificador), sinalizador de declaração explícita (`is_semantic_declared`), contagem de valores ausentes e consumo de memória em bytes.
+   * Hashes tripartites com semântica formal: `dataset_hash` (digest canônico do conteúdo em memória invariante a quebras de linha e ordenação de chaves), `raw_source_hash` (digest SHA-256 do arquivo original em disco ou representação canônica da estrutura em memória) e `schema_hash` (`config_hash` determinístico de `DatasetSchemaSpec`).
+   * Vetor ordenado de identificadores estáveis e não-nulos (`observation_ids`), com geração posicional `obs_000000` ou validação estrita de unicidade na fonte.
+   * Utilitários seguros de consulta (`get_column_array` com view somente-leitura ou cópia mutável independente) e fatiamento ordenado (`slice_bundle_by_observation_ids` preservando estritamente a sequência solicitada com recálculo determinístico de hash).
+
+2. **`DatasetProfile` (Escopo do Marco M2):**
    * **Resumo Estrutural:** número de linhas, número de colunas, tamanho em bytes e estimativa de memória RAM.
    * **Tipagem Semântica por Coluna:** distinção entre numérica contínua, numérica discreta, categórica nominal/ordinal, booleana, temporal e identificador.
    * **Qualidade e Completude:** contagem e proporção de valores ausentes por coluna; quantidade e índices de linhas duplicadas; identificação de colunas constantes (variância zero) ou quase-constantes; detecção heurística de possíveis identificadores (cardinalidade próxima a $N$).
@@ -259,10 +265,12 @@ Carregar a base de dados preservando sua integridade original, mapear papéis da
    * **Lista Classificada de Achados (`DiagnosticFinding`):** separação estrita entre:
      * `CONFIRMED_ISSUE`: problema estrutural objetivo (ex.: valores ausentes no `target`, atributo constante, coluna categórica sem codificação para modelo numérico).
      * `HEURISTIC_WARNING`: alerta metodológico ou estatístico que requer avaliação do pesquisador, sem impor correção obrigatória (ex.: possível coluna de ID, desbalanceamento moderado, grupos pequenos, diferença de escala).
-3. **`PreparationPlan` (`configuration/preparation_plan.json`):**
+
+3. **`PreparationPlan` (`configuration/preparation_plan.json` — Escopo do Marco M2):**
    * Declaração explícita das decisões de pré-processamento tomadas pelo pesquisador (imputação de ausentes, codificação de variáveis categóricas, exclusão de colunas ou observações inválidas), vinculada ao `dataset_hash` de origem.
    * Só recebe `status = "READY"` quando **todos** os achados `CONFIRMED_ISSUE` do `DatasetProfile` possuem regra explícita de tratamento declarada. Documenta qualquer estratégia adotada, garantindo que nenhuma transformação que aprenda parâmetros seja ajustada na Etapa 1 (**ADR-002**).
-4. **`SanitizedDatasetView` (Retorno de `sanitize_dataset(bundle, profile, preparation_plan)`):**
+
+4. **`SanitizedDatasetView` (Retorno de `sanitize_dataset(bundle, profile, preparation_plan)` — Escopo do Marco M2):**
    * Visão tabular imutável resultante da aplicação exclusiva das regras estruturais determinísticas pré-partição (remoção de linhas com `target` nulo e exclusão de colunas proibidas/constantes declaradas no `PreparationPlan`), contendo: dados tabulares filtrados, lista validada de colunas preditoras candidatas (`candidate_feature_cols`), vetor ordenado de `observation_ids` válidos e o `dataset_hash` correspondente.
 
 ---
@@ -661,8 +669,8 @@ A ordem de implementação respeita as dependências entre os módulos de `src/e
 
 | Marco | Módulos Incluídos | Riscos Científicos Mitigados | Testes de Aceitação Objetivos (Critérios Obrigatórios e Condicionais da Onda 1) |
 | :--- | :--- | :--- | :--- |
-| **M1 — Fundação, Contratos Base, Motor de Métricas e Esqueleto da CLI** | `core`, `metrics`, `cli` (base) | • Indefinição de direção de otimização;<br/>• Distorções numéricas em métricas (ex.: arredondamentos indevidos);<br/>• Falta de determinismo em sementes e hashes;<br/>• Coerção indevida de `NaN` para `0.0`. | • **TA-M1.1 (`M1.1` — Concluído):** Ambiente virtual instalado (`.venv` com Python 3.12), instalação editável validada (`pip install -e ".[dev]"`), ponto de entrada da CLI (`expml --version` / `--help`) e *smoke tests* aprovados (`tests/test_smoke.py`, 12/12 testes).<br/>• **TA-M1.2 (`M1.2` / `CA-GER-01` / `CA-GER-02` — Concluído):** Identificadores imutáveis, enums canônicos, determinismo de `derive_seeds` (`SeedSequence`) e canonicidade de `config_hash` e `dataset_hash` (Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas) aprovados em `tests/unit/test_core.py` (18/18 testes).<br/>• **TA-M1.3 (`M1.3` / `CA-GER-03` / `CA-COND-REG-01` / `CA-COND-CLAS-01` — Próximo Marco):** Exatidão das 15 funções de métricas com tolerâncias específicas (`rtol`/`atol`) por família, casos degenerados retornando `MetricStatus.UNDEFINED_NAN` e bloqueio de seleção/ranking para `UNDEFINED_NAN`. |
-| **M2 — Ingestão Imutável, Diagnóstico e Particionamento Auditado** | `data`, `validation`, `cli` (`data`, `partition`) | • Mutação silenciosa da base original;<br/>• Avanço com `CONFIRMED_ISSUE` não tratado;<br/>• Vazamento entre treino/validação/holdout ou grupos;<br/>• Irreprodutibilidade das partições. | • **TA-M2.1 (`CA-E1-01` — Preservação e IDs):** Verificar via `dataset_hash` que os dados de entrada permanecem inalterados após `load_dataset` e `profile_dataset` e que $N$ `observation_id` únicos são gerados.<br/>• **TA-M2.2 (`CA-E1-02` — Diagnóstico e `PreparationPlan`):** Separação exata entre `CONFIRMED_ISSUE` e `HEURISTIC_WARNING`, bloqueio de `sanitize_dataset` se houver `CONFIRMED_ISSUE` sem regra no `PreparationPlan` e ausência de ajuste de estatísticas globais na Etapa 1.<br/>• **TA-M2.3 (`CA-E4A-01` & `CA-COND-PART-01` — Disjunção de Partição):** Asserção matemática em `kfold_split`, `stratified_kfold_split`, `group_kfold_split` ($G \ge K$) e `holdout_split` comprovando: $\text{Train}_k \cap \text{Val}_k = \emptyset$, $\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$, $\text{Grupos}(\text{Dev}) \cap \text{Grupos}(\text{Holdout}) = \emptyset$ e isolamento total do `holdout_ids`.<br/>• **TA-M2.4 (`CA-E4A-02` — Reprodutibilidade do `PartitionPlan`):** Comprovar que, sob a mesma `SanitizedDatasetView`, configuração e semente, `build_partition_plan` produz o mesmo `partition_plan_id` e as mesmas listas de `observation_id` por partição. |
+| **M1 — Fundação, Contratos Base, Motor de Métricas, Ingestão Tabular e Esqueleto da CLI** | `core`, `metrics`, `data` (schemas & loader), `cli` (base) | • Indefinição de direção de otimização;<br/>• Distorções numéricas em métricas (ex.: arredondamentos indevidos);<br/>• Falta de determinismo em sementes e hashes;<br/>• Coerção indevida de `NaN` para `0.0`;<br/>• Mutação silenciosa de dados na ingestão;<br/>• Inconsistência de delimitadores tabulares. | • **TA-M1.1 (`M1.1` — Concluído):** Ambiente virtual instalado (`.venv` com Python 3.12), instalação editável validada (`pip install -e ".[dev]"`), ponto de entrada da CLI (`expml --version` / `--help`) e *smoke tests* aprovados (`tests/test_smoke.py`, 12/12 testes).<br/>• **TA-M1.2 (`M1.2` / `CA-GER-01` / `CA-GER-02` — Concluído):** Identificadores imutáveis, enums canônicos, determinismo de `derive_seeds` (`SeedSequence`) e canonicidade de `config_hash` e `dataset_hash` (Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas) aprovados em `tests/unit/test_core.py` (18/18 testes).<br/>• **TA-M1.3 (`M1.3` / `CA-GER-03` / `CA-COND-REG-01` / `CA-COND-CLAS-01` — Concluído):** Exatidão das 15 funções de métricas com tolerâncias específicas (`rtol`/`atol`) por família, casos degenerados retornando `MetricStatus.UNDEFINED_NAN` e bloqueio de seleção/ranking para `UNDEFINED_NAN` aprovados em `tests/unit/test_metrics.py` (22/22 testes).<br/>• **TA-M1.4 (`M1.4` / `CA-E1-01` parcial — Concluído):** Ingestão tabular imutável (`load_dataset`, `DatasetBundle`), buffers `bytes` imutáveis recusando `setflags(write=True)`, integridade RFC 4180 com sniffer automático de delimitadores, identificadores `ObservationId`, hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários seguros aprovados em `tests/unit/test_data_schemas.py` (29/29 testes). |
+| **M2 — Diagnóstico Estrutural, Sanitização e Particionamento Auditado** | `data` (profile & sanitize), `validation`, `cli` (`data`, `partition`) | • Avanço com `CONFIRMED_ISSUE` não tratado;<br/>• Vazamento entre treino/validação/holdout ou grupos;<br/>• Irreprodutibilidade das partições. | • **TA-M2.1 (`CA-E1-01` & `CA-E1-02` — Diagnóstico e `PreparationPlan`):** Diagnóstico estrutural (`profile_dataset`), separação exata entre `CONFIRMED_ISSUE` e `HEURISTIC_WARNING`, bloqueio de `sanitize_dataset` se houver `CONFIRMED_ISSUE` sem regra no `PreparationPlan` e ausência de ajuste de estatísticas globais na Etapa 1.<br/>• **TA-M2.2 (`CA-E4A-01` & `CA-COND-PART-01` — Disjunção de Partição):** Asserção matemática em `kfold_split`, `stratified_kfold_split`, `group_kfold_split` ($G \ge K$) e `holdout_split` comprovando: $\text{Train}_k \cap \text{Val}_k = \emptyset$, $\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$, $\text{Grupos}(\text{Dev}) \cap \text{Grupos}(\text{Holdout}) = \emptyset$ e isolamento total do `holdout_ids`.<br/>• **TA-M2.3 (`CA-E4A-02` — Reprodutibilidade do `PartitionPlan`):** Comprovar que, sob a mesma `SanitizedDatasetView`, configuração e semente, `build_partition_plan` produz o mesmo `partition_plan_id` e as mesmas listas de `observation_id` por partição. |
 | **M3 — Exploração e Cenários de Features sem Vazamento** | `features`, `cli` (`features`) | • Seleção de atributos contaminada por dados de validação/teste;<br/>• Inclusão de colunas proibidas nos preditores. | • **TA-M3.1 (`CA-E2-01` — Rótulo Exploratório):** Garantir que `ExploratoryFeatureReport` carregue `scope = EXPLORATORY_FULL_DATA` e não possa ser convertido silenciosamente em seleção pré-partição.<br/>• **TA-M3.2 (`CA-E2-02` — Validação de Cenários):** Verificar que `validate_scenarios(scenarios, sanitized_view)` rejeita colunas inexistentes ou pertencentes a `{target, group, id, time} ∪ ignore_cols` e grava `scenarios.json` vinculado ao `dataset_hash`.<br/>• **TA-M3.3 (`CA-E4B-01` parcial — Seleção Dinâmica Intra-Fold):** Modificar observações exclusivamente no conjunto de validação de um *fold* e comprovar que o resultado de `select_features_in_fold(X_train, y_train, scenario_spec, seed)` permanece inalterado, além de calcular o índice de estabilidade entre *folds*. |
 | **M4 — Funções de Modelos, Pré-processamento em 2 Camadas e Nested Tuning** | `models`, `tuning`, `cli` (`models`) | • Contaminação de pesos/estado entre *folds*;<br/>• Transformação estatística ajustada fora do treino;<br/>• Duplicação acidental de escalonamento;<br/>• Vazamento da validação externa na escolha de hiperparâmetros. | • **TA-M4.1 (`CA-E3-01` — Isolamento de Instância):** Ajustar um modelo com estado mutável em um *fold*, instanciar um novo para o próximo *fold* via `instantiate_fresh_model` e comprovar que nenhum peso/atributo ajustado anterior persiste.<br/>• **TA-M4.2 (`CA-COND-MOD-01` & `CA-COND-MOD-02`):** Executar função analítica com `requires_fit=False` sem ajuste artificial e verificar a passagem de $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ para funções externas de kernel pré-computado.<br/>• **TA-M4.3 (`CA-E3-02` & `CA-E4B-01` parcial — 2 Camadas e Bloqueio de Duplicação):** Comprovar que parâmetros de `fit_two_layer_preprocessing` dependem apenas de `X_train` e que configurar padronização idêntica nas duas camadas dispara bloqueio em `validate_two_layer_preprocessing`.<br/>• **TA-M4.4 (`CA-E3-02` & `CA-E4B-01` parcial — Nested Tuning):** Comprovar que `validate_search_spec` exige métrica/direção explícitas e que `run_nested_tuning` (`grid_search` e `random_search`) subdivide apenas `X_train, y_train`, produzindo o mesmo $\theta^*$ quando `X_val, y_val` são alterados. |
 | **M5 — Execução Matricial, Tolerância a Falhas e Checkpoint/Resume** | `orchestration`, `cli` (`run`) | • Aborto completo de experimento longo por falha em uma célula;<br/>• Conversão silenciosa de falha em métrica zero;<br/>• Retomada inconsistente após alteração de dados/configuração. | • **TA-M5.1 (`CA-E4B-01` — Sincronia de Partições):** Comprovar que todas as células $(m, c, f)$ executadas referenciam o mesmo `partition_plan_id` e avaliam exatamente os mesmos `observation_id` em cada *fold* $f$.<br/>• **TA-M5.2 (`CA-E4B-02` parcial — Isolamento de Falha):** Injetar um modelo que lança exceção no *fold* 2; verificar que em modo `FAULT_TOLERANT` a célula $(m, c, 2)$ fica com estado `FAILED` e metadados do erro, sem valor numérico zero nas métricas, enquanto as demais células concluem com `COMPLETED`.<br/>• **TA-M5.3 (`CA-E4B-02` parcial — Persistência e Resume Verificado):** Interromper uma matriz com 50% das células concluídas, retomar via `resume_experiment_matrix` e comprovar que apenas os 50% restantes são executados, preservando predições e métricas das células já concluídas; tentar retomar após alterar `dataset_hash` ou `PartitionPlan` e verificar bloqueio (`exit code 2`). |
@@ -671,9 +679,9 @@ A ordem de implementação respeita as dependências entre os módulos de `src/e
 
 ---
 
-### 7.1 Especificação Refinada do Marco M1 (Sub-entregas `M1.1`, `M1.2` e `M1.3`)
+### 7.1 Especificação Refinada do Marco M1 (Sub-entregas `M1.1`, `M1.2`, `M1.3` e `M1.4`)
 
-O Marco M1 é dividido em **três entregas sequenciais e independentemente verificáveis**. Nenhuma entrega seguinte inicia antes que todos os testes da entrega anterior estejam passando.
+O Marco M1 é dividido em **quatro entregas sequenciais e independentemente verificáveis**. Nenhuma entrega seguinte inicia antes que todos os testes da entrega anterior estejam passando.
 
 #### Entrega M1.1 — Configuração do Projeto, Verificação de Compatibilidade e *Smoke Tests* (Concluída)
 * **Diagnóstico e Configuração Efetiva do Ambiente:**
@@ -701,7 +709,7 @@ O Marco M1 é dividido em **três entregas sequenciais e independentemente verif
   * Implementação concluída com aprovação de 18/18 testes em `tests/unit/test_core.py`.
   * Verificação mecânica independente realizada via TLC Spec-Driven (`proofs.md` e `verification.md` com veredito `PASS`).
 
-#### Entrega M1.3 — Contratos, Implementação e Testes de `experimental_ml.metrics` (Próximo Marco)
+#### Entrega M1.3 — Contratos, Implementação e Testes de `experimental_ml.metrics` (Concluída)
 * **Escopo (Modular e Sem Orientação a Objetos):**
   * Estruturas imutáveis `MetricValue`, `AggregatedMetricValue`, `MetricSpec` e catálogo modular `METRICS_CATALOG` (mapeando identificadores de métricas às respectivas funções puras e metadados).
   * Implementação funcional das regras de propagação, agregação (`aggregate_fold_metrics`) e comparação (`is_better`, `rank_configurations`) para `MetricStatus.UNDEFINED_NAN` (**ADR-005**).
@@ -719,8 +727,27 @@ O Marco M1 é dividido em **três entregas sequenciais e independentemente verif
   * Verificar que o comparador de candidatos (`is_better(cand_a, cand_b, direction)`) jamais seleciona um `MetricValue` com `UNDEFINED_NAN` sobre um `VALID`, independentemente de `direction` ser `MAXIMIZE` ou `MINIMIZE`.
   * Verificar que `aggregate_fold_metrics` produz `VALID` quando $K/K$ *folds* são válidos, `PARTIAL_COVERAGE` (com `MethodologicalWarning`) quando $0 < k < K$ são válidos, e `UNDEFINED_NAN` quando $0/K$ são válidos.
   * Verificar que o ordenador de ranking marca configurações `UNDEFINED_NAN` como `UNRANKABLE`, separadas das configurações válidas.
+* **Resultados e Verificação:**
+  * Implementação concluída com aprovação de 22/22 testes em `tests/unit/test_metrics.py`.
+  * Verificação independente via TLC Spec-Driven (`proofs.md` e `verification.md` com veredito `PASS`, 0 achados).
+  * Homologação formal aprovada sob `.specs/features/m1-3-metrics/`.
 
-#### Comandos Reprodutíveis de Instalação, Execução de Testes e Qualidade (Critério de Conclusão do M1)
+#### Entrega M1.4 — Contratos, Ingestão Tabular, Imutabilidade e Esquemas de `experimental_ml.data` (Concluída)
+* **Escopo (Modular e Sem Orientação a Objetos):**
+  * `DatasetSchemaSpec`: frozen dataclass com normalização Unicode NFC nos nomes de colunas, disjunção estrita entre papéis de variáveis (`target_col`, `group_col`, `observation_id_col`, `time_col`, `ignore_cols`), tuplas imutáveis, dicionários encapsulados com `MappingProxyType` e bloqueio ativo a funcionalidades da Onda 2 (`MULTI_TARGET_REGRESSION`, múltiplos alvos e transformações).
+  * `ColumnSemanticType`: enumeração canônica com 6 membros (`NUMERIC_CONTINUOUS`, `NUMERIC_DISCRETE`, `CATEGORICAL`, `BOOLEAN`, `TEMPORAL`, `IDENTIFIER`).
+  * `ColumnDescriptor`: frozen dataclass com `__slots__` descrevendo índice, papel, tipo físico (`float64`, `int64`, `bool`, `object`), tipo semântico, sinalizador de tipo declarado (`is_semantic_declared`), contagem de valores ausentes e consumo em bytes.
+  * `DatasetBundle`: frozen dataclass com `__slots__` e posse exclusiva dos dados tabulares; arrays numéricos e booleanos respaldados por buffers `bytes` imutáveis na camada C do NumPy, recusando `setflags(write=True)` com `ValueError`; colunas `object` restritas a escalares imutáveis com `writeable=False`; dicionários encapsulados com `MappingProxyType`.
+  * Parsing e ingestão (`load_dataset`): suporte a delimitadores `,`, `;`, `\t`, `|`, múltiplos espaços e aspas RFC 4180; sniffer automático com verificação consistente em 100 linhas ($M \ge 2$); sobrescrita manual por delimitador explícito; rejeição explícita de linhas irregulares (*ragged rows*), arquivos vazios ($N = 0$) e cabeçalhos duplicados/inválidos; ingestão de memória a partir de `dict`, `ndarray` 2D, registros e duck-typed `DataFrame`.
+  * Identificadores de observação (`ObservationId`): geração determinística `obs_000000` quando omitido; validação estrita de unicidade e não-nulidade quando informado.
+  * Hashes tripartites canônicos: `dataset_hash` (digest de memória invariante a quebras de linha CRLF/LF e ordenação de chaves), `raw_source_hash` (digest do arquivo físico ou da estrutura de memória) e `schema_hash` (`config_hash` do esquema).
+  * Utilitários seguros de consulta: `get_column_array` (view somente-leitura ou cópia mutável) e `slice_bundle_by_observation_ids` (preservando ordem requerida com recálculo determinístico do `dataset_hash`).
+* **Resultados e Verificação:**
+  * Implementação concluída com aprovação de 29/29 testes em `tests/unit/test_data_schemas.py`.
+  * Verificação mecânica independente via TLC Spec-Driven (`proofs.md` e `verification.md` com veredito `PASS`, 0 achados).
+  * Homologação formal aprovada sob `.specs/features/m1-4-datasets-schemas/`.
+
+#### Comandos Reprodutíveis de Instalação, Execução de Testes e Qualidade (Critério de Conclusão do Marco M1)
 ```bash
 # 1. Criação do ambiente virtual e instalação em modo editável com dependências de teste
 python3 -m venv .venv
@@ -728,18 +755,24 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 
 # 2. Verificação empírica das versões instaladas no ambiente
-.venv/bin/python -c "import sys, numpy, scipy, pytest; print(sys.version); print('numpy:', numpy.__version__, 'scipy:', scipy.__version__, 'pytest:', pytest.__version__)"
+.venv/bin/python -c "import sys, numpy, pytest; print(sys.version); print('numpy:', numpy.__version__, 'pytest:', pytest.__version__)"
 
-# 3. Gate da Entrega M1.1 (Smoke tests — Concluído)
+# 3. Gate da Entrega M1.1 (Smoke tests — Concluído: 12/12)
 .venv/bin/pytest tests/test_smoke.py -v
 
-# 4. Gate da Entrega M1.2 (Testes unitários do core — Concluído)
+# 4. Gate da Entrega M1.2 (Testes unitários do core — Concluído: 18/18)
 .venv/bin/pytest tests/unit/test_core.py -v
 
-# 5. Gate da Entrega M1.3 e Conclusão do Marco M1 (Próximo Marco)
+# 5. Gate da Entrega M1.3 (Testes unitários de metrics — Concluído: 22/22)
+.venv/bin/pytest tests/unit/test_metrics.py -v
+
+# 6. Gate da Entrega M1.4 (Testes unitários de data/schemas — Concluído: 29/29)
+.venv/bin/pytest tests/unit/test_data_schemas.py -v
+
+# 7. Suíte Completa do Marco M1 e Fundação Transversal (Concluído: 81/81 testes)
 .venv/bin/pytest tests/ -v --tb=short
 ```
-*(Nota: O avanço para o Marco M2 é bloqueado até que os gates 3, 4 e 5 executem com 100% de aprovação e zero falhas).*
+*(Nota: O Marco M1 e a Fase 1 — Setup e Fundações Transversais encontram-se 100% concluídos, homologados e integrados na branch `main`. O avanço para o Marco M2 está liberado).*
 
 ---
 

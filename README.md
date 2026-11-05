@@ -113,7 +113,7 @@ experimental-ml-framework/
 ├── src/
 │   └── experimental_ml/             # Código-fonte da biblioteca (layout src/)
 │       ├── __init__.py              # Raiz do pacote (exposição de __version__)
-│       ├── cli/                     # Interface de linha de comando (Nível 5)
+│       ├── cli/                     # Interface de linha de comando (Nível 7)
 │       │   ├── __init__.py
 │       │   └── main.py              # Ponto de entrada e parser principal (expml)
 │       ├── core/                    # Núcleo transversal de domínio (Nível 0)
@@ -124,28 +124,28 @@ experimental-ml-framework/
 │       │   ├── hashing.py           # config_hash e dataset_hash (ADR-007)
 │       │   ├── identifiers.py       # Identificadores canônicos e imutáveis
 │       │   └── seeds.py             # Derivação hierárquica SeedSequence
-│       └── metrics/                 # Camada de métricas e alinhamento (Nível 1)
+│       ├── metrics/                 # Camada de métricas e alinhamento (Nível 1)
+│       │   ├── __init__.py          # Re-exportação com __all__
+│       │   ├── aggregation.py       # is_better, aggregate_fold_metrics, rank_configurations (ADR-005)
+│       │   ├── catalog.py           # METRICS_CATALOG, compute_metric, get_metric_spec
+│       │   ├── classification.py    # accuracy, balanced_accuracy, precision, recall, f1, roc_auc, log_loss
+│       │   ├── regression.py        # mae, rmse, mbe, r2, rmse_rel_pct, mape, pearson, kta
+│       │   ├── types.py             # MetricValue, AggregatedMetricValue, MetricSpec, RankedCandidate
+│       │   └── validation.py        # validate_numeric_arrays, scaled_quadratic_sum
+│       └── data/                    # Ingestão, esquemas e imutabilidade de datasets (Nível 1)
 │           ├── __init__.py          # Re-exportação com __all__
-│           ├── aggregation.py       # is_better, aggregate_fold_metrics, rank_configurations (ADR-005)
-│           ├── catalog.py           # METRICS_CATALOG, compute_metric, get_metric_spec
-│           ├── classification.py    # accuracy, balanced_accuracy, precision, recall, f1, roc_auc, log_loss
-│           ├── regression.py        # mae, rmse, mbe, r2, rmse_rel_pct, mape, pearson, kta
-│           ├── types.py             # MetricValue, AggregatedMetricValue, MetricSpec, RankedCandidate
-│           └── validation.py        # validate_numeric_arrays, scaled_quadratic_sum
-├── tests/
+│           ├── loader.py            # Ingestão load_dataset com buffers imutáveis e hashes tripartites
+│           ├── parsing.py           # Parser RFC 4180 com detecção automática de delimitadores
+│           ├── query.py             # get_column_array e slice_bundle_by_observation_ids
+│           ├── schema.py            # DatasetSchemaSpec, normalização NFC e validação de papéis
+│           ├── types.py             # ColumnSemanticType, ColumnDescriptor e DatasetBundle
+│           └── validation.py        # Validação estrutural e integridade de ObservationId
+├── tests/                           # Suíte de testes automatizados (81 testes aprovados)
 │   ├── test_smoke.py                # Suíte de testes de fumaça da CLI e empacotamento (12 testes)
 │   └── unit/
 │       ├── test_core.py             # Suíte unitária do módulo core (18 testes)
-│       └── test_metrics.py          # Suíte unitária do módulo metrics (22 testes)
-│           ├── enums.py             # Enumerações fundamentais
-│           ├── findings.py          # Diagnósticos Finding e exceções
-│           ├── hashing.py           # config_hash e dataset_hash (ADR-007)
-│           ├── seeds.py             # derive_seeds e spawn_child_seeds
-│           └── types.py             # Identificadores de domínio imutáveis
-├── tests/                           # Suíte de testes automatizados
-│   ├── test_smoke.py                # Testes de fumaça da instalação e da CLI
-│   └── unit/                        # Testes unitários dos módulos
-│       └── test_core.py             # Testes de unidade do módulo core (18 verificações)
+│       ├── test_metrics.py          # Suíte unitária do módulo metrics (22 testes)
+│       └── test_data_schemas.py     # Suíte unitária do módulo data / schemas (29 testes)
 ├── pyproject.toml                   # Configuração de build, dependências e metadados
 ├── README.md                        # Porta de entrada do repositório
 └── REFERENCIAS_E_FUNDAMENTACAO.md   # Fundamentação teórica e referências normativas (25 fontes)
@@ -258,6 +258,70 @@ h_data = dataset_hash(data)
 finding = make_finding(code="E1_ZERO_VARIANCE", message="Coluna com variância nula.")
 ```
 
+#### Motor de Métricas (`experimental_ml.metrics`)
+```python
+import numpy as np
+from experimental_ml.core import MetricDirection
+from experimental_ml.metrics import (
+    compute_metric,
+    get_metric_spec,
+    is_better,
+    aggregate_fold_metrics,
+)
+
+# 1. Cálculo de métricas puras vetorizadas em float64
+y_true = np.array([10.0, 20.0, 30.0], dtype=np.float64)
+y_pred = np.array([11.0, 19.0, 32.0], dtype=np.float64)
+rmse_val = compute_metric("rmse", y_true, y_pred)
+# rmse_val.value -> 1.4142..., rmse_val.status -> MetricStatus.VALID
+
+# 2. Consulta de metadados e direção de otimização
+spec = get_metric_spec("rmse")
+# spec.direction -> MetricDirection.MINIMIZE, spec.tolerance_rtol -> 1e-12
+
+# 3. Comparação de candidatos com semântica estrita de UNDEFINED_NAN
+melhor = is_better(cand_a=rmse_val, cand_b=None, direction=spec.direction)
+# True
+
+# 4. Agregação entre partições com controle de cobertura
+agg = aggregate_fold_metrics([rmse_val, rmse_val])
+# agg.mean -> 1.4142..., agg.coverage -> 1.0, agg.status -> MetricStatus.VALID
+```
+
+#### Ingestão e Esquemas Tabulares (`experimental_ml.data`)
+```python
+from experimental_ml.core import TaskType
+from experimental_ml.data import (
+    DatasetSchemaSpec,
+    ColumnSemanticType,
+    load_dataset,
+    get_column_array,
+    slice_bundle_by_observation_ids,
+)
+
+# 1. Declaração imutável do esquema estrutural
+schema = DatasetSchemaSpec(
+    target_col="y",
+    task_type=TaskType.REGRESSION,
+    group_col="parcela",
+    semantic_types={"y": ColumnSemanticType.NUMERIC_CONTINUOUS, "parcela": ColumnSemanticType.CATEGORICAL},
+)
+
+# 2. Ingestão com posse exclusiva e buffers imutáveis em nível C
+data_source = {"feat1": [1.5, 2.5, 3.5], "parcela": ["A", "A", "B"], "y": [10.0, 20.0, 30.0]}
+bundle = load_dataset(data_source, schema)
+# bundle.dataset_hash -> Digest canônico do conteúdo tabular
+# bundle.n_rows -> 3, bundle.n_features -> 1
+
+# 3. Tentativas de reativar escrita no buffer levantam ValueError
+arr = get_column_array(bundle, "feat1", copy=False)
+# arr.setflags(write=True) -> ValueError: cannot set WRITEABLE flag to True of this array
+
+# 4. Fatiamento imutável preservando ordenação solicitada
+sub_bundle = slice_bundle_by_observation_ids(bundle, ["obs_000002", "obs_000000"])
+# sub_bundle.observation_ids -> ("obs_000002", "obs_000000")
+```
+
 ---
 
 ## 7. Testes
@@ -266,26 +330,27 @@ O projeto utiliza o **Pytest** para automação de testes e garantia contínua d
 
 ### Execução da Suíte Completa de Testes
 
-Para executar toda a suíte de testes (testes de fumaça da instalação e testes unitários do núcleo):
+Para executar toda a suíte de testes (testes de fumaça da instalação e testes unitários):
 
 ```bash
 pytest tests/ -v
 ```
 
-Para executar isoladamente apenas os testes unitários do módulo `core`:
+Para executar isoladamente os módulos unitários:
 
 ```bash
 pytest tests/unit/test_core.py -v
+pytest tests/unit/test_metrics.py -v
+pytest tests/unit/test_data_schemas.py -v
 ```
 
 ### Comportamento Verificado
 
-A suíte valida deterministicamente 30 verificações:
-- Declaração de build backend, dependências e metadados em `pyproject.toml`.
-- Exposição correta de `__version__ = "0.1.0.dev0"` no pacote raiz.
-- Ausência de importações de módulos não escritos na CLI (`metrics`, `data`).
-- Resposta e códigos de saída da CLI para `--version` (código `0`), `--help` (código `0`), invocação vazia (código `0`) e flags inválidas (código `2`).
-- 18 critérios de aceitação do marco M1.2: imutabilidade de identificadores, integridade de enumerações, determinismo na derivação de sementes, regras canônicas de hashing do ADR-007, digest de datasets e imutabilidade de diagnósticos.
+A suíte valida deterministicamente **81 verificações** automatizadas com 100% de sucesso:
+- **12 testes de fumaça (`tests/test_smoke.py`):** Declaração de build backend, dependências e metadados em `pyproject.toml`, versão `0.1.0.dev0`, ausência de importações espúrias e códigos de saída da CLI (`--version`, `--help`, invocação vazia e flags inválidas com código `2`).
+- **18 testes de núcleo (`tests/unit/test_core.py`):** Imutabilidade e validação de identificadores, integridade de enumerações, determinismo da derivação de sementes (`SeedSequence`), regras canônicas de hashing do **ADR-007** (Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções) e construtores de diagnósticos `Finding`.
+- **22 testes de métricas (`tests/unit/test_metrics.py`):** Exatidão numérica das 15 métricas vetorizadas em `float64` sob tolerâncias rigorosas por família (`rtol`/`atol`), mitigação de overflow quadrático intermediário, tratamento determinístico de degenerescências via `MetricStatus.UNDEFINED_NAN` sem coerção silenciosa para zero (**ADR-005**) e ranqueamento lexicográfico.
+- **29 testes de datasets e esquemas (`tests/unit/test_data_schemas.py`):** Imutabilidade estrutural e física de arrays via buffers `bytes` imutáveis que recusam `setflags(write=True)`, integridade RFC 4180 com sniffer automático de delimitadores, rejeição de linhas irregulares (*ragged rows*), unicidade e geração de `ObservationId`, hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários seguros de fatiamento.
 
 ---
 
@@ -297,8 +362,9 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 | :--- | :--- | :---: |
 | **M1.1** | **Configuração e CLI Base:** `pyproject.toml`, layout `src/experimental_ml/`, comando `expml` (`--version`, `--help`) e suíte de fumaça. | **Concluído e Aceito** |
 | **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, constantes/enums, gerador `derive_seeds` (`SeedSequence`), funções `config_hash`/`dataset_hash` (ADR-007) e diagnósticos `Finding`. | **Concluído e Aceito** |
-| **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas. | Próximo Marco |
-| **M2** | **Ingestão e Particionamento:** Ingestão imutável (`data`), perfilamento diagnóstico (`profile_dataset`), plano de preparação e `PartitionPlan` compartilhado (`validation`). | Planejado |
+| **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas. | **Concluído e Aceito** |
+| **M1.4** | **Datasets & Schemas:** Ingestão tabular imutável (`load_dataset`, `DatasetBundle`), buffers `bytes` imutáveis na C-API recusando reativação de escrita, parsing RFC 4180 com sniffer automático, tipagem semântica (`DatasetSchemaSpec`, `ColumnSemanticType`) e hashes tripartites. | **Concluído e Aceito** |
+| **M2** | **Diagnóstico e Particionamento:** Triagem estatística (`profile_dataset` separando problemas confirmados vs. alertas heurísticos), plano de preparação (`create_preparation_plan`), saneamento (`sanitize_dataset`) e `PartitionPlan` compartilhado (`validation`). | **Próximo Marco** |
 | **M3** | **Cenários de Features:** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários fixos e seleção dinâmica ajustada no treino de cada partição (`features`). | Planejado |
 | **M4** | **Modelos e Tuning:** Registro de modelos (`models`), pré-processamento em duas camadas e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
 | **M5** | **Execução Matricial:** Orquestração da matriz $M \times C \times F$ (`orchestration`), tolerância a falhas, persistência e retomada (*Checkpoint & Resume*). | Planejado |
@@ -320,6 +386,8 @@ Para consultar detalhes de engenharia, requisitos, arquitetura e fundamentação
 | [`REFERENCIAS_E_FUNDAMENTACAO.md`](REFERENCIAS_E_FUNDAMENTACAO.md) | **Fundamentação Teórico-Técnica e Bibliografia:** Justificativas científicas e normativas para as decisões de projeto (ADRs), com 25 referências. |
 | [`.specs/features/m1-1-setup-cli-smoke/`](.specs/features/m1-1-setup-cli-smoke/) | **Artefatos da Entrega M1.1:** Especificação (`SPEC.md`), roteiro de aceitação (`ACCEPTANCE.md`) e resultados (`RESULTS.md`). |
 | [`.specs/features/m1-2-core/`](.specs/features/m1-2-core/) | **Artefatos da Entrega M1.2:** Especificação (`SPEC.md`), roteiro de aceitação (`ACCEPTANCE.md`), resultados (`RESULTS.md`) e verificação independente (`verification.md`). |
+| [`.specs/features/m1-3-metrics/`](.specs/features/m1-3-metrics/) | **Artefatos da Entrega M1.3:** Especificação (`SPEC.md`), roteiro de aceitação (`ACCEPTANCE.md`), resultados (`RESULTS.md`) e verificação independente (`verification.md`). |
+| [`.specs/features/m1-4-datasets-schemas/`](.specs/features/m1-4-datasets-schemas/) | **Artefatos da Entrega M1.4:** Especificação (`SPEC.md`), roteiro de aceitação (`ACCEPTANCE.md`), resultados (`RESULTS.md`) e verificação independente (`verification.md`). |
 
 ---
 
