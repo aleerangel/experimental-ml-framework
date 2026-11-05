@@ -16,7 +16,7 @@
 | **Testes Unitários Automatizados** | 29 testes em `tests/unit/test_data_schemas.py` | 29 testes aprovados (100%) | **APROVADO** |
 | **Testes de Regressão Geral** | 81 testes em `pytest tests/` | 81 testes aprovados (100%) | **APROVADO** |
 | **Verificação Independente TLC** | `validate_verification.py` e auditoria independente | Aprovado com veredito `PASS` (0 findings) | **APROVADO** |
-| **Homologação Manual** | Roteiro `ACCEPTANCE.md` (8 capacidades) | Roteiro pronto e verificado; aguardando homologação do usuário | **PENDENTE** |
+| **Homologação Manual** | Roteiro `ACCEPTANCE.md` (8 capacidades) | Executada e homologada formalmente em 2026-11-04 | **APROVADO** |
 
 ---
 
@@ -121,5 +121,5 @@ tests/unit/test_data_schemas.py::test_slice_bundle_by_observation_ids_ordering_a
 
 ## 5. Estado Atual da Homologação Manual
 
-- **Situação**: **PENDENTE** (Aguardando homologação manual pelo usuário).
-- **Próximos Passos**: Submissão do roteiro `ACCEPTANCE.md` para execução e validação formal.
+- **Situação**: **APROVADO** (Homologação manual formalmente aprovada pelo pesquisador/usuário em 2026-11-04 - user: "aprovado").
+- **Próximos Passos**: Marco M1.4 formalmente concluído; disponibilização para a Fase 2 (M2 - Partições, Sanitização e Validação).

@@ -21,13 +21,17 @@
 ## Handoff
 
 - **Feature**: m1-4-datasets-schemas (Marco M1.4 — Datasets & Schemas)
-- **Phase / Task**: Especificação Aprovada (Transição para Design)
+- **Phase / Task**: Concluído e Homologado (Fase 1 100% Concluída)
 - **Completed**:
-  - Marcos M1.1, M1.2 e M1.3 concluídos e homologados.
-  - Especificação formal do Marco M1.4 elaborada e refinada (`spec.md` e `SPEC.md`) com 29 requisitos rastreáveis em notação EARS (`DATA-01` a `DATA-29`).
-  - Validação determinística de especificação executada com 0 erros e 0 alertas (`validate_spec.py m1-4-datasets-schemas --strict`).
-  - Especificação formalmente aprovada pelo usuário em 04/11/2026: `**Approved**: 2026-11-04 - user: "aprovado. commita e espera"`.
-- **In-progress**: Transição para a fase Design do Marco M1.4
-- **Next step**: Elaborar o documento de Design arquitetural (`design.md`) do Marco M1.4
+  - Marcos M1.1, M1.2, M1.3 e M1.4 concluídos e formalmente homologados.
+  - Marco M1.4 implementado com 100% de conformidade: módulo `experimental_ml.data` (`schema`, `types`, `parsing`, `validation`, `loader`, `query`, `__init__`).
+  - 29 requisitos (`DATA-01` a `DATA-29`) implementados com testes unitários em `tests/unit/test_data_schemas.py` (29/29 pass).
+  - Suíte completa do repositório: 81 testes aprovados (100% de aprovação).
+  - Auditoria independente pelo subagente verificador (`author != verifier`) aprovada com veredito `PASS` (0 findings).
+  - Portões TLC validados: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
+  - Homologação manual executada e formalmente aprovada pelo usuário em 2026-11-04 (`user: "aprovado"`).
+  - Fase 1 (Setup e Fundações Transversais) integralmente concluída com sucesso (M1.1, M1.2, M1.3 e M1.4).
+- **In-progress**: Encerramento documental do Marco M1.4
+- **Next step**: Integração da branch `feat/m1-4-datasets-schemas` e preparação da Fase 2 (M2 — Partições, Sanitização e Validação)
 - **Blockers**: none
 - **Branch**: feat/m1-4-datasets-schemas

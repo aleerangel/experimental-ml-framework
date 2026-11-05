@@ -338,4 +338,4 @@ The feature's live state, written as it happens.
 
 **Settled mid-build:** none
 **Dispatched:** none
-**Walked:** pending
+**Walked:** ACCEPTANCE.md (roteiro de homologação manual concluído com sucesso e aprovado pelo usuário)

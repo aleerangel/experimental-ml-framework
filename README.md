@@ -39,10 +39,12 @@ O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MV
   Implementação, testes automatizados (18/18) e homologação manual aprovados. Fornece identificadores de domínio imutáveis, enumerações, derivação determinística de sementes (`numpy.random.SeedSequence`), serialização canônica e hashing (`config_hash` e `dataset_hash` conforme ADR-007), além de diagnósticos estruturados (`Finding`) e exceções formais.
 - **Marco M1.3 (`metrics`): CONCLUÍDO E ACEITO.**  
   Implementação, testes automatizados (22/22) e homologação manual aprovados. Disponibiliza catálogo centralizado `METRICS_CATALOG` com as 15 métricas canônicas, funções puramente vetorizadas em dupla precisão `float64`, mitigação de overflow quadrático intermediário, tratamento determinístico de casos degenerados via `MetricStatus.UNDEFINED_NAN` sem coerção silenciosa para zero (ADR-005), e ranqueamento lexicográfico com precedência estrita de cobertura.
-- **Marco M1.4 (`datasets`): PRÓXIMO MARCO.**  
-  Ingestão tabular, validação estrutural de esquemas, imutabilidade em memória e hashing estrutural (`dataset_hash`).
-- **Marcos M2 a M7: PLANEJADOS.**  
-  Ingestão de dados, particionamento, execução matricial, comparação estatística e geração de relatórios estão especificados e serão implementados nos marcos subsequentes.
+- **Marco M1.4 (`datasets & schemas`): CONCLUÍDO E ACEITO.**  
+  Implementação, testes automatizados (29/29) e homologação manual aprovados. Disponibiliza a camada de ingestão tabular imutável (`DatasetBundle`), especificação declarativa de papéis e tipos semânticos (`DatasetSchemaSpec`, `ColumnSemanticType`), isolamento de memória respaldado por buffers `bytes` imutáveis recusando `setflags(write=True)`, parsing estrito RFC 4180 com sniffer automático e detecção de *ragged rows*, geração/validação de `ObservationId`, cálculo de hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários somente-leitura de consulta e fatiamento ordenado.
+- **Marco M2 (`data` + `validation` + CLI `data`/`partition`): PRÓXIMO MARCO.**  
+  Triagem estatística (`profile_dataset` separando problemas confirmados vs. alertas heurísticos), plano de preparação (`create_preparation_plan`), saneamento (`sanitize_dataset`) e geração/validação matemática do `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`).
+- **Marcos M3 a M7: PLANEJADOS.**  
+  Seleção dinâmica de atributos, execução matricial, comparação estatística e geração de relatórios estão especificados e serão implementados nos marcos subsequentes.
 
 ---
 
@@ -70,7 +72,15 @@ Na versão atual da branch `main`, as seguintes capacidades estão implementadas
   - **Funções de Regressão e Alinhamento:** Implementação vetorizada em `float64` de `mae`, `rmse`, `mbe` (preservando o viés assinado e comparando por magnitude absoluta), `r2`, `rmse_rel_pct`, `mape`, `pearson` e `kta` (com suporte a centralização $HKH$).
   - **Funções de Classificação:** Métricas discretas `accuracy`, `balanced_accuracy`, `precision`, `recall` e `f1` (com avaliação pelo próprio denominador $2TP + FP + FN$), além de probabilísticas `roc_auc` (empates exatos via postos médios e OVR) e `log_loss` (com validação estrita de distribuições e clipping $\epsilon = 10^{-15}$).
   - **Comparação, Agregação e Ranqueamento (ADR-005):** Comparador `is_better` compatível com `compare_by_abs`, agregador entre dobras `aggregate_fold_metrics` gerando `VALID`, `PARTIAL_COVERAGE` e `UNDEFINED_NAN`, e ranqueador lexicográfico `rank_configurations` com precedência estrita de cobertura.
-- **Suíte de Testes Automatizados:** 52 testes automatizados (12 testes de fumaça em `tests/test_smoke.py`, 18 testes unitários em `tests/unit/test_core.py` e 22 testes unitários em `tests/unit/test_metrics.py`), com 100% de aprovação via `pytest`.
+- **Camada de Ingestão e Esquemas Tabulares (`experimental_ml.data` — Nível 1):**
+  - **Especificação Estrutural e Tipagem Semântica (`DatasetSchemaSpec`):** Estrutura imutável com validação de disjunção de papéis de colunas (`target_col`, `group_col`, `observation_id_col`, `time_col`, `ignore_cols`), normalização Unicode NFC e bloqueio de vazamento da Onda 2.
+  - **Ingestão Tabular com Posse Exclusiva (`load_dataset`):** Suporte a arquivos tabulares (`.csv`, `.txt`, `.tsv`) e fontes em memória (`dict`, 2D `ndarray`, sequências de registros e `DataFrame` via duck-typing), sem dependência obrigatória de `pandas`.
+  - **Imutabilidade Física de Buffers:** Colunas numéricas e booleanas respaldadas por buffers `bytes` imutáveis na camada C do NumPy, recusando tentativas de reativação de escrita (`arr.setflags(write=True)` levanta `ValueError`). Colunas `object` restritas a escalares imutáveis com `writeable=False`.
+  - **Parsing Estrito e Detecção Segura de Delimitadores:** Suporte a `,`, `;`, `\t`, `|` e múltiplos espaços com aspas RFC 4180, com detecção automática consistente em 100 linhas e falha explícita sob ambiguidade ou linhas irregulares (*ragged rows*).
+  - **Identificadores de Observação (`ObservationId`):** Atribuição determinística sequencial `obs_000000` na ausência de coluna de ID e validação estrita de não-nulidade e unicidade quando informada na fonte.
+  - **Semântica Tripartite de Hashes:** `dataset_hash` canônico do conteúdo em memória invariante a quebras de linha (`\r\n` vs `\n`), `raw_source_hash` para proveniência do arquivo em disco e `schema_hash` para a configuração estrutural.
+  - **Utilitários de Consulta:** `get_column_array` (view somente-leitura ou cópia mutável independente) e `slice_bundle_by_observation_ids` preservando a ordem solicitada pelo chamador com recálculo de hash.
+- **Suíte de Testes Automatizados:** 81 testes automatizados (12 testes de fumaça em `tests/test_smoke.py`, 18 testes unitários em `tests/unit/test_core.py`, 22 testes unitários em `tests/unit/test_metrics.py` e 29 testes unitários em `tests/unit/test_data_schemas.py`), com 100% de aprovação via `pytest`.
 
 ---
 
@@ -93,7 +103,8 @@ experimental-ml-framework/
 │   └── features/
 │       ├── m1-1-setup-cli-smoke/    # Artefatos da entrega M1.1 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 │       ├── m1-2-core/               # Artefatos da entrega M1.2 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
-│       └── m1-3-metrics/            # Artefatos da entrega M1.3 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
+│       ├── m1-3-metrics/            # Artefatos da entrega M1.3 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
+│       └── m1-4-datasets-schemas/   # Artefatos da entrega M1.4 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 ├── engenharia_software/             # Documentação técnica central de engenharia
 │   ├── ESPECIFICACAO_REQUISITOS.md  # Especificação formal de requisitos (SRS v2.0)
 │   ├── ARQUITETURA_E_CONTRATOS.md   # Arquitetura em camadas, contratos e modelo de dados

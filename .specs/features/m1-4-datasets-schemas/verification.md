@@ -1,7 +1,7 @@
 # m1-4-datasets-schemas verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at 6fbe435
+**Proofs**: `proofs.md` at 12073c7
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks
