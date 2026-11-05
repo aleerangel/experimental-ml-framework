@@ -43,6 +43,8 @@ from experimental_ml.core import (
     config_hash,
     dataset_hash,
     derive_seeds,
+    is_missing_scalar,
+    is_nan_scalar,
     make_finding,
     make_warning,
     spawn_child_seeds,
@@ -429,3 +431,106 @@ def test_core_exceptions_and_finding_immutability() -> None:
 
     with pytest.raises((TypeError, AttributeError)):
         finding.severity = FindingSeverity.HEURISTIC_WARNING  # type: ignore[misc]
+
+
+# =============================================================================
+# HARD-01, HARD-02, HARD-03, HARD-05: Foundation Hardening Core Tests
+# =============================================================================
+def test_hard_01_dataset_hash_column_boundary_framing_and_determinism() -> None:
+    """Validate that dataset_hash eliminates concatenation ambiguity across column names (HARD-01)."""
+    # AUD-F-004 reproduction case: "ab" + "c" vs "a" + "bc"
+    h1 = dataset_hash({"ab": [1.0], "c": [2.0]})
+    h2 = dataset_hash({"a": [1.0], "bc": [2.0]})
+    assert h1 != h2
+
+    # Determinism across multiple invocations
+    assert dataset_hash({"ab": [1.0], "c": [2.0]}) == h1
+    assert dataset_hash({"a": [1.0], "bc": [2.0]}) == h2
+
+    # Consistency across supported tabular in-memory forms (Mapping vs Sequence[Mapping])
+    records = [{"ab": 1.0, "c": 2.0}]
+    assert dataset_hash(records) == h1
+
+    # NFC normalization on column names
+    col_nfc = "ação"
+    col_nfd = unicodedata.normalize("NFD", col_nfc)
+    assert dataset_hash({col_nfc: [1.0]}) == dataset_hash({col_nfd: [1.0]})
+
+
+def test_hard_02_dataset_hash_object_scalar_type_tags_and_missing() -> None:
+    """Validate that dataset_hash differentiates scalar types and serializes missingness uniformly (HARD-02)."""
+    # Distinguish scalar types with identical string representations
+    h_str = dataset_hash({"x": ["1"]})
+    h_int = dataset_hash({"x": [1]})
+    h_float = dataset_hash({"x": [1.0]})
+    h_bool = dataset_hash({"x": [True]})
+    h_bytes = dataset_hash({"x": [b"1"]})
+
+    assert len({h_str, h_int, h_float, h_bool, h_bytes}) == 5
+
+    # Missing values representation in object columns
+    h_none = dataset_hash({"x": np.array([None], dtype=object)})
+    h_nan_float = dataset_hash({"x": np.array([float("nan")], dtype=object)})
+    h_nan_np = dataset_hash({"x": np.array([np.float32(np.nan)], dtype=object)})
+    assert h_none == h_nan_float == h_nan_np
+    assert h_none != h_str
+
+
+def test_hard_03_dataset_hash_observation_ids_and_architecture_direction() -> None:
+    """Validate observation_ids inclusion in dataset_hash without coupling core to data (HARD-03)."""
+    data = {"x": [10.0, 20.0], "y": [1.0, 2.0]}
+    h_no_obs = dataset_hash(data)
+    h_obs1 = dataset_hash(data, observation_ids=["obs_000000", "obs_000001"])
+    h_obs2 = dataset_hash(data, observation_ids=["obs_000001", "obs_000000"])
+
+    assert h_no_obs != h_obs1
+    assert h_obs1 != h_obs2
+
+    # Verification of architectural direction: core must not import DatasetBundle or experimental_ml.data
+    import sys
+    assert "experimental_ml.data" not in sys.modules or "DatasetBundle" not in dir(sys.modules.get("experimental_ml.core"))
+
+    # Invalid observation_ids type validation
+    with pytest.raises(ConfigurationError):
+        dataset_hash(data, observation_ids="obs_000000")  # bare string
+
+    with pytest.raises(ConfigurationError):
+        dataset_hash(data, observation_ids=[123, 456])  # non-string items
+
+
+def test_hard_05_is_nan_and_missing_scalar_centralized() -> None:
+    """Validate centralized is_nan_scalar and is_missing_scalar behavior (HARD-05)."""
+    # NaN floating types
+    for nan_val in (
+        float("nan"),
+        np.nan,
+        np.float16(np.nan),
+        np.float32(np.nan),
+        np.float64(np.nan),
+        np.longdouble(np.nan),
+    ):
+        assert is_nan_scalar(nan_val) is True
+        assert is_missing_scalar(nan_val) is True
+
+    # None is missing but not NaN
+    assert is_nan_scalar(None) is False
+    assert is_missing_scalar(None) is True
+
+    # Finite numbers, booleans and other types
+    for non_nan in (
+        0,
+        1,
+        0.0,
+        -0.0,
+        float("inf"),
+        float("-inf"),
+        True,
+        False,
+        np.bool_(True),
+        np.bool_(False),
+        "nan",
+        b"nan",
+        [np.nan],
+    ):
+        assert is_nan_scalar(non_nan) is False
+        assert is_missing_scalar(non_nan) is False

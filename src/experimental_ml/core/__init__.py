@@ -25,7 +25,12 @@ from experimental_ml.core.findings import (
     make_finding,
     make_warning,
 )
-from experimental_ml.core.hashing import config_hash, dataset_hash
+from experimental_ml.core.hashing import (
+    config_hash,
+    dataset_hash,
+    is_missing_scalar,
+    is_nan_scalar,
+)
 from experimental_ml.core.seeds import derive_seeds, spawn_child_seeds
 from experimental_ml.core.types import (
     ArtifactId,
@@ -67,8 +72,10 @@ __all__ = [
     # Deterministic Seed Derivation
     "derive_seeds",
     "spawn_child_seeds",
-    # Canonical Hashing
+    # Canonical Hashing & Scalar Missingness
     "config_hash",
     "dataset_hash",
+    "is_nan_scalar",
+    "is_missing_scalar",
 ]
 

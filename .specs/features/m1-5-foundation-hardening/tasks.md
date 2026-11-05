@@ -9,7 +9,8 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/m1-5-foundation-hardening/design.md`
-**Status**: Draft
+**Status**: In Progress
+**Approved**: 2026-11-05 - user: "cria a nova branch e pode avancar"
 **Build**: none - Python interpreted package without ahead-of-time build step; quality verified via pytest gates
 **Run unit**: .venv/bin/pytest tests/ -v
 

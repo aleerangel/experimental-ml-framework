@@ -9,13 +9,20 @@ from __future__ import annotations
 import math
 import os
 from pathlib import Path
+import struct
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 import unicodedata
 import numpy as np
 
+from experimental_ml.core.enums import StrEnum
 from experimental_ml.core.findings import DataIntegrityError
-from experimental_ml.core.hashing import config_hash, dataset_hash as core_dataset_hash
+from experimental_ml.core.hashing import (
+    config_hash,
+    dataset_hash as core_dataset_hash,
+    is_missing_scalar,
+)
+from experimental_ml.core.types import DomainIdentifier
 from experimental_ml.data.parsing import detect_delimiter, parse_tabular_text
 from experimental_ml.data.schema import DatasetSchemaSpec
 from experimental_ml.data.types import ColumnDescriptor, DatasetBundle
@@ -66,7 +73,7 @@ def _coerce_column_values(values: Sequence[Any]) -> tuple[np.ndarray, str, int]:
     non_null_vals: list[Any] = []
 
     for v in values:
-        if v is None or (isinstance(v, float) and math.isnan(v)):
+        if is_missing_scalar(v):
             null_count += 1
         else:
             non_null_vals.append(v)
@@ -93,7 +100,7 @@ def _coerce_column_values(values: Sequence[Any]) -> tuple[np.ndarray, str, int]:
             # Nullable boolean stored as object array
             arr = np.empty(n, dtype=object)
             for i, v in enumerate(values):
-                if v is None or (isinstance(v, float) and math.isnan(v)):
+                if is_missing_scalar(v):
                     arr[i] = None
                 elif isinstance(v, (bool, np.bool_)):
                     arr[i] = bool(v)
@@ -131,34 +138,55 @@ def _coerce_column_values(values: Sequence[Any]) -> tuple[np.ndarray, str, int]:
 
     if all_numeric:
         if all_int and null_count == 0:
-            int_vals = [int(v) for v in values]
+            int_vals = []
+            for idx, v in enumerate(values):
+                val_int = int(v)
+                try:
+                    struct.pack("<q", val_int)
+                except (OverflowError, struct.error) as err:
+                    raise DataIntegrityError(
+                        f"Integer value {val_int} at index {idx} exceeds signed 64-bit integer limits: {err}"
+                    ) from err
+                int_vals.append(val_int)
             temp = np.array(int_vals, dtype=np.int64)
             immutable = np.frombuffer(temp.tobytes(), dtype=np.int64)
             return immutable, "int64", 0
         else:
             # Float64 (or integer with nulls represented as np.nan)
             float_vals = [
-                np.nan if (v is None or (isinstance(v, float) and math.isnan(v))) else float(v)
+                np.nan if is_missing_scalar(v) else float(v)
                 for v in values
             ]
             temp = np.array(float_vals, dtype=np.float64)
             immutable = np.frombuffer(temp.tobytes(), dtype=np.float64)
             return immutable, "float64", null_count
 
-    # Object / String column: validate no mutable objects (DATA-10)
+    # Object column: strict scalar whitelist (HARD-09, HARD-10, HARD-11)
     arr = np.empty(n, dtype=object)
     for i, v in enumerate(values):
-        if v is None or (isinstance(v, float) and math.isnan(v)):
+        if is_missing_scalar(v):
             arr[i] = None
-        elif isinstance(v, (list, dict, set, bytearray)):
-            raise DataIntegrityError(
-                f"Column contains mutable object of type '{type(v).__name__}' at index {i}"
-            )
-        elif isinstance(v, str):
-            arr[i] = unicodedata.normalize("NFC", v)
+        elif type(v) is str or isinstance(v, (np.str_, DomainIdentifier, StrEnum)):
+            arr[i] = unicodedata.normalize("NFC", str(v))
+        elif type(v) is bytes or isinstance(v, np.bytes_):
+            arr[i] = bytes(v)
+        elif type(v) is bool or isinstance(v, np.bool_):
+            arr[i] = bool(v)
+        elif type(v) is int or isinstance(v, np.integer):
+            val_int = int(v)
+            try:
+                struct.pack("<q", val_int)
+            except (OverflowError, struct.error) as err:
+                raise DataIntegrityError(
+                    f"Integer value at index {i} exceeds signed 64-bit integer limits: {err}"
+                ) from err
+            arr[i] = val_int
+        elif type(v) is float or isinstance(v, np.floating):
+            arr[i] = float(v)
         else:
-            # Immutable scalar (int, float, bool, np.generic)
-            arr[i] = v
+            raise DataIntegrityError(
+                f"Column contains non-whitelisted or mutable object of type '{type(v).__name__}' at index {i}"
+            )
 
     arr.flags.writeable = False
     return arr, "object", null_count
@@ -319,8 +347,12 @@ def load_dataset(
     else:
         raw_source_hash = core_dataset_hash(source, schema)
 
-    # Compute canonical in-memory dataset_hash (DATA-13)
-    dataset_hash_val = core_dataset_hash(immutable_columns, schema)
+    # Compute canonical in-memory dataset_hash (DATA-13, HARD-04)
+    dataset_hash_val = core_dataset_hash(
+        immutable_columns,
+        schema,
+        observation_ids=observation_ids,
+    )
     schema_hash_val = config_hash(schema)
 
     return DatasetBundle(

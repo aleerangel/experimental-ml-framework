@@ -783,5 +783,169 @@ def test_slice_bundle_by_observation_ids_ordering_and_hash() -> None:
         slice_bundle_by_observation_ids(bundle, (ObservationId("unknown_id"),))
 
 
+# ==============================================================================
+# Phase 2 Hardening: HARD-04, HARD-06, HARD-07, HARD-08, HARD-09, HARD-10, HARD-11
+# ==============================================================================
+
+
+def test_hard_04_bundle_dataset_hash_delegates_observation_ids() -> None:
+    """Validate that DatasetBundle.dataset_hash matches core.dataset_hash with observation_ids (HARD-04)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    b_dup = load_dataset({"x": [1.0, 1.0], "y": [2.0, 2.0]}, schema)
+    s0 = slice_bundle_by_observation_ids(b_dup, ["obs_000000"])
+    s1 = slice_bundle_by_observation_ids(b_dup, ["obs_000001"])
+
+    # Rows have identical values, but distinct observation_ids produce distinct hashes
+    assert s0.dataset_hash != s1.dataset_hash
+
+    # Equivalence contract: bundle.dataset_hash == core.dataset_hash(bundle.columns, bundle.schema, observation_ids=bundle.observation_ids)
+    from experimental_ml.core import dataset_hash as core_dataset_hash
+    assert s0.dataset_hash == core_dataset_hash(s0.columns, s0.schema, observation_ids=s0.observation_ids)
+    assert s1.dataset_hash == core_dataset_hash(s1.columns, s1.schema, observation_ids=s1.observation_ids)
+
+
+def test_hard_06_numpy_floating_nan_counted_across_data_layer() -> None:
+    """Validate that np.float16, np.float32, and np.float64 NaNs are counted accurately in n_missing (HARD-06)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+
+    # 1. Float32 array with NaN
+    arr_f32 = np.array([[1.0, np.nan], [2.0, 3.0]], dtype=np.float32)
+    b_f32 = load_dataset(arr_f32, schema, column_names=("x", "y"))
+    assert b_f32.descriptors["y"].n_missing == 1
+
+    # 2. In-memory dict with np.float16(np.nan)
+    dict_f16 = {"x": [1.0, 2.0], "y": [10.0, np.float16(np.nan)]}
+    b_f16 = load_dataset(dict_f16, schema)
+    assert b_f16.descriptors["y"].n_missing == 1
+
+    # 3. Slicing recount with np.floating NaN
+    s = slice_bundle_by_observation_ids(b_f16, ["obs_000001"])
+    assert s.descriptors["y"].n_missing == 1
+
+
+def test_hard_07_slice_bundle_preserves_observation_id_instances() -> None:
+    """Validate that slice_bundle_by_observation_ids returns ObservationId instances in requested order (HARD-07)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    data = {"y": [1.0, 2.0, 3.0], "x": [10.0, 20.0, 30.0]}
+    bundle = load_dataset(data, schema)
+
+    # Calling with sequence of plain strings
+    req_str_order = ["obs_000002", "obs_000000"]
+    sliced = slice_bundle_by_observation_ids(bundle, req_str_order)
+
+    assert isinstance(sliced.observation_ids, tuple)
+    assert len(sliced.observation_ids) == 2
+    assert isinstance(sliced.observation_ids[0], ObservationId)
+    assert isinstance(sliced.observation_ids[1], ObservationId)
+    assert sliced.observation_ids[0] == ObservationId("obs_000002")
+    assert sliced.observation_ids[1] == ObservationId("obs_000000")
+
+
+def test_hard_08_slice_bundle_rejects_invalid_observation_id_inputs() -> None:
+    """Validate that slice_bundle_by_observation_ids raises DataIntegrityError on malformed inputs (HARD-08)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    data = {"y": [1.0, 2.0], "x": [10.0, 20.0]}
+    bundle = load_dataset(data, schema)
+
+    # 1. Bare string or bytes
+    with pytest.raises(DataIntegrityError, match="non-string Sequence"):
+        slice_bundle_by_observation_ids(bundle, "obs_000000")  # type: ignore[arg-type]
+    with pytest.raises(DataIntegrityError, match="non-string Sequence"):
+        slice_bundle_by_observation_ids(bundle, b"obs_000000")  # type: ignore[arg-type]
+
+    # 2. Non-str/ObservationId element (int, None)
+    with pytest.raises(DataIntegrityError, match="Invalid observation_id element type"):
+        slice_bundle_by_observation_ids(bundle, [123, 456])  # type: ignore[list-item]
+    with pytest.raises(DataIntegrityError, match="Invalid observation_id element type"):
+        slice_bundle_by_observation_ids(bundle, [None])  # type: ignore[list-item]
+
+    # 3. Invalid ObservationId string format (empty or whitespace)
+    with pytest.raises(DataIntegrityError, match="Invalid ObservationId string format"):
+        slice_bundle_by_observation_ids(bundle, [""])
+
+
+def test_hard_09_object_column_missingness_and_semantic_preservation() -> None:
+    """Validate unified missingness in object columns and preservation of semantic types (HARD-09)."""
+    from experimental_ml.core.enums import StrEnum
+
+    class Category(StrEnum):
+        A = "CAT_A"
+        B = "CAT_B"
+
+    schema = DatasetSchemaSpec(
+        target_col="y",
+        task_type=TaskType.REGRESSION,
+        column_semantic_types={"cat": ColumnSemanticType.CATEGORICAL},
+    )
+
+    # Mix of None, float NaN, np.float32(np.nan), StrEnum and DomainIdentifier
+    data = {
+        "y": [1.0, 2.0, 3.0, 4.0],
+        "cat": [Category.A, np.float32(np.nan), None, float("nan")],
+    }
+    bundle = load_dataset(data, schema)
+
+    cat_arr = bundle.columns["cat"]
+    assert cat_arr[0] == "CAT_A"
+    assert cat_arr[1] is None
+    assert cat_arr[2] is None
+    assert cat_arr[3] is None
+    assert bundle.descriptors["cat"].n_missing == 3
+    assert bundle.descriptors["cat"].semantic_type == ColumnSemanticType.CATEGORICAL
+    assert bundle.descriptors["cat"].is_semantic_declared is True
+
+
+def test_hard_10_object_column_rejects_non_whitelisted_types() -> None:
+    """Validate that load_dataset rejects mutable containers, objects, subclasses and complex numbers (HARD-10)."""
+    import types
+    from decimal import Decimal
+    from fractions import Fraction
+
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+
+    # 1. SimpleNamespace
+    with pytest.raises(DataIntegrityError, match="non-whitelisted or mutable object"):
+        load_dataset({"y": [1.0, 2.0], "x": [types.SimpleNamespace(a=1), types.SimpleNamespace(a=2)]}, schema)
+
+    # 2. Mutable container (list, dict)
+    with pytest.raises(DataIntegrityError, match="non-whitelisted or mutable object"):
+        load_dataset({"y": [1.0, 2.0], "x": [[1, 2], [3, 4]]}, schema)
+
+    # 3. Custom subclass with __dict__
+    class MutableStr(str):
+        pass
+
+    with pytest.raises(DataIntegrityError, match="non-whitelisted or mutable object"):
+        load_dataset({"y": [1.0, 2.0], "x": [MutableStr("val1"), MutableStr("val2")]}, schema)
+
+    # 4. Special numeric types (complex, Decimal, Fraction)
+    with pytest.raises(DataIntegrityError, match="non-whitelisted or mutable object"):
+        load_dataset({"y": [1.0, 2.0], "x": [1 + 2j, 3 + 4j]}, schema)
+    with pytest.raises(DataIntegrityError, match="non-whitelisted or mutable object"):
+        load_dataset({"y": [1.0, 2.0], "x": [Decimal("1.23"), Decimal("4.56")]}, schema)
+    with pytest.raises(DataIntegrityError, match="non-whitelisted or mutable object"):
+        load_dataset({"y": [1.0, 2.0], "x": [Fraction(1, 2), Fraction(3, 4)]}, schema)
+
+
+def test_hard_11_int64_overflow_raises_data_integrity_error() -> None:
+    """Validate that integers outside signed 64-bit boundaries raise DataIntegrityError (HARD-11)."""
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+
+    # Exact boundary values must pass: -2**63 and 2**63 - 1
+    min_int64 = -9223372036854775808
+    max_int64 = 9223372036854775807
+    bundle_boundary = load_dataset({"y": [1.0, 2.0], "x": [min_int64, max_int64]}, schema)
+    assert bundle_boundary.columns["x"][0] == min_int64
+    assert bundle_boundary.columns["x"][1] == max_int64
+
+    # Values exceeding 64-bit range must raise DataIntegrityError
+    with pytest.raises(DataIntegrityError, match="exceeds signed 64-bit integer limits"):
+        load_dataset({"y": [1.0, 2.0], "x": [2**63, 10]}, schema)
+
+    with pytest.raises(DataIntegrityError, match="exceeds signed 64-bit integer limits"):
+        load_dataset({"y": [1.0, 2.0], "x": [-(2**63) - 1, 10]}, schema)
+
+
+
 
 
