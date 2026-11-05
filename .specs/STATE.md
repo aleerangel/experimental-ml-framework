@@ -20,16 +20,18 @@
 
 ## Handoff
 
-- **Feature**: m1-3-metrics (Marco M1.3 — Metrics)
-- **Phase / Task**: Concluído e Formalmente Homologado (`APROVADO`)
+- **Feature**: m1-4-datasets-schemas (Marco M1.4 — Datasets & Schemas)
+- **Phase / Task**: Concluído e Homologado (Fase 1 100% Concluída)
 - **Completed**:
-  - `PROCESSO_DE_ACEITE_DE_MARCOS.md` estabelecido em `engenharia_software/`.
-  - M1.1 (`m1-1-setup-cli-smoke`) e M1.2 (`core`) implementados, verificados e formalmente aceitos (`APROVADO`).
-  - M1.3 (`metrics`) especificado, implementado (T1 a T7), testado (22 checks unitários, 52 testes no total) e verificado (`proofs.md`, `verification.md` PASS).
-  - Roteiro de aceitação do consumidor (`ACCEPTANCE.md`) executado com 100% de sucesso.
-  - Homologação manual do usuário formalmente concedida em 03/11/2026: *"O M1.3 — Metrics foi formalmente aprovado na homologação manual."* Registrada em `RESULTS.md` e `ACCEPTANCE.md`.
-  - Encerramento documental do M1.3 finalizado e sincronizado com `README.md` e `ETAPA_ATUAL_ENGENHARIA.md`.
-- **In-progress**: Transição para o próximo marco do roadmap
-- **Next step**: Iniciar o Marco M1.4 — Datasets & Schemas
+  - Marcos M1.1, M1.2, M1.3 e M1.4 concluídos e formalmente homologados.
+  - Marco M1.4 implementado com 100% de conformidade: módulo `experimental_ml.data` (`schema`, `types`, `parsing`, `validation`, `loader`, `query`, `__init__`).
+  - 29 requisitos (`DATA-01` a `DATA-29`) implementados com testes unitários em `tests/unit/test_data_schemas.py` (29/29 pass).
+  - Suíte completa do repositório: 81 testes aprovados (100% de aprovação).
+  - Auditoria independente pelo subagente verificador (`author != verifier`) aprovada com veredito `PASS` (0 findings).
+  - Portões TLC validados: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
+  - Homologação manual executada e formalmente aprovada pelo usuário em 2026-11-04 (`user: "aprovado"`).
+  - Fase 1 (Setup e Fundações Transversais) integralmente concluída com sucesso (M1.1, M1.2, M1.3 e M1.4).
+- **In-progress**: Encerramento documental do Marco M1.4
+- **Next step**: Integração da branch `feat/m1-4-datasets-schemas` e preparação da Fase 2 (M2 — Partições, Sanitização e Validação)
 - **Blockers**: none
-- **Branch**: feat/m1-3-metrics (pronto para merge em main conforme governança do projeto)
+- **Branch**: feat/m1-4-datasets-schemas

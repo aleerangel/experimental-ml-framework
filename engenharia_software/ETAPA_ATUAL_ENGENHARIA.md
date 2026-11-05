@@ -14,19 +14,19 @@
 
 O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
 
-As entregas **Marco M1.1 (`m1-1-setup-cli-smoke`)**, **Marco M1.2 (`core`)** e **Marco M1.3 (`metrics`)** foram concluídas e formalmente aceitas com aprovação em testes automatizados e homologação manual. O próximo passo de desenvolvimento é o **Marco M1.4 (`datasets`)**.
+As entregas **Marco M1.1 (`m1-1-setup-cli-smoke`)**, **Marco M1.2 (`core`)**, **Marco M1.3 (`metrics`)** e **Marco M1.4 (`datasets-schemas`)** foram concluídas e formalmente aceitas com aprovação em testes automatizados e homologação manual. A Fase 1 (Setup e Fundações Transversais) está integralmente concluída. O próximo passo de desenvolvimento é o **Marco M2 (`data` + `validation` + CLI `data`/`partition`)**.
 
 ```mermaid
 flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
-    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(ETAPA ATUAL — M1.1, M1.2 e M1.3 Concluídos e Aceitos)"]
+    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(Fase 1 Concluída — M1.1 a M1.4 Homologados)"]
     Fase4 --> Fase5["Fase 5: Verificação Experimental<br/>(Pendente)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
     style Fase2 fill:#d4edda,stroke:#28a745
     style Fase3 fill:#d4edda,stroke:#28a745
-    style Fase4 fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    style Fase4 fill:#d4edda,stroke:#28a745,stroke-width:2px
     style Fase5 fill:#f8f9fa,stroke:#6c757d
 ```
 
@@ -105,8 +105,8 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
    * **M1.1 (Concluído e Aceito — Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv` (Python 3.12), `pyproject.toml` (Hatchling, declaração `requires-python = ">=3.10"`, entrypoint `expml`), esqueleto modular em `src/experimental_ml/cli/main.py`, aprovação de `tests/test_smoke.py` com 12/12 testes e homologação manual aprovada. Registrado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-1-setup-cli-smoke/`.
    * **M1.2 (Concluído e Aceito — Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função pura `derive_seeds` (`SeedSequence`), `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas), construtores de achados e exceções de contrato, com aprovação de `tests/unit/test_core.py` (18/18 testes), verificação independente TLC (`proofs.md`, `verification.md`) e homologação manual aprovada. Registrado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-2-core/`.
    * **M1.3 (Concluído e Aceito — Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `AggregatedMetricValue`, `MetricSpec`, `RankedCandidate`, catálogo `METRICS_CATALOG` com as 15 métricas, regras de propagação de `MetricStatus.UNDEFINED_NAN`, `is_better`, `aggregate_fold_metrics`, `rank_configurations` (ADR-005) e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py` com 22/22 checks aprovados), verificação independente TLC (`proofs.md`, `verification.md`) e roteiro `ACCEPTANCE.md` com evidências em `RESULTS.md`.
-   * **M1.4 (Próximo Marco — `datasets` e esquemas):** Ingestão tabular, validação estrutural de esquemas, imutabilidade em memória e hashing estrutural (`dataset_hash`).
-2. **Marco M2 (`data` + `validation` + CLI `data`/`partition`):** Funções `load_dataset`, `profile_dataset` (problemas confirmados vs. alertas heurísticos), `create_preparation_plan` e geração/validação matemática do `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`).
+   * **M1.4 (Concluído e Aceito — Contratos, Ingestão Tabular, Imutabilidade e Esquemas de `data`):** `DatasetSchemaSpec`, `ColumnSemanticType`, `ColumnDescriptor`, `DatasetBundle` com buffers imutáveis em nível de C-API (recusando `setflags(write=True)` com `ValueError`), parser estrito RFC 4180 com sniffer de delimitadores e detecção de *ragged rows*, geração/validação de `ObservationId`, cópias defensivas na memória, cálculo dos hashes tripartites (`dataset_hash` canônico, `raw_source_hash` e `schema_hash`) e utilitários somente-leitura `get_column_array` e `slice_bundle_by_observation_ids`. Aprovado com 29/29 testes unitários em `tests/unit/test_data_schemas.py`, 81/81 testes na suíte geral, verificação independente TLC (`proofs.md`, `verification.md` com 0 findings) e homologação manual aprovada sob `.specs/features/m1-4-datasets-schemas/`.
+2. **Marco M2 (`data` + `validation` + CLI `data`/`partition` — Próximo Marco):** Funções de triagem estatística (`profile_dataset` separando problemas confirmados vs. alertas heurísticos), plano de preparação (`create_preparation_plan`), saneamento (`sanitize_dataset`) e geração/validação matemática do `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`).
 3. **Marco M3 (`features` + CLI `features`):** Função `explore_features` rotulada, validação de cenários (`FIXED` e `DYNAMIC`) e seleção dinâmica ajustada estritamente no treino de cada *fold* (`select_features_in_fold`), com medição de estabilidade de seleção.
 4. **Marco M4 (`models` + `tuning` + CLI `models`):** Funções `instantiate_fresh_model`, `fit_model`, `predict_model` (clássicos, analíticos com `requires_fit=False` e quânticos/customizados), pré-processamento funcional em 2 camadas (`fit_two_layer_preprocessing`, `apply_two_layer_preprocessing`) com bloqueio de duplicação e *Nested Tuning* (`run_nested_tuning`).
 5. **Marco M5 (`orchestration` + CLI `run`):** Funções `run_experiment_matrix` e `resume_experiment_matrix` com máquina de estados, modos `FAULT_TOLERANT` / `FAIL_FAST`, paralelismo em dois níveis, persistência atômica (`save_cell_result`) e retomada verificada (*Checkpoint & Resume*).
