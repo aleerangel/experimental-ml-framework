@@ -246,9 +246,9 @@ A atividade é exclusivamente de auditoria e diagnóstico. Nenhum código-fonte,
 | DOC-07 | P1: Documentação - governança | Phase 1 (T4, T7) | Verified |
 | READY-01 | P1: Prontidão - interfaces consumidas pelo M2 | Phase 2 (T6, T7) | In Tasks |
 | READY-02 | P1: Prontidão - decisões em aberto | Phase 2 (T6, T7) | In Tasks |
-| READY-03 | P1: Prontidão - registro de achados | Phase 2 (T5, T7) | In Tasks |
-| READY-04 | P1: Prontidão - limitações documentadas | Phase 2 (T5, T7) | In Tasks |
-| READY-05 | P1: Prontidão - plano de correções | Phase 2 (T5, T7) | In Tasks |
+| READY-03 | P1: Prontidão - registro de achados | Phase 2 (T5, T7) | Verified |
+| READY-04 | P1: Prontidão - limitações documentadas | Phase 2 (T5, T7) | Verified |
+| READY-05 | P1: Prontidão - plano de correções | Phase 2 (T5, T7) | Verified |
 | READY-06 | P1: Prontidão - parecer | Phase 2 (T6, T7) | In Tasks |
 | READY-07 | P1: Prontidão - verificação independente | Phase 2 (T6, T7) | In Tasks |
 | READY-08 | P1: Prontidão - achados não reproduzidos | Phase 2 (T6, T7) | In Tasks |

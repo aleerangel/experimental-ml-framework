@@ -157,10 +157,10 @@ T5 → T6 → T7
 
 **Done when**:
 
-- [ ] `reports/06-achados.md` lists all findings with complete mandatory metadata fields and citations for any `LIMITAÇÃO DOCUMENTADA`
-- [ ] `reports/07-plano-correcoes.md` orders all `CRÍTICO`, `ALTO`, and actionable `MODERADO` items with affected files, milestone reopening recommendation, and M2 blocking status
-- [ ] Gate check passes: `.venv/bin/pytest tests/ -q`
-- [ ] Test count: 81 project tests pass
+- [x] `reports/06-achados.md` lists all findings with complete mandatory metadata fields and citations for any `LIMITAÇÃO DOCUMENTADA`
+- [x] `reports/07-plano-correcoes.md` orders all `CRÍTICO`, `ALTO`, and actionable `MODERADO` items with affected files, milestone reopening recommendation, and M2 blocking status
+- [x] Gate check passes: `.venv/bin/pytest tests/ -q`
+- [x] Test count: 81 project tests pass
 
 **Tests**: integration
 **Gate**: quick
