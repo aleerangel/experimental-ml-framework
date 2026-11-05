@@ -13,6 +13,7 @@ import numpy as np
 
 from experimental_ml.core.enums import TaskType
 from experimental_ml.core.findings import DataIntegrityError
+from experimental_ml.core.hashing import is_missing_scalar
 from experimental_ml.core.types import ObservationId
 from experimental_ml.data.schema import ColumnSemanticType, DatasetSchemaSpec
 from experimental_ml.data.types import ColumnDescriptor
@@ -50,7 +51,7 @@ def assign_or_validate_observation_ids(
 
     for row_idx, val in enumerate(col_values):
         line_num = row_idx + 1
-        if val is None or (isinstance(val, float) and math.isnan(val)) or str(val).strip() == "":
+        if is_missing_scalar(val) or str(val).strip() == "":
             raise DataIntegrityError(
                 f"Row {line_num}: observation_id_col '{observation_id_col}' contains missing/null value"
             )
