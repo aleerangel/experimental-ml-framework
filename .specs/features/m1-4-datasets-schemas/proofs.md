@@ -1,6 +1,6 @@
 # m1-4-datasets-schemas proofs
 
-**HEAD**: 6ca78d7
+**HEAD**: 769a841
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 29 pass, 0 fail
@@ -56,5 +56,5 @@ tests/unit/test_data_schemas.py::test_raw_source_hash_file_and_memory PASSED [ 9
 tests/unit/test_data_schemas.py::test_get_column_array_view_and_copy PASSED [ 96%]
 tests/unit/test_data_schemas.py::test_slice_bundle_by_observation_ids_ordering_and_hash PASSED [100%]
 
-============================== 29 passed in 0.10s ==============================
+============================== 29 passed in 0.09s ==============================
 ```
