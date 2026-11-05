@@ -78,7 +78,7 @@ Na versão atual da branch `main`, as seguintes capacidades estão implementadas
   - **Imutabilidade Física de Buffers:** Colunas numéricas e booleanas respaldadas por buffers `bytes` imutáveis na camada C do NumPy, recusando tentativas de reativação de escrita (`arr.setflags(write=True)` levanta `ValueError`). Colunas `object` restritas a escalares imutáveis com `writeable=False`.
   - **Parsing Estrito e Detecção Segura de Delimitadores:** Suporte a `,`, `;`, `\t`, `|` e múltiplos espaços com aspas RFC 4180, com detecção automática consistente em 100 linhas e falha explícita sob ambiguidade ou linhas irregulares (*ragged rows*).
   - **Identificadores de Observação (`ObservationId`):** Atribuição determinística sequencial `obs_000000` na ausência de coluna de ID e validação estrita de não-nulidade e unicidade quando informada na fonte.
-  - **Semântica Tripartite de Hashes:** `dataset_hash` canônico do conteúdo em memória invariante a quebras de linha (`\r\n` vs `\n`), `raw_source_hash` para proveniência do arquivo em disco e `schema_hash` para a configuração estrutural.
+  - **Semântica Tripartite de Hashes:** `dataset_hash` canônico do conteúdo em memória invariante a quebras de linha (`\r\n` vs `\n`), sensível à ordem das colunas e aos `observation_ids`, `raw_source_hash` para proveniência do arquivo em disco e `schema_hash` para a configuração estrutural.
   - **Utilitários de Consulta:** `get_column_array` (view somente-leitura ou cópia mutável independente) e `slice_bundle_by_observation_ids` preservando a ordem solicitada pelo chamador com recálculo de hash.
 - **Suíte de Testes Automatizados:** 81 testes automatizados (12 testes de fumaça em `tests/test_smoke.py`, 18 testes unitários em `tests/unit/test_core.py`, 22 testes unitários em `tests/unit/test_metrics.py` e 29 testes unitários em `tests/unit/test_data_schemas.py`), com 100% de aprovação via `pytest`.
 
@@ -101,7 +101,7 @@ experimental-ml-framework/
 ├── .specs/                          # Especificações formais e tarefas (TLC Spec-Driven)
 │   ├── STATE.md                     # Registro de decisões arquiteturais de projeto e handoff
 │   └── features/
-│       ├── m1-1-setup-cli-smoke/    # Artefatos da entrega M1.1 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
+│       ├── m1-1-setup-cli-smoke/    # Artefatos da entrega M1.1 (spec.md, tasks.md, proofs.md, ACCEPTANCE.md, RESULTS.md)
 │       ├── m1-2-core/               # Artefatos da entrega M1.2 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 │       ├── m1-3-metrics/            # Artefatos da entrega M1.3 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 │       └── m1-4-datasets-schemas/   # Artefatos da entrega M1.4 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
@@ -119,11 +119,10 @@ experimental-ml-framework/
 │       ├── core/                    # Núcleo transversal de domínio (Nível 0)
 │       │   ├── __init__.py          # Re-exportação com __all__
 │       │   ├── enums.py             # Tipos de tarefas, direções e status
-│       │   ├── exceptions.py        # Exceções formais e hierarquia
-│       │   ├── findings.py          # Diagnósticos auditáveis e advertências heurísticas
-│       │   ├── hashing.py           # config_hash e dataset_hash (ADR-007)
-│       │   ├── identifiers.py       # Identificadores canônicos e imutáveis
-│       │   └── seeds.py             # Derivação hierárquica SeedSequence
+│       │   ├── findings.py          # Diagnósticos auditáveis, advertências e exceções formais
+│       │   ├── hashing.py           # config_hash, dataset_hash, is_nan_scalar e is_missing_scalar (ADR-007)
+│       │   ├── seeds.py             # Derivação hierárquica SeedSequence
+│       │   └── types.py             # Identificadores canônicos e imutáveis (ObservationId, etc.)
 │       ├── metrics/                 # Camada de métricas e alinhamento (Nível 1)
 │       │   ├── __init__.py          # Re-exportação com __all__
 │       │   ├── aggregation.py       # is_better, aggregate_fold_metrics, rank_configurations (ADR-005)
@@ -275,13 +274,13 @@ y_pred = np.array([11.0, 19.0, 32.0], dtype=np.float64)
 rmse_val = compute_metric("rmse", y_true, y_pred)
 # rmse_val.value -> 1.4142..., rmse_val.status -> MetricStatus.VALID
 
-# 2. Consulta de metadados e direção de otimização
+# 2. Consulta de metadados e tolerância
 spec = get_metric_spec("rmse")
-# spec.direction -> MetricDirection.MINIMIZE, spec.tolerance_rtol -> 1e-12
+# spec.direction -> MetricDirection.MINIMIZE, spec.rtol -> 1e-7
 
 # 3. Comparação de candidatos com semântica estrita de UNDEFINED_NAN
-melhor = is_better(cand_a=rmse_val, cand_b=None, direction=spec.direction)
-# True
+melhor = is_better(cand_a=rmse_val, cand_b=rmse_val, direction=spec.direction)
+# False (empate dentro da tolerância rtol)
 
 # 4. Agregação entre partições com controle de cobertura
 agg = aggregate_fold_metrics([rmse_val, rmse_val])
@@ -304,14 +303,14 @@ schema = DatasetSchemaSpec(
     target_col="y",
     task_type=TaskType.REGRESSION,
     group_col="parcela",
-    semantic_types={"y": ColumnSemanticType.NUMERIC_CONTINUOUS, "parcela": ColumnSemanticType.CATEGORICAL},
+    column_semantic_types={"y": ColumnSemanticType.NUMERIC_CONTINUOUS, "parcela": ColumnSemanticType.CATEGORICAL},
 )
 
 # 2. Ingestão com posse exclusiva e buffers imutáveis em nível C
 data_source = {"feat1": [1.5, 2.5, 3.5], "parcela": ["A", "A", "B"], "y": [10.0, 20.0, 30.0]}
 bundle = load_dataset(data_source, schema)
 # bundle.dataset_hash -> Digest canônico do conteúdo tabular
-# bundle.n_rows -> 3, bundle.n_features -> 1
+# bundle.n_rows -> 3, len(bundle.feature_cols) -> 1
 
 # 3. Tentativas de reativar escrita no buffer levantam ValueError
 arr = get_column_array(bundle, "feat1", copy=False)
