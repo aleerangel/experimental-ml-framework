@@ -9,10 +9,14 @@ from __future__ import annotations
 import math
 from types import MappingProxyType
 from typing import Sequence
+import unicodedata
 import numpy as np
 
 from experimental_ml.core.findings import DataIntegrityError
-from experimental_ml.core.hashing import dataset_hash as core_dataset_hash
+from experimental_ml.core.hashing import (
+    dataset_hash as core_dataset_hash,
+    is_missing_scalar,
+)
 from experimental_ml.core.types import ObservationId
 from experimental_ml.data.types import ColumnDescriptor, DatasetBundle
 
@@ -49,7 +53,7 @@ def get_column_array(
 
 def slice_bundle_by_observation_ids(
     bundle: DatasetBundle,
-    observation_ids: Sequence[ObservationId],
+    observation_ids: Sequence[ObservationId | str],
 ) -> DatasetBundle:
     """Slice DatasetBundle by a sequence of ObservationIds, strictly preserving caller's order.
 
@@ -57,39 +61,65 @@ def slice_bundle_by_observation_ids(
 
     Args:
         bundle: Source dataset bundle to slice.
-        observation_ids: Non-empty sequence of valid ObservationIds in requested order.
+        observation_ids: Non-empty sequence of valid ObservationIds or non-empty strings.
 
     Returns:
         New immutable DatasetBundle containing sliced observations.
 
     Raises:
-        DataIntegrityError: If observation_ids is empty, contains duplicates, or contains unknown IDs.
+        DataIntegrityError: If observation_ids is bare string/bytes, empty, contains invalid
+            identifiers, duplicates, or unknown IDs.
     """
-    if not observation_ids or len(observation_ids) == 0:
+    if isinstance(observation_ids, (str, bytes, bytearray, memoryview)) or not isinstance(
+        observation_ids, Sequence
+    ):
+        raise DataIntegrityError(
+            f"observation_ids must be a non-string Sequence, got {type(observation_ids).__name__}"
+        )
+
+    if len(observation_ids) == 0:
         raise DataIntegrityError("observation_ids sequence cannot be empty")
 
-    # Check duplicates and build indices
+    # Validate, convert elements and check duplicates
+    validated_ids: list[ObservationId] = []
     seen: set[ObservationId] = set()
     bundle_obs_index: dict[ObservationId, int] = {
         obs: idx for idx, obs in enumerate(bundle.observation_ids)
     }
     indices: list[int] = []
 
-    for obs in observation_ids:
-        if obs in seen:
+    for item in observation_ids:
+        if isinstance(item, ObservationId):
+            obs_id = item
+        elif isinstance(item, str):
+            norm_str = unicodedata.normalize("NFC", item.strip())
+            try:
+                obs_id = ObservationId(norm_str)
+            except ValueError as err:
+                raise DataIntegrityError(
+                    f"Invalid ObservationId string format '{item}': {err}"
+                ) from err
+        else:
             raise DataIntegrityError(
-                f"Duplicate ObservationId '{obs}' encountered in requested slicing sequence"
+                f"Invalid observation_id element type '{type(item).__name__}': expected ObservationId or str"
             )
-        seen.add(obs)
 
-        if obs not in bundle_obs_index:
+        if obs_id in seen:
             raise DataIntegrityError(
-                f"ObservationId '{obs}' not present in DatasetBundle observation_ids"
+                f"Duplicate ObservationId '{obs_id}' encountered in requested slicing sequence"
             )
-        indices.append(bundle_obs_index[obs])
+        seen.add(obs_id)
+
+        if obs_id not in bundle_obs_index:
+            raise DataIntegrityError(
+                f"ObservationId '{obs_id}' not present in DatasetBundle observation_ids"
+            )
+        indices.append(bundle_obs_index[obs_id])
+        validated_ids.append(obs_id)
 
     idx_arr = np.array(indices, dtype=np.intp)
     new_n_rows = len(indices)
+    sliced_obs_ids = tuple(validated_ids)
 
     new_columns: dict[str, np.ndarray] = {}
     new_descriptors: dict[str, ColumnDescriptor] = {}
@@ -102,9 +132,7 @@ def slice_bundle_by_observation_ids(
         if sliced_arr.dtype == object:
             sliced_arr.flags.writeable = False
             col_immutable = sliced_arr
-            n_missing = sum(
-                1 for v in col_immutable if v is None or (isinstance(v, float) and math.isnan(v))
-            )
+            n_missing = sum(1 for v in col_immutable if is_missing_scalar(v))
         else:
             raw_bytes = sliced_arr.tobytes()
             col_immutable = np.frombuffer(raw_bytes, dtype=sliced_arr.dtype)
@@ -129,8 +157,12 @@ def slice_bundle_by_observation_ids(
             memory_bytes=col_bytes,
         )
 
-    # Recalculate canonical in-memory dataset_hash
-    new_dataset_hash = core_dataset_hash(new_columns, bundle.schema)
+    # Recalculate canonical in-memory dataset_hash (HARD-04)
+    new_dataset_hash = core_dataset_hash(
+        new_columns,
+        bundle.schema,
+        observation_ids=sliced_obs_ids,
+    )
 
     return DatasetBundle(
         schema=bundle.schema,
@@ -140,7 +172,7 @@ def slice_bundle_by_observation_ids(
         feature_cols=bundle.feature_cols,
         columns=MappingProxyType(new_columns),
         descriptors=MappingProxyType(new_descriptors),
-        observation_ids=tuple(observation_ids),
+        observation_ids=sliced_obs_ids,
         dataset_hash=new_dataset_hash,
         raw_source_hash=bundle.raw_source_hash,
         schema_hash=bundle.schema_hash,
