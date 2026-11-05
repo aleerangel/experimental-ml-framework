@@ -1,6 +1,6 @@
 # m1-5-foundation-hardening proofs
 
-**HEAD**: e90797f
+**HEAD**: 0aa2a6f
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 15 pass, 0 fail
@@ -42,5 +42,5 @@ tests/unit/test_metrics.py::test_catalog_query_and_dispatch PASSED       [ 97%]
 tests/unit/test_metrics.py::test_is_better_adr005_rules PASSED           [ 98%]
 tests/unit/test_metrics.py::test_aggregate_and_rank_configurations PASSED [100%]
 
-============================== 96 passed in 0.70s ==============================
+============================== 96 passed in 0.83s ==============================
 ```
