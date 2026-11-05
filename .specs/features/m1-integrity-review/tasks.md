@@ -177,11 +177,11 @@ T5 → T6 → T7
 
 **Done when**:
 
-- [ ] `reports/08-parecer.md` documents M2 contract readiness table, open M2 architectural questions, finding counts by category/severity, declared audit limitations, and mechanical verdict
-- [ ] `RESULTS.md` records executed validations and formal audit conclusions
-- [ ] Non-interference diff against `6acf6f8` on project files is verified empty
-- [ ] Gate check passes: `.venv/bin/pytest tests/ -q`
-- [ ] Test count: 81 project tests pass
+- [x] `reports/08-parecer.md` documents M2 contract readiness table, open M2 architectural questions, finding counts by category/severity, declared audit limitations, and mechanical verdict
+- [x] `RESULTS.md` records executed validations and formal audit conclusions
+- [x] Non-interference diff against `6acf6f8` on project files is verified empty
+- [x] Gate check passes: `.venv/bin/pytest tests/ -q`
+- [x] Test count: 81 project tests pass
 
 **Tests**: integration
 **Gate**: quick

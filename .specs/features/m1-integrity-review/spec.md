@@ -205,7 +205,7 @@ A atividade é exclusivamente de auditoria e diagnóstico. Nenhum código-fonte,
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
 | AUD-01 | P1: Protocolo - baseline | Phase 1 (T1, T7) | Verified |
-| AUD-02 | P1: Protocolo - não interferência | Phase 2 (T6, T7) | In Tasks |
+| AUD-02 | P1: Protocolo - não interferência | Phase 2 (T6, T7) | Verified |
 | AUD-03 | P1: Protocolo - evidência por achado | Phase 1 (T1, T7) | Verified |
 | AUD-04 | P1: Protocolo - NÃO VERIFICÁVEL | Phase 1 (T1, T7) | Verified |
 | ARCH-01 | P1: Arquitetura - grafo de importações | Phase 1 (T1, T7) | Verified |
@@ -244,14 +244,14 @@ A atividade é exclusivamente de auditoria e diagnóstico. Nenhum código-fonte,
 | DOC-05 | P1: Documentação - contradições de hash | Phase 1 (T4, T7) | Verified |
 | DOC-06 | P1: Documentação - matriz RF/CA/TA | Phase 1 (T4, T7) | Verified |
 | DOC-07 | P1: Documentação - governança | Phase 1 (T4, T7) | Verified |
-| READY-01 | P1: Prontidão - interfaces consumidas pelo M2 | Phase 2 (T6, T7) | In Tasks |
-| READY-02 | P1: Prontidão - decisões em aberto | Phase 2 (T6, T7) | In Tasks |
+| READY-01 | P1: Prontidão - interfaces consumidas pelo M2 | Phase 2 (T6, T7) | Verified |
+| READY-02 | P1: Prontidão - decisões em aberto | Phase 2 (T6, T7) | Verified |
 | READY-03 | P1: Prontidão - registro de achados | Phase 2 (T5, T7) | Verified |
 | READY-04 | P1: Prontidão - limitações documentadas | Phase 2 (T5, T7) | Verified |
 | READY-05 | P1: Prontidão - plano de correções | Phase 2 (T5, T7) | Verified |
-| READY-06 | P1: Prontidão - parecer | Phase 2 (T6, T7) | In Tasks |
-| READY-07 | P1: Prontidão - verificação independente | Phase 2 (T6, T7) | In Tasks |
-| READY-08 | P1: Prontidão - achados não reproduzidos | Phase 2 (T6, T7) | In Tasks |
+| READY-06 | P1: Prontidão - parecer | Phase 2 (T6, T7) | Verified |
+| READY-07 | P1: Prontidão - verificação independente | Phase 2 (T6, T7) | Verified |
+| READY-08 | P1: Prontidão - achados não reproduzidos | Phase 2 (T6, T7) | Verified |
 
 **Coverage:** 48 total, 48 mapped to tasks, 0 unmapped
 
