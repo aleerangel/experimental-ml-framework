@@ -223,20 +223,20 @@ A atividade é exclusivamente de auditoria e diagnóstico. Nenhum código-fonte,
 | INT-06 | P1: Integração - imutabilidade na fronteira | Phase 1 (T2, T7) | Verified |
 | INT-07 | P1: Integração - relação bundle/core hash | Phase 1 (T2, T7) | Verified |
 | INT-08 | P1: Integração - dtypes int64/bool | Phase 1 (T2, T7) | Verified |
-| QUAL-01 | P1: Qualidade - varredura AST | Phase 1 (T3, T7) | In Tasks |
-| QUAL-02 | P1: Qualidade - anotações de tipo | Phase 1 (T3, T7) | In Tasks |
-| QUAL-03 | P1: Qualidade - casos extremos | Phase 1 (T3, T7) | In Tasks |
-| QUAL-04 | P1: Qualidade - escalabilidade | Phase 1 (T3, T7) | In Tasks |
-| QUAL-05 | P1: Qualidade - imutabilidade adversarial | Phase 1 (T3, T7) | In Tasks |
-| QUAL-06 | P1: Qualidade - interpretadores | Phase 1 (T3, T7) | In Tasks |
-| TEST-01 | P1: Testes - cobertura | Phase 1 (T3, T7) | In Tasks |
-| TEST-02 | P1: Testes - mutações aplicadas | Phase 1 (T3, T7) | In Tasks |
-| TEST-03 | P1: Testes - mutações sobreviventes | Phase 1 (T3, T7) | In Tasks |
-| TEST-04 | P1: Testes - testes de integração | Phase 1 (T3, T7) | In Tasks |
-| TEST-05 | P1: Testes - isolamento e ordem | Phase 1 (T3, T7) | In Tasks |
-| TEST-06 | P1: Testes - validadores TLC | Phase 1 (T3, T7) | In Tasks |
-| TEST-07 | P1: Testes - critério→check→proof | Phase 1 (T3, T7) | In Tasks |
-| TEST-08 | P1: Testes - confiabilidade dos validadores | Phase 1 (T3, T7) | In Tasks |
+| QUAL-01 | P1: Qualidade - varredura AST | Phase 1 (T3, T7) | Verified |
+| QUAL-02 | P1: Qualidade - anotações de tipo | Phase 1 (T3, T7) | Verified |
+| QUAL-03 | P1: Qualidade - casos extremos | Phase 1 (T3, T7) | Verified |
+| QUAL-04 | P1: Qualidade - escalabilidade | Phase 1 (T3, T7) | Verified |
+| QUAL-05 | P1: Qualidade - imutabilidade adversarial | Phase 1 (T3, T7) | Verified |
+| QUAL-06 | P1: Qualidade - interpretadores | Phase 1 (T3, T7) | Verified |
+| TEST-01 | P1: Testes - cobertura | Phase 1 (T3, T7) | Verified |
+| TEST-02 | P1: Testes - mutações aplicadas | Phase 1 (T3, T7) | Verified |
+| TEST-03 | P1: Testes - mutações sobreviventes | Phase 1 (T3, T7) | Verified |
+| TEST-04 | P1: Testes - testes de integração | Phase 1 (T3, T7) | Verified |
+| TEST-05 | P1: Testes - isolamento e ordem | Phase 1 (T3, T7) | Verified |
+| TEST-06 | P1: Testes - validadores TLC | Phase 1 (T3, T7) | Verified |
+| TEST-07 | P1: Testes - critério→check→proof | Phase 1 (T3, T7) | Verified |
+| TEST-08 | P1: Testes - confiabilidade dos validadores | Phase 1 (T3, T7) | Verified |
 | DOC-01 | P1: Documentação - exemplos do README | Phase 1 (T4, T7) | In Tasks |
 | DOC-02 | P1: Documentação - árvore de diretórios | Phase 1 (T4, T7) | In Tasks |
 | DOC-03 | P1: Documentação - contagens e estados | Phase 1 (T4, T7) | In Tasks |

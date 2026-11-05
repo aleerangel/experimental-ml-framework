@@ -115,10 +115,10 @@ T5 → T6 → T7
 
 **Done when**:
 
-- [ ] `probes/quality_and_perf_probe.py` and `probes/testing_and_tlc_probe.py` executed and temporary `/tmp/m1-audit-*` directories cleaned up
-- [ ] `reports/04-qualidade-e-testes.md` records AST scan, type annotations, edge cases, 10k/100k scaling ratios, adversarial immutability attempts, interpreter matrix, per-file line coverage, $\ge 12$ mutations table, test isolation/ordering results, and TLC validator reliability results
-- [ ] Gate check passes: `.venv/bin/pytest tests/ -q`
-- [ ] Test count: 81 project tests pass
+- [x] `probes/quality_and_perf_probe.py` and `probes/testing_and_tlc_probe.py` executed and temporary `/tmp/m1-audit-*` directories cleaned up
+- [x] `reports/04-qualidade-e-testes.md` records AST scan, type annotations, edge cases, 10k/100k scaling ratios, adversarial immutability attempts, interpreter matrix, per-file line coverage, $\ge 12$ mutations table, test isolation/ordering results, and TLC validator reliability results
+- [x] Gate check passes: `.venv/bin/pytest tests/ -q`
+- [x] Test count: 81 project tests pass
 
 **Tests**: integration
 **Gate**: quick
