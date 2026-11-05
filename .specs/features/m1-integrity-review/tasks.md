@@ -198,10 +198,10 @@ T5 → T6 → T7
 
 **Done when**:
 
-- [ ] `probes/test_audit_checks.py` created with 48 test functions mapped 1:1 to `C1`..`C48`
-- [ ] Full audit gate passes: `.venv/bin/pytest .specs/features/m1-integrity-review/probes/test_audit_checks.py -v` (48 passed)
-- [ ] Project test suite passes: `.venv/bin/pytest tests/ -v` (81 passed)
-- [ ] Non-interference diff is empty
+- [x] `probes/test_audit_checks.py` created with 48 test functions mapped 1:1 to `C1`..`C48`
+- [x] Full audit gate passes: `.venv/bin/pytest .specs/features/m1-integrity-review/probes/test_audit_checks.py -v` (48 passed)
+- [x] Project test suite passes: `.venv/bin/pytest tests/ -v` (81 passed)
+- [x] Non-interference diff is empty
 
 **Tests**: unit
 **Gate**: full
@@ -372,8 +372,8 @@ Alongside `tasks.md`, `ACCEPTANCE.md` is maintained defining:
 The feature's live state, written as it happens - a compaction gives no warning.
 
 **Settled mid-build:** none
-**Dispatched:** none
-**Walked:** pending
+**Dispatched:** Independent Audit Verifier subagent
+**Walked:** passed — 2026-11-05 (RESULTS.md)
 
 ---
 
