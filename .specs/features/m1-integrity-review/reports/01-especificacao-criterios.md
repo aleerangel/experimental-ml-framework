@@ -104,3 +104,4 @@ A avaliação abrange seis dimensões técnicas (`A`–`F`) e um protocolo trans
 * **`NÃO APTO`:** Existência de $\ge 1$ achado de severidade **`CRÍTICO`** (qualquer categoria) **ou** $\ge 1$ achado classificado como **`DEFEITO`** de severidade **`ALTO`** sem correção aplicada antes do início do M2.
 * **`APTO COM RESSALVAS`:** Zero achados `CRÍTICO` e zero `DEFEITO` `ALTO`, mas existência de achados `ALTO` classificados como `RISCO`/`MELHORIA` ou achados `MODERADO` com plano de tratamento explícito antes ou no início do M2.
 * **`APTO`:** Zero achados de severidade `CRÍTICO`, `ALTO` ou `MODERADO`.
+

@@ -43,3 +43,4 @@ Foi conduzida a **Auditoria Geral de Integridade do Projeto (M1)** abrangendo as
 4. **`AUD-F-006` (`DEFEITO` / `ALTO`):** `slice_bundle_by_observation_ids` armazena `str` comuns em `DatasetBundle.observation_ids` quando o chamador passa `Sequence[str]`, violando a garantia de tipo `tuple[ObservationId, ...]`.
 5. **`AUD-F-008` (`DEFEITO` / `ALTO`):** `np.float32(np.nan)` não é reconhecido por `isinstance(v, float) and math.isnan(v)`, resultando em `ColumnDescriptor.n_missing == 0` para arrays `float32` contendo `NaN`.
 6. **`AUD-F-009` (`RISCO` / `ALTO`):** Colunas `dtype=object` em `load_dataset` validam mutabilidade por uma *blacklist* estreita (`list, dict, set, bytearray`), permitindo que objetos mutáveis como `SimpleNamespace` entrem no `DatasetBundle` e sejam alterados in-place.
+

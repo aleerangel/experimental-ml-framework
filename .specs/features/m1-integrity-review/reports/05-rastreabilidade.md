@@ -86,3 +86,4 @@ Foram identificadas três contradições diretas entre a documentação arquitet
 | `m1-2-core` | Sim | Sim | Sim | Sim | Sim | Sim | Sim | Completo |
 | `m1-3-metrics` | Sim | Sim | Sim | Sim | Sim | Sim | Sim | Completo |
 | `m1-4-datasets-schemas` | Sim | Sim | Sim | Sim | Sim | Sim | Sim | Completo |
+

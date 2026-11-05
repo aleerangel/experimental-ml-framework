@@ -42,3 +42,4 @@ Estes itens abrangem os achados de severidade **`MODERADO`** que fortalecem a fu
 | **P2.1** | `AUD-F-015` | `BAIXO` / `MELHORIA` | Converter `_ALLOWED_AGG_SCOPES` em `frozenset` (`aggregation.py:21`) e substituir `assert source_path_str is not None` (`loader.py:317`) no próximo ciclo de manutenção. |
 | **P2.2** | `AUD-F-014` | `BAIXO` / `MELHORIA` | Manter ciência de que `validate_verification.py` verifica a igualdade entre o hash gravado em `proofs.md` e o `HEAD` atual do repositório. |
 | **P2.3** | `AUD-F-016` | `BAIXO` / `LIMITAÇÃO DOCUMENTADA` | Manter documentada a ausência dos interpretadores Python 3.10 e 3.11 no host local até a adição de pipeline CI multi-versão. |
+

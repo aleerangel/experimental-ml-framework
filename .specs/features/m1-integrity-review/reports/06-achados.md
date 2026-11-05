@@ -262,3 +262,4 @@
 * **Impacto:** A compatibilidade com Python 3.10 e 3.11 é preservada estaticamente (`from __future__ import annotations`, `StrEnum` compatível em `core/enums.py`), mas não pode ser testada empiricamente neste host local.
 * **Justificativa da Severidade:** `BAIXO` — limitação ambiental previamente documentada e aceita no Marco M1.1.
 * **Recomendação:** Manter registrada como limitação ambiental até a configuração de matriz multi-versão em CI.
+

@@ -106,3 +106,4 @@ As views somente-leitura retornadas por `get_column_array(bundle, col, copy=Fals
    * Esse comportamento assimétrico entre `{accuracy, balanced_accuracy, roc_auc, log_loss}` (que funcionam com quaisquer rótulos binários) e `{precision, recall, f1}` (que exigem rótulos `{0, 1}`/`{False, True}` ou passagem explícita de `pos_label`) representa um risco de integração para os estágios de avaliação automatizada (M4/M5).
 
 * **Resultado (`INT-08`):** **`CONFORME COM RESSALVA`** (Registrado como risco de integração `AUD-F-011`).
+

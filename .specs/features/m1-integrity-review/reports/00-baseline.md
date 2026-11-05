@@ -37,3 +37,4 @@ A linha de base foi coletada antes da execução das sondas dimensionais por mei
 ## 3. Taxonomia de Achados e Regra de Decisão (`AUD-03`, `READY-07`)
 
 Todo achado registrado em [06-achados.md](file:///home/alexandrerangel/Projetos/iniciacao_cientifica/experimental-ml-framework/.specs/features/m1-integrity-review/reports/06-achados.md) recebe identificador `AUD-F-NNN`, dimensão (`ARCH`, `INT`, `QUAL`, `TEST`, `DOC`, `READY`), categoria (`DEFEITO`, `RISCO`, `MELHORIA`, `LIMITAÇÃO DOCUMENTADA`), severidade (`CRÍTICO`, `ALTO`, `MODERADO`, `BAIXO`), evidência reprodutível (`caminho:linha` ou comando + saída), análise de impacto e recomendação de encaminhamento.
+
