@@ -215,14 +215,14 @@ A atividade é exclusivamente de auditoria e diagnóstico. Nenhum código-fonte,
 | ARCH-05 | P1: Arquitetura - responsabilidades duplicadas | Phase 1 (T1, T7) | Verified |
 | ARCH-06 | P1: Arquitetura - abstrações sem consumidor | Phase 1 (T1, T7) | Verified |
 | ARCH-07 | P1: Arquitetura - doc vs API pública | Phase 1 (T1, T7) | Verified |
-| INT-01 | P1: Integração - fluxo ponta a ponta | Phase 1 (T2, T7) | In Tasks |
-| INT-02 | P1: Integração - identificadores e enums | Phase 1 (T2, T7) | In Tasks |
-| INT-03 | P1: Integração - hierarquia de exceções | Phase 1 (T2, T7) | In Tasks |
-| INT-04 | P1: Integração - hash entre formatos | Phase 1 (T2, T7) | In Tasks |
-| INT-05 | P1: Integração - determinismo entre processos | Phase 1 (T2, T7) | In Tasks |
-| INT-06 | P1: Integração - imutabilidade na fronteira | Phase 1 (T2, T7) | In Tasks |
-| INT-07 | P1: Integração - relação bundle/core hash | Phase 1 (T2, T7) | In Tasks |
-| INT-08 | P1: Integração - dtypes int64/bool | Phase 1 (T2, T7) | In Tasks |
+| INT-01 | P1: Integração - fluxo ponta a ponta | Phase 1 (T2, T7) | Verified |
+| INT-02 | P1: Integração - identificadores e enums | Phase 1 (T2, T7) | Verified |
+| INT-03 | P1: Integração - hierarquia de exceções | Phase 1 (T2, T7) | Verified |
+| INT-04 | P1: Integração - hash entre formatos | Phase 1 (T2, T7) | Verified |
+| INT-05 | P1: Integração - determinismo entre processos | Phase 1 (T2, T7) | Verified |
+| INT-06 | P1: Integração - imutabilidade na fronteira | Phase 1 (T2, T7) | Verified |
+| INT-07 | P1: Integração - relação bundle/core hash | Phase 1 (T2, T7) | Verified |
+| INT-08 | P1: Integração - dtypes int64/bool | Phase 1 (T2, T7) | Verified |
 | QUAL-01 | P1: Qualidade - varredura AST | Phase 1 (T3, T7) | In Tasks |
 | QUAL-02 | P1: Qualidade - anotações de tipo | Phase 1 (T3, T7) | In Tasks |
 | QUAL-03 | P1: Qualidade - casos extremos | Phase 1 (T3, T7) | In Tasks |

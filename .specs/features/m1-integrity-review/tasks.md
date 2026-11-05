@@ -95,10 +95,10 @@ T5 → T6 → T7
 
 **Done when**:
 
-- [ ] `probes/integration_probe.py` executed under `PYTHONHASHSEED=0` and `PYTHONHASHSEED=12345`
-- [ ] `reports/03-integracao.md` records end-to-end flow results, type/exception checks, CSV/TSV/dict hash comparison, read-only array preservation across all 15 metrics, and `int64`/`bool` dtype behavior
-- [ ] Gate check passes: `.venv/bin/pytest tests/ -q`
-- [ ] Test count: 81 project tests pass
+- [x] `probes/integration_probe.py` executed under `PYTHONHASHSEED=0` and `PYTHONHASHSEED=12345`
+- [x] `reports/03-integracao.md` records end-to-end flow results, type/exception checks, CSV/TSV/dict hash comparison, read-only array preservation across all 15 metrics, and `int64`/`bool` dtype behavior
+- [x] Gate check passes: `.venv/bin/pytest tests/ -q`
+- [x] Test count: 81 project tests pass
 
 **Tests**: integration
 **Gate**: quick
