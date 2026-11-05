@@ -61,3 +61,4 @@ Com a resolução dos 6 achados de severidade `ALTO` (P0) e dos 4 achados de sev
 > **PARECER FINAL: APTO PARA INÍCIO DO MARCO M2**
 >
 > A fundação transversal do framework experimental (`core`, `metrics` e `data`) encontra-se saneada, criptograficamente delimitada, imutável em nível de buffers, matematicamente consistente no tratamento de ausentes e integralmente integrada.
+

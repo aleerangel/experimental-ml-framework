@@ -1,7 +1,8 @@
 # M1.5 — Revisão do Plano e Saneamento da Fundação M1 (m1-5-foundation-hardening) Design
 
 **Spec**: `.specs/features/m1-5-foundation-hardening/spec.md`
-**Status**: Draft
+**Status**: Approved
+**Approved**: 2026-11-05 - user: "cria a nova branch e pode avancar"
 
 ---
 
