@@ -1,6 +1,6 @@
 # m2-diagnostics-partitioning proofs
 
-**HEAD**: 2b6ee77
+**HEAD**: 1b17784
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 12 pass, 0 fail
@@ -39,7 +39,7 @@ tests/unit/data/test_profiling.py::test_prof_09_binary_target_unmapped_and_class
 tests/unit/data/test_profiling.py::test_prof_01_structural_profile_and_column_profiles PASSED [ 92%]
 tests/unit/data/test_profiling.py::test_prof_10_immutability_and_determinism PASSED [100%]
 
-============================== 13 passed in 0.14s ==============================
+============================== 13 passed in 0.12s ==============================
 ```
 
 `Run integration` - exit 0
@@ -58,5 +58,5 @@ tests/integration/test_profiling_integration.py::test_architectural_import_direc
 tests/integration/test_profiling_integration.py::test_single_runtime_dependency_xcut_02 PASSED [ 80%]
 tests/integration/test_profiling_integration.py::test_exported_symbols_count_xcut_04 PASSED [100%]
 
-============================== 5 passed in 0.20s ===============================
+============================== 5 passed in 0.14s ===============================
 ```

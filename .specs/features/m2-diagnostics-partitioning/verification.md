@@ -1,7 +1,7 @@
 # m2-diagnostics-partitioning verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at 2b6ee77
+**Proofs**: `proofs.md` at 1b17784
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks

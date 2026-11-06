@@ -18,28 +18,35 @@
 - **Date**: 2026-11-02
 - **Status**: active
 
+### AD-003
+- **Decision**: Decomposição modular do Marco M2 em 5 sub-marcos controláveis (M2.1 a M2.5) e catálogo canônico fechado de 15 achados diagnósticos com severidade imutável e ordenação lexicográfica determinística.
+- **Reason**: Garantir isolamento conceitual e controle granular de escopo entre triagem/diagnóstico (`m2-1`), saneamento determinístico (`m2-2`), particionamento compartilhado (`m2-3`), CLI modularizada (`m2-4`) e integração transversal (`m2-5`), evitando acoplamento indevido entre camadas.
+- **Trade-off**: Requer manutenção de contratos explícitos entre as sub-etapas (ex.: `SanitizedDatasetView` recebida por `validation` sem expor lógica interna de sanitização).
+- **Scope**: Marco M2 e módulos `experimental_ml.data` e `experimental_ml.validation`.
+- **Date**: 2026-11-06
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m1-5-foundation-hardening (Marco M1.5 — Saneamento e Hardening da Fundação M1)
-- **Phase / Task**: Concluído e Auditado (Branch `fix/m1-5-foundation-hardening`)
+- **Feature**: m2-diagnostics-partitioning (Sub-marco M2.1 — Triagem Estatística e Diagnóstico Estrutural de Datasets)
+- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-1-dataset-profiling`)
 - **Completed**:
-  - Marcos M1.1, M1.2, M1.3, M1.4 e M1.5 concluídos e formalmente homologados.
-  - Auditoria Geral de Integridade M1 (`m1-integrity-review`) realizada com preservação integral de seus artefatos (0 bytes diff).
-  - Saneamento M1.5 concluído com 100% de conformidade técnica:
-    - 10 achados de auditoria resolvidos: P0 (`AUD-F-001`, `AUD-F-004`, `AUD-F-005`, `AUD-F-006`, `AUD-F-008`, `AUD-F-009`) e P1 selecionados (`AUD-F-002`, `AUD-F-007`, `AUD-F-010`, `AUD-F-013`).
-    - 6 achados documentados como `ADIADO` com justificativa e destino formalizado (`AUD-F-003`, `AUD-F-011`, `AUD-F-012`, `AUD-F-014`, `AUD-F-015`, `AUD-F-016`).
-    - Enquadramento binário de `dataset_hash` sem ambiguidade com suporte explícito a `observation_ids` preservando direção arquitetural `data -> core`.
-    - Detecção centralizada de escalares `NaN` e ausentes (`is_nan_scalar`, `is_missing_scalar`) em `core` e reutilização estrita em `data`.
-    - Preservação de instâncias `ObservationId` em fatiamento de dados (`slice_bundle_by_observation_ids`).
-    - Whitelist estrita de escalares imutáveis e semântica unificada de ausentes em colunas `object`, além de captura de `OverflowError` em `int64`.
-    - Exemplos executáveis e documentação sincronizados; criação de suíte de integração transversal `tests/integration/test_m1_foundation_integration.py`.
-  - 15 requisitos de hardening (`HARD-01` a `HARD-15`) verificados por 15 checks determinísticos (`check_proofs.py`: 15 pass, 0 fail).
-  - Suíte completa do repositório: 96 testes aprovados (100% de aprovação).
-  - Auditoria independente pelo subagente verificador (`author != verifier`) aprovada com veredito `PASS` (0 findings).
+  - Especificação e design do Marco M2 consolidados e aprovados com 12 decisões formais (D1 a D12).
+  - Sub-marco M2.1 (`m2-1-dataset-profiling`) implementado, testado e verificado:
+    - `ProfileConfig`: configuração de limiares com validação no construtor.
+    - `ColumnProfile` e `DatasetProfile`: estruturas de perfil imutáveis com `slots`.
+    - Distribuições numéricas completas (média, mediana, desvio padrão, min, max, quartis, IQR, skewness, outliers $1.5 \times \text{IQR}$) e categóricas (frequências e proporções).
+    - Análise da variável-alvo: variância zero, ausentes, contagem de classes e detecção de alvos binários não mapeados para $\{0,1\}$ (`E1_TARGET_BINARY_UNMAPPED`).
+    - Análise de agrupamento (`group_col`): grupos ausentes (`E1_GROUP_EMPTY_VALUES`) e grupos com poucas amostras (`W1_GROUP_TOO_FEW_SAMPLES`).
+    - Detecção determinística de duplicatas (excluindo apenas `observation_id`).
+    - Catálogo canônico fechado de 15 achados diagnósticos (8 `CONFIRMED_ISSUE` + 7 `HEURISTIC_WARNING`) com severidade imutável e ordenação canônica determinística por severidade, código do achado e coluna.
+    - Função pura `profile_dataset(bundle, config)` exposta em `experimental_ml.data` (17 símbolos públicos em `__all__`), mantendo imutabilidade física e invariância do `dataset_hash`.
+  - 12 requisitos de profiling (`PROF-01` a `PROF-12`) verificados por 12 checks determinísticos (`check_proofs.py`: 12 pass, 0 fail).
+  - Suíte completa do repositório: 114 testes aprovados (100% de aprovação).
+  - Verificação independente pelo subagente verificador (`author != verifier`) aprovada com veredito `PASS` (0 findings).
   - Portões TLC validados: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
   - Roteiro de homologação do consumidor (`ACCEPTANCE.md`) executado com sucesso e registrado em `RESULTS.md`.
-  - Parecer técnico oficial atualizado: **`APTO PARA INÍCIO DO MARCO M2`**.
-- **In-progress**: Concluído (aguardando merge do PR de hardening e abertura do Marco M2)
-- **Next step**: Iniciar o ciclo de planejamento e especificação do Marco M2 (`data` + `validation` + CLI `data`/`partition`) da Fase 2 (Camada 1 / Triagem e Particionamento)
+- **In-progress**: Sub-marco M2.1 concluído; pronto para avançar para o Sub-marco M2.2 (`preparation-plan-sanitization`)
+- **Next step**: Iniciar o Design e Tasks do Sub-marco M2.2 (`create_preparation_plan`, `sanitize_dataset`, `SanitizedDatasetView`)
 - **Blockers**: none
-- **Branch**: fix/m1-5-foundation-hardening
+- **Branch**: feat/m2-1-dataset-profiling
