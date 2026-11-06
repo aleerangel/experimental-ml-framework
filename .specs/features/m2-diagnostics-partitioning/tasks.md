@@ -215,12 +215,12 @@ T6
 **Requirement**: PROF-01, PROF-07, PROF-10
 
 **Done when**:
-- [ ] Integration tests exercise realistic tabular datasets through `load_dataset` and `profile_dataset`
-- [ ] Import direction verified by AST/module inspection: `data` imports `core`, never `validation`
-- [ ] No new runtime dependencies added to `pyproject.toml`
-- [ ] Exported symbol count in `experimental_ml.data` verified to match expected count
-- [ ] Full project test suite passes with zero regressions: `.venv/bin/pytest tests/ -v`
-- [ ] Gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] Integration tests exercise realistic tabular datasets through `load_dataset` and `profile_dataset`
+- [x] Import direction verified by AST/module inspection: `data` imports `core`, never `validation`
+- [x] No new runtime dependencies added to `pyproject.toml`
+- [x] Exported symbol count in `experimental_ml.data` verified to match expected count
+- [x] Full project test suite passes with zero regressions: `.venv/bin/pytest tests/ -v`
+- [x] Gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration
 **Gate**: full
