@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
+import numpy as np
 
 from experimental_ml.core.enums import FindingSeverity, TaskType
 from experimental_ml.core.findings import ConfigurationError, Finding
+from experimental_ml.core import is_missing_scalar, is_nan_scalar
 from experimental_ml.core.types import ObservationId
 from experimental_ml.data.schema import ColumnSemanticType
 
@@ -160,3 +162,140 @@ class DatasetProfile:
     target: TargetProfile
     groups: GroupProfile | None
     findings: tuple[Finding, ...]
+
+
+def compute_numeric_distribution_stats(
+    values: np.ndarray | Sequence[Any],
+) -> NumericDistributionStats:
+    """Compute distribution statistics for a numeric array over non-missing values.
+
+    Args:
+        values: 1D array or sequence of numbers (floats, ints, or objects containing them).
+
+    Returns:
+        NumericDistributionStats with mean, std (ddof=1), quartiles, min, max, range, IQR.
+        Returns None for all metrics when no valid values exist.
+    """
+    if isinstance(values, np.ndarray) and values.dtype in (np.int64, np.int32, np.int16, np.int8):
+        valid = values.astype(np.float64)
+    elif isinstance(values, np.ndarray) and np.issubdtype(values.dtype, np.floating):
+        mask = ~np.isnan(values)
+        valid = values[mask].astype(np.float64)
+    else:
+        valid_list: list[float] = []
+        for x in values:
+            if not is_missing_scalar(x):
+                try:
+                    valid_list.append(float(x))
+                except (TypeError, ValueError):
+                    pass
+        valid = np.array(valid_list, dtype=np.float64)
+
+    n_valid = len(valid)
+    if n_valid == 0:
+        return NumericDistributionStats(
+            mean=None,
+            std=None,
+            min=None,
+            q1=None,
+            median=None,
+            q3=None,
+            max=None,
+            range=None,
+            iqr=None,
+        )
+
+    if n_valid == 1:
+        v = float(valid[0])
+        return NumericDistributionStats(
+            mean=v,
+            std=None,
+            min=v,
+            q1=v,
+            median=v,
+            q3=v,
+            max=v,
+            range=0.0,
+            iqr=0.0,
+        )
+
+    mean_val = float(np.mean(valid))
+    std_val = float(np.std(valid, ddof=1))
+    min_val = float(np.min(valid))
+    max_val = float(np.max(valid))
+    q1_val, med_val, q3_val = [float(x) for x in np.percentile(valid, [25, 50, 75], method="linear")]
+    range_val = float(max_val - min_val)
+    iqr_val = float(q3_val - q1_val)
+
+    return NumericDistributionStats(
+        mean=mean_val,
+        std=std_val,
+        min=min_val,
+        q1=q1_val,
+        median=med_val,
+        q3=q3_val,
+        max=max_val,
+        range=range_val,
+        iqr=iqr_val,
+    )
+
+
+def compute_categorical_distribution_stats(
+    values: np.ndarray | Sequence[Any],
+    max_categories_reported: int = 50,
+) -> CategoricalDistributionStats:
+    """Compute cardinality and frequency distribution for categorical, boolean or object columns.
+
+    Args:
+        values: 1D array or sequence of values.
+        max_categories_reported: Maximum number of top categories to report in detail.
+
+    Returns:
+        CategoricalDistributionStats with cardinality, sorted top frequencies, and remainder.
+    """
+    counts: dict[tuple[type, Any], int] = {}
+    total_valid = 0
+
+    for x in values:
+        if not is_missing_scalar(x):
+            key = (type(x), x)
+            counts[key] = counts.get(key, 0) + 1
+            total_valid += 1
+
+    cardinality = len(counts)
+    if total_valid == 0:
+        return CategoricalDistributionStats(
+            cardinality=0,
+            frequencies=(),
+            remainder_count=0,
+            remainder_proportion=0.0,
+        )
+
+    # Sort categories: count DESC, then (type_name, str(val)) ASC
+    sorted_items = sorted(
+        counts.items(),
+        key=lambda item: (-item[1], item[0][0].__name__, str(item[0][1])),
+    )
+
+    top_items = sorted_items[:max_categories_reported]
+    remainder_items = sorted_items[max_categories_reported:]
+
+    frequencies = tuple(
+        CategoryFrequency(
+            value=key[1],
+            count=count,
+            proportion=count / total_valid,
+        )
+        for key, count in top_items
+    )
+
+    remainder_count = sum(count for _, count in remainder_items)
+    remainder_prop = remainder_count / total_valid if total_valid > 0 else 0.0
+
+    return CategoricalDistributionStats(
+        cardinality=cardinality,
+        frequencies=frequencies,
+        remainder_count=remainder_count,
+        remainder_proportion=remainder_prop,
+    )
+

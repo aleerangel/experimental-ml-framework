@@ -90,3 +90,106 @@ def test_profiling_models_immutability_and_slots() -> None:
     with pytest.raises(Exception):
         cat_freq.count = 20  # type: ignore[misc]
     assert not hasattr(cat_freq, "__dict__")
+
+
+def test_prof_02_numeric_distribution_statistics() -> None:
+    """PROF-02: Numeric columns calculate mean, std (ddof=1), min, max, quartiles, range, IQR."""
+    import numpy as np
+    from experimental_ml.data.profiling import compute_numeric_distribution_stats
+
+    # Standard distribution with missing values
+    data = np.array([10.0, 20.0, 30.0, 40.0, np.nan], dtype=object)
+    stats = compute_numeric_distribution_stats(data)
+
+    assert stats.mean == 25.0
+    assert stats.min == 10.0
+    assert stats.max == 40.0
+    assert stats.median == 25.0
+    assert stats.q1 == 17.5
+    assert stats.q3 == 32.5
+    assert stats.range == 30.0
+    assert stats.iqr == 15.0
+    assert stats.std is not None
+    assert np.isclose(stats.std, np.std([10.0, 20.0, 30.0, 40.0], ddof=1))
+
+    # Single non-missing observation (sample std is undefined None)
+    single = np.array([42.0, np.nan], dtype=object)
+    s_stats = compute_numeric_distribution_stats(single)
+    assert s_stats.mean == 42.0
+    assert s_stats.std is None
+    assert s_stats.min == 42.0
+    assert s_stats.max == 42.0
+    assert s_stats.range == 0.0
+    assert s_stats.iqr == 0.0
+
+    # Zero variance sample (std = 0.0)
+    zero_var = np.array([7.0, 7.0, 7.0], dtype=np.float64)
+    zv_stats = compute_numeric_distribution_stats(zero_var)
+    assert zv_stats.mean == 7.0
+    assert zv_stats.std == 0.0
+    assert zv_stats.range == 0.0
+    assert zv_stats.iqr == 0.0
+
+
+def test_prof_03_categorical_distribution_and_frequencies() -> None:
+    """PROF-03: Categorical/object columns report cardinality, deterministic sorted frequencies, truncation."""
+    import numpy as np
+    from experimental_ml.data.profiling import compute_categorical_distribution_stats
+
+    # Categories with frequency tie: A=2, B=2, C=1, D=1, missing=2
+    data = np.array(["B", "A", "B", "C", "A", "D", None, np.nan], dtype=object)
+    stats = compute_categorical_distribution_stats(data, max_categories_reported=2)
+
+    assert stats.cardinality == 4
+    assert len(stats.frequencies) == 2
+    # Tie broken alphabetically: A before B
+    assert stats.frequencies[0].value == "A"
+    assert stats.frequencies[0].count == 2
+    assert np.isclose(stats.frequencies[0].proportion, 2 / 6)
+    assert stats.frequencies[1].value == "B"
+    assert stats.frequencies[1].count == 2
+    assert np.isclose(stats.frequencies[1].proportion, 2 / 6)
+
+    # Remainder captures C and D
+    assert stats.remainder_count == 2
+    assert np.isclose(stats.remainder_proportion, 2 / 6)
+
+    # Heterogeneous scalar types in object column
+    het = np.array([1, "1", True, False, None], dtype=object)
+    het_stats = compute_categorical_distribution_stats(het, max_categories_reported=10)
+    assert het_stats.cardinality == 4
+    # All 4 valid values present without type comparison error
+    values = [f.value for f in het_stats.frequencies]
+    assert 1 in values
+    assert "1" in values
+    assert True in values
+    assert False in values
+
+
+def test_prof_12_fully_missing_column_handling() -> None:
+    """PROF-12: Columns with 100% missing values return None for all statistics without raising."""
+    import numpy as np
+    from experimental_ml.data.profiling import (
+        compute_categorical_distribution_stats,
+        compute_numeric_distribution_stats,
+    )
+
+    data = np.array([None, np.nan, float("nan")], dtype=object)
+
+    num_stats = compute_numeric_distribution_stats(data)
+    assert num_stats.mean is None
+    assert num_stats.std is None
+    assert num_stats.min is None
+    assert num_stats.q1 is None
+    assert num_stats.median is None
+    assert num_stats.q3 is None
+    assert num_stats.max is None
+    assert num_stats.range is None
+    assert num_stats.iqr is None
+
+    cat_stats = compute_categorical_distribution_stats(data)
+    assert cat_stats.cardinality == 0
+    assert cat_stats.frequencies == ()
+    assert cat_stats.remainder_count == 0
+    assert cat_stats.remainder_proportion == 0.0
+

@@ -117,13 +117,13 @@ T6
 **Requirement**: PROF-02, PROF-03, PROF-12
 
 **Done when**:
-- [ ] Numeric statistics compute mean, std (`ddof=1`), min, max, quartis, range, IQR over valid values
-- [ ] $N=0$ returns `None` for all numeric metrics without raising
-- [ ] $N=1$ returns point values and `std=None` without raising
-- [ ] Categorical frequency calculator counts non-missing values, sorts by count descending then UTF-8 value ascending, and applies `max_categories_reported` truncation
-- [ ] Heterogeneous scalar types in `object` columns are handled without comparison type errors
-- [ ] Unit tests covering `PROF-02`, `PROF-03`, and `PROF-12` pass in `tests/unit/data/test_profiling.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/data/test_profiling.py -v`
+- [x] Numeric statistics compute mean, std (`ddof=1`), min, max, quartis, range, IQR over valid values
+- [x] $N=0$ returns `None` for all numeric metrics without raising
+- [x] $N=1$ returns point values and `std=None` without raising
+- [x] Categorical frequency calculator counts non-missing values, sorts by count descending then UTF-8 value ascending, and applies `max_categories_reported` truncation
+- [x] Heterogeneous scalar types in `object` columns are handled without comparison type errors
+- [x] Unit tests covering `PROF-02`, `PROF-03`, and `PROF-12` pass in `tests/unit/data/test_profiling.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/data/test_profiling.py -v`
 
 **Tests**: unit
 **Gate**: quick
