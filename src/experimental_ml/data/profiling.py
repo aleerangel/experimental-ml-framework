@@ -22,6 +22,7 @@ from experimental_ml.core.findings import (
 from experimental_ml.core import is_missing_scalar, is_nan_scalar
 from experimental_ml.core.types import ObservationId
 from experimental_ml.data.schema import ColumnSemanticType
+from experimental_ml.data.types import DatasetBundle
 
 
 @dataclass(frozen=True, slots=True)
@@ -794,6 +795,140 @@ def evaluate_findings(
     # Sort canonically
     findings.sort(key=finding_sort_key)
     return tuple(findings)
+
+
+def profile_dataset(
+    bundle: DatasetBundle,
+    config: ProfileConfig | None = None,
+) -> DatasetProfile:
+    """Generate comprehensive, immutable structural profile and diagnostic findings for a DatasetBundle.
+
+    Pure functional execution: reads bundle immutably without altering bundle.dataset_hash
+    or any underlying numpy array buffers.
+
+    Args:
+        bundle: Ingested immutable DatasetBundle.
+        config: Optional ProfileConfig specifying heuristic thresholds and memory limits.
+
+    Returns:
+        Immutable DatasetProfile containing column-level profiles, target/group distributions,
+        duplicate rows diagnostics, and canonically sorted diagnostic findings.
+
+    Raises:
+        ConfigurationError: If any threshold in config is invalid.
+    """
+    if config is None:
+        config = ProfileConfig()
+
+    col_profiles: dict[str, ColumnProfile] = {}
+    for col_name, col_data in bundle.columns.items():
+        desc = bundle.descriptors[col_name]
+        n_missing = desc.n_missing
+        missing_prop = n_missing / bundle.n_rows if bundle.n_rows > 0 else 0.0
+
+        # Numeric statistics for numeric types
+        is_numeric = desc.physical_type in ("int64", "float64") or desc.semantic_type in (
+            ColumnSemanticType.NUMERIC_CONTINUOUS,
+            ColumnSemanticType.NUMERIC_DISCRETE,
+        )
+        numeric_stats = (
+            compute_numeric_distribution_stats(col_data) if is_numeric else None
+        )
+
+        # Categorical statistics for categorical/boolean/object columns
+        is_categorical_candidate = (
+            desc.physical_type == "object"
+            or desc.semantic_type in (
+                ColumnSemanticType.CATEGORICAL,
+                ColumnSemanticType.BOOLEAN,
+            )
+        )
+        categorical_stats = (
+            compute_categorical_distribution_stats(
+                col_data, max_categories_reported=config.max_categories_reported
+            )
+            if is_categorical_candidate
+            else None
+        )
+
+        # Determine cardinality (n_unique non-missing values)
+        if categorical_stats is not None:
+            n_unique = categorical_stats.cardinality
+        elif is_numeric:
+            # Count distinct non-missing values
+            valid_set: set[float] = set()
+            for x in col_data:
+                if not is_missing_scalar(x):
+                    valid_set.add(float(x))
+            n_unique = len(valid_set)
+        else:
+            valid_set_any: set[Any] = set()
+            for x in col_data:
+                if not is_missing_scalar(x):
+                    valid_set_any.add((type(x), x))
+            n_unique = len(valid_set_any)
+
+        col_profiles[col_name] = ColumnProfile(
+            name=col_name,
+            physical_type=desc.physical_type,
+            semantic_type=desc.semantic_type,
+            role=desc.role,
+            n_missing=n_missing,
+            missing_proportion=missing_prop,
+            n_unique=n_unique,
+            numeric_stats=numeric_stats,
+            categorical_stats=categorical_stats,
+        )
+
+    # Target profile
+    target_profile = compute_target_profile(
+        target_col_name=bundle.schema.target_col,
+        values=bundle.columns[bundle.schema.target_col],
+        task_type=bundle.schema.task_type,
+        max_categories_reported=config.max_categories_reported,
+    )
+
+    # Group profile
+    group_profile: GroupProfile | None = None
+    if bundle.schema.group_col and bundle.schema.group_col in bundle.columns:
+        group_profile = compute_group_profile(
+            group_col=bundle.schema.group_col,
+            values=bundle.columns[bundle.schema.group_col],
+        )
+
+    # Duplicate rows profile
+    duplicate_profile = compute_duplicate_rows_profile(
+        columns=bundle.columns,
+        observation_ids=bundle.observation_ids,
+        observation_id_col=bundle.schema.observation_id_col,
+        max_listed_ids=config.max_listed_ids,
+    )
+
+    # Closed findings catalog
+    findings = evaluate_findings(
+        schema_target_col=bundle.schema.target_col,
+        schema_group_col=bundle.schema.group_col,
+        schema_task_type=bundle.schema.task_type,
+        n_rows=bundle.n_rows,
+        column_profiles=col_profiles,
+        target_profile=target_profile,
+        group_profile=group_profile,
+        duplicate_profile=duplicate_profile,
+        config=config,
+    )
+
+    return DatasetProfile(
+        source_dataset_hash=bundle.dataset_hash,
+        n_rows=bundle.n_rows,
+        n_cols=bundle.n_cols,
+        memory_bytes=bundle.memory_bytes,
+        columns=MappingProxyType(col_profiles),
+        duplicate_rows=duplicate_profile,
+        target=target_profile,
+        groups=group_profile,
+        findings=findings,
+    )
+
 
 
 

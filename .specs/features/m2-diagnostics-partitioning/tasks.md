@@ -190,12 +190,12 @@ T6
 **Requirement**: PROF-01, PROF-10
 
 **Done when**:
-- [ ] `profile_dataset` entry point accepts `bundle` and optional `config` and returns frozen `DatasetProfile`
-- [ ] Public symbols `profile_dataset`, `DatasetProfile`, `ColumnProfile`, `ProfileConfig` exported in `src/experimental_ml/data/__init__.py` and included in `__all__`
-- [ ] Source `bundle.dataset_hash` and all underlying column buffers remain bit-identical before and after profiling
-- [ ] Repeated calls with identical inputs produce equal `DatasetProfile` objects
-- [ ] Unit tests covering `PROF-01` and `PROF-10` pass in `tests/unit/data/test_profiling.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/data/test_profiling.py -v`
+- [x] `profile_dataset` entry point accepts `bundle` and optional `config` and returns frozen `DatasetProfile`
+- [x] Public symbols `profile_dataset`, `DatasetProfile`, `ColumnProfile`, `ProfileConfig` exported in `src/experimental_ml/data/__init__.py` and included in `__all__`
+- [x] Source `bundle.dataset_hash` and all underlying column buffers remain bit-identical before and after profiling
+- [x] Repeated calls with identical inputs produce equal `DatasetProfile` objects
+- [x] Unit tests covering `PROF-01` and `PROF-10` pass in `tests/unit/data/test_profiling.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/data/test_profiling.py -v`
 
 **Tests**: unit
 **Gate**: quick

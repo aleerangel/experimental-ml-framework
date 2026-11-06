@@ -589,4 +589,81 @@ def test_prof_09_binary_target_unmapped_and_class_count() -> None:
     assert "E1_TARGET_BINARY_UNMAPPED" not in codes_mapped
 
 
+def test_prof_01_structural_profile_and_column_profiles() -> None:
+    """PROF-01: profile_dataset returns immutable DatasetProfile matching bundle metadata and ColumnProfile per column."""
+    import numpy as np
+    from experimental_ml.core.enums import TaskType
+    from experimental_ml.data import (
+        DatasetProfile,
+        DatasetSchemaSpec,
+        load_dataset,
+        profile_dataset,
+    )
+
+    data = {
+        "x1": [1.0, 2.0, np.nan, 4.0],
+        "x2": ["cat", "dog", "cat", "bird"],
+        "target": [10.0, 20.0, 30.0, 40.0],
+    }
+    schema = DatasetSchemaSpec(target_col="target", task_type=TaskType.REGRESSION)
+    bundle = load_dataset(data, schema=schema)
+
+    profile = profile_dataset(bundle)
+
+    assert isinstance(profile, DatasetProfile)
+    assert profile.source_dataset_hash == bundle.dataset_hash
+    assert profile.n_rows == bundle.n_rows == 4
+    assert profile.n_cols == bundle.n_cols == 3
+    assert profile.memory_bytes == bundle.memory_bytes
+
+    # Every column present in profile.columns
+    for col_name in bundle.columns:
+        assert col_name in profile.columns
+        cp = profile.columns[col_name]
+        desc = bundle.descriptors[col_name]
+        assert cp.name == col_name
+        assert cp.physical_type == desc.physical_type
+        assert cp.semantic_type == desc.semantic_type
+        assert cp.role == desc.role
+        assert cp.n_missing == desc.n_missing
+
+    # x1 missing proportion is 1/4 = 0.25
+    assert profile.columns["x1"].n_missing == 1
+    assert profile.columns["x1"].missing_proportion == 0.25
+
+
+def test_prof_10_immutability_and_determinism() -> None:
+    """PROF-10: profile_dataset leaves bundle untouched and repeated calls produce identical profiles."""
+    import numpy as np
+    from experimental_ml.core.enums import TaskType
+    from experimental_ml.data import DatasetSchemaSpec, load_dataset, profile_dataset
+
+    data = {
+        "feat_a": [10, 20, 30, 40],
+        "feat_b": ["yes", "no", "yes", "no"],
+        "label": [1, 0, 1, 0],
+    }
+    schema = DatasetSchemaSpec(target_col="label", task_type=TaskType.BINARY_CLASSIFICATION)
+    bundle = load_dataset(data, schema=schema)
+
+    initial_hash = bundle.dataset_hash
+    initial_arrays = {col: arr.copy() for col, arr in bundle.columns.items()}
+
+    profile_1 = profile_dataset(bundle)
+
+    # Immutability check
+    assert bundle.dataset_hash == initial_hash
+    for col, orig_arr in initial_arrays.items():
+        assert len(bundle.columns[col]) == len(orig_arr)
+        for v1, v2 in zip(bundle.columns[col], orig_arr):
+            assert (v1 == v2) or (v1 != v1 and v2 != v2)
+
+    profile_2 = profile_dataset(bundle)
+
+    # Determinism check
+    assert profile_1 == profile_2
+    assert profile_1.findings == profile_2.findings
+
+
+
 

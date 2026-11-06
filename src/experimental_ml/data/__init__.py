@@ -10,6 +10,12 @@ from experimental_ml.data.parsing import (
     detect_delimiter,
     parse_tabular_text,
 )
+from experimental_ml.data.profiling import (
+    ColumnProfile,
+    DatasetProfile,
+    ProfileConfig,
+    profile_dataset,
+)
 from experimental_ml.data.query import (
     get_column_array,
     slice_bundle_by_observation_ids,
@@ -34,6 +40,10 @@ __all__ = [
     "validate_schema_spec",
     "ColumnDescriptor",
     "DatasetBundle",
+    "ColumnProfile",
+    "DatasetProfile",
+    "ProfileConfig",
+    "profile_dataset",
     "SUPPORTED_DELIMITERS",
     "detect_delimiter",
     "parse_tabular_text",
