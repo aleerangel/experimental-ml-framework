@@ -141,7 +141,7 @@ Separadamente do pipeline operacional, as relações de importação entre os pa
 
 1. **`core` (Nível 0 — Fundação Transversal):** Tipos de identificadores, constantes/enumerações, derivação determinística de sementes (`derive_seeds` sobre `SeedSequence`), utilitários de hash (`config_hash` e `dataset_hash` via `SHA-256`), serialização JSON determinística e funções de validação/erros. Não depende de nenhum outro pacote do framework.
 2. **`metrics` (Nível 1 — Motor de Métricas Transversal):** Funções puras vetorizadas de métricas de regressão, classificação e alinhamento (incluindo KTA), catálogo `METRICS_CATALOG`, metadados de direção (`MAXIMIZE` / `MINIMIZE`), escopo (`PER_FOLD`, `FOLD_AGGREGATION`, `POOLED_OOF`, `FINAL_HOLDOUT`) e funções de comparação/agregação (`is_better`, `aggregate_fold_metrics`). Depende apenas de `core`.
-3. **`data` (Nível 1 — Camada 1 / Etapa 1):** Ingestão tabular imutável com buffers na C-API (`load_dataset`, `DatasetBundle`), especificação estrutural e papéis de variáveis (`DatasetSchemaSpec`), tipagem física e semântica (`ColumnSemanticType`, `ColumnDescriptor`), integridade RFC 4180 com sniffer automático de delimitadores, identificadores estáveis (`ObservationId`), hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários de consulta (`get_column_array`, `slice_bundle_by_observation_ids`) — integralmente implementados no Marco M1.4. As funções de diagnóstico estrutural estatístico (`profile_dataset` gerando `DatasetProfile`), plano explícito de preparação (`create_preparation_plan`), visão saneada (`sanitize_dataset` gerando `SanitizedDatasetView`) e transformações reversíveis de alvo (`fit_apply_target_transform`) são responsabilidade do Marco M2. Depende apenas de `core`.
+3. **`data` (Nível 1 — Camada 1 / Etapa 1):** Ingestão tabular imutável com buffers na C-API (`load_dataset`, `DatasetBundle`), especificação estrutural e papéis de variáveis (`DatasetSchemaSpec`), tipagem física e semântica (`ColumnSemanticType`, `ColumnDescriptor`), integridade RFC 4180 com sniffer automático de delimitadores, identificadores estáveis (`ObservationId`), hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários de consulta (`get_column_array`, `slice_bundle_by_observation_ids`) — integralmente implementados no Marco M1.4 e consolidados no Marco M1.5. As funções de triagem e diagnóstico estrutural e estatístico (`profile_dataset`, `DatasetProfile`, `ColumnProfile`, `ProfileConfig`) e o catálogo fechado de 15 achados padronizados foram implementados no Sub-marco M2.1. O plano explícito de preparação (`create_preparation_plan`), a visão saneada (`sanitize_dataset` gerando `SanitizedDatasetView`) e as regras determinísticas são responsabilidade do Sub-marco M2.2. Depende apenas de `core`.
 4. **`validation` (Nível 2 — Camada 2 / Etapa 4A):** Funções `build_partition_plan` e `validate_partition_plan`, implementando as estratégias de divisão (`kfold_split`, `stratified_kfold_split`, `group_kfold_split`, `bootstrap_split`, `temporal_split`, `holdout_split`). Depende de `core` e `data`.
 5. **`features` (Nível 2 — Camada 1 / Etapa 2):** Funções `explore_features`, `validate_scenarios`, `select_features_in_fold` (despachando para funções de filtro de colinearidade, Top-$K$ univariado, ranking ponderado multi-critério e redução `PCA`) e `compute_selection_stability`. Depende de `core`, `data` e `metrics`.
 6. **`models` (Nível 2 — Camada 1 / Etapa 3A):** Estruturas declarativas `ModelSpec` e `ModelCapabilities`, e funções de execução isolada `instantiate_fresh_model`, `fit_model`, `predict_model`, `extract_model_diagnostics` e `fit_apply_two_layer_preprocessing` (incluindo o roteamento sem vazamento de $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ para funções externas de kernel pré-computado). Depende de `core`.
@@ -251,26 +251,28 @@ Carregar a base de dados preservando sua integridade original, mapear papéis da
    * Vetor ordenado de identificadores estáveis e não-nulos (`observation_ids`), com geração posicional `obs_000000` ou validação estrita de unicidade na fonte.
    * Utilitários seguros de consulta (`get_column_array` com view somente-leitura ou cópia mutável independente) e fatiamento ordenado (`slice_bundle_by_observation_ids` preservando estritamente a sequência solicitada com recálculo determinístico de hash).
 
-2. **`DatasetProfile` (Escopo do Marco M2):**
-   * **Resumo Estrutural:** número de linhas, número de colunas, tamanho em bytes e estimativa de memória RAM.
-   * **Tipagem Semântica por Coluna:** distinção entre numérica contínua, numérica discreta, categórica nominal/ordinal, booleana, temporal e identificador.
-   * **Qualidade e Completude:** contagem e proporção de valores ausentes por coluna; quantidade e índices de linhas duplicadas; identificação de colunas constantes (variância zero) ou quase-constantes; detecção heurística de possíveis identificadores (cardinalidade próxima a $N$).
-   * **Estatísticas Descritivas Numéricas:** média, mediana, desvio-padrão, mínimo, máximo, quartis ($Q_1, Q_2, Q_3$), amplitude e intervalo interquartil (IQR).
-   * **Diagnóstico de Escala e Amplitude:** comparação de ordens de grandeza entre atributos numéricos para sinalizar disparidades de escala.
-   * **Estatísticas Categóricas:** cardinalidade, frequências absolutas e proporções relativas de cada categoria.
+2. **`DatasetProfile` (Implementado no Sub-marco M2.1):**
+   * Estrutura imutável de resultado (`DatasetProfile`) e perfil detalhado por coluna (`ColumnProfile`), configurados por `ProfileConfig`.
+   * **Resumo Estrutural:** número de linhas, número de colunas, tamanho em bytes e estimativa de memória RAM total e por coluna.
+   * **Tipagem Semântica por Coluna:** identificação de tipos físicos e semânticos (`ColumnSemanticType`).
+   * **Qualidade e Completude:** contagem e proporção de valores ausentes por coluna; identificação determinística de linhas duplicadas (excluindo apenas `observation_id`); identificação de colunas constantes (variância zero) ou quase-constantes; detecção heurística de identificadores espúrios.
+   * **Estatísticas Descritivas Numéricas:** média, mediana, desvio-padrão, mínimo, máximo, quartis ($Q_1, Q_2, Q_3$), amplitude, intervalo interquartil (IQR), assimetria (skewness) e detecção de outliers pelo método $1.5 \times \text{IQR}$. Tratamento determinístico de amostras pequenas ($N \le 1$) ou variância nula via resultados indefinidos (`None`).
+   * **Diagnóstico de Escala e Amplitude:** razão de ordens de grandeza entre medianas absolutas não nulas para sinalizar disparidades de escala (`scale_disparity_orders`).
+   * **Estatísticas Categóricas:** cardinalidade, frequências absolutas e proporções relativas de categorias até o limite configurado (`max_categories_reported`).
    * **Perfil da Variável-Alvo:**
-     * *Regressão:* distribuição empírica, assimetria, valores extremos e presença de nulos.
-     * *Classificação:* frequências absolutas e relativas por classe, razão de desbalanceamento e alerta para classes raras.
-   * **Perfil da Variável de Agrupamento (quando presente):** número total de grupos, distribuição de observações por grupo (mínimo, mediana, máximo) e identificação de grupos com número reduzido de amostras.
-   * **Lista Classificada de Achados (`DiagnosticFinding`):** separação estrita entre:
-     * `CONFIRMED_ISSUE`: problema estrutural objetivo (ex.: valores ausentes no `target`, atributo constante, coluna categórica sem codificação para modelo numérico).
-     * `HEURISTIC_WARNING`: alerta metodológico ou estatístico que requer avaliação do pesquisador, sem impor correção obrigatória (ex.: possível coluna de ID, desbalanceamento moderado, grupos pequenos, diferença de escala).
+     * *Regressão:* distribuição empírica, média, desvio-padrão, assimetria, detecção de outliers e presença de nulos.
+     * *Classificação:* frequências absolutas e relativas por classe, razão de desbalanceamento, detecção de classes raras, validação estrita de contagem de classes (`E1_TARGET_CLASS_COUNT_INVALID`) e exigência de mapeamento explícito para $\{0,1\}$ em alvo binário textual (`E1_TARGET_BINARY_UNMAPPED`).
+   * **Perfil da Variável de Agrupamento (quando presente):** número total de grupos, distribuição de observações por grupo (mínimo, mediana, máximo), grupos com valores ausentes (`E1_GROUP_EMPTY_VALUES`) e identificação de grupos com número reduzido de amostras (`W1_GROUP_TOO_FEW_SAMPLES`).
+   * **Lista Classificada de Achados (`DiagnosticFinding`):** catálogo canônico fechado de 15 achados com severidade imutável e ordenação lexicográfica determinística (`CONFIRMED_ISSUE` antes de `HEURISTIC_WARNING`, depois código do achado e nome da coluna):
+     * `CONFIRMED_ISSUE` (8 achados): `E1_TARGET_ALL_MISSING`, `E1_TARGET_ZERO_VARIANCE`, `E1_TARGET_CLASS_COUNT_INVALID`, `E1_TARGET_BINARY_UNMAPPED`, `E1_GROUP_EMPTY_VALUES`, `E1_COLUMN_ALL_MISSING`, `E1_CONSTANT_FEATURE_COLUMN`, `E1_IDENTIFIER_COLUMN_SUSPECTED`.
+     * `HEURISTIC_WARNING` (7 achados): `W1_TARGET_HIGH_SKEW`, `W1_TARGET_OUTLIERS_PRESENT`, `W1_TARGET_CLASS_IMBALANCE`, `W1_TARGET_RARE_CLASSES`, `W1_GROUP_TOO_FEW_SAMPLES`, `W1_DUPLICATE_ROWS`, `W1_SCALE_DISPARITY_HIGH`.
+   * **Garantia de Imutabilidade:** `profile_dataset(bundle, config)` não muta o `DatasetBundle` em nenhuma circunstância, preservando o `dataset_hash` idêntico antes e após a análise.
 
-3. **`PreparationPlan` (`configuration/preparation_plan.json` — Escopo do Marco M2):**
+3. **`PreparationPlan` (`configuration/preparation_plan.json` — Escopo do Sub-marco M2.2):**
    * Declaração explícita das decisões de pré-processamento tomadas pelo pesquisador (imputação de ausentes, codificação de variáveis categóricas, exclusão de colunas ou observações inválidas), vinculada ao `dataset_hash` de origem.
    * Só recebe `status = "READY"` quando **todos** os achados `CONFIRMED_ISSUE` do `DatasetProfile` possuem regra explícita de tratamento declarada. Documenta qualquer estratégia adotada, garantindo que nenhuma transformação que aprenda parâmetros seja ajustada na Etapa 1 (**ADR-002**).
 
-4. **`SanitizedDatasetView` (Retorno de `sanitize_dataset(bundle, profile, preparation_plan)` — Escopo do Marco M2):**
+4. **`SanitizedDatasetView` (Retorno de `sanitize_dataset(bundle, profile, preparation_plan)` — Escopo do Sub-marco M2.2):**
    * Visão tabular imutável resultante da aplicação exclusiva das regras estruturais determinísticas pré-partição (remoção de linhas com `target` nulo e exclusão de colunas proibidas/constantes declaradas no `PreparationPlan`), contendo: dados tabulares filtrados, lista validada de colunas preditoras candidatas (`candidate_feature_cols`), vetor ordenado de `observation_ids` válidos e o `dataset_hash` correspondente.
 
 ---
@@ -747,7 +749,26 @@ O Marco M1 é dividido em **quatro entregas sequenciais e independentemente veri
   * Verificação mecânica independente via TLC Spec-Driven (`proofs.md` e `verification.md` com veredito `PASS`, 0 achados).
   * Homologação formal aprovada sob `.specs/features/m1-4-datasets-schemas/`.
 
-#### Comandos Reprodutíveis de Instalação, Execução de Testes e Qualidade (Critério de Conclusão do Marco M1)
+#### Entrega M1.5 — Hardening e Saneamento da Fundação M1 (Concluída)
+* **Escopo:** Saneamento transversal dos 10 achados da Auditoria Geral de Integridade M1 (6 P0 e 4 P1 selecionados): framing binário de `dataset_hash` sensível a `observation_ids`, detecção centralizada de `NaN`/ausentes (`is_nan_scalar`, `is_missing_scalar`), preservação estrita de instâncias `ObservationId` em fatiamentos, whitelist de escalares em colunas `object` e captura de `OverflowError` em `int64`.
+* **Resultados e Verificação:** 15/15 checks determinísticos aprovados em `proofs.md`, verificação independente TLC com veredito `PASS` (0 findings) e aprovação de 4/4 testes de integração transversal em `tests/integration/test_m1_foundation_integration.py` (totalizando 96 testes aprovados). Homologação formal aprovada sob `.specs/features/m1-5-foundation-hardening/`.
+
+#### Entrega M2.1 — Triagem Estatística e Diagnóstico Estrutural de Datasets (Concluída)
+* **Escopo (Modular e Sem Orientação a Objetos):**
+  * `DatasetProfile`, `ColumnProfile` e `ProfileConfig`: estruturas imutáveis de diagnóstico e configuração de limiares heurísticos.
+  * Estatísticas descritivas completas para colunas numéricas (média, mediana, desvio padrão, min, max, quartis, IQR, skewness e contagem de outliers pelo critério $1.5 \times \text{IQR}$) e categóricas (frequências e proporções).
+  * Análise do alvo univariado: verificação de variância zero, ausentes, contagem de classes, razão de desbalanceamento e detecção de alvos binários não mapeados para $\{0,1\}$ (`E1_TARGET_BINARY_UNMAPPED`).
+  * Análise de grupos (`group_col`): detecção de grupos vazios (`E1_GROUP_EMPTY_VALUES`) e grupos com poucas amostras (`W1_GROUP_TOO_FEW_SAMPLES`).
+  * Detecção determinística de linhas duplicadas (excluindo apenas `observation_id`).
+  * Catálogo fechado de 15 achados diagnósticos com severidade imutável (8 `CONFIRMED_ISSUE` + 7 `HEURISTIC_WARNING`) e ordenação canônica determinística por severidade, código do achado e coluna.
+  * Função pura `profile_dataset(bundle, config)` exposta em `experimental_ml.data` (17 símbolos exportados em `__all__`), mantendo estrita imutabilidade e invariância do `dataset_hash`.
+* **Resultados e Verificação:**
+  * 12/12 checks determinísticos aprovados em `proofs.md` cobrindo os requisitos `PROF-01` a `PROF-12`.
+  * Verificação independente TLC (`verification.md` com veredito `PASS`, 0 findings e 0 erros em `validate_verification.py`).
+  * Aprovação de 12 testes unitários em `tests/unit/test_profiling.py` e 6 testes de integração em `tests/integration/test_profiling_integration.py`.
+  * Homologação formal aprovada sob `.specs/features/m2-diagnostics-partitioning/`.
+
+#### Comandos Reprodutíveis de Instalação, Execução de Testes e Qualidade
 ```bash
 # 1. Criação do ambiente virtual e instalação em modo editável com dependências de teste
 python3 -m venv .venv
@@ -760,19 +781,26 @@ python3 -m venv .venv
 # 3. Gate da Entrega M1.1 (Smoke tests — Concluído: 12/12)
 .venv/bin/pytest tests/test_smoke.py -v
 
-# 4. Gate da Entrega M1.2 (Testes unitários do core — Concluído: 18/18)
+# 4. Gate da Entrega M1.2 (Testes unitários do core — Concluído: 22/22)
 .venv/bin/pytest tests/unit/test_core.py -v
 
 # 5. Gate da Entrega M1.3 (Testes unitários de metrics — Concluído: 22/22)
 .venv/bin/pytest tests/unit/test_metrics.py -v
 
-# 6. Gate da Entrega M1.4 (Testes unitários de data/schemas — Concluído: 29/29)
+# 6. Gate da Entrega M1.4 (Testes unitários de data/schemas — Concluído: 36/36)
 .venv/bin/pytest tests/unit/test_data_schemas.py -v
 
-# 7. Suíte Completa do Marco M1 e Fundação Transversal (Concluído: 81/81 testes)
+# 7. Gate da Entrega M1.5 (Testes de integração transversal M1 — Concluído: 4/4)
+.venv/bin/pytest tests/integration/test_m1_foundation_integration.py -v
+
+# 8. Gate da Entrega M2.1 (Profiling e Diagnósticos — Concluído: 12 unitários + 6 integração)
+.venv/bin/pytest tests/unit/test_profiling.py -v
+.venv/bin/pytest tests/integration/test_profiling_integration.py -v
+
+# 9. Suíte Completa do Repositório (Concluído: 114/114 testes)
 .venv/bin/pytest tests/ -v --tb=short
 ```
-*(Nota: O Marco M1 e a Fase 1 — Setup e Fundações Transversais encontram-se 100% concluídos, homologados e integrados na branch `main`. O avanço para o Marco M2 está liberado).*
+*(Nota: O Marco M1 encontra-se 100% concluído e aceito. O Marco M2 está em andamento, com o Sub-marco M2.1 Profiling concluído e aceito, e o Sub-marco M2.2 Saneamento como próximo passo).*
 
 ---
 

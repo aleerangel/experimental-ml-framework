@@ -43,8 +43,11 @@ O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MV
   Disponibiliza a camada de ingestão tabular imutável (`DatasetBundle`), especificação declarativa de papéis e tipos semânticos (`DatasetSchemaSpec`, `ColumnSemanticType`), isolamento de memória respaldado por buffers `bytes` imutáveis recusando `setflags(write=True)`, parsing estrito RFC 4180 com sniffer automático e detecção de *ragged rows*, geração/validação de `ObservationId`, cálculo de hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários somente-leitura de consulta e fatiamento ordenado.
 - **Marco M1.5 (`foundation hardening`): CONCLUÍDO E ACEITO.**  
   Saneamento transversal dos 10 achados da Auditoria Geral de Integridade M1 (6 P0 e 4 P1 selecionados): framing binário inequívoco de `dataset_hash` sensível a `observation_ids` preservando a direção `data -> core`, detecção centralizada de `NaN` (`is_nan_scalar`, `is_missing_scalar`) cobrindo tipos nativos e `numpy.floating`, validação e preservação estrita de instâncias `ObservationId` em fatiamentos, whitelist de escalares em colunas `object` com semântica unificada de ausentes e captura de `OverflowError` em `int64`, além de estabelecer a suíte de testes de integração transversal.
-- **Marco M2 (`data` + `validation` + CLI `data`/`partition`): PRÓXIMO MARCO.**  
-  Triagem estatística (`profile_dataset` separando problemas confirmados vs. alertas heurísticos), plano de preparação (`create_preparation_plan`), saneamento (`sanitize_dataset`) e geração/validação matemática do `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`).
+- **Marco M2 (`diagnostics & partitioning`): EM ANDAMENTO.**  
+  - **Sub-marco M2.1 (`m2-1-dataset-profiling`): CONCLUÍDO E ACEITO.**  
+    Triagem estatística e diagnóstico estrutural da base (`profile_dataset`, `DatasetProfile`, `ColumnProfile`, `ProfileConfig`), separação formal de 15 achados diagnósticos padronizados (8 `CONFIRMED_ISSUE` e 7 `HEURISTIC_WARNING`), ordenação canônica determinística, distribuições numéricas e categóricas, análise do alvo e grupos, detecção de linhas duplicadas e garantia estrita de imutabilidade.
+  - **Sub-marcos M2.2 a M2.5: PRÓXIMAS ETAPAS.**  
+    M2.2 Saneamento e Visão Saneada (`create_preparation_plan`, `sanitize_dataset`, `SanitizedDatasetView`), M2.3 Particionamento e Validação (`build_partition_plan`, `validate_partition_plan`), M2.4 CLI de Dados e Partição, M2.5 Integração e Hardening do M2.
 - **Marcos M3 a M7: PLANEJADOS.**  
   Seleção dinâmica de atributos, execução matricial, comparação estatística e geração de relatórios estão especificados e serão implementados nos marcos subsequentes.
 
@@ -74,7 +77,7 @@ Na versão atual da branch `main`, as seguintes capacidades estão implementadas
   - **Funções de Regressão e Alinhamento:** Implementação vetorizada em `float64` de `mae`, `rmse`, `mbe` (preservando o viés assinado e comparando por magnitude absoluta), `r2`, `rmse_rel_pct`, `mape`, `pearson` e `kta` (com suporte a centralização $HKH$).
   - **Funções de Classificação:** Métricas discretas `accuracy`, `balanced_accuracy`, `precision`, `recall` e `f1` (com avaliação pelo próprio denominador $2TP + FP + FN$), além de probabilísticas `roc_auc` (empates exatos via postos médios e OVR) e `log_loss` (com validação estrita de distribuições e clipping $\epsilon = 10^{-15}$).
   - **Comparação, Agregação e Ranqueamento (ADR-005):** Comparador `is_better` compatível com `compare_by_abs`, agregador entre dobras `aggregate_fold_metrics` gerando `VALID`, `PARTIAL_COVERAGE` e `UNDEFINED_NAN`, e ranqueador lexicográfico `rank_configurations` com precedência estrita de cobertura.
-- **Camada de Ingestão e Esquemas Tabulares (`experimental_ml.data` — Nível 1):**
+- **Camada de Ingestão, Esquemas e Diagnósticos Tabulares (`experimental_ml.data` — Nível 1):**
   - **Especificação Estrutural e Tipagem Semântica (`DatasetSchemaSpec`):** Estrutura imutável com validação de disjunção de papéis de colunas (`target_col`, `group_col`, `observation_id_col`, `time_col`, `ignore_cols`), normalização Unicode NFC e bloqueio de vazamento da Onda 2.
   - **Ingestão Tabular com Posse Exclusiva (`load_dataset`):** Suporte a arquivos tabulares (`.csv`, `.txt`, `.tsv`) e fontes em memória (`dict`, 2D `ndarray`, sequências de registros e `DataFrame` via duck-typing), sem dependência obrigatória de `pandas`.
   - **Imutabilidade Física de Buffers:** Colunas numéricas e booleanas respaldadas por buffers `bytes` imutáveis na camada C do NumPy, recusando tentativas de reativação de escrita (`arr.setflags(write=True)` levanta `ValueError`). Colunas `object` restritas a escalares imutáveis com `writeable=False`.
@@ -82,7 +85,15 @@ Na versão atual da branch `main`, as seguintes capacidades estão implementadas
   - **Identificadores de Observação (`ObservationId`):** Atribuição determinística sequencial `obs_000000` na ausência de coluna de ID e validação estrita de não-nulidade e unicidade quando informada na fonte.
   - **Semântica Tripartite de Hashes:** `dataset_hash` canônico do conteúdo em memória invariante a quebras de linha (`\r\n` vs `\n`), sensível à ordem das colunas e aos `observation_ids`, `raw_source_hash` para proveniência do arquivo em disco e `schema_hash` para a configuração estrutural.
   - **Utilitários de Consulta:** `get_column_array` (view somente-leitura ou cópia mutável independente) e `slice_bundle_by_observation_ids` preservando a ordem solicitada pelo chamador com recálculo de hash.
-- **Suíte de Testes Automatizados:** 96 testes automatizados (12 testes de fumaça em `tests/test_smoke.py`, 22 testes unitários em `tests/unit/test_core.py`, 22 testes unitários em `tests/unit/test_metrics.py`, 36 testes unitários em `tests/unit/test_data_schemas.py` e 4 testes de integração transversal em `tests/integration/test_m1_foundation_integration.py`), com 100% de aprovação via `pytest`.
+  - **Triagem Estatística e Diagnóstico Estrutural (`profile_dataset` — Marco M2.1):**
+    - Estrutura agregada `DatasetProfile` e perfis por coluna `ColumnProfile`, configuráveis via `ProfileConfig`.
+    - Cálculo de distribuições numéricas (média, mediana, desvio padrão, min, max, quartis, IQR, skewness e contagem de outliers por regra $1.5 \times \text{IQR}$) e distribuições categóricas (frequências e proporções).
+    - Análise especializada da variável-alvo (verificação de variância zero, ausentes, contagem de classes, desbalanceamento e mapeamento binário para $\{0,1\}$ com emissão de `E1_TARGET_BINARY_UNMAPPED`).
+    - Análise de agrupamento (`group_col`) com detecção de grupos com poucas observações ou ausentes.
+    - Detecção determinística de linhas duplicadas (excluindo apenas `observation_id`).
+    - Catálogo canônico fechado de 15 achados diagnósticos padronizados (8 `CONFIRMED_ISSUE` bloqueantes de preparação e 7 `HEURISTIC_WARNING` informativos) com ordenação canônica determinística por severidade (`CONFIRMED_ISSUE` antes de `HEURISTIC_WARNING`), código e coluna.
+    - Exposição pública de 17 símbolos em `experimental_ml.data.__all__` com garantia estrita de imutabilidade e invariância do `dataset_hash`.
+- **Suíte de Testes Automatizados:** 114 testes automatizados (12 testes de fumaça em `tests/test_smoke.py`, 22 testes unitários em `tests/unit/test_core.py`, 22 testes unitários em `tests/unit/test_metrics.py`, 36 testes unitários em `tests/unit/test_data_schemas.py`, 12 testes unitários em `tests/unit/test_profiling.py`, 4 testes de integração transversal em `tests/integration/test_m1_foundation_integration.py` e 6 testes de integração de profiling em `tests/integration/test_profiling_integration.py`), com 100% de aprovação via `pytest`.
 
 ---
 
@@ -107,7 +118,8 @@ experimental-ml-framework/
 │       ├── m1-2-core/               # Artefatos da entrega M1.2 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 │       ├── m1-3-metrics/            # Artefatos da entrega M1.3 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 │       ├── m1-4-datasets-schemas/   # Artefatos da entrega M1.4 (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
-│       └── m1-5-foundation-hardening/ # Artefatos da entrega M1.5 Hardening (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
+│       ├── m1-5-foundation-hardening/ # Artefatos da entrega M1.5 Hardening (spec.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
+│       └── m2-diagnostics-partitioning/ # Artefatos da entrega M2/M2.1 Profiling (spec.md, design.md, tasks.md, proofs.md, verification.md, ACCEPTANCE.md, RESULTS.md)
 ├── engenharia_software/             # Documentação técnica central de engenharia
 │   ├── ESPECIFICACAO_REQUISITOS.md  # Especificação formal de requisitos (SRS v2.0)
 │   ├── ARQUITETURA_E_CONTRATOS.md   # Arquitetura em camadas, contratos e modelo de dados
@@ -134,22 +146,25 @@ experimental-ml-framework/
 │       │   ├── regression.py        # mae, rmse, mbe, r2, rmse_rel_pct, mape, pearson, kta
 │       │   ├── types.py             # MetricValue, AggregatedMetricValue, MetricSpec, RankedCandidate
 │       │   └── validation.py        # validate_numeric_arrays, scaled_quadratic_sum
-│       └── data/                    # Ingestão, esquemas e imutabilidade de datasets (Nível 1)
-│           ├── __init__.py          # Re-exportação com __all__
+│       └── data/                    # Ingestão, esquemas e diagnósticos de datasets (Nível 1)
+│           ├── __init__.py          # Re-exportação com __all__ (17 símbolos)
 │           ├── loader.py            # Ingestão load_dataset com buffers imutáveis e hashes tripartites
 │           ├── parsing.py           # Parser RFC 4180 com detecção automática de delimitadores
+│           ├── profiling.py         # Triagem profile_dataset, DatasetProfile, ColumnProfile e catálogo de 15 achados
 │           ├── query.py             # get_column_array e slice_bundle_by_observation_ids
 │           ├── schema.py            # DatasetSchemaSpec, normalização NFC e validação de papéis
 │           ├── types.py             # ColumnSemanticType, ColumnDescriptor e DatasetBundle
 │           └── validation.py        # Validação estrutural e integridade de ObservationId
-├── tests/                           # Suíte de testes automatizados (96 testes aprovados)
+├── tests/                           # Suíte de testes automatizados (114 testes aprovados)
 │   ├── integration/                 # Testes de integração transversal entre core, data e metrics
-│   │   └── test_m1_foundation_integration.py # Fluxos integrados, determinismo entre processos e blocos do README
+│   │   ├── test_m1_foundation_integration.py # Fluxos integrados, determinismo entre processos e blocos do README (4 testes)
+│   │   └── test_profiling_integration.py     # Fluxos integrados de profiling, imutabilidade e achados (6 testes)
 │   ├── test_smoke.py                # Suíte de testes de fumaça da CLI e empacotamento (12 testes)
 │   └── unit/
 │       ├── test_core.py             # Suíte unitária do módulo core (22 testes)
 │       ├── test_metrics.py          # Suíte unitária do módulo metrics (22 testes)
-│       └── test_data_schemas.py     # Suíte unitária do módulo data / schemas (36 testes)
+│       ├── test_data_schemas.py     # Suíte unitária do módulo data / schemas (36 testes)
+│       └── test_profiling.py        # Suíte unitária de profiling e catálogo de achados (12 testes)
 ├── pyproject.toml                   # Configuração de build, dependências e metadados
 ├── README.md                        # Porta de entrada do repositório
 └── REFERENCIAS_E_FUNDAMENTACAO.md   # Fundamentação teórica e referências normativas (25 fontes)
@@ -326,6 +341,37 @@ sub_bundle = slice_bundle_by_observation_ids(bundle, ["obs_000002", "obs_000000"
 # sub_bundle.observation_ids -> ("obs_000002", "obs_000000")
 ```
 
+#### Triagem e Diagnóstico de Datasets (`experimental_ml.data.profile_dataset`)
+```python
+from experimental_ml.core import TaskType
+from experimental_ml.data import (
+    DatasetSchemaSpec,
+    ColumnSemanticType,
+    ProfileConfig,
+    load_dataset,
+    profile_dataset,
+)
+
+# 1. Esquema e carga da base tabular
+schema = DatasetSchemaSpec(
+    target_col="y",
+    task_type=TaskType.REGRESSION,
+    column_semantic_types={
+        "x": ColumnSemanticType.NUMERIC_CONTINUOUS,
+        "y": ColumnSemanticType.NUMERIC_CONTINUOUS,
+    },
+)
+bundle = load_dataset({"x": [10.0, 20.0, 30.0, 40.0], "y": [1.0, 2.0, 3.0, 4.0]}, schema)
+
+# 2. Configuração de limiares diagnósticos
+config = ProfileConfig(rare_class_proportion=0.05, small_group_size=5)
+
+# 3. Execução da triagem estatística
+profile = profile_dataset(bundle, config)
+# profile.n_rows -> 4, profile.n_cols -> 2, len(profile.findings) -> 0
+# profile.column_profiles["x"].mean -> 25.0
+```
+
 ---
 
 ## 7. Testes
@@ -346,16 +392,21 @@ Para executar isoladamente os módulos unitários e de integração:
 pytest tests/unit/test_core.py -v
 pytest tests/unit/test_metrics.py -v
 pytest tests/unit/test_data_schemas.py -v
+pytest tests/unit/test_profiling.py -v
 pytest tests/integration/test_m1_foundation_integration.py -v
+pytest tests/integration/test_profiling_integration.py -v
 ```
 
 ### Comportamento Verificado
 
-A suíte valida deterministicamente **81 verificações** automatizadas com 100% de sucesso:
+A suíte valida deterministicamente **114 verificações** automatizadas com 100% de sucesso:
 - **12 testes de fumaça (`tests/test_smoke.py`):** Declaração de build backend, dependências e metadados em `pyproject.toml`, versão `0.1.0.dev0`, ausência de importações espúrias e códigos de saída da CLI (`--version`, `--help`, invocação vazia e flags inválidas com código `2`).
-- **18 testes de núcleo (`tests/unit/test_core.py`):** Imutabilidade e validação de identificadores, integridade de enumerações, determinismo da derivação de sementes (`SeedSequence`), regras canônicas de hashing do **ADR-007** (Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções) e construtores de diagnósticos `Finding`.
+- **22 testes de núcleo (`tests/unit/test_core.py`):** Imutabilidade e validação de identificadores, integridade de enumerações, determinismo da derivação de sementes (`SeedSequence`), regras canônicas de hashing do **ADR-007** (Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções), detecção unificada de ausentes e construtores de diagnósticos `Finding`.
 - **22 testes de métricas (`tests/unit/test_metrics.py`):** Exatidão numérica das 15 métricas vetorizadas em `float64` sob tolerâncias rigorosas por família (`rtol`/`atol`), mitigação de overflow quadrático intermediário, tratamento determinístico de degenerescências via `MetricStatus.UNDEFINED_NAN` sem coerção silenciosa para zero (**ADR-005**) e ranqueamento lexicográfico.
-- **29 testes de datasets e esquemas (`tests/unit/test_data_schemas.py`):** Imutabilidade estrutural e física de arrays via buffers `bytes` imutáveis que recusam `setflags(write=True)`, integridade RFC 4180 com sniffer automático de delimitadores, rejeição de linhas irregulares (*ragged rows*), unicidade e geração de `ObservationId`, hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários seguros de fatiamento.
+- **36 testes de datasets e esquemas (`tests/unit/test_data_schemas.py`):** Imutabilidade estrutural e física de arrays via buffers `bytes` imutáveis que recusam `setflags(write=True)`, integridade RFC 4180 com sniffer automático de delimitadores, rejeição de linhas irregulares (*ragged rows*), unicidade e geração de `ObservationId`, hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários seguros de fatiamento.
+- **12 testes de profiling e achados (`tests/unit/test_profiling.py`):** Validação de `ProfileConfig`, cálculo de distribuições numéricas e categóricas, análise da variável-alvo (variância zero, desbalanceamento, mapeamento binário explícito), análise de grupos, detecção determinística de duplicatas e catálogo fechado de 15 achados com severidade imutável e ordenação canônica.
+- **4 testes de integração transversal M1 (`tests/integration/test_m1_foundation_integration.py`):** Fluxos integrados ponta a ponta entre ingestão, hashing, métricas e execução de todos os blocos Python documentados no `README.md`.
+- **6 testes de integração de profiling M2.1 (`tests/integration/test_profiling_integration.py`):** Invariância do `dataset_hash` durante profiling, integridade de referências em memória, idempotência estatística, consistência da ordenação canônica e integridade dos códigos de achados.
 
 ---
 
@@ -369,7 +420,8 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 | **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, constantes/enums, gerador `derive_seeds` (`SeedSequence`), funções `config_hash`/`dataset_hash` (ADR-007) e diagnósticos `Finding`. | **Concluído e Aceito** |
 | **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 funções de métricas vetorizadas com tolerâncias justificadas. | **Concluído e Aceito** |
 | **M1.4** | **Datasets & Schemas:** Ingestão tabular imutável (`load_dataset`, `DatasetBundle`), buffers `bytes` imutáveis na C-API recusando reativação de escrita, parsing RFC 4180 com sniffer automático, tipagem semântica (`DatasetSchemaSpec`, `ColumnSemanticType`) e hashes tripartites. | **Concluído e Aceito** |
-| **M2** | **Diagnóstico e Particionamento:** Triagem estatística (`profile_dataset` separando problemas confirmados vs. alertas heurísticos), plano de preparação (`create_preparation_plan`), saneamento (`sanitize_dataset`) e `PartitionPlan` compartilhado (`validation`). | **Próximo Marco** |
+| **M1.5** | **Foundation Hardening:** Saneamento transversal dos 10 achados da Auditoria Geral de Integridade M1 (6 P0 e 4 P1 selecionados), framing binário de `dataset_hash`, detecção centralizada de `NaN`/ausentes e testes de integração. | **Concluído e Aceito** |
+| **M2** | **Diagnóstico e Particionamento:** Triagem estatística (`profile_dataset`, sub-marco M2.1 concluído e aceito), plano de preparação (`create_preparation_plan`, M2.2), saneamento (`sanitize_dataset`, M2.2) e `PartitionPlan` compartilhado (`validation`, M2.3–M2.5). | **Em Andamento** |
 | **M3** | **Cenários de Features:** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários fixos e seleção dinâmica ajustada no treino de cada partição (`features`). | Planejado |
 | **M4** | **Modelos e Tuning:** Registro de modelos (`models`), pré-processamento em duas camadas e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
 | **M5** | **Execução Matricial:** Orquestração da matriz $M \times C \times F$ (`orchestration`), tolerância a falhas, persistência e retomada (*Checkpoint & Resume*). | Planejado |
@@ -393,6 +445,8 @@ Para consultar detalhes de engenharia, requisitos, arquitetura e fundamentação
 | [`.specs/features/m1-2-core/`](.specs/features/m1-2-core/) | **Artefatos da Entrega M1.2:** Especificação (`SPEC.md`), roteiro de aceitação (`ACCEPTANCE.md`), resultados (`RESULTS.md`) e verificação independente (`verification.md`). |
 | [`.specs/features/m1-3-metrics/`](.specs/features/m1-3-metrics/) | **Artefatos da Entrega M1.3:** Especificação (`SPEC.md`), roteiro de aceitação (`ACCEPTANCE.md`), resultados (`RESULTS.md`) e verificação independente (`verification.md`). |
 | [`.specs/features/m1-4-datasets-schemas/`](.specs/features/m1-4-datasets-schemas/) | **Artefatos da Entrega M1.4:** Especificação (`SPEC.md`), roteiro de aceitação (`ACCEPTANCE.md`), resultados (`RESULTS.md`) e verificação independente (`verification.md`). |
+| [`.specs/features/m1-5-foundation-hardening/`](.specs/features/m1-5-foundation-hardening/) | **Artefatos da Entrega M1.5:** Especificação (`spec.md`), roteiro de tarefas (`tasks.md`), matriz de provas (`proofs.md`), resultados (`RESULTS.md`) e verificação independente (`verification.md`). |
+| [`.specs/features/m2-diagnostics-partitioning/`](.specs/features/m2-diagnostics-partitioning/) | **Artefatos da Entrega M2 / Sub-marco M2.1:** Especificação geral M2 (`spec.md`), design consolidado M2.1 (`design.md`), tarefas (`tasks.md`), matriz de provas (`proofs.md`), resultados (`RESULTS.md`), roteiro de aceitação (`ACCEPTANCE.md`) e verificação independente (`verification.md`). |
 
 ---
 
