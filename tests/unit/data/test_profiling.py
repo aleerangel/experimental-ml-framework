@@ -193,3 +193,96 @@ def test_prof_12_fully_missing_column_handling() -> None:
     assert cat_stats.remainder_count == 0
     assert cat_stats.remainder_proportion == 0.0
 
+
+def test_prof_04_duplicate_rows_detection() -> None:
+    """PROF-04: Duplicate rows detection compares all columns except observation_id, truncates at max_listed_ids."""
+    import numpy as np
+    from experimental_ml.core.types import ObservationId
+    from experimental_ml.data.profiling import compute_duplicate_rows_profile
+
+    # Rows 0, 1, 3 have identical content ("A", 1.0, None)
+    # Row 2 is distinct ("B", 2.0, 10)
+    # Row 4 is distinct ("A", 1.0, 5)
+    cols = {
+        "id": np.array(["id_0", "id_1", "id_2", "id_3", "id_4"], dtype=object),
+        "feat1": np.array(["A", "A", "B", "A", "A"], dtype=object),
+        "feat2": np.array([1.0, 1.0, 2.0, 1.0, 1.0], dtype=object),
+        "feat3": np.array([None, np.nan, 10, None, 5], dtype=object),
+    }
+    obs_ids = [ObservationId(x) for x in cols["id"]]
+
+    # With max_listed_ids = 1
+    dup_profile = compute_duplicate_rows_profile(
+        columns=cols,
+        observation_ids=obs_ids,
+        observation_id_col="id",
+        max_listed_ids=1,
+    )
+
+    # Rows 1 and 3 are duplicates (total 2 duplicates)
+    assert dup_profile.n_duplicate_rows == 2
+    # Only 1 listed because max_listed_ids = 1
+    assert len(dup_profile.duplicate_observation_ids) == 1
+    assert dup_profile.duplicate_observation_ids[0] == ObservationId("id_1")
+    assert dup_profile.is_truncated is True
+
+    # With max_listed_ids = 5
+    dup_profile_full = compute_duplicate_rows_profile(
+        columns=cols,
+        observation_ids=obs_ids,
+        observation_id_col="id",
+        max_listed_ids=5,
+    )
+    assert dup_profile_full.n_duplicate_rows == 2
+    assert len(dup_profile_full.duplicate_observation_ids) == 2
+    assert dup_profile_full.duplicate_observation_ids == (ObservationId("id_1"), ObservationId("id_3"))
+    assert dup_profile_full.is_truncated is False
+
+
+def test_prof_05_target_profile_regression_and_classification() -> None:
+    """PROF-05: Target profile reports distribution, skewness, outliers for regression, and class frequencies for classification."""
+    import numpy as np
+    from experimental_ml.core.enums import TaskType
+    from experimental_ml.data.profiling import compute_target_profile
+
+    # Regression target with right skew and outliers
+    reg_vals = np.array([1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 5.0, 100.0], dtype=np.float64)
+    reg_prof = compute_target_profile("target", reg_vals, TaskType.REGRESSION)
+    assert reg_prof.task_type == TaskType.REGRESSION
+    assert reg_prof.numeric_stats is not None
+    assert reg_prof.numeric_stats.mean is not None
+    assert reg_prof.skewness is not None
+    assert reg_prof.skewness > 1.0  # heavily right-skewed
+    assert reg_prof.outliers_count_iqr_fences == 1  # 100.0 is an outlier
+    assert reg_prof.class_frequencies is None
+    assert reg_prof.majority_minority_ratio is None
+
+    # Classification target with imbalance: class 0 has 80, class 1 has 20
+    clf_vals = np.array([0] * 80 + [1] * 20, dtype=object)
+    clf_prof = compute_target_profile("label", clf_vals, TaskType.BINARY_CLASSIFICATION)
+    assert clf_prof.task_type == TaskType.BINARY_CLASSIFICATION
+    assert clf_prof.numeric_stats is None
+    assert clf_prof.skewness is None
+    assert clf_prof.class_frequencies is not None
+    assert len(clf_prof.class_frequencies) == 2
+    assert clf_prof.class_frequencies[0].value == 0
+    assert clf_prof.class_frequencies[0].count == 80
+    assert clf_prof.majority_minority_ratio == 4.0
+
+
+def test_prof_06_group_profile_statistics() -> None:
+    """PROF-06: Group profile reports group count, min, median, max group sizes."""
+    import numpy as np
+    from experimental_ml.data.profiling import compute_group_profile
+
+    # Groups: g1 (2), g2 (5), g3 (10)
+    groups_data = np.array(["g1"] * 2 + ["g2"] * 5 + ["g3"] * 10, dtype=object)
+    g_prof = compute_group_profile("site_id", groups_data)
+
+    assert g_prof.group_col == "site_id"
+    assert g_prof.n_groups == 3
+    assert g_prof.min_group_size == 2
+    assert g_prof.median_group_size == 5.0
+    assert g_prof.max_group_size == 10
+
+

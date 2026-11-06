@@ -141,12 +141,12 @@ T6
 **Requirement**: PROF-04, PROF-05, PROF-06
 
 **Done when**:
-- [ ] Target profile computes regression stats, skewness, and IQR fence outliers, or classification frequencies and majority/minority ratio
-- [ ] Regression target with $N < 3$ or zero variance sets `skewness = None`
-- [ ] Group profile calculates $N_{\text{groups}}$ and min, median, max group sizes when `group_col` is declared
-- [ ] Duplicate rows engine compares all columns except `observation_id`, treats missing values as equal, tags types to prevent cross-type collisions, and truncates at `max_listed_ids`
-- [ ] Unit tests covering `PROF-04`, `PROF-05`, and `PROF-06` pass in `tests/unit/data/test_profiling.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/data/test_profiling.py -v`
+- [x] Target profile computes regression stats, skewness, and IQR fence outliers, or classification frequencies and majority/minority ratio
+- [x] Regression target with $N < 3$ or zero variance sets `skewness = None`
+- [x] Group profile calculates $N_{\text{groups}}$ and min, median, max group sizes when `group_col` is declared
+- [x] Duplicate rows engine compares all columns except `observation_id`, treats missing values as equal, tags types to prevent cross-type collisions, and truncates at `max_listed_ids`
+- [x] Unit tests covering `PROF-04`, `PROF-05`, and `PROF-06` pass in `tests/unit/data/test_profiling.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/data/test_profiling.py -v`
 
 **Tests**: unit
 **Gate**: quick
