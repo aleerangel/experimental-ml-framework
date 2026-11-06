@@ -286,3 +286,307 @@ def test_prof_06_group_profile_statistics() -> None:
     assert g_prof.max_group_size == 10
 
 
+def test_prof_07_catalog_findings_and_canonical_ordering() -> None:
+    """PROF-07: Catalog findings are emitted with column context and canonically ordered by severity, code, column."""
+    from experimental_ml.core.enums import FindingSeverity, TaskType
+    from experimental_ml.data.schema import ColumnSemanticType
+    from experimental_ml.data.profiling import (
+        ColumnProfile,
+        DuplicateRowsProfile,
+        NumericDistributionStats,
+        ProfileConfig,
+        TargetProfile,
+        evaluate_findings,
+    )
+
+    col_profs = {
+        "feat_const": ColumnProfile(
+            name="feat_const",
+            physical_type="float64",
+            semantic_type=ColumnSemanticType.NUMERIC_CONTINUOUS,
+            role="feature",
+            n_missing=0,
+            missing_proportion=0.0,
+            n_unique=1,
+            numeric_stats=NumericDistributionStats(1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0),
+            categorical_stats=None,
+        ),
+        "feat_obj": ColumnProfile(
+            name="feat_obj",
+            physical_type="object",
+            semantic_type=ColumnSemanticType.CATEGORICAL,
+            role="feature",
+            n_missing=0,
+            missing_proportion=0.0,
+            n_unique=2,
+            numeric_stats=None,
+            categorical_stats=None,
+        ),
+        "target": ColumnProfile(
+            name="target",
+            physical_type="int64",
+            semantic_type=ColumnSemanticType.CATEGORICAL,
+            role="target",
+            n_missing=2,
+            missing_proportion=0.2,
+            n_unique=2,
+            numeric_stats=None,
+            categorical_stats=None,
+        ),
+    }
+
+    target_prof = TargetProfile(
+        column_name="target",
+        task_type=TaskType.BINARY_CLASSIFICATION,
+        numeric_stats=None,
+        skewness=None,
+        outliers_count_iqr_fences=None,
+        class_frequencies=None,
+        majority_minority_ratio=None,
+    )
+    dup_prof = DuplicateRowsProfile(n_duplicate_rows=1, duplicate_observation_ids=(), is_truncated=False)
+    config = ProfileConfig()
+
+    findings = evaluate_findings(
+        schema_target_col="target",
+        schema_group_col=None,
+        schema_task_type=TaskType.BINARY_CLASSIFICATION,
+        n_rows=10,
+        column_profiles=col_profs,
+        target_profile=target_prof,
+        group_profile=None,
+        duplicate_profile=dup_prof,
+        config=config,
+    )
+
+    # Verify severity ordering: all CONFIRMED_ISSUE appear before HEURISTIC_WARNING
+    severities = [f.severity for f in findings]
+    first_warning_idx = next((i for i, s in enumerate(severities) if s == FindingSeverity.HEURISTIC_WARNING), len(severities))
+    for s in severities[:first_warning_idx]:
+        assert s == FindingSeverity.CONFIRMED_ISSUE
+    for s in severities[first_warning_idx:]:
+        assert s == FindingSeverity.HEURISTIC_WARNING
+
+    # Context contains 'column'
+    for f in findings:
+        assert f.context is not None
+        assert "column" in f.context
+
+
+def test_prof_08_severity_separation_heuristics_vs_issues() -> None:
+    """PROF-08: Heuristic conditions emit only HEURISTIC_WARNING and never CONFIRMED_ISSUE."""
+    from experimental_ml.core.enums import FindingSeverity, TaskType
+    from experimental_ml.data.schema import ColumnSemanticType
+    from experimental_ml.data.profiling import (
+        CategoricalDistributionStats,
+        CategoryFrequency,
+        ColumnProfile,
+        DuplicateRowsProfile,
+        GroupProfile,
+        NumericDistributionStats,
+        ProfileConfig,
+        TargetProfile,
+        evaluate_findings,
+    )
+
+    # Dataset with heuristic triggers only
+    cat_stats = CategoricalDistributionStats(
+        cardinality=2,
+        frequencies=(
+            CategoryFrequency(value=0, count=99, proportion=0.99),
+            CategoryFrequency(value=1, count=1, proportion=0.01),
+        ),
+        remainder_count=0,
+        remainder_proportion=0.0,
+    )
+    col_profs = {
+        "num1": ColumnProfile(
+            name="num1",
+            physical_type="float64",
+            semantic_type=ColumnSemanticType.NUMERIC_CONTINUOUS,
+            role="feature",
+            n_missing=0,
+            missing_proportion=0.0,
+            n_unique=10,
+            numeric_stats=NumericDistributionStats(1.0, 0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.0, 1.0),
+            categorical_stats=None,
+        ),
+        "num2": ColumnProfile(
+            name="num2",
+            physical_type="float64",
+            semantic_type=ColumnSemanticType.NUMERIC_CONTINUOUS,
+            role="feature",
+            n_missing=0,
+            missing_proportion=0.0,
+            n_unique=10,
+            numeric_stats=NumericDistributionStats(10000.0, 500.0, 9000.0, 9500.0, 10000.0, 10500.0, 11000.0, 2000.0, 1000.0),
+            categorical_stats=None,
+        ),
+        "target": ColumnProfile(
+            name="target",
+            physical_type="int64",
+            semantic_type=ColumnSemanticType.CATEGORICAL,
+            role="target",
+            n_missing=0,
+            missing_proportion=0.0,
+            n_unique=2,
+            numeric_stats=None,
+            categorical_stats=cat_stats,
+        ),
+    }
+
+    target_prof = TargetProfile(
+        column_name="target",
+        task_type=TaskType.BINARY_CLASSIFICATION,
+        numeric_stats=None,
+        skewness=None,
+        outliers_count_iqr_fences=None,
+        class_frequencies=cat_stats.frequencies,
+        majority_minority_ratio=99.0,
+    )
+    g_prof = GroupProfile(group_col="g", n_groups=1, min_group_size=2, median_group_size=2.0, max_group_size=2)
+    dup_prof = DuplicateRowsProfile(n_duplicate_rows=1, duplicate_observation_ids=(), is_truncated=False)
+    config = ProfileConfig()
+
+    findings = evaluate_findings(
+        schema_target_col="target",
+        schema_group_col="g",
+        schema_task_type=TaskType.BINARY_CLASSIFICATION,
+        n_rows=100,
+        column_profiles=col_profs,
+        target_profile=target_prof,
+        group_profile=g_prof,
+        duplicate_profile=dup_prof,
+        config=config,
+    )
+
+    heuristic_codes = {
+        "W1_POSSIBLE_IDENTIFIER",
+        "W1_NEAR_CONSTANT_COLUMN",
+        "W1_SCALE_DISPARITY",
+        "W1_CLASS_IMBALANCE",
+        "W1_RARE_CLASS",
+        "W1_SMALL_GROUPS",
+        "W1_DUPLICATE_ROWS",
+    }
+    for f in findings:
+        if f.code in heuristic_codes:
+            assert f.severity == FindingSeverity.HEURISTIC_WARNING
+        else:
+            assert f.severity == FindingSeverity.CONFIRMED_ISSUE
+
+
+def test_prof_09_binary_target_unmapped_and_class_count() -> None:
+    """PROF-09: Binary classification target findings are mutually exclusive."""
+    from experimental_ml.core.enums import FindingSeverity, TaskType
+    from experimental_ml.data.schema import ColumnSemanticType
+    from experimental_ml.data.profiling import (
+        CategoryFrequency,
+        ColumnProfile,
+        DuplicateRowsProfile,
+        ProfileConfig,
+        TargetProfile,
+        evaluate_findings,
+    )
+
+    col_prof = ColumnProfile(
+        name="target",
+        physical_type="object",
+        semantic_type=ColumnSemanticType.CATEGORICAL,
+        role="target",
+        n_missing=0,
+        missing_proportion=0.0,
+        n_unique=2,
+        numeric_stats=None,
+        categorical_stats=None,
+    )
+    dup_prof = DuplicateRowsProfile(n_duplicate_rows=0, duplicate_observation_ids=(), is_truncated=False)
+    config = ProfileConfig()
+
+    # Case 1: Exactly 2 classes, not {0, 1} -> E1_TARGET_BINARY_UNMAPPED only
+    t_prof_unmapped = TargetProfile(
+        column_name="target",
+        task_type=TaskType.BINARY_CLASSIFICATION,
+        numeric_stats=None,
+        skewness=None,
+        outliers_count_iqr_fences=None,
+        class_frequencies=(
+            CategoryFrequency(value="sim", count=50, proportion=0.5),
+            CategoryFrequency(value="nao", count=50, proportion=0.5),
+        ),
+        majority_minority_ratio=1.0,
+    )
+    f_unmapped = evaluate_findings(
+        schema_target_col="target",
+        schema_group_col=None,
+        schema_task_type=TaskType.BINARY_CLASSIFICATION,
+        n_rows=100,
+        column_profiles={"target": col_prof},
+        target_profile=t_prof_unmapped,
+        group_profile=None,
+        duplicate_profile=dup_prof,
+        config=config,
+    )
+    codes_unmapped = [f.code for f in f_unmapped]
+    assert "E1_TARGET_BINARY_UNMAPPED" in codes_unmapped
+    assert "E1_TARGET_CLASS_COUNT_INVALID" not in codes_unmapped
+
+    # Case 2: 3 classes -> E1_TARGET_CLASS_COUNT_INVALID only
+    t_prof_3classes = TargetProfile(
+        column_name="target",
+        task_type=TaskType.BINARY_CLASSIFICATION,
+        numeric_stats=None,
+        skewness=None,
+        outliers_count_iqr_fences=None,
+        class_frequencies=(
+            CategoryFrequency(value="A", count=40, proportion=0.4),
+            CategoryFrequency(value="B", count=30, proportion=0.3),
+            CategoryFrequency(value="C", count=30, proportion=0.3),
+        ),
+        majority_minority_ratio=40 / 30,
+    )
+    f_3classes = evaluate_findings(
+        schema_target_col="target",
+        schema_group_col=None,
+        schema_task_type=TaskType.BINARY_CLASSIFICATION,
+        n_rows=100,
+        column_profiles={"target": col_prof},
+        target_profile=t_prof_3classes,
+        group_profile=None,
+        duplicate_profile=dup_prof,
+        config=config,
+    )
+    codes_3classes = [f.code for f in f_3classes]
+    assert "E1_TARGET_CLASS_COUNT_INVALID" in codes_3classes
+    assert "E1_TARGET_BINARY_UNMAPPED" not in codes_3classes
+
+    # Case 3: Exactly {0, 1} classes -> neither is emitted
+    t_prof_mapped = TargetProfile(
+        column_name="target",
+        task_type=TaskType.BINARY_CLASSIFICATION,
+        numeric_stats=None,
+        skewness=None,
+        outliers_count_iqr_fences=None,
+        class_frequencies=(
+            CategoryFrequency(value=0, count=50, proportion=0.5),
+            CategoryFrequency(value=1, count=50, proportion=0.5),
+        ),
+        majority_minority_ratio=1.0,
+    )
+    f_mapped = evaluate_findings(
+        schema_target_col="target",
+        schema_group_col=None,
+        schema_task_type=TaskType.BINARY_CLASSIFICATION,
+        n_rows=100,
+        column_profiles={"target": col_prof},
+        target_profile=t_prof_mapped,
+        group_profile=None,
+        duplicate_profile=dup_prof,
+        config=config,
+    )
+    codes_mapped = [f.code for f in f_mapped]
+    assert "E1_TARGET_CLASS_COUNT_INVALID" not in codes_mapped
+    assert "E1_TARGET_BINARY_UNMAPPED" not in codes_mapped
+
+
+

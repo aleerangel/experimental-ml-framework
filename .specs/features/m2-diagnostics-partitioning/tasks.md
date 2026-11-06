@@ -166,13 +166,13 @@ T6
 **Requirement**: PROF-07, PROF-08, PROF-09
 
 **Done when**:
-- [ ] All 15 finding conditions evaluated with exact catalog codes and severities
-- [ ] `E1_TARGET_BINARY_UNMAPPED` and `E1_TARGET_CLASS_COUNT_INVALID` are mutually exclusive and never co-emitted
-- [ ] `W1_SCALE_DISPARITY` evaluates only eligible numeric features and requires $\ge 2$ non-zero absolute medians
-- [ ] Heuristic conditions emit only `HEURISTIC_WARNING` and never `CONFIRMED_ISSUE`
-- [ ] Findings sorted deterministically by severity (confirmed first), code, and column
-- [ ] Unit tests covering `PROF-07`, `PROF-08`, and `PROF-09` pass in `tests/unit/data/test_profiling.py`
-- [ ] Gate check passes: `.venv/bin/pytest tests/unit/data/test_profiling.py -v`
+- [x] All 15 finding conditions evaluated with exact catalog codes and severities
+- [x] `E1_TARGET_BINARY_UNMAPPED` and `E1_TARGET_CLASS_COUNT_INVALID` are mutually exclusive and never co-emitted
+- [x] `W1_SCALE_DISPARITY` evaluates only eligible numeric features and requires $\ge 2$ non-zero absolute medians
+- [x] Heuristic conditions emit only `HEURISTIC_WARNING` and never `CONFIRMED_ISSUE`
+- [x] Findings sorted deterministically by severity (confirmed first), code, and column
+- [x] Unit tests covering `PROF-07`, `PROF-08`, and `PROF-09` pass in `tests/unit/data/test_profiling.py`
+- [x] Gate check passes: `.venv/bin/pytest tests/unit/data/test_profiling.py -v`
 
 **Tests**: unit
 **Gate**: quick

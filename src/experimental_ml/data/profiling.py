@@ -13,7 +13,12 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from experimental_ml.core.enums import FindingSeverity, TaskType
-from experimental_ml.core.findings import ConfigurationError, Finding
+from experimental_ml.core.findings import (
+    ConfigurationError,
+    Finding,
+    make_finding,
+    make_warning,
+)
 from experimental_ml.core import is_missing_scalar, is_nan_scalar
 from experimental_ml.core.types import ObservationId
 from experimental_ml.data.schema import ColumnSemanticType
@@ -481,5 +486,314 @@ def compute_duplicate_rows_profile(
         duplicate_observation_ids=tuple(duplicate_ids),
         is_truncated=is_truncated,
     )
+
+
+def finding_sort_key(finding: Finding) -> tuple[int, str, str]:
+    """Canonical 3-tuple sort key for findings: (severity, code, column)."""
+    sev_rank = 0 if finding.severity == FindingSeverity.CONFIRMED_ISSUE else 1
+    col_str = ""
+    if finding.context is not None and finding.context.get("column") is not None:
+        col_str = str(finding.context["column"])
+    return (sev_rank, finding.code, col_str)
+
+
+def evaluate_findings(
+    schema_target_col: str,
+    schema_group_col: str | None,
+    schema_task_type: TaskType,
+    n_rows: int,
+    column_profiles: Mapping[str, ColumnProfile],
+    target_profile: TargetProfile,
+    group_profile: GroupProfile | None,
+    duplicate_profile: DuplicateRowsProfile,
+    config: ProfileConfig,
+) -> tuple[Finding, ...]:
+    """Evaluate closed findings catalog: 8 CONFIRMED_ISSUE and 7 HEURISTIC_WARNING.
+
+    Returns:
+        Canonically sorted tuple of Finding objects.
+    """
+    findings: list[Finding] = []
+
+    # --- 8 CONFIRMED_ISSUE ---
+
+    # 1. E1_TARGET_MISSING
+    if schema_target_col in column_profiles:
+        target_col_prof = column_profiles[schema_target_col]
+        if target_col_prof.n_missing > 0:
+            findings.append(
+                make_finding(
+                    code="E1_TARGET_MISSING",
+                    message=f"Target column '{schema_target_col}' contains {target_col_prof.n_missing} missing value(s).",
+                    context={
+                        "column": schema_target_col,
+                        "n_missing": target_col_prof.n_missing,
+                        "missing_proportion": target_col_prof.missing_proportion,
+                    },
+                )
+            )
+
+    # 2. E1_GROUP_MISSING
+    if schema_group_col and schema_group_col in column_profiles:
+        group_col_prof = column_profiles[schema_group_col]
+        if group_col_prof.n_missing > 0:
+            findings.append(
+                make_finding(
+                    code="E1_GROUP_MISSING",
+                    message=f"Group column '{schema_group_col}' contains {group_col_prof.n_missing} missing value(s).",
+                    context={
+                        "column": schema_group_col,
+                        "n_missing": group_col_prof.n_missing,
+                        "missing_proportion": group_col_prof.missing_proportion,
+                    },
+                )
+            )
+
+    # Feature-specific confirmed issues
+    for col_name, col_prof in column_profiles.items():
+        if col_prof.role != "feature":
+            continue
+
+        # 3. E1_FEATURE_MISSING
+        if col_prof.n_missing > 0:
+            findings.append(
+                make_finding(
+                    code="E1_FEATURE_MISSING",
+                    message=f"Feature column '{col_name}' contains {col_prof.n_missing} missing value(s).",
+                    context={
+                        "column": col_name,
+                        "n_missing": col_prof.n_missing,
+                        "missing_proportion": col_prof.missing_proportion,
+                    },
+                )
+            )
+
+        # 4. E1_CONSTANT_COLUMN
+        if col_prof.n_unique <= 1:
+            findings.append(
+                make_finding(
+                    code="E1_CONSTANT_COLUMN",
+                    message=f"Feature column '{col_name}' is constant (n_unique={col_prof.n_unique}).",
+                    context={
+                        "column": col_name,
+                        "n_unique": col_prof.n_unique,
+                    },
+                )
+            )
+
+        # 5. E1_CATEGORICAL_UNENCODED
+        if col_prof.physical_type == "object":
+            findings.append(
+                make_finding(
+                    code="E1_CATEGORICAL_UNENCODED",
+                    message=f"Feature column '{col_name}' has physical type 'object' and requires encoding.",
+                    context={
+                        "column": col_name,
+                        "physical_type": "object",
+                    },
+                )
+            )
+
+    # 6 & 7. Binary classification target findings (mutually exclusive)
+    if schema_task_type == TaskType.BINARY_CLASSIFICATION:
+        classes = (
+            [f.value for f in target_profile.class_frequencies]
+            if target_profile.class_frequencies
+            else []
+        )
+        n_classes = len(classes)
+        if n_classes != 2:
+            findings.append(
+                make_finding(
+                    code="E1_TARGET_CLASS_COUNT_INVALID",
+                    message=f"Binary classification target '{schema_target_col}' has {n_classes} classes; expected exactly 2.",
+                    context={
+                        "column": schema_target_col,
+                        "n_classes": n_classes,
+                        "observed_classes": tuple(sorted(str(c) for c in classes)),
+                    },
+                )
+            )
+        else:
+            # Check if classes are {0, 1}
+            is_zero_one = False
+            try:
+                converted = set()
+                for c in classes:
+                    val = float(c)
+                    if val in (0.0, 1.0) and val == int(val):
+                        converted.add(int(val))
+                    else:
+                        converted.add(c)
+                is_zero_one = (converted == {0, 1})
+            except (ValueError, TypeError):
+                is_zero_one = False
+
+            if not is_zero_one:
+                findings.append(
+                    make_finding(
+                        code="E1_TARGET_BINARY_UNMAPPED",
+                        message=f"Binary classification target '{schema_target_col}' has unmapped classes; expected {{0, 1}}.",
+                        context={
+                            "column": schema_target_col,
+                            "classes": tuple(sorted(str(c) for c in classes)),
+                        },
+                    )
+                )
+
+    # 8. E1_TARGET_NOT_NUMERIC
+    if schema_task_type == TaskType.REGRESSION and schema_target_col in column_profiles:
+        target_phys = column_profiles[schema_target_col].physical_type
+        if target_phys in ("object", "bool"):
+            findings.append(
+                make_finding(
+                    code="E1_TARGET_NOT_NUMERIC",
+                    message=f"Regression target '{schema_target_col}' has non-numeric physical type '{target_phys}'.",
+                    context={
+                        "column": schema_target_col,
+                        "physical_type": target_phys,
+                    },
+                )
+            )
+
+    # --- 7 HEURISTIC_WARNING ---
+
+    # Feature-specific heuristic warnings
+    eligible_medians: list[float] = []
+
+    for col_name, col_prof in column_profiles.items():
+        if col_prof.role != "feature":
+            continue
+
+        # 1. W1_POSSIBLE_IDENTIFIER
+        if col_prof.physical_type in ("int64", "object") and n_rows > 0:
+            unique_ratio = col_prof.n_unique / n_rows
+            if unique_ratio >= config.identifier_unique_ratio:
+                findings.append(
+                    make_warning(
+                        code="W1_POSSIBLE_IDENTIFIER",
+                        message=f"Feature column '{col_name}' has high unique ratio {unique_ratio:.2f} >= {config.identifier_unique_ratio}.",
+                        context={
+                            "column": col_name,
+                            "unique_ratio": unique_ratio,
+                            "threshold": config.identifier_unique_ratio,
+                        },
+                    )
+                )
+
+        # 2. W1_NEAR_CONSTANT_COLUMN
+        if col_prof.n_unique > 1:
+            valid_count = n_rows - col_prof.n_missing
+            if valid_count > 0 and col_prof.categorical_stats and col_prof.categorical_stats.frequencies:
+                top_freq = col_prof.categorical_stats.frequencies[0].count
+                top_ratio = top_freq / valid_count
+                if top_ratio >= config.near_constant_top_frequency:
+                    findings.append(
+                        make_warning(
+                            code="W1_NEAR_CONSTANT_COLUMN",
+                            message=f"Feature column '{col_name}' is near constant with top frequency ratio {top_ratio:.2f} >= {config.near_constant_top_frequency}.",
+                            context={
+                                "column": col_name,
+                                "top_frequency_ratio": top_ratio,
+                                "top_value": col_prof.categorical_stats.frequencies[0].value,
+                                "threshold": config.near_constant_top_frequency,
+                            },
+                        )
+                    )
+
+        # Collect eligible non-zero absolute medians for W1_SCALE_DISPARITY
+        if col_prof.physical_type in ("int64", "float64") and col_prof.numeric_stats:
+            med = col_prof.numeric_stats.median
+            if med is not None and abs(med) > 0.0:
+                eligible_medians.append(abs(med))
+
+    # 3. W1_SCALE_DISPARITY (requires >= 2 non-zero medians among numeric features)
+    if len(eligible_medians) >= 2:
+        min_med = min(eligible_medians)
+        max_med = max(eligible_medians)
+        ratio = max_med / min_med
+        if ratio >= (10.0 ** config.scale_disparity_orders):
+            findings.append(
+                make_warning(
+                    code="W1_SCALE_DISPARITY",
+                    message=f"Disparity of scales detected among numeric features (ratio {ratio:.1e} >= 10^{config.scale_disparity_orders}).",
+                    context={
+                        "column": None,
+                        "min_median": min_med,
+                        "max_median": max_med,
+                        "ratio": ratio,
+                        "orders": config.scale_disparity_orders,
+                    },
+                )
+            )
+
+    # 4. W1_CLASS_IMBALANCE
+    if schema_task_type in (TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION):
+        if target_profile.majority_minority_ratio is not None and target_profile.majority_minority_ratio >= config.imbalance_ratio:
+            findings.append(
+                make_warning(
+                    code="W1_CLASS_IMBALANCE",
+                    message=f"Target column '{schema_target_col}' has class imbalance ratio {target_profile.majority_minority_ratio:.2f} >= {config.imbalance_ratio}.",
+                    context={
+                        "column": schema_target_col,
+                        "imbalance_ratio": target_profile.majority_minority_ratio,
+                        "threshold": config.imbalance_ratio,
+                    },
+                )
+            )
+
+        # 5. W1_RARE_CLASS
+        if target_profile.class_frequencies:
+            rare_classes = [
+                {"class": str(f.value), "proportion": f.proportion}
+                for f in target_profile.class_frequencies
+                if f.proportion < config.rare_class_proportion
+            ]
+            if rare_classes:
+                findings.append(
+                    make_warning(
+                        code="W1_RARE_CLASS",
+                        message=f"Target column '{schema_target_col}' has {len(rare_classes)} rare class(es) with proportion < {config.rare_class_proportion}.",
+                        context={
+                            "column": schema_target_col,
+                            "rare_classes": tuple(rare_classes),
+                            "threshold": config.rare_class_proportion,
+                        },
+                    )
+                )
+
+    # 6. W1_SMALL_GROUPS
+    if group_profile and group_profile.n_groups > 0:
+        if group_profile.min_group_size < config.small_group_size:
+            findings.append(
+                make_warning(
+                    code="W1_SMALL_GROUPS",
+                    message=f"Group column '{group_profile.group_col}' has groups with size {group_profile.min_group_size} < {config.small_group_size}.",
+                    context={
+                        "column": group_profile.group_col,
+                        "min_group_size": group_profile.min_group_size,
+                        "threshold": config.small_group_size,
+                    },
+                )
+            )
+
+    # 7. W1_DUPLICATE_ROWS
+    if duplicate_profile.n_duplicate_rows > 0:
+        findings.append(
+            make_warning(
+                code="W1_DUPLICATE_ROWS",
+                message=f"Dataset contains {duplicate_profile.n_duplicate_rows} duplicate row(s) excluding observation_id.",
+                context={
+                    "column": None,
+                    "n_duplicate_rows": duplicate_profile.n_duplicate_rows,
+                    "is_truncated": duplicate_profile.is_truncated,
+                },
+            )
+        )
+
+    # Sort canonically
+    findings.sort(key=finding_sort_key)
+    return tuple(findings)
+
 
 
