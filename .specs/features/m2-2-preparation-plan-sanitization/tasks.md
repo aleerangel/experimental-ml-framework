@@ -113,12 +113,12 @@ T6
 **Requirement**: PREP-03
 
 **Done when**:
-- [ ] Catalog admissibility checked against finding code and column role
-- [ ] Rejects rules targeting non-`CONFIRMED_ISSUE` or non-existent finding with `ConfigurationError`
-- [ ] Rejects duplicate rules targeting same `(finding_code, column)` with `ConfigurationError`
-- [ ] Rejects invalid parameters (e.g. missing `positive_label`, invalid imputation strategy) with `ConfigurationError`
-- [ ] Unit tests for valid and invalid admissibility pass in `tests/unit/data/test_preparation.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_preparation.py -v`
+- [x] Catalog admissibility checked against finding code and column role
+- [x] Rejects rules targeting non-`CONFIRMED_ISSUE` or non-existent finding with `ConfigurationError`
+- [x] Rejects duplicate rules targeting same `(finding_code, column)` with `ConfigurationError`
+- [x] Rejects invalid parameters (e.g. missing `positive_label`, invalid imputation strategy) with `ConfigurationError`
+- [x] Unit tests for valid and invalid admissibility pass in `tests/unit/data/test_preparation.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_preparation.py -v`
 
 **Tests**: unit
 **Gate**: quick

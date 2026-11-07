@@ -7,12 +7,20 @@ import numpy as np
 import pytest
 
 from experimental_ml.core.enums import TaskType
+from experimental_ml.core.findings import ConfigurationError, make_finding, make_warning
 from experimental_ml.core.types import ObservationId
 from experimental_ml.data.preparation import (
     PreparationPlan,
     PreparationRule,
     SanitizedDatasetView,
     UnresolvedFinding,
+    _validate_rule_admissibility,
+)
+from experimental_ml.data.profiling import (
+    CategoryFrequency,
+    DatasetProfile,
+    DuplicateRowsProfile,
+    TargetProfile,
 )
 from experimental_ml.data.schema import DatasetSchemaSpec
 
@@ -107,3 +115,135 @@ def test_t1_sanitized_dataset_view_immutability_and_slots() -> None:
         view.dataset_hash = "other"  # type: ignore[misc]
 
     assert not hasattr(view, "__dict__")
+
+
+def _make_dummy_profile(findings: tuple = (), target_classes: tuple[str, ...] = ("class_a", "class_b")) -> DatasetProfile:
+    target_prof = TargetProfile(
+        column_name="target",
+        task_type=TaskType.BINARY_CLASSIFICATION,
+        numeric_stats=None,
+        skewness=None,
+        outliers_count_iqr_fences=None,
+        class_frequencies=tuple(CategoryFrequency(cat, 10, 0.5) for cat in target_classes),
+        majority_minority_ratio=1.0,
+    )
+    dup_prof = DuplicateRowsProfile(
+        n_duplicate_rows=0,
+        duplicate_observation_ids=(),
+        is_truncated=False,
+    )
+    return DatasetProfile(
+        source_dataset_hash="hash_dummy",
+        n_rows=20,
+        n_cols=3,
+        memory_bytes=480,
+        columns=MappingProxyType({}),
+        duplicate_rows=dup_prof,
+        target=target_prof,
+        groups=None,
+        findings=findings,
+    )
+
+
+def test_t2_admissibility_valid_rules() -> None:
+    findings = (
+        make_finding("E1_TARGET_MISSING", "target missing", {"column": "target"}),
+        make_finding("E1_FEATURE_MISSING", "feat missing", {"column": "num_col"}),
+        make_finding("E1_CONSTANT_COLUMN", "constant column", {"column": "const_col"}),
+        make_finding("E1_CATEGORICAL_UNENCODED", "unencoded cat", {"column": "cat_col"}),
+        make_finding("E1_TARGET_BINARY_UNMAPPED", "binary unmapped", {"column": "target"}),
+    )
+    profile = _make_dummy_profile(findings=findings)
+
+    # Valid DROP_ROWS
+    r1 = PreparationRule("E1_TARGET_MISSING", "target", "DROP_ROWS")
+    _validate_rule_admissibility(r1, profile)
+
+    # Valid EXCLUDE_COLUMN
+    r2 = PreparationRule("E1_CONSTANT_COLUMN", "const_col", "EXCLUDE_COLUMN")
+    _validate_rule_admissibility(r2, profile)
+
+    # Valid DEFER_INTRA_FOLD for numeric feature missing
+    r3 = PreparationRule("E1_FEATURE_MISSING", "num_col", "DEFER_INTRA_FOLD", {"imputation_strategy": "MEDIAN"})
+    _validate_rule_admissibility(r3, profile)
+
+    # Valid DEFER_INTRA_FOLD for categorical unencoded
+    r4 = PreparationRule("E1_CATEGORICAL_UNENCODED", "cat_col", "DEFER_INTRA_FOLD", {"encoding_strategy": "ONE_HOT"})
+    _validate_rule_admissibility(r4, profile)
+
+    # Valid ACCEPT_AS_IS
+    r5 = PreparationRule("E1_FEATURE_MISSING", "num_col", "ACCEPT_AS_IS")
+    _validate_rule_admissibility(r5, profile)
+
+    # Valid MAP_BINARY_TARGET
+    r6 = PreparationRule("E1_TARGET_BINARY_UNMAPPED", "target", "MAP_BINARY_TARGET", {"positive_label": "class_a"})
+    _validate_rule_admissibility(r6, profile)
+
+
+def test_prep_03_invalid_rule_admissibility_and_configuration_error() -> None:
+    findings = (
+        make_finding("E1_FEATURE_MISSING", "feat missing", {"column": "feat"}),
+        make_finding("E1_TARGET_CLASS_COUNT_INVALID", "invalid count", {"column": "target"}),
+        make_warning("W1_DUPLICATE_ROWS", "duplicate rows", {"column": None}),
+    )
+    profile = _make_dummy_profile(findings=findings)
+
+    # 1. Unknown / non-existent finding in profile
+    with pytest.raises(ConfigurationError, match="non-existent finding"):
+        _validate_rule_admissibility(
+            PreparationRule("E1_TARGET_MISSING", "target", "DROP_ROWS"),
+            profile,
+        )
+
+    # 2. Rule targeting HEURISTIC_WARNING
+    with pytest.raises(ConfigurationError, match="only CONFIRMED_ISSUE can be targeted"):
+        _validate_rule_admissibility(
+            PreparationRule("W1_DUPLICATE_ROWS", None, "DROP_ROWS"),
+            profile,
+        )
+
+    # 3. Rule targeting irresolvable finding
+    with pytest.raises(ConfigurationError, match="irresolvable"):
+        _validate_rule_admissibility(
+            PreparationRule("E1_TARGET_CLASS_COUNT_INVALID", "target", "DROP_ROWS"),
+            profile,
+        )
+
+    # 4. EXCLUDE_COLUMN targeting target column
+    finding_target = make_finding("E1_FEATURE_MISSING", "target missing", {"column": "target"})
+    prof_target = _make_dummy_profile(findings=(finding_target,))
+    with pytest.raises(ConfigurationError, match="Cannot apply EXCLUDE_COLUMN to target column"):
+        _validate_rule_admissibility(
+            PreparationRule("E1_FEATURE_MISSING", "target", "EXCLUDE_COLUMN"),
+            prof_target,
+        )
+
+    # 5. Inadmissible rule kind for finding (e.g. DROP_ROWS for E1_CONSTANT_COLUMN)
+    finding_const = make_finding("E1_CONSTANT_COLUMN", "const", {"column": "feat"})
+    prof_const = _make_dummy_profile(findings=(finding_const,))
+    with pytest.raises(ConfigurationError, match="not admissible"):
+        _validate_rule_admissibility(
+            PreparationRule("E1_CONSTANT_COLUMN", "feat", "DROP_ROWS"),
+            prof_const,
+        )
+
+    # 6. MAP_BINARY_TARGET missing positive_label or unobserved label
+    finding_bin = make_finding("E1_TARGET_BINARY_UNMAPPED", "bin unmapped", {"column": "target"})
+    prof_bin = _make_dummy_profile(findings=(finding_bin,), target_classes=("yes", "no"))
+    with pytest.raises(ConfigurationError, match="requires 'positive_label' parameter"):
+        _validate_rule_admissibility(
+            PreparationRule("E1_TARGET_BINARY_UNMAPPED", "target", "MAP_BINARY_TARGET", {}),
+            prof_bin,
+        )
+    with pytest.raises(ConfigurationError, match="not found in target observed classes"):
+        _validate_rule_admissibility(
+            PreparationRule("E1_TARGET_BINARY_UNMAPPED", "target", "MAP_BINARY_TARGET", {"positive_label": "invalid_label"}),
+            prof_bin,
+        )
+
+    # 7. DEFER_INTRA_FOLD with invalid strategy
+    with pytest.raises(ConfigurationError, match="imputation_strategy"):
+        _validate_rule_admissibility(
+            PreparationRule("E1_FEATURE_MISSING", "feat", "DEFER_INTRA_FOLD", {"imputation_strategy": "INVALID"}),
+            profile,
+        )
