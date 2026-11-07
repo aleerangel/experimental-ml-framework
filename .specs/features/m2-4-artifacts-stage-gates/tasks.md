@@ -117,10 +117,10 @@ T5
 **Requirement**: STORE-02, STORE-03
 
 **Done when**:
-- [ ] `DatasetDescriptor` and `SanitizedViewDescriptor` defined with frozen slots
-- [ ] Lossless bidirectional codecs round-trip without information loss
-- [ ] Codecs reject or serialize floating NaNs as `None` in conformity with RFC 8259
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_codecs.py -v`
+- [x] `DatasetDescriptor` and `SanitizedViewDescriptor` defined with frozen slots
+- [x] Lossless bidirectional codecs round-trip without information loss
+- [x] Codecs reject or serialize floating NaNs as `None` in conformity with RFC 8259
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_codecs.py -v`
 
 **Tests**: unit
 **Gate**: quick
