@@ -2,7 +2,8 @@
 
 **Spec**: `.specs/features/m2-4-artifacts-stage-gates/spec.md`  
 **Sub-Milestone**: M2.4 (`m2-4-artifacts-stage-gates`)  
-**Status**: Pending Approval  
+**Status**: Approved  
+**Approved**: 2026-11-07 - user: "aprovado"  
 
 ---
 
