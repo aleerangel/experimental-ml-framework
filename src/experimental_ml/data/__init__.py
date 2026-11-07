@@ -10,6 +10,14 @@ from experimental_ml.data.parsing import (
     detect_delimiter,
     parse_tabular_text,
 )
+from experimental_ml.data.preparation import (
+    PreparationPlan,
+    PreparationRule,
+    SanitizedDatasetView,
+    UnresolvedFinding,
+    create_preparation_plan,
+    sanitize_dataset,
+)
 from experimental_ml.data.profiling import (
     ColumnProfile,
     DatasetProfile,
@@ -52,4 +60,10 @@ __all__ = [
     "load_dataset",
     "get_column_array",
     "slice_bundle_by_observation_ids",
+    "PreparationRule",
+    "PreparationPlan",
+    "SanitizedDatasetView",
+    "UnresolvedFinding",
+    "create_preparation_plan",
+    "sanitize_dataset",
 ]

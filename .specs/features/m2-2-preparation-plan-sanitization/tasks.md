@@ -207,15 +207,15 @@ T6
 **Requirement**: PREP-10
 
 **Done when**:
-- [ ] Public symbols exported from `experimental_ml.data`
-- [ ] Integration tests verify determinism: identical inputs produce identical `dataset_hash` and `plan_digest`
-- [ ] Integration tests verify bundle immutability before and after sanitization
-- [ ] Architectural import direction tests confirm zero illegal cross-layer imports
-- [ ] Full gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] Public symbols exported from `experimental_ml.data`
+- [x] Integration tests verify determinism: identical inputs produce identical `dataset_hash` and `plan_digest`
+- [x] Integration tests verify bundle immutability before and after sanitization
+- [x] Architectural import direction tests confirm zero illegal cross-layer imports
+- [x] Full gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration
 **Gate**: full
-**Commit**: `feat(data): exportar simbolos publicos de preparacao e suite de integracao`
+**Commit**: `feat(data): exportar simbolos de preparacao e suite de integracao`
 
 ---
 
