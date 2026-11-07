@@ -6,9 +6,12 @@ import pytest
 from experimental_ml.core.findings import ConfigurationError
 from experimental_ml.core.types import ObservationId
 from experimental_ml.validation.splitters import (
+    bootstrap_split,
+    group_kfold_split,
     holdout_split,
     kfold_split,
     stratified_kfold_split,
+    temporal_split,
 )
 
 
@@ -75,3 +78,71 @@ def test_holdout_split_proportions_and_disjointness() -> None:
     assert len(dev_ids) == 40      # 80% of 50
     assert set(dev_ids).isdisjoint(set(holdout_ids))
     assert set(dev_ids) | set(holdout_ids) == set(obs_ids)
+
+
+def test_part_03_group_kfold_disjointness() -> None:
+    # 8 unique groups, 30 samples total
+    obs_ids = tuple(ObservationId(f"id_{i:02d}") for i in range(30))
+    # Groups: g0 (5), g1 (5), g2 (4), g3 (4), g4 (3), g5 (3), g6 (3), g7 (3)
+    groups = np.array(
+        ["g0"] * 5 + ["g1"] * 5 + ["g2"] * 4 + ["g3"] * 4 + ["g4"] * 3 + ["g5"] * 3 + ["g6"] * 3 + ["g7"] * 3,
+        dtype=object,
+    )
+
+    splits = group_kfold_split(obs_ids, groups, n_splits=4, shuffle=True, seed=42)
+    assert len(splits) == 4
+
+    all_val_ids: list[ObservationId] = []
+    group_lookup = {obs: grp for obs, grp in zip(obs_ids, groups)}
+
+    for train_ids, val_ids in splits:
+        train_groups = {group_lookup[oid] for oid in train_ids}
+        val_groups = {group_lookup[oid] for oid in val_ids}
+
+        # Strict group non-overlap: Groups(Train) ∩ Groups(Val) == ∅
+        assert train_groups.isdisjoint(val_groups)
+        all_val_ids.extend(val_ids)
+
+    # Every sample validated exactly once
+    assert len(all_val_ids) == 30
+    assert set(all_val_ids) == set(obs_ids)
+
+    # Error when unique groups < n_splits
+    few_groups = np.array(["g1"] * 10 + ["g2"] * 10, dtype=object)
+    with pytest.raises(ConfigurationError, match="Number of unique groups"):
+        group_kfold_split(obs_ids[:20], few_groups, n_splits=3)
+
+
+def test_part_04_temporal_monotonicity() -> None:
+    obs_ids = tuple(ObservationId(f"id_{i}") for i in range(30))
+    # Dates or integer timestamps
+    times = np.array([2020 + i for i in range(30)], dtype=np.int64)
+
+    splits = temporal_split(obs_ids, times, n_splits=4)
+    assert len(splits) == 4
+
+    time_lookup = {obs: t for obs, t in zip(obs_ids, times)}
+
+    for train_ids, val_ids in splits:
+        train_times = [time_lookup[oid] for oid in train_ids]
+        val_times = [time_lookup[oid] for oid in val_ids]
+
+        # max(Time(Train_k)) <= min(Time(Val_k))
+        assert max(train_times) <= min(val_times)
+
+
+def test_part_05_bootstrap_oob() -> None:
+    obs_ids = tuple(ObservationId(f"id_{i}") for i in range(50))
+    splits = bootstrap_split(obs_ids, n_bootstraps=10, seed=42)
+
+    assert len(splits) == 10
+
+    for train_ids, val_ids in splits:
+        # Train has size N (sampled with replacement)
+        assert len(train_ids) == 50
+        # Val contains only out-of-bag observations: Train ∩ Val == ∅
+        assert set(train_ids).isdisjoint(set(val_ids))
+        # Union of unique train + val is all observations
+        assert set(train_ids) | set(val_ids) == set(obs_ids)
+        # OOB fraction is roughly ~36.8% (typically between 10 and 28 for N=50)
+        assert 5 <= len(val_ids) <= 35

@@ -138,11 +138,11 @@ T6
 **Requirement**: PART-03, PART-04, PART-05
 
 **Done when**:
-- [ ] `group_kfold_split` guarantees 100% group non-overlap and raises `ConfigurationError` if groups $< K$
-- [ ] `bootstrap_split` produces resamples with size $N$ in train and disjoint out-of-bag in validation
-- [ ] `temporal_split` guarantees monotonic chronological ordering without future leakage
-- [ ] Unit tests for group, bootstrap, and temporal splits pass
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_splitters.py -v`
+- [x] `group_kfold_split` guarantees 100% group non-overlap and raises `ConfigurationError` if groups $< K$
+- [x] `bootstrap_split` produces resamples with size $N$ in train and disjoint out-of-bag in validation
+- [x] `temporal_split` guarantees monotonic chronological ordering without future leakage
+- [x] Unit tests for group, bootstrap, and temporal splits pass
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_splitters.py -v`
 
 **Tests**: unit
 **Gate**: quick
