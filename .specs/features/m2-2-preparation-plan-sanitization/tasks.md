@@ -160,12 +160,12 @@ T6
 **Requirement**: PREP-04, PREP-05, PREP-08, PREP-09
 
 **Done when**:
-- [ ] Raises `ContractViolationError` on non-`READY` plan
-- [ ] Raises `DataIntegrityError` on hash/digest mismatch
-- [ ] `DROP_ROWS` drops rows with nulls, maintains relative order of remaining IDs, and records `dropped_observation_ids`
-- [ ] `MAP_BINARY_TARGET` encodes target to `int64` {0, 1} and records mapping
-- [ ] Raises `DataIntegrityError` if dropped rows result in 0 rows remaining
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_preparation.py -v`
+- [x] Raises `ContractViolationError` on non-`READY` plan
+- [x] Raises `DataIntegrityError` on hash/digest mismatch
+- [x] `DROP_ROWS` drops rows with nulls, maintains relative order of remaining IDs, and records `dropped_observation_ids`
+- [x] `MAP_BINARY_TARGET` encodes target to `int64` {0, 1} and records mapping
+- [x] Raises `DataIntegrityError` if dropped rows result in 0 rows remaining
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_preparation.py -v`
 
 **Tests**: unit
 **Gate**: quick

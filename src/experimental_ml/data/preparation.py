@@ -16,9 +16,103 @@ import numpy as np
 
 from experimental_ml.core.enums import FindingSeverity
 from experimental_ml.core.findings import ConfigurationError, ContractViolationError, DataIntegrityError
+from experimental_ml.core.hashing import dataset_hash as core_dataset_hash, is_missing_scalar
 from experimental_ml.core.types import ObservationId
 from experimental_ml.data.profiling import DatasetProfile
 from experimental_ml.data.schema import DatasetSchemaSpec
+from experimental_ml.data.types import DatasetBundle
+
+FindingCode = str
+
+RuleKind = Literal[
+    "DROP_ROWS",
+    "EXCLUDE_COLUMN",
+    "MAP_BINARY_TARGET",
+    "DEFER_INTRA_FOLD",
+    "ACCEPT_AS_IS",
+]
+
+PlanStatus = Literal["READY", "INCOMPLETE"]
+
+
+@dataclass(frozen=True, slots=True)
+class PreparationRule:
+    """Explicit preparation rule targeting a confirmed diagnostic finding."""
+
+    finding_code: FindingCode
+    column: str | None
+    kind: RuleKind
+    parameters: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.parameters, MappingProxyType):
+            object.__setattr__(
+                self,
+                "parameters",
+                MappingProxyType(dict(self.parameters) if self.parameters else {}),
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class UnresolvedFinding:
+    """Diagnostic finding that lacks an admissible preparation rule."""
+
+    finding_code: FindingCode
+    column: str | None
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class PreparationPlan:
+    """Deterministic preparation plan binding profile diagnostics to explicit rules."""
+
+    status: PlanStatus
+    source_dataset_hash: str
+    source_profile_digest: str
+    rules: tuple[PreparationRule, ...] = ()
+    unresolved_findings: tuple[UnresolvedFinding, ...] = ()
+    plan_digest: str = ""
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.rules, tuple):
+            object.__setattr__(self, "rules", tuple(self.rules))
+        if not isinstance(self.unresolved_findings, tuple):
+            object.__setattr__(self, "unresolved_findings", tuple(self.unresolved_findings))
+
+
+@dataclass(frozen=True, slots=True)
+class SanitizedDatasetView:
+    """Immutable view of sanitized dataset post pre-partition structural preparation."""
+
+    columns: Mapping[str, np.ndarray]
+    schema: DatasetSchemaSpec
+    observation_ids: tuple[ObservationId, ...]
+    candidate_feature_cols: tuple[str, ...]
+    dropped_observation_ids: tuple[ObservationId, ...]
+    target_label_mapping: Mapping[Any, int] | None
+    deferred_rules: tuple[PreparationRule, ...]
+    source_dataset_hash: str
+    source_plan_digest: str
+    dataset_hash: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.columns, MappingProxyType):
+            object.__setattr__(self, "columns", MappingProxyType(dict(self.columns)))
+        if not isinstance(self.observation_ids, tuple):
+            object.__setattr__(self, "observation_ids", tuple(self.observation_ids))
+        if not isinstance(self.candidate_feature_cols, tuple):
+            object.__setattr__(self, "candidate_feature_cols", tuple(self.candidate_feature_cols))
+        if not isinstance(self.dropped_observation_ids, tuple):
+            object.__setattr__(self, "dropped_observation_ids", tuple(self.dropped_observation_ids))
+        if not isinstance(self.deferred_rules, tuple):
+            object.__setattr__(self, "deferred_rules", tuple(self.deferred_rules))
+        if self.target_label_mapping is not None and not isinstance(self.target_label_mapping, MappingProxyType):
+            object.__setattr__(
+                self,
+                "target_label_mapping",
+                MappingProxyType(dict(self.target_label_mapping)),
+            )
+
 
 IRRESOLVABLE_FINDING_CODES: frozenset[str] = frozenset(
     {
@@ -285,92 +379,178 @@ def create_preparation_plan(
     )
 
 
-
-RuleKind = Literal[
-    "DROP_ROWS",
-    "EXCLUDE_COLUMN",
-    "MAP_BINARY_TARGET",
-    "DEFER_INTRA_FOLD",
-    "ACCEPT_AS_IS",
-]
-
-PlanStatus = Literal["READY", "INCOMPLETE"]
+def _is_missing_array_mask(arr: np.ndarray) -> np.ndarray:
+    """Return boolean mask where True indicates a missing value."""
+    if arr.dtype.kind == "f":
+        return np.isnan(arr)
+    return np.array([is_missing_scalar(v) for v in arr], dtype=bool)
 
 
-@dataclass(frozen=True, slots=True)
-class PreparationRule:
-    """Explicit preparation rule targeting a confirmed diagnostic finding."""
+def sanitize_dataset(
+    bundle: DatasetBundle,
+    profile: DatasetProfile,
+    plan: PreparationPlan,
+) -> SanitizedDatasetView:
+    """Execute pre-partition dataset sanitization based on an approved READY plan.
 
-    finding_code: FindingCode
-    column: str | None
-    kind: RuleKind
-    parameters: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+    Applies strictly pre-partition structural rules:
+    - DROP_ROWS: filters rows with missing values for specified columns.
+    - EXCLUDE_COLUMN: excludes columns from output columns and candidate features.
+    - MAP_BINARY_TARGET: encodes unmapped binary target into int64 {0, 1}.
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.parameters, MappingProxyType):
-            object.__setattr__(
-                self,
-                "parameters",
-                MappingProxyType(dict(self.parameters) if self.parameters else {}),
-            )
+    Preserves 100% bit-identical values for columns with DEFER_INTRA_FOLD and ACCEPT_AS_IS
+    (ADR-002: no global imputation or encoding before fold splitting).
 
+    Args:
+        bundle: Source immutable DatasetBundle.
+        profile: DatasetProfile corresponding to bundle.
+        plan: PreparationPlan with status 'READY'.
 
-@dataclass(frozen=True, slots=True)
-class UnresolvedFinding:
-    """Diagnostic finding that lacks an admissible preparation rule."""
+    Returns:
+        Immutable SanitizedDatasetView.
 
-    finding_code: FindingCode
-    column: str | None
-    reason: str
+    Raises:
+        ContractViolationError: If plan.status != 'READY'.
+        DataIntegrityError: If bundle, profile or plan hashes/digests do not match,
+            or if sanitization leaves 0 observations or 0 candidate feature columns.
+    """
+    if plan.status != "READY":
+        raise ContractViolationError(
+            f"Cannot sanitize dataset with plan status '{plan.status}'; status must be 'READY'"
+        )
 
+    if plan.source_dataset_hash != bundle.dataset_hash:
+        raise DataIntegrityError(
+            f"Plan source_dataset_hash '{plan.source_dataset_hash}' does not match "
+            f"bundle.dataset_hash '{bundle.dataset_hash}'"
+        )
 
-@dataclass(frozen=True, slots=True)
-class PreparationPlan:
-    """Deterministic preparation plan binding profile diagnostics to explicit rules."""
+    if profile.source_dataset_hash != bundle.dataset_hash:
+        raise DataIntegrityError(
+            f"Profile source_dataset_hash '{profile.source_dataset_hash}' does not match "
+            f"bundle.dataset_hash '{bundle.dataset_hash}'"
+        )
 
-    status: PlanStatus
-    source_dataset_hash: str
-    source_profile_digest: str
-    rules: tuple[PreparationRule, ...] = ()
-    unresolved_findings: tuple[UnresolvedFinding, ...] = ()
-    plan_digest: str = ""
+    current_profile_digest = _compute_profile_digest(profile)
+    if plan.source_profile_digest != current_profile_digest:
+        raise DataIntegrityError(
+            f"Plan source_profile_digest '{plan.source_profile_digest}' does not match "
+            f"computed profile digest '{current_profile_digest}'"
+        )
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.rules, tuple):
-            object.__setattr__(self, "rules", tuple(self.rules))
-        if not isinstance(self.unresolved_findings, tuple):
-            object.__setattr__(self, "unresolved_findings", tuple(self.unresolved_findings))
+    # 1. Identify rules
+    drop_rows_cols: list[str] = []
+    excluded_cols: set[str] = set()
+    map_binary_rule: PreparationRule | None = None
+    deferred_rules: list[PreparationRule] = []
 
+    for rule in plan.rules:
+        if rule.kind == "DROP_ROWS":
+            if rule.column:
+                drop_rows_cols.append(rule.column)
+        elif rule.kind == "EXCLUDE_COLUMN":
+            if rule.column:
+                excluded_cols.add(rule.column)
+        elif rule.kind == "MAP_BINARY_TARGET":
+            map_binary_rule = rule
+        elif rule.kind in ("DEFER_INTRA_FOLD", "ACCEPT_AS_IS"):
+            deferred_rules.append(rule)
 
-@dataclass(frozen=True, slots=True)
-class SanitizedDatasetView:
-    """Immutable view of sanitized dataset post pre-partition structural preparation."""
+    # 2. Compute keep mask for rows (DROP_ROWS)
+    keep_mask = np.ones(bundle.n_rows, dtype=bool)
+    for col_name in drop_rows_cols:
+        if col_name in bundle.columns:
+            missing_mask = _is_missing_array_mask(bundle.columns[col_name])
+            keep_mask &= ~missing_mask
 
-    columns: Mapping[str, np.ndarray]
-    schema: DatasetSchemaSpec
-    observation_ids: tuple[ObservationId, ...]
-    candidate_feature_cols: tuple[str, ...]
-    dropped_observation_ids: tuple[ObservationId, ...]
-    target_label_mapping: Mapping[Any, int] | None
-    deferred_rules: tuple[PreparationRule, ...]
-    source_dataset_hash: str
-    source_plan_digest: str
-    dataset_hash: str
+    kept_indices = np.where(keep_mask)[0]
+    dropped_indices = np.where(~keep_mask)[0]
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.columns, MappingProxyType):
-            object.__setattr__(self, "columns", MappingProxyType(dict(self.columns)))
-        if not isinstance(self.observation_ids, tuple):
-            object.__setattr__(self, "observation_ids", tuple(self.observation_ids))
-        if not isinstance(self.candidate_feature_cols, tuple):
-            object.__setattr__(self, "candidate_feature_cols", tuple(self.candidate_feature_cols))
-        if not isinstance(self.dropped_observation_ids, tuple):
-            object.__setattr__(self, "dropped_observation_ids", tuple(self.dropped_observation_ids))
-        if not isinstance(self.deferred_rules, tuple):
-            object.__setattr__(self, "deferred_rules", tuple(self.deferred_rules))
-        if self.target_label_mapping is not None and not isinstance(self.target_label_mapping, MappingProxyType):
-            object.__setattr__(
-                self,
-                "target_label_mapping",
-                MappingProxyType(dict(self.target_label_mapping)),
-            )
+    if len(kept_indices) == 0:
+        raise DataIntegrityError(
+            "Sanitization resulted in 0 observations after applying DROP_ROWS"
+        )
+
+    # Preserve original relative order
+    kept_obs_ids = tuple(bundle.observation_ids[i] for i in kept_indices)
+    dropped_obs_ids = tuple(bundle.observation_ids[i] for i in dropped_indices)
+
+    # 3. Process columns
+    output_columns: dict[str, np.ndarray] = {}
+    target_col = bundle.schema.target_col
+    target_label_mapping: dict[Any, int] | None = None
+
+    for col_name, arr in bundle.columns.items():
+        if col_name in excluded_cols:
+            continue
+
+        sliced = arr[kept_indices]
+
+        if col_name == target_col and map_binary_rule is not None:
+            pos_label = map_binary_rule.parameters["positive_label"]
+            unique_classes = set(sliced)
+            if pos_label not in unique_classes:
+                raise DataIntegrityError(
+                    f"MAP_BINARY_TARGET positive_label {pos_label!r} not in sliced target classes: {unique_classes}"
+                )
+            alt_classes = unique_classes - {pos_label}
+            if len(alt_classes) != 1:
+                raise DataIntegrityError(
+                    f"MAP_BINARY_TARGET expected exactly 2 target classes in remaining rows, found: {unique_classes}"
+                )
+            neg_label = next(iter(alt_classes))
+
+            mapped_arr = np.empty(len(sliced), dtype=np.int64)
+            mapped_arr[sliced == pos_label] = 1
+            mapped_arr[sliced == neg_label] = 0
+            mapped_arr.flags.writeable = False
+            output_columns[col_name] = mapped_arr
+            target_label_mapping = {pos_label: 1, neg_label: 0}
+        else:
+            # Preserve bit-identical values (including DEFER_INTRA_FOLD and ACCEPT_AS_IS)
+            out_arr = np.copy(sliced)
+            out_arr.flags.writeable = False
+            output_columns[col_name] = out_arr
+
+    # 4. Compute candidate feature columns
+    # Candidate features exclude: target_col, group_col, observation_id_col, time_col, ignore_cols, and excluded_cols
+    schema = bundle.schema
+    protected_or_non_feature: set[str] = {schema.target_col}
+    if schema.group_col:
+        protected_or_non_feature.add(schema.group_col)
+    if schema.observation_id_col:
+        protected_or_non_feature.add(schema.observation_id_col)
+    if schema.time_col:
+        protected_or_non_feature.add(schema.time_col)
+    protected_or_non_feature.update(schema.ignore_cols)
+    protected_or_non_feature.update(excluded_cols)
+
+    candidate_features = tuple(
+        c for c in bundle.column_names
+        if c in output_columns and c not in protected_or_non_feature
+    )
+
+    if len(candidate_features) == 0:
+        raise DataIntegrityError(
+            "Sanitization resulted in 0 candidate feature columns"
+        )
+
+    # 5. Compute canonical sanitized dataset hash (PREP-06)
+    view_hash = core_dataset_hash(
+        output_columns,
+        schema,
+        observation_ids=kept_obs_ids,
+    )
+
+    return SanitizedDatasetView(
+        columns=output_columns,
+        schema=schema,
+        observation_ids=kept_obs_ids,
+        candidate_feature_cols=candidate_features,
+        dropped_observation_ids=dropped_obs_ids,
+        target_label_mapping=target_label_mapping,
+        deferred_rules=tuple(deferred_rules),
+        source_dataset_hash=bundle.dataset_hash,
+        source_plan_digest=plan.plan_digest,
+        dataset_hash=view_hash,
+    )

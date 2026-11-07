@@ -7,8 +7,15 @@ import numpy as np
 import pytest
 
 from experimental_ml.core.enums import TaskType
-from experimental_ml.core.findings import ConfigurationError, make_finding, make_warning
+from experimental_ml.core.findings import (
+    ConfigurationError,
+    ContractViolationError,
+    DataIntegrityError,
+    make_finding,
+    make_warning,
+)
 from experimental_ml.core.types import ObservationId
+from experimental_ml.data import load_dataset, profile_dataset
 from experimental_ml.data.preparation import (
     PreparationPlan,
     PreparationRule,
@@ -16,6 +23,7 @@ from experimental_ml.data.preparation import (
     UnresolvedFinding,
     _validate_rule_admissibility,
     create_preparation_plan,
+    sanitize_dataset,
 )
 from experimental_ml.data.profiling import (
     CategoryFrequency,
@@ -330,3 +338,139 @@ def test_t3_duplicate_rule_and_dict_coercion() -> None:
     ]
     with pytest.raises(ConfigurationError, match="Duplicate preparation rule"):
         create_preparation_plan(profile, dup_rules)
+
+
+def test_prep_05_binding_validation_and_status_check() -> None:
+    data = {
+        "x1": [1.0, 2.0, 3.0],
+        "target": [0, 1, 0],
+    }
+    schema = DatasetSchemaSpec(target_col="target", task_type=TaskType.BINARY_CLASSIFICATION)
+    bundle = load_dataset(data, schema=schema)
+    profile = profile_dataset(bundle)
+
+    # 1. Non-READY plan raises ContractViolationError
+    incomplete_plan = PreparationPlan(
+        status="INCOMPLETE",
+        source_dataset_hash=bundle.dataset_hash,
+        source_profile_digest="digest",
+        rules=(),
+    )
+    with pytest.raises(ContractViolationError, match="status must be 'READY'"):
+        sanitize_dataset(bundle, profile, incomplete_plan)
+
+    # 2. Mismatched source_dataset_hash raises DataIntegrityError
+    mismatched_plan = PreparationPlan(
+        status="READY",
+        source_dataset_hash="different_hash",
+        source_profile_digest=incomplete_plan.source_profile_digest,
+        rules=(),
+    )
+    with pytest.raises(DataIntegrityError, match="source_dataset_hash"):
+        sanitize_dataset(bundle, profile, mismatched_plan)
+
+    # 3. Mismatched source_profile_digest raises DataIntegrityError
+    mismatched_digest_plan = PreparationPlan(
+        status="READY",
+        source_dataset_hash=bundle.dataset_hash,
+        source_profile_digest="wrong_digest",
+        rules=(),
+    )
+    with pytest.raises(DataIntegrityError, match="source_profile_digest"):
+        sanitize_dataset(bundle, profile, mismatched_digest_plan)
+
+
+def test_prep_08_binary_target_mapping_and_encoding() -> None:
+    data = {
+        "feat": [1.0, 2.0, 3.0, 4.0],
+        "target": ["yes", "no", "yes", "no"],
+    }
+    schema = DatasetSchemaSpec(target_col="target", task_type=TaskType.BINARY_CLASSIFICATION)
+    bundle = load_dataset(data, schema=schema)
+    profile = profile_dataset(bundle)
+
+    # Profile should emit E1_TARGET_BINARY_UNMAPPED
+    rule = PreparationRule(
+        finding_code="E1_TARGET_BINARY_UNMAPPED",
+        column="target",
+        kind="MAP_BINARY_TARGET",
+        parameters={"positive_label": "yes"},
+    )
+    plan = create_preparation_plan(profile, [rule])
+    assert plan.status == "READY"
+
+    view = sanitize_dataset(bundle, profile, plan)
+
+    # Check target mapping
+    assert view.target_label_mapping is not None
+    assert view.target_label_mapping["yes"] == 1
+    assert view.target_label_mapping["no"] == 0
+    # Encoded target is np.int64
+    assert view.columns["target"].dtype == np.int64
+    np.testing.assert_array_equal(view.columns["target"], np.array([1, 0, 1, 0], dtype=np.int64))
+
+
+def test_prep_09_empty_dataset_or_features_raises_integrity_error() -> None:
+    # 1. DROP_ROWS leaving 0 rows
+    data = {
+        "f1": [1.0, 2.0, np.nan, np.nan],
+        "f2": [np.nan, np.nan, 3.0, 4.0],
+        "target": [1, 0, 1, 0],
+    }
+    schema = DatasetSchemaSpec(target_col="target", task_type=TaskType.BINARY_CLASSIFICATION)
+    bundle = load_dataset(data, schema=schema)
+    profile = profile_dataset(bundle)
+
+    rules = [
+        PreparationRule("E1_FEATURE_MISSING", "f1", "DROP_ROWS"),
+        PreparationRule("E1_FEATURE_MISSING", "f2", "DROP_ROWS"),
+    ]
+    plan = create_preparation_plan(profile, rules)
+    assert plan.status == "READY"
+
+    with pytest.raises(DataIntegrityError, match="0 observations after applying DROP_ROWS"):
+        sanitize_dataset(bundle, profile, plan)
+
+    # 2. EXCLUDE_COLUMN leaving 0 candidate features
+    data2 = {
+        "feat_only": [1.0, 1.0, 1.0],  # constant feature
+        "target": [1, 0, 1],
+    }
+    bundle2 = load_dataset(data2, schema=schema)
+    profile2 = profile_dataset(bundle2)
+
+    rule2 = PreparationRule("E1_CONSTANT_COLUMN", "feat_only", "EXCLUDE_COLUMN")
+    plan2 = create_preparation_plan(profile2, [rule2])
+    assert plan2.status == "READY"
+
+    with pytest.raises(DataIntegrityError, match="0 candidate feature columns"):
+        sanitize_dataset(bundle2, profile2, plan2)
+
+
+def test_t4_drop_rows_and_order_preservation() -> None:
+    data = {
+        "x": [10.0, np.nan, 30.0, np.nan, 50.0],
+        "y": [1.0, 2.0, 3.0, 4.0, 5.0],
+        "target": [1, 0, 1, 0, 1],
+    }
+    schema = DatasetSchemaSpec(target_col="target", task_type=TaskType.BINARY_CLASSIFICATION)
+    bundle = load_dataset(data, schema=schema)
+    profile = profile_dataset(bundle)
+
+    rule = PreparationRule("E1_FEATURE_MISSING", "x", "DROP_ROWS")
+    plan = create_preparation_plan(profile, [rule])
+    assert plan.status == "READY"
+
+    view = sanitize_dataset(bundle, profile, plan)
+
+    # Rows 1 and 3 (0-indexed) were dropped
+    assert len(view.observation_ids) == 3
+    assert len(view.dropped_observation_ids) == 2
+    assert view.dropped_observation_ids == (bundle.observation_ids[1], bundle.observation_ids[3])
+    # Relative order of remaining IDs is strictly preserved
+    assert view.observation_ids == (
+        bundle.observation_ids[0],
+        bundle.observation_ids[2],
+        bundle.observation_ids[4],
+    )
+    np.testing.assert_array_equal(view.columns["x"], np.array([10.0, 30.0, 50.0]))
