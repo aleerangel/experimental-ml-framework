@@ -117,11 +117,11 @@ T6
 **Requirement**: PART-01, PART-02, PART-06
 
 **Done when**:
-- [ ] `kfold_split` divides observations into $K$ disjoint validation folds with complete coverage
-- [ ] `stratified_kfold_split` preserves class distribution within $\pm 1$ sample per fold
-- [ ] `holdout_split` extracts disjoint development and holdout partitions according to fraction
-- [ ] Unit tests verify deterministic split behavior and fold disjointness
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_splitters.py -v`
+- [x] `kfold_split` divides observations into $K$ disjoint validation folds with complete coverage
+- [x] `stratified_kfold_split` preserves class distribution within $\pm 1$ sample per fold
+- [x] `holdout_split` extracts disjoint development and holdout partitions according to fraction
+- [x] Unit tests verify deterministic split behavior and fold disjointness
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_splitters.py -v`
 
 **Tests**: unit
 **Gate**: quick
