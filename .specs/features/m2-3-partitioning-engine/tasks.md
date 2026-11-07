@@ -161,15 +161,15 @@ T6
 **Requirement**: PART-07
 
 **Done when**:
-- [ ] Proves mathematical disjointness $\text{Train}_k \cap \text{Val}_k = \emptyset$
-- [ ] Proves holdout disjointness with training and validation sets
-- [ ] Checks group disjointness and temporal monotonicity when applicable
-- [ ] Raises `DataIntegrityError` on any detected overlap or ordering violation
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_validators.py -v`
+- [x] Proves mathematical disjointness $\text{Train}_k \cap \text{Val}_k = \emptyset$
+- [x] Proves holdout disjointness with training and validation sets
+- [x] Checks group disjointness and temporal monotonicity when applicable
+- [x] Raises `DataIntegrityError` on any detected overlap or ordering violation
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_validators.py -v`
 
 **Tests**: unit
 **Gate**: quick
-**Commit**: `feat(validation): implementar validador matematico de planos de particao`
+**Commit**: `feat(validation): implementar validador matematico de particoes`
 
 ---
 
