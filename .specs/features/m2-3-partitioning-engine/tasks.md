@@ -255,8 +255,8 @@ Proof: run unit | tests/unit/validation/test_types.py::test_part_10_config_bound
 ## Handoff
 
 **Settled mid-build**: none
-**Dispatched**: none
-**Walked**: pending Execute phase
+**Dispatched**: Verifier (validate.md)
+**Walked**: all tasks completed (T1-T6)
 
 ---
 
