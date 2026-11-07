@@ -182,11 +182,11 @@ T5
 **Requirement**: STORE-01 to STORE-07
 
 **Done when**:
-- [ ] Public symbols exported from their respective packages
-- [ ] End-to-end integration test verifies the full artifact lifecycle and stage gate validation
-- [ ] Tamper detection verifies that modifying any artifact causes stage gate failure
-- [ ] Architectural import isolation confirmed (`core` does not import higher layers; `data` does not import `validation` or `stages`)
-- [ ] Full gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] Public symbols exported from their respective packages
+- [x] End-to-end integration test verifies the full artifact lifecycle and stage gate validation
+- [x] Tamper detection verifies that modifying any artifact causes stage gate failure
+- [x] Architectural import isolation confirmed (`core` does not import higher layers; `data` does not import `validation` or `stages`)
+- [x] Full gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration
 **Gate**: full
