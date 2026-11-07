@@ -75,27 +75,49 @@ def validate_partition_plan(
                 f"Fold {fold.fold_index} violates disjointness: Train and Val overlap on {overlap}"
             )
 
-        # 3. Holdout isolation: (Train_k ∪ Val_k) ∩ Holdout = ∅
-        if not train_s.isdisjoint(holdout_set):
-            overlap = train_s & holdout_set
-            raise DataIntegrityError(
-                f"Fold {fold.fold_index} leaks holdout observations into Train: {overlap}"
-            )
-        if not val_s.isdisjoint(holdout_set):
-            overlap = val_s & holdout_set
-            raise DataIntegrityError(
-                f"Fold {fold.fold_index} leaks holdout observations into Val: {overlap}"
-            )
-
-        # Ensure train and val belong to development_ids
-        if not train_s.issubset(dev_set):
-            raise DataIntegrityError(
-                f"Fold {fold.fold_index} Train contains observations outside development set"
-            )
-        if not val_s.issubset(dev_set):
-            raise DataIntegrityError(
-                f"Fold {fold.fold_index} Val contains observations outside development set"
-            )
+        # 3. Holdout isolation and scope
+        if plan.regime == EvaluationRegime.CV_AND_HOLDOUT:
+            if not train_s.isdisjoint(holdout_set):
+                overlap = train_s & holdout_set
+                raise DataIntegrityError(
+                    f"Fold {fold.fold_index} leaks holdout observations into Train: {overlap}"
+                )
+            if not val_s.isdisjoint(holdout_set):
+                overlap = val_s & holdout_set
+                raise DataIntegrityError(
+                    f"Fold {fold.fold_index} leaks holdout observations into Val: {overlap}"
+                )
+            if not train_s.issubset(dev_set):
+                raise DataIntegrityError(
+                    f"Fold {fold.fold_index} Train contains observations outside development set"
+                )
+            if not val_s.issubset(dev_set):
+                raise DataIntegrityError(
+                    f"Fold {fold.fold_index} Val contains observations outside development set"
+                )
+        elif plan.regime == EvaluationRegime.HOLDOUT_ONLY:
+            if not train_s.isdisjoint(holdout_set):
+                overlap = train_s & holdout_set
+                raise DataIntegrityError(
+                    f"Fold {fold.fold_index} leaks holdout observations into Train: {overlap}"
+                )
+            if not train_s.issubset(dev_set):
+                raise DataIntegrityError(
+                    f"Fold {fold.fold_index} Train contains observations outside development set"
+                )
+            if not val_s.issubset(holdout_set):
+                raise DataIntegrityError(
+                    f"Fold {fold.fold_index} Val contains observations outside holdout set"
+                )
+        else:  # CV_ONLY
+            if not train_s.issubset(dev_set):
+                raise DataIntegrityError(
+                    f"Fold {fold.fold_index} Train contains observations outside development set"
+                )
+            if not val_s.issubset(dev_set):
+                raise DataIntegrityError(
+                    f"Fold {fold.fold_index} Val contains observations outside development set"
+                )
 
         # 4. Group disjointness
         if plan.strategy == PartitionStrategy.GROUP_KFOLD and group_map is not None:

@@ -182,11 +182,11 @@ T6
 **Requirement**: PART-01, PART-06, PART-08, PART-09
 
 **Done when**:
-- [ ] `build_partition_plan` coordinates holdout separation and CV splitting on `development_ids`
-- [ ] Canonical `plan_id` computed via SHA-256 ignoring volatile timestamps
-- [ ] Validates partition plan mathematically before returning
-- [ ] Unit tests for CV, Holdout, and CV+Holdout regimes pass
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_engine.py -v`
+- [x] `build_partition_plan` coordinates holdout separation and CV splitting on `development_ids`
+- [x] Canonical `plan_id` computed via SHA-256 ignoring volatile timestamps
+- [x] Validates partition plan mathematically before returning
+- [x] Unit tests for CV, Holdout, and CV+Holdout regimes pass
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_engine.py -v`
 
 **Tests**: unit
 **Gate**: quick
