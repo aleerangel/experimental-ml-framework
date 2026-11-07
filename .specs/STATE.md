@@ -28,23 +28,22 @@
 
 ## Handoff
 
-- **Feature**: m2-2-preparation-plan-sanitization (Sub-marco M2.2 — Plano de Preparação e Visão Saneada de Datasets)
-- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-2-preparation-plan-sanitization`)
+- **Feature**: m2-3-partitioning-engine (Sub-marco M2.3 — Motor de Particionamento Compartilhado e Validado)
+- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-3-partitioning-engine`)
 - **Completed**:
-  - Sub-marco M2.2 (`m2-2-preparation-plan-sanitization`) implementado, testado e verificado:
-    - `PreparationRule`, `UnresolvedFinding`, `PreparationPlan`, `SanitizedDatasetView`: estruturas de dados imutáveis com `frozen=True, slots=True`, proteção via `MappingProxyType` e arrays com `writeable = False`.
-    - `_validate_rule_admissibility`: validador estrito do catálogo fechado de regras (`DROP_ROWS`, `EXCLUDE_COLUMN`, `MAP_BINARY_TARGET`, `DEFER_INTRA_FOLD`, `ACCEPT_AS_IS`), rejeitando regras órfãs, não confirmadas ou com parâmetros inválidos via `ConfigurationError`.
-    - `create_preparation_plan`: construtor funcional com auditoria de cobertura completa dos achados `CONFIRMED_ISSUE`. Retorna `PreparationPlan` com `status = "READY"`, ordenação canônica e digest determinístico SHA-256 quando totalmente coberto, ou `status = "INCOMPLETE"` com listagem canônica de `unresolved_findings`.
-    - `sanitize_dataset`: executor puro de pré-partição que aplica estritamente regras estruturais (`DROP_ROWS`, `EXCLUDE_COLUMN`, `MAP_BINARY_TARGET`), mantendo colunas deferidas (`DEFER_INTRA_FOLD`, `ACCEPT_AS_IS`) 100% bit a bit idênticas ao bundle original (prevenção de vazamento de dados — ADR-002).
-    - Preservação da integridade: `bundle` original inalterado (`bundle.dataset_hash` intacto). A visão saneada expõe linhagem completa, ordenação relativa original de `ObservationId`, sequência de `dropped_observation_ids` e calcula deterministicamente seu novo `dataset_hash` via `core.dataset_hash(...)`.
-    - Validação de não-vacuidade pós-saneamento ($N > 0$ e features candidatas $> 0$).
-    - 23 símbolos públicos exportados em `experimental_ml.data.__all__`.
-  - 10 requisitos de preparação (`PREP-01` a `PREP-10`) verificados por 10 checks determinísticos (`check_proofs.py`: 10 pass, 0 fail).
-  - Suíte completa do repositório: 133 testes aprovados (100% de aprovação, 0 regressões).
+  - Sub-marco M2.3 (`m2-3-partitioning-engine`) implementado, testado e verificado:
+    - `PartitionStrategy` (StrEnum: KFOLD, STRATIFIED_KFOLD, GROUP_KFOLD, BOOTSTRAP, TEMPORAL, HOLDOUT) e `EvaluationRegime` (StrEnum: CV_ONLY, HOLDOUT_ONLY, CV_AND_HOLDOUT).
+    - `FoldPartition`, `PartitionConfig`, `PartitionPlan`: modelos de dados imutáveis com `frozen=True, slots=True`. `PartitionConfig` valida limites estritos em `__post_init__` (`n_splits >= 2`, `0 < holdout_fraction < 1.0`, colunas obrigatórias presentes).
+    - Splitters funcionais puros: `kfold_split`, `stratified_kfold_split`, `group_kfold_split`, `bootstrap_split`, `temporal_split` e `holdout_split`.
+    - `validate_partition_plan`: validador formal de integridade matemática que verifica disjunção estrita ($\text{Train}_k \cap \text{Val}_k = \emptyset$), isolamento de holdout ($\text{Train}_k/\text{Val}_k \cap \text{Holdout} = \emptyset$), disjunção estrita de grupos ($\text{Groups}(Train_k) \cap \text{Groups}(Val_k) = \emptyset$) e monotonicidade temporal estrita ($\max(\text{Time}(Train_k)) \le \min(\text{Time}(Val_k))$), disparando `DataIntegrityError` se violado.
+    - `build_partition_plan`: motor de construção de `PartitionPlan` que orquestra a extração via contratos de `SanitizedDatasetView` ou `DatasetBundle`, separação de holdout (D7), partição de validação cruzada sobre `development_ids`, geração de `plan_id` canônico SHA-256 (D8) e auto-validação antes do retorno.
+    - 7 símbolos públicos exportados em `experimental_ml.validation.__all__`.
+  - 10 critérios de aceitação (`PART-01` a `PART-10`) verificados por 10 checks determinísticos (`check_proofs.py`: 10 pass, 0 fail).
+  - Suíte completa do repositório: 151 testes aprovados (100% de aprovação, 0 regressões).
   - Verificação independente por subagente (`author != verifier`) aprovada com veredito `PASS` (0 findings).
   - Validadores documentais TLC: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
   - Artefatos de homologação e resultados (`ACCEPTANCE.md` e `RESULTS.md`) gerados e validados.
-- **In-progress**: Sub-marco M2.2 concluído; pronto para avançar para o Sub-marco M2.3 (`partitioning-engine`)
-- **Next step**: Iniciar Specify / Design do Sub-marco M2.3 (`PartitionPlan`, `create_partition_plan`, estratégias K-Fold / Group / Stratified / Time)
+- **In-progress**: Sub-marco M2.3 concluído; pronto para avançar para o Sub-marco M2.4 (`m2-4-data-cli`)
+- **Next step**: Iniciar Specify / Design do Sub-marco M2.4 (CLI modular de dados `data inspect`, `data profile`, `data prepare`, `data partition`)
 - **Blockers**: none
-- **Branch**: feat/m2-2-preparation-plan-sanitization
+- **Branch**: feat/m2-3-partitioning-engine
