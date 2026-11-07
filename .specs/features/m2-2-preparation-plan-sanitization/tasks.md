@@ -258,8 +258,8 @@ Proof: run integration | tests/integration/test_preparation_integration.py::test
 ## Handoff
 
 **Settled mid-build**: none
-**Dispatched**: none
-**Walked**: pending Execute phase
+**Dispatched**: Verifier (validate.md)
+**Walked**: done (check_proofs passed at HEAD e39bb1e)
 
 ---
 
