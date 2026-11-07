@@ -28,22 +28,22 @@
 
 ## Handoff
 
-- **Feature**: m2-3-partitioning-engine (Sub-marco M2.3 — Motor de Particionamento Compartilhado e Validado)
-- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-3-partitioning-engine`)
+- **Feature**: m2-4-artifacts-stage-gates (Sub-marco M2.4 — Persistência de Artefatos e Bloqueio entre Etapas)
+- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-4-artifacts-stage-gates`)
 - **Completed**:
-  - Sub-marco M2.3 (`m2-3-partitioning-engine`) implementado, testado e verificado:
-    - `PartitionStrategy` (StrEnum: KFOLD, STRATIFIED_KFOLD, GROUP_KFOLD, BOOTSTRAP, TEMPORAL, HOLDOUT) e `EvaluationRegime` (StrEnum: CV_ONLY, HOLDOUT_ONLY, CV_AND_HOLDOUT).
-    - `FoldPartition`, `PartitionConfig`, `PartitionPlan`: modelos de dados imutáveis com `frozen=True, slots=True`. `PartitionConfig` valida limites estritos em `__post_init__` (`n_splits >= 2`, `0 < holdout_fraction < 1.0`, colunas obrigatórias presentes).
-    - Splitters funcionais puros: `kfold_split`, `stratified_kfold_split`, `group_kfold_split`, `bootstrap_split`, `temporal_split` e `holdout_split`.
-    - `validate_partition_plan`: validador formal de integridade matemática que verifica disjunção estrita ($\text{Train}_k \cap \text{Val}_k = \emptyset$), isolamento de holdout ($\text{Train}_k/\text{Val}_k \cap \text{Holdout} = \emptyset$), disjunção estrita de grupos ($\text{Groups}(Train_k) \cap \text{Groups}(Val_k) = \emptyset$) e monotonicidade temporal estrita ($\max(\text{Time}(Train_k)) \le \min(\text{Time}(Val_k))$), disparando `DataIntegrityError` se violado.
-    - `build_partition_plan`: motor de construção de `PartitionPlan` que orquestra a extração via contratos de `SanitizedDatasetView` ou `DatasetBundle`, separação de holdout (D7), partição de validação cruzada sobre `development_ids`, geração de `plan_id` canônico SHA-256 (D8) e auto-validação antes do retorno.
-    - 7 símbolos públicos exportados em `experimental_ml.validation.__all__`.
-  - 10 critérios de aceitação (`PART-01` a `PART-10`) verificados por 10 checks determinísticos (`check_proofs.py`: 10 pass, 0 fail).
-  - Suíte completa do repositório: 151 testes aprovados (100% de aprovação, 0 regressões).
+  - Sub-marco M2.4 (`m2-4-artifacts-stage-gates`) implementado, testado e verificado:
+    - `write_json_atomic` e `read_json` em `src/experimental_ml/core/storage.py`: escrita atômica via arquivo temporário e `os.replace`, remoção limpa do temporário em falha (STORE-01) e proteção rigorosa contra sobrescrita com `ConfigurationError` quando `overwrite=False` (STORE-07).
+    - Descritores leves `DatasetDescriptor` e `SanitizedViewDescriptor` em `src/experimental_ml/data/descriptors.py` com frozen slots e proteção imutável (STORE-02, D11).
+    - Codecs bidirecionais sem perda `to_dict` / `from_dict` em `src/experimental_ml/data/codecs.py` e `src/experimental_ml/validation/codecs.py` para `DatasetDescriptor`, `SanitizedViewDescriptor`, `DatasetProfile`, `PreparationPlan` e `PartitionPlan`, sanitizando floats (`allow_nan=False`, sem `NaN` ou `Infinity` conforme RFC 8259) (STORE-02).
+    - Mapeamento tabular de divisões `write_splits_csv_gz`, `read_splits_csv_gz` e `write_splits_schema` em `src/experimental_ml/validation/storage.py` com `gzip.GzipFile(mtime=0.0)` para garantir determinismo binário bit a bit entre execuções repetidas (STORE-04, D6).
+    - Portões de validação entre etapas `verify_preparation_gate` e `verify_partition_gate` em `src/experimental_ml/stages/stage_gates.py`: validação de layout canônico de diretório, bloqueio de planos `INCOMPLETE` com `ContractViolationError` (STORE-05), detecção de divergência de hashes de dataset com `DataIntegrityError` (STORE-05) e detecção de contradições/adulterações entre `splits.csv.gz` e `partition_plan.json` com `DataIntegrityError` (STORE-06).
+    - Módulo `experimental_ml.stages` com exportações públicas e constantes de layout canônico.
+  - 7 critérios de aceitação (`STORE-01` a `STORE-07`) verificados por 7 checks determinísticos (`check_proofs.py`: 7 pass, 0 fail).
+  - Suíte completa do repositório: 162 testes aprovados (100% de aprovação, 0 regressões).
   - Verificação independente por subagente (`author != verifier`) aprovada com veredito `PASS` (0 findings).
   - Validadores documentais TLC: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
   - Artefatos de homologação e resultados (`ACCEPTANCE.md` e `RESULTS.md`) gerados e validados.
-- **In-progress**: Sub-marco M2.3 concluído; pronto para avançar para o Sub-marco M2.4 (`m2-4-data-cli`)
-- **Next step**: Iniciar Specify / Design do Sub-marco M2.4 (CLI modular de dados `data inspect`, `data profile`, `data prepare`, `data partition`)
+- **In-progress**: Sub-marco M2.4 concluído; pronto para avançar para o Sub-marco M2.5 (`m2-5-cli-end-to-end`)
+- **Next step**: Iniciar Specify / Design do Sub-marco M2.5 (CLI `data` e `partition`, cenários de aceite fim a fim e códigos de saída)
 - **Blockers**: none
-- **Branch**: feat/m2-3-partitioning-engine
+- **Branch**: feat/m2-4-artifacts-stage-gates
