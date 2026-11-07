@@ -137,10 +137,10 @@ T5
 **Requirement**: STORE-02, STORE-04
 
 **Done when**:
-- [ ] `partition_plan_to_dict` / `from_dict` provides lossless round-trip
-- [ ] `write_splits_csv_gz` produces bit-identical gzip files across repeated calls
-- [ ] Correct mapping of observation IDs to fold roles (`TRAIN`, `VAL`) and holdout (`DEVELOPMENT`, `HOLDOUT`)
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_storage.py -v`
+- [x] `partition_plan_to_dict` / `from_dict` provides lossless round-trip
+- [x] `write_splits_csv_gz` produces bit-identical gzip files across repeated calls
+- [x] Correct mapping of observation IDs to fold roles (`TRAIN`, `VAL`) and holdout (`DEVELOPMENT`, `HOLDOUT`)
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_storage.py -v`
 
 **Tests**: unit
 **Gate**: quick
