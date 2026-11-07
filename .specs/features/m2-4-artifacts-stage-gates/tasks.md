@@ -94,11 +94,11 @@ T5
 **Requirement**: STORE-01, STORE-07
 
 **Done when**:
-- [ ] `write_json_atomic` writes valid UTF-8 JSON atomically via tempfile and `os.replace`
-- [ ] Target pre-existence raises `ConfigurationError` when `overwrite=False`
-- [ ] Write or serialization failure deletes temporary file without polluting or corrupting target path
-- [ ] `read_json` decodes stored documents accurately
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/core/test_storage.py -v`
+- [x] `write_json_atomic` writes valid UTF-8 JSON atomically via tempfile and `os.replace`
+- [x] Target pre-existence raises `ConfigurationError` when `overwrite=False`
+- [x] Write or serialization failure deletes temporary file without polluting or corrupting target path
+- [x] `read_json` decodes stored documents accurately
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/core/test_storage.py -v`
 
 **Tests**: unit
 **Gate**: quick
