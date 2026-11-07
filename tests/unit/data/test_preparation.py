@@ -15,6 +15,7 @@ from experimental_ml.data.preparation import (
     SanitizedDatasetView,
     UnresolvedFinding,
     _validate_rule_admissibility,
+    create_preparation_plan,
 )
 from experimental_ml.data.profiling import (
     CategoryFrequency,
@@ -247,3 +248,85 @@ def test_prep_03_invalid_rule_admissibility_and_configuration_error() -> None:
             PreparationRule("E1_FEATURE_MISSING", "feat", "DEFER_INTRA_FOLD", {"imputation_strategy": "INVALID"}),
             profile,
         )
+
+
+def test_prep_01_ready_plan_canonical_order() -> None:
+    findings = (
+        make_finding("E1_FEATURE_MISSING", "col_b missing", {"column": "col_b"}),
+        make_finding("E1_CONSTANT_COLUMN", "col_a const", {"column": "col_a"}),
+        make_finding("E1_TARGET_BINARY_UNMAPPED", "target unmapped", {"column": "target"}),
+    )
+    profile = _make_dummy_profile(findings=findings, target_classes=("pos", "neg"))
+
+    # Supply rules out of canonical order
+    rules = [
+        PreparationRule("E1_TARGET_BINARY_UNMAPPED", "target", "MAP_BINARY_TARGET", {"positive_label": "pos"}),
+        PreparationRule("E1_FEATURE_MISSING", "col_b", "DROP_ROWS"),
+        PreparationRule("E1_CONSTANT_COLUMN", "col_a", "EXCLUDE_COLUMN"),
+    ]
+
+    plan = create_preparation_plan(profile, rules)
+
+    assert plan.status == "READY"
+    assert plan.source_dataset_hash == profile.source_dataset_hash
+    assert len(plan.plan_digest) == 64
+    assert len(plan.source_profile_digest) == 64
+    assert plan.unresolved_findings == ()
+
+    # Check canonical ordering: E1_CONSTANT_COLUMN, E1_FEATURE_MISSING, E1_TARGET_BINARY_UNMAPPED
+    rule_codes = [r.finding_code for r in plan.rules]
+    assert rule_codes == [
+        "E1_CONSTANT_COLUMN",
+        "E1_FEATURE_MISSING",
+        "E1_TARGET_BINARY_UNMAPPED",
+    ]
+
+
+def test_prep_02_incomplete_plan_unresolved_findings() -> None:
+    findings = (
+        make_finding("E1_FEATURE_MISSING", "feat missing", {"column": "col_x"}),
+        make_finding("E1_TARGET_ZERO_VARIANCE", "target zero variance", {"column": "target"}),
+        make_finding("E1_CONSTANT_COLUMN", "col const", {"column": "col_c"}),
+    )
+    profile = _make_dummy_profile(findings=findings)
+
+    # Only provide rule for col_c, leaving col_x uncovered and target irresolvable
+    rules = [
+        PreparationRule("E1_CONSTANT_COLUMN", "col_c", "EXCLUDE_COLUMN"),
+    ]
+
+    plan = create_preparation_plan(profile, rules)
+
+    assert plan.status == "INCOMPLETE"
+    assert plan.plan_digest == ""
+    assert len(plan.unresolved_findings) == 2
+
+    # Verify unresolved list contains col_x and target
+    unresolved_codes = [u.finding_code for u in plan.unresolved_findings]
+    assert "E1_FEATURE_MISSING" in unresolved_codes
+    assert "E1_TARGET_ZERO_VARIANCE" in unresolved_codes
+
+
+def test_t3_duplicate_rule_and_dict_coercion() -> None:
+    findings = (
+        make_finding("E1_FEATURE_MISSING", "feat missing", {"column": "feat"}),
+    )
+    profile = _make_dummy_profile(findings=findings)
+
+    # Coercion from dict
+    dict_rule = {
+        "finding_code": "E1_FEATURE_MISSING",
+        "column": "feat",
+        "kind": "DROP_ROWS",
+    }
+    plan = create_preparation_plan(profile, [dict_rule])
+    assert plan.status == "READY"
+    assert plan.rules[0].kind == "DROP_ROWS"
+
+    # Duplicate rule rejection
+    dup_rules = [
+        PreparationRule("E1_FEATURE_MISSING", "feat", "DROP_ROWS"),
+        PreparationRule("E1_FEATURE_MISSING", "feat", "ACCEPT_AS_IS"),
+    ]
+    with pytest.raises(ConfigurationError, match="Duplicate preparation rule"):
+        create_preparation_plan(profile, dup_rules)

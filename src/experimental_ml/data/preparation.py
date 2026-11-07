@@ -7,8 +7,10 @@ enforcing ADR-002 (no data leakage) and zero silent mutations.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
+import json
 from types import MappingProxyType
-from typing import Any, Literal, Mapping
+from typing import Any, Literal, Mapping, Sequence
 
 import numpy as np
 
@@ -131,6 +133,157 @@ def _validate_rule_admissibility(rule: PreparationRule, profile: DatasetProfile)
                 raise ConfigurationError(
                     "DEFER_INTRA_FOLD for E1_CATEGORICAL_UNENCODED requires non-empty string 'encoding_strategy'"
                 )
+
+
+def _compute_profile_digest(profile: DatasetProfile) -> str:
+    """Compute canonical SHA-256 digest of DatasetProfile findings and structure."""
+    items = [
+        f"{f.severity.value}:{f.code}:{f.context.get('column')}:{f.message}"
+        for f in sorted(
+            profile.findings,
+            key=lambda x: (x.severity.value, x.code, str(x.context.get("column") or ""), x.message),
+        )
+    ]
+    content = f"{profile.source_dataset_hash}|{profile.n_rows}|{profile.n_cols}|" + ";".join(items)
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def _compute_plan_digest(
+    source_dataset_hash: str,
+    profile_digest: str,
+    rules: tuple[PreparationRule, ...],
+) -> str:
+    """Compute canonical SHA-256 digest of a READY PreparationPlan."""
+    rule_strs = [
+        f"{r.finding_code}:{r.column}:{r.kind}:{json.dumps(dict(r.parameters), sort_keys=True)}"
+        for r in rules
+    ]
+    content = f"{source_dataset_hash}|{profile_digest}|" + ";".join(rule_strs)
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def create_preparation_plan(
+    profile: DatasetProfile,
+    rules: Sequence[PreparationRule | dict[str, Any]],
+) -> PreparationPlan:
+    """Create a deterministic preparation plan from profile findings and user rules.
+
+    Audits all confirmed issues against provided rules. If all confirmed issues are
+    covered by admissible rules, returns status 'READY' with canonical digest.
+    If any confirmed issue is uncovered or irresolvable, returns status 'INCOMPLETE'.
+
+    Args:
+        profile: DatasetProfile generated from dataset profiling.
+        rules: Sequence of PreparationRule instances or dict specifications.
+
+    Returns:
+        Immutable PreparationPlan.
+
+    Raises:
+        ConfigurationError: If any rule targets an invalid finding, is duplicate,
+            is inadmissible, or contains invalid parameters.
+    """
+    # 1. Coerce rules
+    parsed_rules: list[PreparationRule] = []
+    seen_targets: set[tuple[str, str | None]] = set()
+
+    for r in rules:
+        if isinstance(r, dict):
+            rule_obj = PreparationRule(
+                finding_code=r["finding_code"],
+                column=r.get("column"),
+                kind=r["kind"],
+                parameters=r.get("parameters", {}),
+            )
+        elif isinstance(r, PreparationRule):
+            rule_obj = r
+        else:
+            raise ConfigurationError(
+                f"Expected PreparationRule or dict, got {type(r).__name__}"
+            )
+
+        target_key = (rule_obj.finding_code, rule_obj.column)
+        if target_key in seen_targets:
+            raise ConfigurationError(
+                f"Duplicate preparation rule targeting finding ({rule_obj.finding_code}, column={rule_obj.column!r})"
+            )
+        seen_targets.add(target_key)
+
+        # Validate admissibility against profile
+        _validate_rule_admissibility(rule_obj, profile)
+        parsed_rules.append(rule_obj)
+
+    # 2. Check coverage of all confirmed issues in profile
+    confirmed_findings = [
+        f for f in profile.findings
+        if f.severity == FindingSeverity.CONFIRMED_ISSUE
+    ]
+
+    unresolved_list: list[UnresolvedFinding] = []
+    covered_keys = { (r.finding_code, r.column) for r in parsed_rules }
+
+    for finding in confirmed_findings:
+        col = finding.context.get("column")
+        f_key = (finding.code, col)
+
+        if finding.code in IRRESOLVABLE_FINDING_CODES:
+            unresolved_list.append(
+                UnresolvedFinding(
+                    finding_code=finding.code,
+                    column=col,
+                    reason=f"Finding '{finding.code}' is irresolvable and cannot be fixed by preparation rules.",
+                )
+            )
+        elif f_key not in covered_keys:
+            unresolved_list.append(
+                UnresolvedFinding(
+                    finding_code=finding.code,
+                    column=col,
+                    reason=f"Confirmed issue '{finding.code}' on column {col!r} has no assigned preparation rule.",
+                )
+            )
+
+    # 3. Canonical ordering
+    sorted_rules = tuple(
+        sorted(
+            parsed_rules,
+            key=lambda r: (r.finding_code, r.column or "", r.kind),
+        )
+    )
+    sorted_unresolved = tuple(
+        sorted(
+            unresolved_list,
+            key=lambda u: (u.finding_code, u.column or ""),
+        )
+    )
+
+    profile_digest = _compute_profile_digest(profile)
+
+    if sorted_unresolved:
+        return PreparationPlan(
+            status="INCOMPLETE",
+            source_dataset_hash=profile.source_dataset_hash,
+            source_profile_digest=profile_digest,
+            rules=sorted_rules,
+            unresolved_findings=sorted_unresolved,
+            plan_digest="",
+        )
+
+    plan_digest = _compute_plan_digest(
+        source_dataset_hash=profile.source_dataset_hash,
+        profile_digest=profile_digest,
+        rules=sorted_rules,
+    )
+
+    return PreparationPlan(
+        status="READY",
+        source_dataset_hash=profile.source_dataset_hash,
+        source_profile_digest=profile_digest,
+        rules=sorted_rules,
+        unresolved_findings=(),
+        plan_digest=plan_digest,
+    )
+
 
 
 RuleKind = Literal[

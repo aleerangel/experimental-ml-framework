@@ -137,15 +137,15 @@ T6
 **Requirement**: PREP-01, PREP-02
 
 **Done when**:
-- [ ] Full coverage returns `PreparationPlan` with `status = "READY"` and canonical `plan_digest`
-- [ ] Missing rule or irresolvable issue returns `status = "INCOMPLETE"` with `unresolved_findings`
-- [ ] Rules are deterministically sorted in canonical order
-- [ ] Unit tests for `PREP-01` and `PREP-02` pass in `tests/unit/data/test_preparation.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_preparation.py -v`
+- [x] Full coverage returns `PreparationPlan` with `status = "READY"` and canonical `plan_digest`
+- [x] Missing rule or irresolvable issue returns `status = "INCOMPLETE"` with `unresolved_findings`
+- [x] Rules are deterministically sorted in canonical order
+- [x] Unit tests for `PREP-01` and `PREP-02` pass in `tests/unit/data/test_preparation.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_preparation.py -v`
 
 **Tests**: unit
 **Gate**: quick
-**Commit**: `feat(data): implementar construcao de plano de preparacao e calculo de digest`
+**Commit**: `feat(data): implementar construcao do plano e calculo de digest`
 
 ---
 
