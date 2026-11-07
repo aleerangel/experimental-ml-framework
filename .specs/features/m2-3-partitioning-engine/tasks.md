@@ -205,10 +205,10 @@ T6
 **Requirement**: PART-09
 
 **Done when**:
-- [ ] Public symbols exported from `experimental_ml.validation`
-- [ ] Integration tests verify strict determinism (identical `plan_id` and partitions across runs)
-- [ ] Architectural import isolation confirmed (zero imports from `models`, `cli`, or private `data` modules)
-- [ ] Full gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] Public symbols exported from `experimental_ml.validation`
+- [x] Integration tests verify strict determinism (identical `plan_id` and partitions across runs)
+- [x] Architectural import isolation confirmed (zero imports from `models`, `cli`, or private `data` modules)
+- [x] Full gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration
 **Gate**: full
