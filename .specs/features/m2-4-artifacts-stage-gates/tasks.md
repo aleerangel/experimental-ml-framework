@@ -224,5 +224,5 @@ Proof: run unit | tests/unit/core/test_storage.py::test_store_07_overwrite_prote
 ## Handoff
 
 **Settled mid-build**: none
-**Dispatched**: none
-**Walked**: pending Execute phase
+**Dispatched**: Verifier (validate.md)
+**Walked**: all tasks completed (T1-T5)
