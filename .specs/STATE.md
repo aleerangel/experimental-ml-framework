@@ -28,25 +28,23 @@
 
 ## Handoff
 
-- **Feature**: m2-diagnostics-partitioning (Sub-marco M2.1 — Triagem Estatística e Diagnóstico Estrutural de Datasets)
-- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-1-dataset-profiling`)
+- **Feature**: m2-2-preparation-plan-sanitization (Sub-marco M2.2 — Plano de Preparação e Visão Saneada de Datasets)
+- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-2-preparation-plan-sanitization`)
 - **Completed**:
-  - Especificação e design do Marco M2 consolidados e aprovados com 12 decisões formais (D1 a D12).
-  - Sub-marco M2.1 (`m2-1-dataset-profiling`) implementado, testado e verificado:
-    - `ProfileConfig`: configuração de limiares com validação no construtor.
-    - `ColumnProfile` e `DatasetProfile`: estruturas de perfil imutáveis com `slots`.
-    - Distribuições numéricas completas (média, mediana, desvio padrão, min, max, quartis, IQR, skewness, outliers $1.5 \times \text{IQR}$) e categóricas (frequências e proporções).
-    - Análise da variável-alvo: variância zero, ausentes, contagem de classes e detecção de alvos binários não mapeados para $\{0,1\}$ (`E1_TARGET_BINARY_UNMAPPED`).
-    - Análise de agrupamento (`group_col`): grupos ausentes (`E1_GROUP_EMPTY_VALUES`) e grupos com poucas amostras (`W1_GROUP_TOO_FEW_SAMPLES`).
-    - Detecção determinística de duplicatas (excluindo apenas `observation_id`).
-    - Catálogo canônico fechado de 15 achados diagnósticos (8 `CONFIRMED_ISSUE` + 7 `HEURISTIC_WARNING`) com severidade imutável e ordenação canônica determinística por severidade, código do achado e coluna.
-    - Função pura `profile_dataset(bundle, config)` exposta em `experimental_ml.data` (17 símbolos públicos em `__all__`), mantendo imutabilidade física e invariância do `dataset_hash`.
-  - 12 requisitos de profiling (`PROF-01` a `PROF-12`) verificados por 12 checks determinísticos (`check_proofs.py`: 12 pass, 0 fail).
-  - Suíte completa do repositório: 114 testes aprovados (100% de aprovação).
-  - Verificação independente pelo subagente verificador (`author != verifier`) aprovada com veredito `PASS` (0 findings).
-  - Portões TLC validados: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
-  - Roteiro de homologação do consumidor (`ACCEPTANCE.md`) executado com sucesso e registrado em `RESULTS.md`.
-- **In-progress**: Sub-marco M2.1 concluído; pronto para avançar para o Sub-marco M2.2 (`preparation-plan-sanitization`)
-- **Next step**: Iniciar o Design e Tasks do Sub-marco M2.2 (`create_preparation_plan`, `sanitize_dataset`, `SanitizedDatasetView`)
+  - Sub-marco M2.2 (`m2-2-preparation-plan-sanitization`) implementado, testado e verificado:
+    - `PreparationRule`, `UnresolvedFinding`, `PreparationPlan`, `SanitizedDatasetView`: estruturas de dados imutáveis com `frozen=True, slots=True`, proteção via `MappingProxyType` e arrays com `writeable = False`.
+    - `_validate_rule_admissibility`: validador estrito do catálogo fechado de regras (`DROP_ROWS`, `EXCLUDE_COLUMN`, `MAP_BINARY_TARGET`, `DEFER_INTRA_FOLD`, `ACCEPT_AS_IS`), rejeitando regras órfãs, não confirmadas ou com parâmetros inválidos via `ConfigurationError`.
+    - `create_preparation_plan`: construtor funcional com auditoria de cobertura completa dos achados `CONFIRMED_ISSUE`. Retorna `PreparationPlan` com `status = "READY"`, ordenação canônica e digest determinístico SHA-256 quando totalmente coberto, ou `status = "INCOMPLETE"` com listagem canônica de `unresolved_findings`.
+    - `sanitize_dataset`: executor puro de pré-partição que aplica estritamente regras estruturais (`DROP_ROWS`, `EXCLUDE_COLUMN`, `MAP_BINARY_TARGET`), mantendo colunas deferidas (`DEFER_INTRA_FOLD`, `ACCEPT_AS_IS`) 100% bit a bit idênticas ao bundle original (prevenção de vazamento de dados — ADR-002).
+    - Preservação da integridade: `bundle` original inalterado (`bundle.dataset_hash` intacto). A visão saneada expõe linhagem completa, ordenação relativa original de `ObservationId`, sequência de `dropped_observation_ids` e calcula deterministicamente seu novo `dataset_hash` via `core.dataset_hash(...)`.
+    - Validação de não-vacuidade pós-saneamento ($N > 0$ e features candidatas $> 0$).
+    - 23 símbolos públicos exportados em `experimental_ml.data.__all__`.
+  - 10 requisitos de preparação (`PREP-01` a `PREP-10`) verificados por 10 checks determinísticos (`check_proofs.py`: 10 pass, 0 fail).
+  - Suíte completa do repositório: 133 testes aprovados (100% de aprovação, 0 regressões).
+  - Verificação independente por subagente (`author != verifier`) aprovada com veredito `PASS` (0 findings).
+  - Validadores documentais TLC: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
+  - Artefatos de homologação e resultados (`ACCEPTANCE.md` e `RESULTS.md`) gerados e validados.
+- **In-progress**: Sub-marco M2.2 concluído; pronto para avançar para o Sub-marco M2.3 (`partitioning-engine`)
+- **Next step**: Iniciar Specify / Design do Sub-marco M2.3 (`PartitionPlan`, `create_partition_plan`, estratégias K-Fold / Group / Stratified / Time)
 - **Blockers**: none
-- **Branch**: feat/m2-1-dataset-profiling
+- **Branch**: feat/m2-2-preparation-plan-sanitization
