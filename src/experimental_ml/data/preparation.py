@@ -512,9 +512,22 @@ def sanitize_dataset(
             out_arr.flags.writeable = False
             output_columns[col_name] = out_arr
 
-    # 4. Compute candidate feature columns
-    # Candidate features exclude: target_col, group_col, observation_id_col, time_col, ignore_cols, and excluded_cols
+    # 4. Compute candidate feature columns and clean schema
     schema = bundle.schema
+    clean_semantic_types = {
+        col: st for col, st in schema.column_semantic_types.items()
+        if col not in excluded_cols
+    }
+    view_schema = DatasetSchemaSpec(
+        target_col=schema.target_col,
+        task_type=schema.task_type,
+        group_col=schema.group_col,
+        observation_id_col=schema.observation_id_col,
+        time_col=schema.time_col,
+        ignore_cols=schema.ignore_cols,
+        column_semantic_types=clean_semantic_types,
+    )
+
     protected_or_non_feature: set[str] = {schema.target_col}
     if schema.group_col:
         protected_or_non_feature.add(schema.group_col)
@@ -538,13 +551,13 @@ def sanitize_dataset(
     # 5. Compute canonical sanitized dataset hash (PREP-06)
     view_hash = core_dataset_hash(
         output_columns,
-        schema,
+        view_schema,
         observation_ids=kept_obs_ids,
     )
 
     return SanitizedDatasetView(
         columns=output_columns,
-        schema=schema,
+        schema=view_schema,
         observation_ids=kept_obs_ids,
         candidate_feature_cols=candidate_features,
         dropped_observation_ids=dropped_obs_ids,

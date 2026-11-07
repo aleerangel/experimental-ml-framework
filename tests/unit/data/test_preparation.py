@@ -14,6 +14,7 @@ from experimental_ml.core.findings import (
     make_finding,
     make_warning,
 )
+from experimental_ml.core.hashing import dataset_hash as core_dataset_hash
 from experimental_ml.core.types import ObservationId
 from experimental_ml.data import load_dataset, profile_dataset
 from experimental_ml.data.preparation import (
@@ -474,3 +475,97 @@ def test_t4_drop_rows_and_order_preservation() -> None:
         bundle.observation_ids[4],
     )
     np.testing.assert_array_equal(view.columns["x"], np.array([10.0, 30.0, 50.0]))
+
+
+def test_prep_04_sanitize_dataset_structural_rules() -> None:
+    data = {
+        "x_drop": [1.0, 2.0, np.nan, 4.0],
+        "x_keep": [10.0, 20.0, 30.0, 40.0],
+        "x_excl": [9.0, 9.0, 9.0, 9.0],  # constant
+        "target": ["pos", "neg", "pos", "neg"],
+    }
+    schema = DatasetSchemaSpec(target_col="target", task_type=TaskType.BINARY_CLASSIFICATION)
+    bundle = load_dataset(data, schema=schema)
+    profile = profile_dataset(bundle)
+
+    rules = [
+        PreparationRule("E1_FEATURE_MISSING", "x_drop", "DROP_ROWS"),
+        PreparationRule("E1_CONSTANT_COLUMN", "x_excl", "EXCLUDE_COLUMN"),
+        PreparationRule("E1_TARGET_BINARY_UNMAPPED", "target", "MAP_BINARY_TARGET", {"positive_label": "pos"}),
+    ]
+    plan = create_preparation_plan(profile, rules)
+    assert plan.status == "READY"
+
+    view = sanitize_dataset(bundle, profile, plan)
+
+    # DROP_ROWS applied: row 2 dropped
+    assert len(view.observation_ids) == 3
+    # EXCLUDE_COLUMN applied: x_excl removed
+    assert "x_excl" not in view.columns
+    assert "x_excl" not in view.candidate_feature_cols
+    # MAP_BINARY_TARGET applied: target encoded into int64 {0, 1}
+    assert view.columns["target"].dtype == np.int64
+    assert view.target_label_mapping == {"pos": 1, "neg": 0}
+    # Output arrays are read-only
+    for col, arr in view.columns.items():
+        assert not arr.flags.writeable
+
+
+def test_prep_06_sanitized_view_contract_and_dataset_hash() -> None:
+    data = {
+        "x1": [1.0, 2.0, 3.0, 4.0],
+        "x2": [10.0, 20.0, 30.0, 40.0],
+        "target": [1, 0, 1, 0],
+    }
+    schema = DatasetSchemaSpec(target_col="target", task_type=TaskType.BINARY_CLASSIFICATION)
+    bundle = load_dataset(data, schema=schema)
+    profile = profile_dataset(bundle)
+
+    plan = create_preparation_plan(profile, [])
+    assert plan.status == "READY"
+
+    view = sanitize_dataset(bundle, profile, plan)
+
+    # Exposed contracts
+    assert isinstance(view.observation_ids, tuple)
+    assert view.observation_ids == bundle.observation_ids
+    assert view.candidate_feature_cols == ("x1", "x2")
+    assert view.dropped_observation_ids == ()
+    assert view.source_dataset_hash == bundle.dataset_hash
+    assert view.source_plan_digest == plan.plan_digest
+
+    # dataset_hash equals core.dataset_hash(view.columns, view.schema, observation_ids=view.observation_ids)
+    expected_hash = core_dataset_hash(
+        view.columns,
+        view.schema,
+        observation_ids=view.observation_ids,
+    )
+    assert view.dataset_hash == expected_hash
+
+
+def test_prep_07_bit_identical_deferred_and_accepted_columns() -> None:
+    data = {
+        "f_deferred": [1.0, np.nan, 3.0, 4.0],
+        "f_accepted": [np.nan, 20.0, 30.0, np.nan],
+        "target": [1, 0, 1, 0],
+    }
+    schema = DatasetSchemaSpec(target_col="target", task_type=TaskType.BINARY_CLASSIFICATION)
+    bundle = load_dataset(data, schema=schema)
+    profile = profile_dataset(bundle)
+
+    rules = [
+        PreparationRule("E1_FEATURE_MISSING", "f_deferred", "DEFER_INTRA_FOLD", {"imputation_strategy": "MEAN"}),
+        PreparationRule("E1_FEATURE_MISSING", "f_accepted", "ACCEPT_AS_IS"),
+    ]
+    plan = create_preparation_plan(profile, rules)
+    assert plan.status == "READY"
+
+    view = sanitize_dataset(bundle, profile, plan)
+
+    # Values must remain 100% bit-identical, including NaNs
+    assert view.columns["f_deferred"].tobytes() == bundle.columns["f_deferred"].tobytes()
+    assert view.columns["f_accepted"].tobytes() == bundle.columns["f_accepted"].tobytes()
+
+    # Verify deferred_rules populated
+    assert len(view.deferred_rules) == 2
+    assert {r.kind for r in view.deferred_rules} == {"DEFER_INTRA_FOLD", "ACCEPT_AS_IS"}

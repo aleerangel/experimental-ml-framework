@@ -182,17 +182,17 @@ T6
 **Requirement**: PREP-04, PREP-06, PREP-07, PREP-09, PREP-10
 
 **Done when**:
-- [ ] `EXCLUDE_COLUMN` excludes column from output and schema
-- [ ] `DEFER_INTRA_FOLD` and `ACCEPT_AS_IS` columns are bit-identical to source slice
-- [ ] `candidate_feature_cols` correctly computed; raises `DataIntegrityError` if 0 feature columns remain
-- [ ] Output column arrays are immutable (`writeable = False`)
-- [ ] `SanitizedDatasetView.dataset_hash` canonically matches `core.dataset_hash(...)`
-- [ ] Source `bundle` buffers and `bundle.dataset_hash` remain intact
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_preparation.py -v`
+- [x] `EXCLUDE_COLUMN` excludes column from output and schema
+- [x] `DEFER_INTRA_FOLD` and `ACCEPT_AS_IS` columns are bit-identical to source slice
+- [x] `candidate_feature_cols` correctly computed; raises `DataIntegrityError` if 0 feature columns remain
+- [x] Output column arrays are immutable (`writeable = False`)
+- [x] `SanitizedDatasetView.dataset_hash` canonically matches `core.dataset_hash(...)`
+- [x] Source `bundle` buffers and `bundle.dataset_hash` remain intact
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/data/test_preparation.py -v`
 
 **Tests**: unit
 **Gate**: quick
-**Commit**: `feat(data): implementar exclusao de colunas e montagem de SanitizedDatasetView`
+**Commit**: `feat(data): implementar exclusao de colunas e visao saneada`
 
 ---
 
