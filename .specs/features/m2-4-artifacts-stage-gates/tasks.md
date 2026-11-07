@@ -12,7 +12,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Status**: Approved
 **Approved**: 2026-11-07 - user: "aprovado"
 **Build**: none - Python interpreted package without ahead-of-time build step; quality verified via pytest gates
-**Run unit**: .venv/bin/pytest tests/unit/core/test_storage.py tests/unit/data/test_codecs.py tests/unit/validation/test_storage.py tests/unit/stages/test_stage_gates.py -v
+**Run unit**: .venv/bin/pytest tests/unit/core/test_storage.py tests/unit/data/test_codecs.py tests/unit/validation/test_splits_storage.py tests/unit/stages/test_stage_gates.py -v
 **Run integration**: .venv/bin/pytest tests/integration/test_artifacts_stage_gates_integration.py -v
 
 ---
@@ -25,7 +25,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 | --- | --- | --- | --- | --- |
 | Core Atomic Storage (`src/experimental_ml/core/storage.py`) | unit | 1:1 AC mapping: atomic replacement via tempfile, cleanup on error, overwrite protection (ConfigurationError) | `tests/unit/core/test_storage.py` | `.venv/bin/pytest tests/unit/core/test_storage.py -v` |
 | Data Descriptors & Codecs (`src/experimental_ml/data/descriptors.py`, `codecs.py`) | unit | 1:1 AC mapping: lossless round-trip, no NaN/Infinity, immutability, slots | `tests/unit/data/test_codecs.py` | `.venv/bin/pytest tests/unit/data/test_codecs.py -v` |
-| Validation Codecs & Splits Storage (`src/experimental_ml/validation/codecs.py`, `storage.py`) | unit | 1:1 AC mapping: deterministic gzip bytes, plan serialization, schema metadata | `tests/unit/validation/test_storage.py` | `.venv/bin/pytest tests/unit/validation/test_storage.py -v` |
+| Validation Codecs & Splits Storage (`src/experimental_ml/validation/codecs.py`, `storage.py`) | unit | 1:1 AC mapping: deterministic gzip bytes, plan serialization, schema metadata | `tests/unit/validation/test_splits_storage.py` | `.venv/bin/pytest tests/unit/validation/test_splits_storage.py -v` |
 | Stage Gates & Integrity Verification (`src/experimental_ml/stages/stage_gates.py`) | unit | 1:1 AC mapping: stage layout, incomplete plan rejection (ContractViolationError), hash divergence & tampering (DataIntegrityError) | `tests/unit/stages/test_stage_gates.py` | `.venv/bin/pytest tests/unit/stages/test_stage_gates.py -v` |
 | Stage Gates Integration & Invariants (`tests/integration/test_artifacts_stage_gates_integration.py`) | integration | End-to-end pipeline artifact persistence, cross-stage verification, import isolation | `tests/integration/test_artifacts_stage_gates_integration.py` | `.venv/bin/pytest tests/integration/test_artifacts_stage_gates_integration.py -v` |
 
@@ -37,7 +37,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 | Gate Level | When to Use | Command |
 | --- | --- | --- |
-| Quick | After tasks with unit tests | `.venv/bin/pytest tests/unit/core/test_storage.py tests/unit/data/test_codecs.py tests/unit/validation/test_storage.py tests/unit/stages/test_stage_gates.py -v` |
+| Quick | After tasks with unit tests | `.venv/bin/pytest tests/unit/core/test_storage.py tests/unit/data/test_codecs.py tests/unit/validation/test_splits_storage.py tests/unit/stages/test_stage_gates.py -v` |
 | Full | After tasks with integration tests | `.venv/bin/pytest tests/ -v` |
 | Build | After phase completion or full feature verification | `.venv/bin/pytest tests/ -v` |
 
@@ -130,7 +130,7 @@ T5
 
 #### T3: Implement Validation codecs and deterministic `splits.csv.gz` writer in `validation/`
 
-**What**: Create `src/experimental_ml/validation/codecs.py` with `partition_plan_to_dict` and `partition_plan_from_dict`. Create `src/experimental_ml/validation/storage.py` implementing `write_splits_csv_gz(path, plan, *, overwrite=False)` with deterministic `gzip.GzipFile(mtime=0.0)`, `read_splits_csv_gz`, and `write_splits_schema` (STORE-04). Add unit tests in `tests/unit/validation/test_storage.py`.
+**What**: Create `src/experimental_ml/validation/codecs.py` with `partition_plan_to_dict` and `partition_plan_from_dict`. Create `src/experimental_ml/validation/storage.py` implementing `write_splits_csv_gz(path, plan, *, overwrite=False)` with deterministic `gzip.GzipFile(mtime=0.0)`, `read_splits_csv_gz`, and `write_splits_schema` (STORE-04). Add unit tests in `tests/unit/validation/test_splits_storage.py`.
 **Where**: `src/experimental_ml/validation/storage.py`
 **Depends on**: T2
 **Reuses**: `src/experimental_ml/validation/types.py`, `src/experimental_ml/core/storage.py`
@@ -140,7 +140,7 @@ T5
 - [x] `partition_plan_to_dict` / `from_dict` provides lossless round-trip
 - [x] `write_splits_csv_gz` produces bit-identical gzip files across repeated calls
 - [x] Correct mapping of observation IDs to fold roles (`TRAIN`, `VAL`) and holdout (`DEVELOPMENT`, `HOLDOUT`)
-- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_storage.py -v`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/validation/test_splits_storage.py -v`
 
 **Tests**: unit
 **Gate**: quick
@@ -159,11 +159,11 @@ T5
 **Requirement**: STORE-03, STORE-05, STORE-06
 
 **Done when**:
-- [ ] Experiment directory layout verified against ARQUITETURA §5 and D11
-- [ ] Incomplete preparation plans raise `ContractViolationError`
-- [ ] Hash divergences between descriptor, profile, view, and plan raise `DataIntegrityError`
-- [ ] Contradictions between `splits.csv.gz` and `partition_plan.json` raise `DataIntegrityError`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/stages/test_stage_gates.py -v`
+- [x] Experiment directory layout verified against ARQUITETURA §5 and D11
+- [x] Incomplete preparation plans raise `ContractViolationError`
+- [x] Hash divergences between descriptor, profile, view, and plan raise `DataIntegrityError`
+- [x] Contradictions between `splits.csv.gz` and `partition_plan.json` raise `DataIntegrityError`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/stages/test_stage_gates.py -v`
 
 **Tests**: unit
 **Gate**: quick
@@ -208,7 +208,7 @@ Proof: run unit | tests/unit/data/test_codecs.py::test_store_02_lossless_codecs_
 Proof: run integration | tests/integration/test_artifacts_stage_gates_integration.py::test_store_03_experiment_directory_layout PASSED
 
 **C4** - `write_splits_csv_gz` produces gzip-compressed CSV mapping observation IDs to per-fold and holdout roles with bit-identical bytes across repeated writes (`STORE-04`, AC 4)
-Proof: run unit | tests/unit/validation/test_storage.py::test_store_04_splits_csv_gz_deterministic PASSED
+Proof: run unit | tests/unit/validation/test_splits_storage.py::test_store_04_splits_csv_gz_deterministic PASSED
 
 **C5** - `verify_preparation_gate` and `verify_partition_gate` detect hash divergence raising `DataIntegrityError`, and reject missing or incomplete preparation plans raising `ContractViolationError` (`STORE-05`, AC 5)
 Proof: run unit | tests/unit/stages/test_stage_gates.py::test_store_05_hash_divergence_and_incomplete_plan_rejection PASSED
