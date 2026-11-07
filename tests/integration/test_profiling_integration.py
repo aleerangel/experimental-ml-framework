@@ -140,7 +140,7 @@ def test_single_runtime_dependency_xcut_02() -> None:
 
 
 def test_exported_symbols_count_xcut_04() -> None:
-    """XCUT-04: experimental_ml.data exports exactly 17 public symbols."""
+    """XCUT-04: experimental_ml.data exports core data and preparation public symbols."""
     import experimental_ml.data as data_pkg
 
     expected_symbols = [
@@ -161,10 +161,16 @@ def test_exported_symbols_count_xcut_04() -> None:
         "load_dataset",
         "get_column_array",
         "slice_bundle_by_observation_ids",
+        "PreparationRule",
+        "PreparationPlan",
+        "SanitizedDatasetView",
+        "UnresolvedFinding",
+        "create_preparation_plan",
+        "sanitize_dataset",
     ]
 
     actual_all = getattr(data_pkg, "__all__", [])
-    assert len(actual_all) == 17, f"Expected 17 exported symbols in data, got {len(actual_all)}: {actual_all}"
+    assert len(actual_all) == 23, f"Expected 23 exported symbols in data, got {len(actual_all)}: {actual_all}"
     for sym in expected_symbols:
         assert sym in actual_all, f"Symbol {sym} missing from data.__all__"
         assert hasattr(data_pkg, sym), f"Symbol {sym} not present on data module"
