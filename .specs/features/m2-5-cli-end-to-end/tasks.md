@@ -85,11 +85,11 @@ T4
 **Requirement**: CLI-06, CLI-07, CLI-08, CLI-09, CLI-10, CLI-11
 
 **Done when**:
-- [ ] Base `expml` commands (`--version`, `--help`, empty arguments) exit with code 0
-- [ ] Subcommand parsers for `data` and `partition` configured with `--help`
-- [ ] Domain errors print message without traceback and exit with code 2
-- [ ] No `numpy` or `hashlib` imported in `cli/main.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cli_main.py -v`
+- [x] Base `expml` commands (`--version`, `--help`, empty arguments) exit with code 0
+- [x] Subcommand parsers for `data` and `partition` configured with `--help`
+- [x] Domain errors print message without traceback and exit with code 2
+- [x] No `numpy` or `hashlib` imported in `cli/main.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cli_main.py -v`
 
 **Tests**: unit
 **Gate**: quick
