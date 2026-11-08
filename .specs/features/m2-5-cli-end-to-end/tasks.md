@@ -152,11 +152,11 @@ T4
 **Requirement**: CLI-10, CLI-11, CLI-12
 
 **Done when**:
-- [ ] Subprocess execution of the full sequence completes with exit code 0 at each step
-- [ ] Identical `partition_plan.json` bytes produced across the two independent directories
-- [ ] Identical decompressed `splits.csv.gz` content verified across the two independent directories
-- [ ] AST check verifies zero imports of `numpy` or `hashlib` in `experimental_ml.cli`
-- [ ] Full gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] Subprocess execution of the full sequence completes with exit code 0 at each step
+- [x] Identical `partition_plan.json` bytes produced across the two independent directories
+- [x] Identical decompressed `splits.csv.gz` content verified across the two independent directories
+- [x] AST check verifies zero imports of `numpy` or `hashlib` in `experimental_ml.cli`
+- [x] Full gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration
 **Gate**: full
