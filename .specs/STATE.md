@@ -28,22 +28,23 @@
 
 ## Handoff
 
-- **Feature**: m2-4-artifacts-stage-gates (Sub-marco M2.4 — Persistência de Artefatos e Bloqueio entre Etapas)
-- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-4-artifacts-stage-gates`)
+- **Feature**: m2-5-cli-end-to-end (Sub-marco M2.5 — Interface em Linha de Comando e Homologação Fim a Fim)
+- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-5-cli-end-to-end`) — **Marco M2 (Stage 1 Data Pipeline) Finalizado**
 - **Completed**:
-  - Sub-marco M2.4 (`m2-4-artifacts-stage-gates`) implementado, testado e verificado:
-    - `write_json_atomic` e `read_json` em `src/experimental_ml/core/storage.py`: escrita atômica via arquivo temporário e `os.replace`, remoção limpa do temporário em falha (STORE-01) e proteção rigorosa contra sobrescrita com `ConfigurationError` quando `overwrite=False` (STORE-07).
-    - Descritores leves `DatasetDescriptor` e `SanitizedViewDescriptor` em `src/experimental_ml/data/descriptors.py` com frozen slots e proteção imutável (STORE-02, D11).
-    - Codecs bidirecionais sem perda `to_dict` / `from_dict` em `src/experimental_ml/data/codecs.py` e `src/experimental_ml/validation/codecs.py` para `DatasetDescriptor`, `SanitizedViewDescriptor`, `DatasetProfile`, `PreparationPlan` e `PartitionPlan`, sanitizando floats (`allow_nan=False`, sem `NaN` ou `Infinity` conforme RFC 8259) (STORE-02).
-    - Mapeamento tabular de divisões `write_splits_csv_gz`, `read_splits_csv_gz` e `write_splits_schema` em `src/experimental_ml/validation/storage.py` com `gzip.GzipFile(mtime=0.0)` para garantir determinismo binário bit a bit entre execuções repetidas (STORE-04, D6).
-    - Portões de validação entre etapas `verify_preparation_gate` e `verify_partition_gate` em `src/experimental_ml/stages/stage_gates.py`: validação de layout canônico de diretório, bloqueio de planos `INCOMPLETE` com `ContractViolationError` (STORE-05), detecção de divergência de hashes de dataset com `DataIntegrityError` (STORE-05) e detecção de contradições/adulterações entre `splits.csv.gz` e `partition_plan.json` com `DataIntegrityError` (STORE-06).
-    - Módulo `experimental_ml.stages` com exportações públicas e constantes de layout canônico.
-  - 7 critérios de aceitação (`STORE-01` a `STORE-07`) verificados por 7 checks determinísticos (`check_proofs.py`: 7 pass, 0 fail).
-  - Suíte completa do repositório: 162 testes aprovados (100% de aprovação, 0 regressões).
+  - Sub-marco M2.5 (`m2-5-cli-end-to-end`) implementado, testado e verificado:
+    - Despachante hierárquico `build_parser` e tratador uniforme `main` em `src/experimental_ml/cli/main.py`: captura `ExperimentalMLError` e `ValueError` emitindo mensagens instrutivas sem traceback no stderr e retornando código 2 (CLI-06); saída sem argumentos ou com `--help` e `--version` retornando código 0 preservando compatibilidade com M1.1 (CLI-09).
+    - Subcomandos de dados `expml data profile` e `expml data sanitize` em `src/experimental_ml/cli/cmd_data.py`: perfilamento com saída descritiva de dimensões e achados sem expor hashes (CLI-01, CLI-11); saneamento com bloqueio rigoroso de planos `INCOMPLETE` exibindo pendências e retornando código 2 sem persistir o plano (CLI-03); persistência de `dataset_descriptor.json`, `dataset_profile.json`, `preparation_plan.json` e `sanitized_view.json` com proteção contra sobrescrita via `--force` (CLI-02, CLI-08).
+    - Subcomandos de partição `expml partition build` e `expml partition verify` em `src/experimental_ml/cli/cmd_partition.py`: validação de portão a montante via `verify_preparation_gate` (CLI-07); suporte a `--seed` para sobrescrever `master_seed`; reconstrução determinística de visão saneada e geração de `partition_plan.json`, `splits.csv.gz` (com `mtime=0.0`) e `splits.schema.json` (CLI-04); verificação matemática de invariantes e detecção de adulterações via `verify_partition_gate` e `validate_partition_plan` retornando código 2 sob inconsistências (CLI-05).
+    - Pureza arquitetural estrita (`CLI-10`): zero importações diretas ou indiretas de `numpy` ou `hashlib` em todos os módulos sob `src/experimental_ml/cli/`, verificado por AST.
+    - Higiene de saída (`CLI-11`): zero digests hexadecimais SHA-256 de 64 caracteres impressos em stdout ou stderr.
+    - Suíte de integração e homologação fim a fim (`CLI-12`): execução completa da sequência através do executável `expml` em dois diretórios isolados, comprovando bit a bit a equivalência dos bytes de `partition_plan.json` e do conteúdo descompactado de `splits.csv.gz`.
+  - 10 critérios de aceitação (`CLI-01` a `CLI-12`) verificados por 10 checks determinísticos (`check_proofs.py`: 10 pass, 0 fail).
+  - Suíte completa do repositório: 176 testes aprovados (100% de aprovação, 0 regressões).
   - Verificação independente por subagente (`author != verifier`) aprovada com veredito `PASS` (0 findings).
   - Validadores documentais TLC: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
   - Artefatos de homologação e resultados (`ACCEPTANCE.md` e `RESULTS.md`) gerados e validados.
-- **In-progress**: Sub-marco M2.4 concluído; pronto para avançar para o Sub-marco M2.5 (`m2-5-cli-end-to-end`)
-- **Next step**: Iniciar Specify / Design do Sub-marco M2.5 (CLI `data` e `partition`, cenários de aceite fim a fim e códigos de saída)
+  - **Macro-Marco M2 (Stage 1 Data Pipeline)** integralmente entregue em seus 5 sub-marcos (M2.1 a M2.5).
+- **In-progress**: Marco M2 concluído; pronto para aprovação do usuário e avanço para o Marco M3 (Stage 2 Feature Engineering).
+- **Next step**: Integração das branches do Marco M2 na branch principal ou avanço para Marco M3 conforme direcionamento do usuário.
 - **Blockers**: none
-- **Branch**: feat/m2-4-artifacts-stage-gates
+- **Branch**: feat/m2-5-cli-end-to-end
