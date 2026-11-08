@@ -71,6 +71,7 @@ def dataset_descriptor_to_dict(desc: DatasetDescriptor) -> dict[str, Any]:
     return {
         "dataset_hash": desc.dataset_hash,
         "raw_source_hash": desc.raw_source_hash,
+        "raw_source_path": desc.raw_source_path,
         "n_observations": desc.n_observations,
         "n_columns": desc.n_columns,
         "column_names": list(desc.column_names),
@@ -79,6 +80,7 @@ def dataset_descriptor_to_dict(desc: DatasetDescriptor) -> dict[str, Any]:
         "task_type": desc.task_type,
         "group_col": desc.group_col,
         "time_col": desc.time_col,
+        "schema_path": desc.schema_path,
     }
 
 
@@ -87,6 +89,7 @@ def dataset_descriptor_from_dict(d: dict[str, Any]) -> DatasetDescriptor:
     return DatasetDescriptor(
         dataset_hash=d["dataset_hash"],
         raw_source_hash=d.get("raw_source_hash"),
+        raw_source_path=d.get("raw_source_path"),
         n_observations=int(d["n_observations"]),
         n_columns=int(d["n_columns"]),
         column_names=tuple(d["column_names"]),
@@ -95,6 +98,7 @@ def dataset_descriptor_from_dict(d: dict[str, Any]) -> DatasetDescriptor:
         task_type=d.get("task_type"),
         group_col=d.get("group_col"),
         time_col=d.get("time_col"),
+        schema_path=d.get("schema_path"),
     )
 
 
