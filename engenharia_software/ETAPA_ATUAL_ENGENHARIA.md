@@ -14,13 +14,13 @@
 
 O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
 
-As entregas **Marco M1.1 (`m1-1-setup-cli-smoke`)**, **Marco M1.2 (`core`)**, **Marco M1.3 (`metrics`)**, **Marco M1.4 (`datasets-schemas`)** e **Marco M1.5 (`m1-5-foundation-hardening`)** foram concluídas e formalmente aceitas com aprovação em testes automatizados, auditoria transversal independente e homologação manual. A Fase 1 (Setup e Fundações Transversais) está integralmente consolidada e saneada. O **Marco M2 (`diagnostics & partitioning`)** encontra-se em andamento, com o **Sub-marco M2.1 (`m2-1-dataset-profiling`)** concluído e formalmente aceito. O próximo passo de desenvolvimento é o **Sub-marco M2.2 (`preparation-plan-sanitization`)**.
+As entregas do **Marco M1 (`m1-1` a `m1-5`)** e do **Marco M2 (`m2-1` a `m2-5`)** foram concluídas e formalmente aceitas com aprovação em 176 testes automatizados, auditoria transversal independente e homologação manual. As Fundações Transversais (M1) e o Pipeline de Dados da Etapa 1 e Etapa 4A (M2) estão integralmente consolidados, determinísticos e integrados à CLI executável `expml`. O próximo passo de desenvolvimento é o **Marco M3 (`features` — Cenários de Features e Seleção Intra-fold)**.
 
 ```mermaid
 flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
-    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(M1.1 a M1.5 & M2.1 Homologados)"]
+    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(M1 & M2 Integralmente Homologados)"]
     Fase4 --> Fase5["Fase 5: Verificação Experimental<br/>(Pendente)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
@@ -106,6 +106,33 @@ flowchart LR
    * Aprovação de 12 testes unitários em `tests/unit/test_profiling.py` e 6 testes de integração em `tests/integration/test_profiling_integration.py` (totalizando 114 testes aprovados na suíte geral).
    * Verificação mecânica independente via TLC Spec-Driven (`proofs.md` e `verification.md` com veredito `PASS`, 0 findings e 0 erros em `validate_verification.py`).
    * Roteiro de aceitação do consumidor (`ACCEPTANCE.md`) executado com sucesso e homologação formal aprovada sob `.specs/features/m2-diagnostics-partitioning/`.
+10. **Fase 4 — Sub-marco M2.2 Concluído (`m2-2-preparation-plan-sanitization`):**
+    * Implementação do plano determinístico de preparação e saneamento de dados (`src/experimental_ml/data/preparation.py`):
+      * `PreparationRule`: regra imutável vinculada a achado diagnóstico (`DROP_ROWS`, `EXCLUDE_COLUMN`, `MAP_BINARY_TARGET`, `DEFER_INTRA_FOLD`, `ACCEPT_AS_IS`).
+      * `create_preparation_plan`: exigência de cobertura integral de todos os `CONFIRMED_ISSUE` para emissão de status `READY`; achados confirmados pendentes geram `status = INCOMPLETE` com `UnresolvedFinding`.
+      * `sanitize_dataset`: aplicação determinística e puramente funcional das regras de preparação, emitindo a visão saneada imutável `SanitizedDatasetView` com `candidate_feature_cols`.
+    * Aprovado com 10/10 checks determinísticos, 16 testes unitários e 3 testes de integração.
+11. **Fase 4 — Sub-marco M2.3 Concluído (`m2-3-partitioning-engine`):**
+    * Implementação do motor de particionamento compartilhado (`src/experimental_ml/validation/`):
+      * `splitters.py`: implementações funcionais puras de `kfold_split`, `stratified_kfold_split`, `group_kfold_split`, `temporal_split`, `bootstrap_split` e `holdout_split`.
+      * `types.py` e `engine.py`: `PartitionConfig`, `FoldPartition`, `PartitionPlan` e cálculo canônico do digest SHA-256 `plan_id`.
+      * `validators.py`: validação matemática rigorosa (`validate_partition_plan`) de disjunção $(\text{Treino}_k \cap \text{Val}_k = \emptyset)$, separação de holdout, ausência de vazamento de grupos e ordenação temporal.
+    * Aprovado com 10/10 checks determinísticos e 16 testes na camada de validação.
+12. **Fase 4 — Sub-marco M2.4 Concluído (`m2-4-artifacts-stage-gates`):**
+    * Persistência atômica, codecs lossless e portões de etapa:
+      * `src/experimental_ml/core/storage.py`: `write_json_atomic` (escrita transacional via temporário + `fsync` + `os.replace`) e proteção rigorosa contra sobrescrita (`ConfigurationError`).
+      * `src/experimental_ml/data/codecs.py` e `src/experimental_ml/validation/codecs.py`: codecs sem perda de `DatasetDescriptor`, `SanitizedViewDescriptor`, `DatasetProfile`, `PreparationPlan` e `PartitionPlan`.
+      * `src/experimental_ml/validation/storage.py`: gravação e leitura de `splits.csv.gz` com `gzip.GzipFile(mtime=0.0)` para reprodutibilidade determinística binária bit a bit.
+      * `src/experimental_ml/stages/stage_gates.py`: portões `verify_preparation_gate` e `verify_partition_gate` com layout canônico de diretórios.
+    * Aprovado com 7/7 checks determinísticos e 11 testes dedicados.
+13. **Fase 4 — Sub-marco M2.5 Concluído (`m2-5-cli-end-to-end`):**
+    * Despachante hierárquico e homologação fim a fim:
+      * `src/experimental_ml/cli/main.py`: despachante hierárquico `expml` com subcomandos `data` e `partition`, preservação de M1.1, captura de erros de domínio sem traceback (código 2) e código 0 para sucesso.
+      * `src/experimental_ml/cli/cmd_data.py`: subcomandos `profile` e `sanitize` com validação de pré-condições e bloqueio de planos incompletos.
+      * `src/experimental_ml/cli/cmd_partition.py`: subcomandos `build` e `verify` com validação de portão upstream e invariantes matemáticos.
+      * Pureza arquitetural (zero imports de `numpy` ou `hashlib` em `cli/`) e higiene de saída (zero digests de 64 caracteres em `stdout`/`stderr`).
+      * Teste de integração por subprocesso em diretórios isolados comprovando equivalência bit a bit de artefatos.
+    * Aprovado com 10/10 checks determinísticos, 13 testes de CLI e homologação ponta a ponta (totalizando 176 testes no repositório).
 
 ---
 
@@ -113,17 +140,18 @@ flowchart LR
 
 | Camada Arquitetural | Nível de Dependência | Módulo (`src/experimental_ml/`) | Etapa no Pipeline Operacional | Funções e Estruturas Principais de Saída (Sem OOP) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Fundação Transversal** | Nível 0 | `core` | Transversal (Etapas 1–6) | Tipos de IDs, `derive_seeds` (`SeedSequence`), `config_hash`, `dataset_hash` e funções de validação/alertas |
+| **Fundação Transversal** | Nível 0 | `core` | Transversal (Etapas 1–6) | Tipos de IDs, `derive_seeds` (`SeedSequence`), `config_hash`, `dataset_hash`, `write_json_atomic`, `read_json` e exceções de contrato |
 | **Fundação Transversal** | Nível 1 | `metrics` | Transversal (Etapas 2, 3, 4 e 5) | `METRICS_CATALOG`, `MetricValue`, `AggregatedMetricValue`, `aggregate_fold_metrics`, `is_better` e 15 funções de métricas vetorizadas |
 | **Camada 1: Definição e Triagem** | Nível 1 | `data` | Etapa 1 | `load_dataset`, `profile_dataset`, `create_preparation_plan`, `sanitize_dataset` $\rightarrow$ `DatasetBundle`, `DatasetProfile`, `PreparationPlan`, `SanitizedDatasetView` |
 | **Camada 1: Definição e Triagem** | Nível 2 | `features` | Etapa 2 | `explore_features`, `validate_scenarios`, `select_features_in_fold` (seletores e `PCA`) $\rightarrow$ `ExploratoryFeatureReport`, catálogo `scenarios` (`FIXED`/`DYNAMIC`) |
 | **Camada 1: Definição e Triagem** | Nível 2 | `models` | Etapa 3A | `instantiate_fresh_model`, `fit_model`, `predict_model`, `extract_model_diagnostics`, `fit_two_layer_preprocessing` (incluindo roteamento para kernels externos) $\rightarrow$ `ModelSpec`, `ModelDiagnostics` |
 | **Camada 1: Definição e Triagem** | Nível 3 | `tuning` | Etapa 3B | `run_nested_tuning` (`fixed`, `grid_search`, `random_search`) $\rightarrow$ `HyperparameterSearchSpec`, histórico de tentativas |
-| **Camada 2: Validação e Execução Matricial** | Nível 2 | `validation` | Etapa 4A | `build_partition_plan`, `validate_partition_plan` (`kfold_split`, `stratified_kfold_split`, `group_kfold_split`, `bootstrap_split`, `temporal_split`, `holdout_split`) $\rightarrow$ `PartitionPlan` |
+| **Camada 2: Validação e Execução Matricial** | Nível 2 | `validation` | Etapa 4A | `build_partition_plan`, `validate_partition_plan`, `write_splits_csv_gz` $\rightarrow$ `PartitionPlan`, matriz `splits.csv.gz` |
+| **Camada de Portões de Etapa** | Nível 3 | `stages` | Portões 1 e 4A | `verify_preparation_gate`, `verify_partition_gate`, layout canônico de diretórios de experimento |
 | **Camada 2: Validação e Execução Matricial** | Nível 4 | `orchestration` | Etapa 4B | `run_experiment_matrix`, `resume_experiment_matrix`, `save_cell_result` $\rightarrow$ `CellResultRecord`, `PredictionRecord` (com `y_std` e comitê $\hat{\mu}_i, \hat{\sigma}_i$), `TimingBreakdown` |
 | **Camada 3: Comparação Estatística e Publicação** | Nível 5 | `statistics` | Etapa 5 | `consolidate_descriptive`, `evaluate_method_suitability`, `run_statistical_comparisons`, `compute_pareto_frontier`, `score_candidate_acquisition`, `synthesize_conclusions` $\rightarrow$ `StatisticalComparisonReport`, `StructuredConclusion` |
 | **Camada 3: Comparação Estatística e Publicação** | Nível 6 | `reporting` | Etapa 6 | `select_report_content`, `build_table_model`, `build_figure_spec`, `render_full_report`, `build_reproducibility_package` $\rightarrow$ `TableModel`, `PlotSpecification`, `ArtifactProvenance` |
-| **Interface de Terminal** | Nível 7 | `cli` | Subcomandos por Etapa | CLI modularizada (`expml data`, `features`, `models`, `partition`, `run`, `stats`, `report`) separada da lógica de negócio |
+| **Interface de Terminal** | Nível 7 | `cli` | Subcomandos por Etapa | CLI modularizada (`expml data`, `features`, `models`, `partition`, `run`, `stats`, `report`) com pura delegação |
 
 ---
 
@@ -131,19 +159,15 @@ flowchart LR
 
 Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md), estruturado em `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md`.
 
-1. **Marco M1 (`core` + `metrics` + `datasets` + esqueleto `cli`) — Entregas Verificáveis:**
-   * **M1.1 (Concluído e Aceito — Configuração, `.venv`, Esqueleto da CLI e *Smoke Tests*):** Criação do `.venv` (Python 3.12), `pyproject.toml` (Hatchling, declaração `requires-python = ">=3.10"`, entrypoint `expml`), esqueleto modular em `src/experimental_ml/cli/main.py`, aprovação de `tests/test_smoke.py` com 12/12 testes e homologação manual aprovada. Registrado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-1-setup-cli-smoke/`.
-   * **M1.2 (Concluído e Aceito — Contratos, Implementação Funcional e Testes de `core`):** Identificadores imutáveis, constantes/enums, função pura `derive_seeds` (`SeedSequence`), `config_hash` e `dataset_hash` (ADR-007: Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas), construtores de achados e exceções de contrato, com aprovação de `tests/unit/test_core.py` (18/18 testes), verificação independente TLC (`proofs.md`, `verification.md`) e homologação manual aprovada. Registrado com `SPEC.md`, `ACCEPTANCE.md` e `RESULTS.md` sob `.specs/features/m1-2-core/`.
-   * **M1.3 (Concluído e Aceito — Contratos, Implementação Funcional e Testes de `metrics`):** `MetricValue`, `AggregatedMetricValue`, `MetricSpec`, `RankedCandidate`, catálogo `METRICS_CATALOG` com as 15 métricas, regras de propagação de `MetricStatus.UNDEFINED_NAN`, `is_better`, `aggregate_fold_metrics`, `rank_configurations` (ADR-005) e as 15 funções de métricas vetorizadas testadas com tolerâncias específicas (`rtol`/`atol`) por família (`tests/unit/test_metrics.py` com 22/22 checks aprovados), verificação independente TLC (`proofs.md`, `verification.md`) e roteiro `ACCEPTANCE.md` com evidências em `RESULTS.md`.
-   * **M1.4 (Concluído e Aceito — Contratos, Ingestão Tabular, Imutabilidade e Esquemas de `data`):** `DatasetSchemaSpec`, `ColumnSemanticType`, `ColumnDescriptor`, `DatasetBundle` com buffers imutáveis em nível de C-API (recusando `setflags(write=True)` com `ValueError`), parser estrito RFC 4180 com sniffer de delimitadores e detecção de *ragged rows*, geração/validação de `ObservationId`, cópias defensivas na memória, cálculo dos hashes tripartites (`dataset_hash` canônico, `raw_source_hash` e `schema_hash`) e utilitários somente-leitura `get_column_array` e `slice_bundle_by_observation_ids`. Aprovado com 29/29 testes unitários em `tests/unit/test_data_schemas.py`, 81/81 testes na suíte geral, verificação independente TLC (`proofs.md`, `verification.md` com 0 findings) e homologação manual aprovada sob `.specs/features/m1-4-datasets-schemas/`.
-   * **M1.5 (Concluído e Aceito — Saneamento e Hardening da Fundação M1):** Revisão e resolução transversal dos 6 achados `ALTO` (P0) e 4 achados `MODERADO` (P1) apontados na Auditoria Geral de Integridade (`m1-integrity-review`): enquadramento binário de `dataset_hash` sem ambiguidade com suporte explícito a `observation_ids` preservando a direção $L_1 \rightarrow L_0$; centralização de `is_nan_scalar` e `is_missing_scalar` cobrindo tipos nativos e `numpy.floating`; validação estrita e preservação de instâncias tipadas `ObservationId` em fatiamentos; whitelist estrita de escalares em colunas `object` com semântica unificada de ausentes e captura de `OverflowError` em `int64`; alinhamento de exemplos do `README.md` e criação de suíte de testes de integração transversal `tests/integration/test_m1_foundation_integration.py`. Aprovado com 15/15 checks determinísticos em `proofs.md`, 96/96 testes na suíte geral, verificação independente TLC (`verification.md` com veredito `PASS`, 0 findings) e atualização formal do parecer técnico para `APTO PARA INÍCIO DO MARCO M2`.
-2. **Marco M2 (`diagnostics & partitioning` — Em Andamento):**
-   * **M2.1 (Concluído e Aceito — Triagem Estatística e Diagnóstico Estrutural de Datasets):** `profile_dataset`, `DatasetProfile`, `ColumnProfile`, `ProfileConfig`, catálogo fechado de 15 achados diagnósticos padronizados (8 `CONFIRMED_ISSUE` + 7 `HEURISTIC_WARNING`) com severidade imutável e ordenação canônica determinística, distribuições numéricas e categóricas, análise da variável-alvo e grupos, detecção determinística de duplicatas e garantia estrita de imutabilidade. Aprovado com 12/12 checks determinísticos em `proofs.md`, 12 testes unitários (`test_profiling.py`), 6 testes de integração (`test_profiling_integration.py`), 114 testes gerais, verificação independente TLC (`verification.md` com veredito `PASS`, 0 findings) e homologação formal sob `.specs/features/m2-diagnostics-partitioning/`.
-   * **M2.2 (Próximo Sub-marco — Saneamento e Visão Saneada):** Especificação e aplicação de plano de preparação (`create_preparation_plan`), resolução obrigatória de todos os `CONFIRMED_ISSUE` para `status = READY`, execução de regras determinísticas de saneamento (`sanitize_dataset`) e emissão da visão tabular imutável `SanitizedDatasetView` com `candidate_feature_cols`.
-   * **M2.3 (Planejado — Particionamento Compartilhado e Validação):** Estratégias de partição (`kfold`, `stratified_kfold`, `group_kfold`, `holdout`), geração determinística (`build_partition_plan`) e validação matemática de disjunção e cobertura (`validate_partition_plan`), exportando splits em `.csv.gz`.
-   * **M2.4 (Planejado — Interface de Linha de Comando de Dados e Partição):** Subcomandos `expml data profile`, `expml data prepare`, `expml data sanitize` e `expml partition plan`.
-   * **M2.5 (Planejado — Integração e Hardening do Marco M2):** Testes de integração transversal, verificação ponta a ponta dos fluxos de dados e particionamento e auditoria independente.
-3. **Marco M3 (`features` + CLI `features`):** Função `explore_features` rotulada, validação de cenários (`FIXED` e `DYNAMIC`) e seleção dinâmica ajustada estritamente no treino de cada *fold* (`select_features_in_fold`), com medição de estabilidade de seleção.
+1. **Marco M1 (`core` + `metrics` + `datasets` + esqueleto `cli`) — Concluído e Aceito:**
+   * M1.1 a M1.5 concluídos e consolidados com 96 testes e hardening de auditoria.
+2. **Marco M2 (`diagnostics & partitioning`) — Concluído e Aceito:**
+   * **M2.1 (Concluído e Aceito — Triagem Estatística e Diagnóstico Estrutural de Datasets):** `profile_dataset`, 15 achados diagnósticos padronizados, distribuições e resumos.
+   * **M2.2 (Concluído e Aceito — Plano de Preparação e Saneamento):** `create_preparation_plan`, `sanitize_dataset` e `SanitizedDatasetView`.
+   * **M2.3 (Concluído e Aceito — Particionamento Compartilhado e Validação):** Estratégias K-Fold, Stratified, Group, Bootstrap, Temporal e Holdout, `build_partition_plan` e `validate_partition_plan`.
+   * **M2.4 (Concluído e Aceito — Persistência Atômica e Portões de Validação):** `write_json_atomic`, `splits.csv.gz` com `mtime=0.0`, codecs lossless e portões `verify_preparation_gate` e `verify_partition_gate`.
+   * **M2.5 (Concluído e Aceito — Interface de Linha de Comando e Homologação Fim a Fim):** Subcomandos `data` e `partition`, pureza arquitetural sem `numpy`/`hashlib`, códigos de saída padronizados e homologação com determinismo de bytes bit a bit. Total de 176 testes aprovados no repositório.
+3. **Marco M3 (`features` + CLI `features` — Próximo Marco):** Função `explore_features` rotulada, validação de cenários (`FIXED` e `DYNAMIC`) e seleção dinâmica ajustada estritamente no treino de cada *fold* (`select_features_in_fold`), com medição de estabilidade de seleção.
 4. **Marco M4 (`models` + `tuning` + CLI `models`):** Funções `instantiate_fresh_model`, `fit_model`, `predict_model` (clássicos, analíticos com `requires_fit=False` e quânticos/customizados), pré-processamento funcional em 2 camadas (`fit_two_layer_preprocessing`, `apply_two_layer_preprocessing`) com bloqueio de duplicação e *Nested Tuning* (`run_nested_tuning`).
 5. **Marco M5 (`orchestration` + CLI `run`):** Funções `run_experiment_matrix` e `resume_experiment_matrix` com máquina de estados, modos `FAULT_TOLERANT` / `FAIL_FAST`, paralelismo em dois níveis, persistência atômica (`save_cell_result`) e retomada verificada (*Checkpoint & Resume*).
 6. **Marco M6 (`statistics` + CLI `stats`):** Funções de consolidação descritiva, adequação metodológica, tratamento de *folds* incompletos, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, tamanho de efeito, relevância prática, Fronteira de Pareto, funções de aquisição e `synthesize_conclusions`.
