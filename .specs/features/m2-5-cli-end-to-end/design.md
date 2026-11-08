@@ -2,7 +2,8 @@
 
 **Spec**: `.specs/features/m2-5-cli-end-to-end/spec.md`  
 **Sub-Milestone**: M2.5 (`m2-5-cli-end-to-end`)  
-**Status**: Pending Approval  
+**Status**: Approved  
+**Approved**: 2026-11-07 - user: "aprovado"  
 
 ---
 
