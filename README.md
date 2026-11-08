@@ -512,20 +512,7 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 | [`engenharia_software/ETAPA_ATUAL_ENGENHARIA.md`](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md) | **Registro de Estado da Engenharia:** Situação atual no ciclo de vida e roadmap detalhado de implementação. |
 | [`REFERENCIAS_E_FUNDAMENTACAO.md`](REFERENCIAS_E_FUNDAMENTACAO.md) | **Fundamentação Teórico-Técnica e Bibliografia:** Justificativas científicas e normativas para as decisões de projeto (ADRs), com 25 referências. |
 
-### Entregas e Artefatos de Governança (TLC Spec-Driven)
 
-| Marco | Pasta de Artefatos | Conteúdo Principal |
-| :--- | :--- | :--- |
-| **M1.1** | [`.specs/features/m1-1-setup-cli-smoke/`](.specs/features/m1-1-setup-cli-smoke/) | Configuração inicial, ponto de entrada e suíte de fumaça. |
-| **M1.2** | [`.specs/features/m1-2-core/`](.specs/features/m1-2-core/) | Contratos e tipos do núcleo, sementes e hashes. |
-| **M1.3** | [`.specs/features/m1-3-metrics/`](.specs/features/m1-3-metrics/) | Motor de métricas e avaliação estatística. |
-| **M1.4** | [`.specs/features/m1-4-datasets-schemas/`](.specs/features/m1-4-datasets-schemas/) | Ingestão tabular imutável, esquemas e tipagem semântica. |
-| **M1.5** | [`.specs/features/m1-5-foundation-hardening/`](.specs/features/m1-5-foundation-hardening/) | Saneamento transversal da fundação e auditoria de integridade. |
-| **M2.1** | [`.specs/features/m2-diagnostics-partitioning/`](.specs/features/m2-diagnostics-partitioning/) | Triagem estatística e catálogo de 15 achados diagnósticos. |
-| **M2.2** | [`.specs/features/m2-2-preparation-plan-sanitization/`](.specs/features/m2-2-preparation-plan-sanitization/) | Plano explícito de preparação e saneamento determinístico. |
-| **M2.3** | [`.specs/features/m2-3-partitioning-engine/`](.specs/features/m2-3-partitioning-engine/) | Motor de particionamento compartilhado e cálculo de `plan_id`. |
-| **M2.4** | [`.specs/features/m2-4-artifacts-stage-gates/`](.specs/features/m2-4-artifacts-stage-gates/) | Persistência atômica, codecs lossless e portões de validação entre etapas. |
-| **M2.5** | [`.specs/features/m2-5-cli-end-to-end/`](.specs/features/m2-5-cli-end-to-end/) | Comandos `data` e `partition` da CLI e homologação fim a fim. |
 
 ---
 
