@@ -129,11 +129,11 @@ T4
 **Requirement**: CLI-04, CLI-05, CLI-07, CLI-08, CLI-10, CLI-11
 
 **Done when**:
-- [ ] `partition build` validates upstream gate, writes partition artifacts, and prints fold sizes
-- [ ] `--seed` CLI argument overrides `master_seed` in partition config
-- [ ] `partition verify` exits with code 0 on valid artifacts and code 2 on tampered artifacts
-- [ ] Upstream missing artifacts block execution with code 2
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cmd_partition.py -v`
+- [x] `partition build` validates upstream gate, writes partition artifacts, and prints fold sizes
+- [x] `--seed` CLI argument overrides `master_seed` in partition config
+- [x] `partition verify` exits with code 0 on valid artifacts and code 2 on tampered artifacts
+- [x] Upstream missing artifacts block execution with code 2
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cmd_partition.py -v`
 
 **Tests**: unit
 **Gate**: quick
