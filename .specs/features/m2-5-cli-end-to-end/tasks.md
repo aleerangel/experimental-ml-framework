@@ -108,11 +108,11 @@ T4
 **Requirement**: CLI-01, CLI-02, CLI-03, CLI-08, CLI-10, CLI-11
 
 **Done when**:
-- [ ] `data profile` writes descriptor and profile, printing readable summary
-- [ ] `data sanitize` writes preparation plan and sanitized view when plan is READY
-- [ ] `data sanitize` rejects INCOMPLETE plans with exit code 2 and prints pending findings
-- [ ] Existing output artifacts without `--force` raise ConfigurationError and exit with code 2
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cmd_data.py -v`
+- [x] `data profile` writes descriptor and profile, printing readable summary
+- [x] `data sanitize` writes preparation plan and sanitized view when plan is READY
+- [x] `data sanitize` rejects INCOMPLETE plans with exit code 2 and prints pending findings
+- [x] Existing output artifacts without `--force` raise ConfigurationError and exit with code 2
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cmd_data.py -v`
 
 **Tests**: unit
 **Gate**: quick

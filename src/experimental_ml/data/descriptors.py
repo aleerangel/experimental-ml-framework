@@ -24,10 +24,12 @@ class DatasetDescriptor:
     column_names: tuple[str, ...]
     column_types: Mapping[str, str]
     raw_source_hash: str | None = None
+    raw_source_path: str | None = None
     target_col: str | None = None
     task_type: str | None = None
     group_col: str | None = None
     time_col: str | None = None
+    schema_path: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.column_names, tuple):
