@@ -518,4 +518,4 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 
 ## Licença
 
-Este projeto é distribuído sob os termos da licença MIT (conforme declarado em [`pyproject.toml`](pyproject.toml)).
+Este projeto é distribuído sob os termos da licença MIT (consulte o arquivo [`LICENSE`](LICENSE) e [`pyproject.toml`](pyproject.toml)).
