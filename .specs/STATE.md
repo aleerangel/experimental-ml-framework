@@ -26,25 +26,35 @@
 - **Date**: 2026-11-06
 - **Status**: active
 
+### AD-004
+- **Decision**: Hardening de integridade pós-auditoria da etapa M2 com salvaguardas matemáticas contra folds vazios, tipagem estruturada em JSON codecs, APIs públicas de view slicing/reconstrução e exportações dinâmicas via PEP 562 para pureza de runtime na CLI.
+- **Reason**: Sanar as divergências identificadas na auditoria transversal do Marco M2 (`REV-M2-01` a `REV-M2-11`), eliminando fragilidades em partições temporais com NaN, preservando fidelidade estrita de tipos primitivos em mapeamentos de rótulos e evitando que a CLI ou consumidores externos dependam de código privado.
+- **Trade-off**: Requer manutenção de estruturas tipadas explícitas em codecs JSON (`key`, `key_type`, `value`) e recálculo canônico de hash de subconjuntos no fatiamento de views.
+- **Scope**: Módulos `core`, `data`, `validation`, `stages` e `cli`.
+- **Date**: 2026-11-09
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m2-5-cli-end-to-end (Sub-marco M2.5 — Interface em Linha de Comando e Homologação Fim a Fim)
-- **Phase / Task**: Concluído e Aceito (Branch `feat/m2-5-cli-end-to-end`) — **Marco M2 (Stage 1 Data Pipeline) Finalizado**
+- **Feature**: m2-hardening-and-m3-readiness (Hardening Pós-Auditoria do Marco M2 e Transição para o Marco M3)
+- **Phase / Task**: Concluído e Aceito — **Marco M2 (Stage 1 Data Pipeline) 100% Hardened, Homologado e Sincronizado**
 - **Completed**:
-  - Sub-marco M2.5 (`m2-5-cli-end-to-end`) implementado, testado e verificado:
-    - Despachante hierárquico `build_parser` e tratador uniforme `main` em `src/experimental_ml/cli/main.py`: captura `ExperimentalMLError` e `ValueError` emitindo mensagens instrutivas sem traceback no stderr e retornando código 2 (CLI-06); saída sem argumentos ou com `--help` e `--version` retornando código 0 preservando compatibilidade com M1.1 (CLI-09).
-    - Subcomandos de dados `expml data profile` e `expml data sanitize` em `src/experimental_ml/cli/cmd_data.py`: perfilamento com saída descritiva de dimensões e achados sem expor hashes (CLI-01, CLI-11); saneamento com bloqueio rigoroso de planos `INCOMPLETE` exibindo pendências e retornando código 2 sem persistir o plano (CLI-03); persistência de `dataset_descriptor.json`, `dataset_profile.json`, `preparation_plan.json` e `sanitized_view.json` com proteção contra sobrescrita via `--force` (CLI-02, CLI-08).
-    - Subcomandos de partição `expml partition build` e `expml partition verify` em `src/experimental_ml/cli/cmd_partition.py`: validação de portão a montante via `verify_preparation_gate` (CLI-07); suporte a `--seed` para sobrescrever `master_seed`; reconstrução determinística de visão saneada e geração de `partition_plan.json`, `splits.csv.gz` (com `mtime=0.0`) e `splits.schema.json` (CLI-04); verificação matemática de invariantes e detecção de adulterações via `verify_partition_gate` e `validate_partition_plan` retornando código 2 sob inconsistências (CLI-05).
-    - Pureza arquitetural estrita (`CLI-10`): zero importações diretas ou indiretas de `numpy` ou `hashlib` em todos os módulos sob `src/experimental_ml/cli/`, verificado por AST.
-    - Higiene de saída (`CLI-11`): zero digests hexadecimais SHA-256 de 64 caracteres impressos em stdout ou stderr.
-    - Suíte de integração e homologação fim a fim (`CLI-12`): execução completa da sequência através do executável `expml` em dois diretórios isolados, comprovando bit a bit a equivalência dos bytes de `partition_plan.json` e do conteúdo descompactado de `splits.csv.gz`.
-  - 10 critérios de aceitação (`CLI-01` a `CLI-12`) verificados por 10 checks determinísticos (`check_proofs.py`: 10 pass, 0 fail).
-  - Suíte completa do repositório: 176 testes aprovados (100% de aprovação, 0 regressões).
-  - Verificação independente por subagente (`author != verifier`) aprovada com veredito `PASS` (0 findings).
-  - Validadores documentais TLC: `validate_spec.py`, `validate_tasks.py`, `validate_verification.py` todos com 0 erros e 0 alertas.
-  - Artefatos de homologação e resultados (`ACCEPTANCE.md` e `RESULTS.md`) gerados e validados.
-  - **Macro-Marco M2 (Stage 1 Data Pipeline)** integralmente entregue em seus 5 sub-marcos (M2.1 a M2.5).
-- **In-progress**: Marco M2 concluído; pronto para aprovação do usuário e avanço para o Marco M3 (Stage 2 Feature Engineering).
-- **Next step**: Integração das branches do Marco M2 na branch principal ou avanço para Marco M3 conforme direcionamento do usuário.
+  - Resolução formal dos 11 achados da auditoria de integridade do Marco M2:
+    - `REV-M2-01`: Compatibilização de códigos entre profiling e preparation (`E1_FEATURE_CONSTANT`, `E1_SCALE_DISPARITY`, `W1_SCALE_DISPARITY`) e marcação irresolvível de `E1_TARGET_CONSTANT`.
+    - `REV-M2-02`: Prevenção de folds vazios em `stratified_kfold_split`, `holdout_split`, `bootstrap_split`, `PartitionConfig` e asserção de invariante formal em `validate_partition_plan`.
+    - `REV-M2-03`: Rejeição estrita de NaNs/missing values em partições temporais (`temporal_split` e `validate_partition_plan`).
+    - `REV-M2-04`: Preservação de tipos primitivos (`int`, `bool`, `float`, `str`) em chaves de `target_label_mapping` via serialização JSON estruturada.
+    - `REV-M2-05`: Verificação estrita de correspondência de `source_plan_digest` no `verify_partition_gate`.
+    - `REV-M2-06`: Validação completa da matriz de splits para os 3 papéis (`TRAIN`, `VAL`, `EXCLUDED`).
+    - `REV-M2-07`: Pureza de runtime da CLI via PEP 562 (`numpy` e `hashlib` ausentes de `sys.modules`).
+    - `REV-M2-08`: Disponibilização das APIs públicas `slice_view_by_observation_ids` (`data/query.py`) e `reconstruct_sanitized_view` (`stages/stage_gates.py`).
+    - `REV-M2-09`, `REV-M2-10`, `REV-M2-11`: Emissão de `E1_TARGET_ZERO_VARIANCE`, documentação metodológica de empates temporais e acesso defensivo a `Finding.context`.
+  - Implementação de 17 testes de regressão dedicados em `tests/unit/test_m2_hardening_regression.py`.
+  - Suíte completa do repositório: 193 testes automatizados aprovados (100% de sucesso, 0 regressões).
+  - Parecer formal do *Independent Hardening Verifier* aprovado com veredito `PASS` (100% de conformidade).
+  - Commit registrado na branch `main`: `de7e8d6`.
+  - Documentação do repositório (`README.md`, `ETAPA_ATUAL_ENGENHARIA.md`, `ARQUITETURA_E_CONTRATOS.md`, `.specs/STATE.md`) integralmente sincronizada.
+- **In-progress**: Preparação e especificação da etapa M3 (Stage 2 Feature Engineering).
+- **Next step**: Iniciar especificação e design do Marco M3 (`.specs/features/m3-features/` e módulo `src/experimental_ml/features/`).
 - **Blockers**: none
-- **Branch**: feat/m2-5-cli-end-to-end
+- **Branch**: main

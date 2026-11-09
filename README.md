@@ -13,8 +13,8 @@ O projeto fornece infraestrutura modular, determinística e pedagógica para con
 | **Versão Atual** | `0.1.0.dev0` (Hatchling / PEP 517 / PEP 621) |
 | **Compatibilidade** | Python `>= 3.10` (testado e verificado em Python 3.12) |
 | **Dependência Única de Runtime** | `numpy >= 1.24.0` |
-| **Fase Atual do Projeto** | **Fase 4: Implementação TDD do MVP** (Marcos M1 e M2 concluídos; Marco M3 em preparação) |
-| **Suíte de Testes** | **176 verificações automatizadas** com 100% de aprovação via `pytest` |
+| **Fase Atual do Projeto** | **Fase 4: Implementação TDD do MVP** (Marcos M1 e M2 concluídos e consolidados com hardening pós-auditoria; Marco M3 em preparação) |
+| **Suíte de Testes** | **193 verificações automatizadas** com 100% de aprovação via `pytest` |
 | **Governança Técnica** | TLC Spec-Driven Development (`spec.md`, `design.md`, `tasks.md`, `proofs.md`, `verification.md`) |
 
 ---
@@ -387,16 +387,17 @@ pytest tests/integration/ -v
 pytest tests/test_smoke.py -v
 ```
 
-### Comportamento Verificado (176 Verificações com 100% de Sucesso)
+### Comportamento Verificado (193 Verificações com 100% de Sucesso)
 
 - **12 testes de fumaça (`tests/test_smoke.py`):** Configuração de build, metadados em `pyproject.toml`, versão pública `0.1.0.dev0` e códigos de saída da CLI (`--version`, `--help`, flags inválidas com código `2`).
 - **22 testes de núcleo (`tests/unit/test_core.py`):** Imutabilidade de identificadores, determinismo de sementes (`SeedSequence`), regras de hashing do ADR-007 e detecção centralizada de ausentes (`is_nan_scalar`, `is_missing_scalar`).
 - **3 testes de armazenamento atômico (`tests/unit/core/test_storage.py`):** Escrita atômica transacional, limpeza de temporários em falha e proteção de sobrescrita com `ConfigurationError`.
 - **22 testes de métricas (`tests/unit/test_metrics.py`):** Exatidão numérica das 15 métricas vetorizadas em `float64` sob tolerâncias rigorosas por família (`rtol`/`atol`), mitigação de overflow quadrático intermediário, semântica `UNDEFINED_NAN` e ranqueamento lexicográfico.
 - **36 testes de esquemas e dados (`tests/unit/test_data_schemas.py`):** Imutabilidade de buffers C (`setflags(write=True)` levanta `ValueError`), integridade RFC 4180, identificadores `ObservationId`, hashes tripartites e fatiamento ordenado.
-- **12 testes de profiling e achados (`tests/unit/test_profiling.py`):** Distribuições numéricas e categóricas, análise do alvo e grupos, catálogo de 15 achados e ordenação canônica determinística.
-- **16 testes de preparação e saneamento (`tests/unit/test_preparation.py`):** Regras de saneamento, plano determinístico `READY` vs `INCOMPLETE` e emissão de `SanitizedDatasetView`.
+- **13 testes de profiling e achados (`tests/unit/data/test_profiling.py`):** Distribuições numéricas e categóricas, análise do alvo e grupos, catálogo de 15 achados, emissão de `E1_TARGET_ZERO_VARIANCE` e ordenação canônica determinística.
+- **16 testes de preparação e saneamento (`tests/unit/data/test_preparation.py`):** Regras de saneamento, plano determinístico `READY` vs `INCOMPLETE` e emissão de `SanitizedDatasetView`.
 - **16 testes de particionamento e validação (`tests/unit/validation/`):** Estratégias K-Fold, Stratified, Group, Bootstrap, Temporal e Holdout, validação matemática de disjunção e determinismo de `splits.csv.gz`.
+- **17 testes de hardening pós-auditoria (`tests/unit/test_m2_hardening_regression.py`):** Cobertura dedicada dos achados `REV-M2-01` a `REV-M2-11` (compatibilidade profiling/preparation, prevenção de folds vazios, rejeição de missing/NaN em tempos, fidelidade de tipos JSON, integridade de digests no partition gate, validação integral de papéis em splits, pureza de tempo de execução da CLI e API pública `slice_view_by_observation_ids`).
 - **4 testes de codecs e descritores (`tests/unit/data/test_codecs.py`, `tests/unit/validation/test_splits_storage.py`):** Serialização e desserialização sem perda de descritores e planos.
 - **2 testes de portões de etapa (`tests/unit/stages/test_stage_gates.py`):** Bloqueio por divergência de hashes e rejeição de matrizes de splits adulteradas.
 - **13 testes unitários de CLI (`tests/unit/cli/`):** Despachante hierárquico, supressão de tracebacks em código 2, pureza arquitetural sem `numpy`/`hashlib`, ocultação de hashes e subcomandos de dados e partições.
@@ -448,8 +449,8 @@ experimental-ml-framework/
 │       │   ├── parsing.py           # Parser RFC 4180 com sniffer automático
 │       │   ├── preparation.py       # create_preparation_plan e sanitize_dataset
 │       │   ├── profiling.py         # profile_dataset, DatasetProfile, 15 achados
-│       │   ├── query.py             # get_column_array e slice_bundle_by_observation_ids
-│       │   ├── schema.py            # DatasetSchemaSpec e validação de papéis
+│       │   ├── query.py             # get_column_array, slice_bundle_by_observation_ids, slice_view_by_observation_ids
+│       │   ├── schema.py            # DatasetSchemaSpec, load_schema_spec e validação de papéis
 │       │   ├── types.py             # ColumnSemanticType, ColumnDescriptor, DatasetBundle
 │       │   └── validation.py        # Validação estrutural e integridade de IDs
 │       ├── metrics/                 # Camada de métricas e alinhamento (Nível 1)
@@ -460,8 +461,8 @@ experimental-ml-framework/
 │       │   ├── types.py             # MetricValue, MetricSpec, RankedCandidate
 │       │   └── validation.py        # Validações numéricas e scaled_quadratic_sum
 │       ├── stages/                  # Portões de validação entre etapas (Nível 3)
-│       │   ├── __init__.py          # verify_preparation_gate, verify_partition_gate
-│       │   └── stage_gates.py       # Verificações de integridade cruzada e layout
+│       │   ├── __init__.py          # verify_preparation_gate, verify_partition_gate, reconstruct_sanitized_view
+│       │   └── stage_gates.py       # Verificações de integridade cruzada, digests e layout
 │       └── validation/              # Particionamento compartilhado e validação (Nível 2)
 │           ├── codecs.py            # Codecs de PartitionPlan
 │           ├── engine.py            # build_partition_plan e derivação de plan_id
@@ -469,10 +470,10 @@ experimental-ml-framework/
 │           ├── storage.py           # write_splits_csv_gz determinístico e schema
 │           ├── types.py             # PartitionConfig, PartitionPlan, FoldPartition
 │           └── validators.py        # validate_partition_plan e invariantes matemáticos
-├── tests/                           # Suíte de testes automatizados (176 testes)
+├── tests/                           # Suíte de testes automatizados (193 testes)
 │   ├── integration/                 # Testes de integração transversal
 │   ├── test_smoke.py                # Testes de fumaça da CLI e empacotamento
-│   └── unit/                        # Testes unitários (core, metrics, data, validation, cli, stages)
+│   └── unit/                        # Testes unitários (core, metrics, data, validation, cli, stages, hardening)
 ├── pyproject.toml                   # Metadados do projeto e dependências declaradas
 ├── README.md                        # Porta de entrada do repositório
 └── REFERENCIAS_E_FUNDAMENTACAO.md   # Justificativas científicas e normativas (ADRs)
@@ -491,7 +492,7 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 | **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 métricas vetorizadas em `float64`. | **Concluído e Aceito** |
 | **M1.4** | **Datasets & Schemas:** Ingestão tabular imutável (`load_dataset`, `DatasetBundle`), buffers `bytes` imutáveis recusando escrita, parser RFC 4180 e tipagem semântica. | **Concluído e Aceito** |
 | **M1.5** | **Foundation Hardening:** Saneamento transversal dos 10 achados de auditoria, framing binário de `dataset_hash`, detecção centralizada de `NaN` e testes de integração. | **Concluído e Aceito** |
-| **M2** | **Diagnóstico, Saneamento e Particionamento:** Pipeline de dados da Etapa 1 e Etapa 4A completo (**M2.1 a M2.5 Concluídos e Aceitos**): triagem (`profile_dataset`), plano e saneamento (`create_preparation_plan`, `sanitize_dataset`), particionamento compartilhado (`build_partition_plan`), persistência atômica e portões de etapa (`stage_gates`), e CLI unificada com homologação fim a fim. | **Concluído e Aceito** |
+| **M2** | **Diagnóstico, Saneamento e Particionamento:** Pipeline de dados da Etapa 1 e Etapa 4A completo (**M2.1 a M2.5 Concluídos e Aceitos**): triagem (`profile_dataset`), plano e saneamento (`create_preparation_plan`, `sanitize_dataset`), particionamento compartilhado (`build_partition_plan`), persistência atômica e portões de etapa (`stage_gates`), e CLI unificada com homologação fim a fim. **Hardening pós-auditoria consolidado (REV-M2-01 a REV-M2-11) com 193 testes aprovados.** | **Concluído e Aceito** |
 | **M3** | **Cenários de Features:** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários fixos e seleção dinâmica ajustada no treino de cada partição (`features`). | Planejado |
 | **M4** | **Modelos e Tuning:** Registro de modelos (`models`), pré-processamento em duas camadas e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
 | **M5** | **Execução Matricial:** Orquestração da matriz $M \times C \times F$ (`orchestration`), tolerância a falhas, persistência e retomada (*Checkpoint & Resume*). | Planejado |
