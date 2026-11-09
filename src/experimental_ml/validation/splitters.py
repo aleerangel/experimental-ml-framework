@@ -10,7 +10,8 @@ from typing import Sequence
 
 import numpy as np
 
-from experimental_ml.core.findings import ConfigurationError
+from experimental_ml.core.findings import ConfigurationError, DataIntegrityError
+from experimental_ml.core.hashing import is_missing_scalar
 from experimental_ml.core.types import ObservationId
 
 
@@ -93,6 +94,8 @@ def stratified_kfold_split(
         )
     if n_splits < 2:
         raise ConfigurationError(f"n_splits must be >= 2, got {n_splits}")
+    if n < n_splits:
+        raise ConfigurationError(f"Cannot split {n} observations into {n_splits} stratified folds")
 
     # Group indices by class label
     class_indices: dict[Any, list[int]] = defaultdict(list)
@@ -160,6 +163,8 @@ def holdout_split(
         Tuple of (development_ids, holdout_ids).
     """
     n = len(observation_ids)
+    if n < 2:
+        raise ConfigurationError(f"Cannot perform holdout split with {n} observations; at least 2 are required")
     if not (0.0 < holdout_fraction < 1.0):
         raise ConfigurationError(f"holdout_fraction must be in (0.0, 1.0), got {holdout_fraction}")
 
@@ -179,7 +184,13 @@ def holdout_split(
             n_h = max(1, min(n_h, len(c_idxs) - 1)) if len(c_idxs) >= 2 else n_h
             holdout_idx_list.extend(c_idxs[:n_h])
 
-        holdout_idx = np.array(sorted(holdout_idx_list), dtype=int)
+        # Ensure both development and holdout are strictly non-empty
+        if len(holdout_idx_list) == 0:
+            holdout_idx_list.append(int(rng.choice(n)))
+        elif len(holdout_idx_list) == n:
+            holdout_idx_list.pop()
+
+        holdout_idx = np.array(sorted(set(holdout_idx_list)), dtype=int)
     else:
         n_holdout = int(np.round(n * holdout_fraction))
         n_holdout = max(1, min(n_holdout, n - 1))
@@ -188,6 +199,12 @@ def holdout_split(
 
     holdout_set = set(holdout_idx)
     dev_idx = np.array([i for i in range(n) if i not in holdout_set], dtype=int)
+
+    if len(dev_idx) == 0 or len(holdout_idx) == 0:
+        raise ConfigurationError(
+            f"Holdout split produced an empty {'development' if len(dev_idx) == 0 else 'holdout'} set "
+            f"with {n} observations and fraction {holdout_fraction}"
+        )
 
     development_ids = tuple(observation_ids[i] for i in dev_idx)
     holdout_ids = tuple(observation_ids[i] for i in holdout_idx)
@@ -290,6 +307,8 @@ def bootstrap_split(
         List of B tuples: (train_ids, val_ids).
     """
     n = len(observation_ids)
+    if n < 2:
+        raise ConfigurationError(f"Cannot perform bootstrap with {n} observations; at least 2 are required")
     if n_bootstraps < 2:
         raise ConfigurationError(f"n_bootstraps must be >= 2, got {n_bootstraps}")
 
@@ -297,16 +316,25 @@ def bootstrap_split(
     rng_master = np.random.default_rng(seed)
 
     for b in range(n_bootstraps):
-        b_seed = int(rng_master.integers(0, 2**31 - 1))
-        rng_b = np.random.default_rng(b_seed)
+        val_ids: tuple[ObservationId, ...] = ()
+        train_ids: tuple[ObservationId, ...] = ()
+        max_attempts = 100
+        for _ in range(max_attempts):
+            b_seed = int(rng_master.integers(0, 2**31 - 1))
+            rng_b = np.random.default_rng(b_seed)
 
-        # Sample N indices with replacement
-        sampled_indices = rng_b.choice(n, size=n, replace=True)
-        train_ids = tuple(observation_ids[i] for i in sampled_indices)
+            # Sample N indices with replacement
+            sampled_indices = rng_b.choice(n, size=n, replace=True)
+            oob_indices = np.sort(list(set(range(n)) - set(sampled_indices)))
+            if len(oob_indices) > 0:
+                train_ids = tuple(observation_ids[i] for i in sampled_indices)
+                val_ids = tuple(observation_ids[i] for i in oob_indices)
+                break
 
-        # Out-of-bag (OOB) indices
-        oob_indices = np.sort(list(set(range(n)) - set(sampled_indices)))
-        val_ids = tuple(observation_ids[i] for i in oob_indices)
+        if len(val_ids) == 0:
+            raise DataIntegrityError(
+                f"Bootstrap iteration {b} yielded an empty Out-of-Bag (OOB) validation set after {max_attempts} attempts"
+            )
 
         splits.append((train_ids, val_ids))
 
@@ -321,6 +349,11 @@ def temporal_split(
     """Partition observation IDs along a temporal dimension using an expanding window (PART-04).
 
     Ensures that max(Time(Train_k)) <= min(Time(Val_k)) for all folds, preventing future leakage.
+
+    Observação metodológica (REV-M2-10): A partição temporal divide observações ordenadas por
+    (times[i], i) em janelas de contagem uniforme. Quando observações repetem exatamente o mesmo
+    timestamp na fronteira entre segmentos, a partição preserva a monotonicidade não-estrita
+    max(Time(Train_k)) <= min(Time(Val_k)), desfazendo empates pela ordem posicional original.
 
     Args:
         observation_ids: Sequence of observation identifiers.
@@ -341,6 +374,17 @@ def temporal_split(
         raise ConfigurationError(
             f"Cannot perform temporal split with {n} observations and {n_splits} splits"
         )
+
+    # Validate zero missing or NaN values in times (REV-M2-03)
+    if times.dtype.kind in ("f", "c"):
+        if np.isnan(times).any():
+            raise ConfigurationError("temporal_split requires time array with zero missing or NaN values")
+    else:
+        for idx, t in enumerate(times):
+            if is_missing_scalar(t):
+                raise ConfigurationError(
+                    f"temporal_split requires time array with zero missing or NaN values, found missing at index {idx}"
+                )
 
     # Sort indices by time, tie-breaking by original index
     sorted_indices = sorted(range(n), key=lambda i: (times[i], i))

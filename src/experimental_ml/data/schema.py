@@ -8,12 +8,14 @@ isolation against Wave 2 features during Wave 1 MVP.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
 import unicodedata
 
 from experimental_ml.core.enums import StrEnum, TaskType
 from experimental_ml.core.findings import ConfigurationError
+from experimental_ml.core.storage import read_json
 
 
 class ColumnSemanticType(StrEnum):
@@ -169,3 +171,44 @@ def validate_schema_spec(schema: Any) -> None:
         raise ConfigurationError(
             f"Expected DatasetSchemaSpec instance, got {type(schema).__name__}"
         )
+
+
+def load_schema_spec(schema_path: Path | str) -> DatasetSchemaSpec:
+    """Load and parse DatasetSchemaSpec from a JSON file.
+
+    Raises:
+        ConfigurationError: If schema file is not found or has invalid syntax/content.
+    """
+    p = Path(schema_path).resolve()
+    if not p.exists():
+        raise ConfigurationError(f"Schema file not found at '{p}'")
+    try:
+        data = read_json(p)
+    except Exception as err:
+        raise ConfigurationError(f"Failed to read schema file '{p}': {err}") from err
+
+    task_type = None
+    if data.get("task_type"):
+        try:
+            task_type = TaskType(data["task_type"])
+        except ValueError as err:
+            raise ConfigurationError(f"Invalid task_type in schema: {err}") from err
+
+    semantic_types = None
+    if data.get("column_semantic_types"):
+        try:
+            semantic_types = {
+                col: ColumnSemanticType(st) for col, st in data["column_semantic_types"].items()
+            }
+        except ValueError as err:
+            raise ConfigurationError(f"Invalid column_semantic_types in schema: {err}") from err
+
+    return DatasetSchemaSpec(
+        target_col=data.get("target_col"),
+        task_type=task_type,
+        column_semantic_types=semantic_types,
+        group_col=data.get("group_col"),
+        time_col=data.get("time_col"),
+        observation_id_col=data.get("observation_id_col"),
+        ignore_cols=tuple(data.get("ignore_cols", ())),
+    )

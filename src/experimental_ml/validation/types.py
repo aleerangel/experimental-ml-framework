@@ -108,6 +108,9 @@ class PartitionConfig:
         if self.strategy == PartitionStrategy.GROUP_KFOLD and self.group_col is None:
             raise ConfigurationError("GROUP_KFOLD strategy requires 'group_col' to be specified")
 
+        if self.strategy == PartitionStrategy.HOLDOUT and self.regime == EvaluationRegime.CV_ONLY:
+            raise ConfigurationError("HOLDOUT strategy is incompatible with EvaluationRegime.CV_ONLY")
+
 
 @dataclass(frozen=True, slots=True)
 class PartitionPlan:

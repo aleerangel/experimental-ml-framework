@@ -75,8 +75,8 @@ def test_hard_13_documentation_and_symbol_counts_aligned() -> None:
 
     # core has 28 exported symbols (__all__)
     assert len(core_mod.__all__) == 28
-    # data had 13 exported symbols in M1.5, expands to 17 in M2.1 and 23 in M2.2
-    assert len(data_mod.__all__) in (13, 17, 23)
+    # data had 13 exported symbols in M1.5, expands to 17 in M2.1, 23 in M2.2, and 24 in M2 hardening
+    assert len(data_mod.__all__) in (13, 17, 23, 24)
 
 
 def test_hard_14_end_to_end_core_data_metrics_and_cross_process_hash(tmp_path: Path) -> None:

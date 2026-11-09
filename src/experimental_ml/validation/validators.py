@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from experimental_ml.core.findings import DataIntegrityError
+from experimental_ml.core.hashing import is_missing_scalar
 from experimental_ml.validation.types import (
     EvaluationRegime,
     PartitionPlan,
@@ -67,6 +68,18 @@ def validate_partition_plan(
     for fold in plan.folds:
         train_s = set(fold.train_ids)
         val_s = set(fold.val_ids)
+
+        # Invariant: Every fold must have at least 1 training observation and at least 1 validation observation
+        if len(train_s) == 0:
+            raise DataIntegrityError(
+                f"Fold {fold.fold_index} has an empty training set (0 observations). "
+                f"Every fold must contain at least 1 training observation."
+            )
+        if len(val_s) == 0:
+            raise DataIntegrityError(
+                f"Fold {fold.fold_index} has an empty validation set (0 observations). "
+                f"Every fold must contain at least 1 validation observation."
+            )
 
         # 2. Train_k ∩ Val_k = ∅
         if not train_s.isdisjoint(val_s):
@@ -133,6 +146,16 @@ def validate_partition_plan(
         if plan.strategy == PartitionStrategy.TEMPORAL and time_map is not None:
             train_times = [time_map[oid] for oid in fold.train_ids]
             val_times = [time_map[oid] for oid in fold.val_ids]
+            for t in train_times:
+                if is_missing_scalar(t):
+                    raise DataIntegrityError(
+                        f"Fold {fold.fold_index} Train contains missing or NaN temporal value"
+                    )
+            for t in val_times:
+                if is_missing_scalar(t):
+                    raise DataIntegrityError(
+                        f"Fold {fold.fold_index} Val contains missing or NaN temporal value"
+                    )
             if len(train_times) > 0 and len(val_times) > 0:
                 if max(train_times) > min(val_times):
                     raise DataIntegrityError(

@@ -118,6 +118,7 @@ IRRESOLVABLE_FINDING_CODES: frozenset[str] = frozenset(
     {
         "E1_TARGET_ALL_MISSING",
         "E1_TARGET_ZERO_VARIANCE",
+        "E1_TARGET_CONSTANT",
         "E1_TARGET_CLASS_COUNT_INVALID",
         "E1_TARGET_NOT_NUMERIC",
     }
@@ -139,9 +140,13 @@ ADMISSIBLE_RULES_BY_CODE: dict[str, frozenset[str]] = {
     "E1_GROUP_EMPTY_VALUES": frozenset({"DROP_ROWS"}),
     "E1_FEATURE_MISSING": frozenset({"DROP_ROWS", "EXCLUDE_COLUMN", "DEFER_INTRA_FOLD", "ACCEPT_AS_IS"}),
     "E1_CONSTANT_COLUMN": frozenset({"EXCLUDE_COLUMN", "ACCEPT_AS_IS"}),
+    "E1_FEATURE_CONSTANT": frozenset({"EXCLUDE_COLUMN", "ACCEPT_AS_IS"}),
     "E1_CONSTANT_FEATURE_COLUMN": frozenset({"EXCLUDE_COLUMN", "ACCEPT_AS_IS"}),
+    "E1_SCALE_DISPARITY": frozenset({"ACCEPT_AS_IS", "DEFER_INTRA_FOLD"}),
+    "W1_SCALE_DISPARITY": frozenset({"ACCEPT_AS_IS", "DEFER_INTRA_FOLD"}),
     "E1_COLUMN_ALL_MISSING": frozenset({"EXCLUDE_COLUMN", "ACCEPT_AS_IS"}),
     "E1_IDENTIFIER_COLUMN_SUSPECTED": frozenset({"EXCLUDE_COLUMN", "ACCEPT_AS_IS"}),
+    "W1_POSSIBLE_IDENTIFIER": frozenset({"EXCLUDE_COLUMN", "ACCEPT_AS_IS"}),
     "E1_CATEGORICAL_UNENCODED": frozenset({"EXCLUDE_COLUMN", "DEFER_INTRA_FOLD", "ACCEPT_AS_IS"}),
     "E1_TARGET_BINARY_UNMAPPED": frozenset({"MAP_BINARY_TARGET"}),
 }
@@ -163,7 +168,7 @@ def _validate_rule_admissibility(rule: PreparationRule, profile: DatasetProfile)
     # 1. Check if finding exists in profile and verify severity
     matching_findings = [
         f for f in profile.findings
-        if f.code == rule.finding_code and f.context.get("column") == rule.column
+        if f.code == rule.finding_code and (f.context.get("column") if f.context else None) == rule.column
     ]
     if not matching_findings:
         raise ConfigurationError(
@@ -227,15 +232,22 @@ def _validate_rule_admissibility(rule: PreparationRule, profile: DatasetProfile)
                 raise ConfigurationError(
                     "DEFER_INTRA_FOLD for E1_CATEGORICAL_UNENCODED requires non-empty string 'encoding_strategy'"
                 )
+        elif rule.finding_code == "E1_SCALE_DISPARITY":
+            strategy = rule.parameters.get("scaling_strategy", "STANDARD")
+            if strategy not in ("STANDARD", "ROBUST", "MINMAX"):
+                raise ConfigurationError(
+                    f"DEFER_INTRA_FOLD for E1_SCALE_DISPARITY requires 'scaling_strategy' in "
+                    f"('STANDARD', 'ROBUST', 'MINMAX'), got {strategy!r}"
+                )
 
 
 def _compute_profile_digest(profile: DatasetProfile) -> str:
     """Compute canonical SHA-256 digest of DatasetProfile findings and structure."""
     items = [
-        f"{f.severity.value}:{f.code}:{f.context.get('column')}:{f.message}"
+        f"{f.severity.value}:{f.code}:{f.context.get('column') if f.context else None}:{f.message}"
         for f in sorted(
             profile.findings,
-            key=lambda x: (x.severity.value, x.code, str(x.context.get("column") or ""), x.message),
+            key=lambda x: (x.severity.value, x.code, str((x.context.get("column") if x.context else "") or ""), x.message),
         )
     ]
     content = f"{profile.source_dataset_hash}|{profile.n_rows}|{profile.n_cols}|" + ";".join(items)
@@ -317,7 +329,7 @@ def create_preparation_plan(
     covered_keys = { (r.finding_code, r.column) for r in parsed_rules }
 
     for finding in confirmed_findings:
-        col = finding.context.get("column")
+        col = finding.context.get("column") if finding.context else None
         f_key = (finding.code, col)
 
         if finding.code in IRRESOLVABLE_FINDING_CODES:

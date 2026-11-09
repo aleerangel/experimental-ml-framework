@@ -25,13 +25,6 @@ from experimental_ml.core.findings import (
     make_finding,
     make_warning,
 )
-from experimental_ml.core.hashing import (
-    config_hash,
-    dataset_hash,
-    is_missing_scalar,
-    is_nan_scalar,
-)
-from experimental_ml.core.seeds import derive_seeds, spawn_child_seeds
 from experimental_ml.core.types import (
     ArtifactId,
     CellId,
@@ -42,6 +35,26 @@ from experimental_ml.core.types import (
     PartitionPlanId,
     ScenarioId,
 )
+
+_LAZY_EXPORTS: dict[str, str] = {
+    # Deterministic Seed Derivation
+    "derive_seeds": "experimental_ml.core.seeds",
+    "spawn_child_seeds": "experimental_ml.core.seeds",
+    # Canonical Hashing & Scalar Missingness
+    "config_hash": "experimental_ml.core.hashing",
+    "dataset_hash": "experimental_ml.core.hashing",
+    "is_nan_scalar": "experimental_ml.core.hashing",
+    "is_missing_scalar": "experimental_ml.core.hashing",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _LAZY_EXPORTS:
+        mod = __import__(_LAZY_EXPORTS[name], fromlist=[name])
+        val = getattr(mod, name)
+        globals()[name] = val
+        return val
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
     # Domain Identifiers

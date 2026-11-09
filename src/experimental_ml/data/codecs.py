@@ -116,6 +116,12 @@ def sanitized_view_descriptor_to_dict(desc: SanitizedViewDescriptor) -> dict[str
         }
         for r in desc.deferred_rules
     ]
+    target_mapping_serialized: list[dict[str, Any]] | None = None
+    if desc.target_label_mapping is not None:
+        target_mapping_serialized = [
+            {"key": k, "key_type": type(k).__name__, "value": v}
+            for k, v in desc.target_label_mapping.items()
+        ]
     return {
         "dataset_hash": desc.dataset_hash,
         "source_dataset_hash": desc.source_dataset_hash,
@@ -123,7 +129,7 @@ def sanitized_view_descriptor_to_dict(desc: SanitizedViewDescriptor) -> dict[str
         "n_observations": desc.n_observations,
         "candidate_feature_cols": list(desc.candidate_feature_cols),
         "dropped_observation_ids": [str(oid) for oid in desc.dropped_observation_ids],
-        "target_label_mapping": dict(desc.target_label_mapping) if desc.target_label_mapping else None,
+        "target_label_mapping": target_mapping_serialized,
         "deferred_rules": deferred_rules_list,
     }
 
@@ -140,7 +146,25 @@ def sanitized_view_descriptor_from_dict(d: dict[str, Any]) -> SanitizedViewDescr
         for r in d.get("deferred_rules", [])
     )
     raw_mapping = d.get("target_label_mapping")
-    target_mapping = MappingProxyType(raw_mapping) if raw_mapping is not None else None
+    target_mapping: MappingProxyType[Any, int] | None = None
+    if raw_mapping is not None:
+        if isinstance(raw_mapping, list):
+            coerced_map: dict[Any, int] = {}
+            for item in raw_mapping:
+                k = item["key"]
+                k_type = item.get("key_type")
+                if k_type == "int":
+                    k = int(k)
+                elif k_type == "float":
+                    k = float(k)
+                elif k_type == "bool":
+                    k = bool(k)
+                elif k_type == "str":
+                    k = str(k)
+                coerced_map[k] = int(item["value"])
+            target_mapping = MappingProxyType(coerced_map)
+        elif isinstance(raw_mapping, dict):
+            target_mapping = MappingProxyType(dict(raw_mapping))
     return SanitizedViewDescriptor(
         dataset_hash=d["dataset_hash"],
         source_dataset_hash=d["source_dataset_hash"],

@@ -18,6 +18,7 @@ from experimental_ml.core.hashing import (
     is_missing_scalar,
 )
 from experimental_ml.core.types import ObservationId
+from experimental_ml.data.preparation import SanitizedDatasetView
 from experimental_ml.data.types import ColumnDescriptor, DatasetBundle
 
 
@@ -178,4 +179,104 @@ def slice_bundle_by_observation_ids(
         schema_hash=bundle.schema_hash,
         memory_bytes=total_memory_bytes,
         source_path=bundle.source_path,
+    )
+
+
+def slice_view_by_observation_ids(
+    view: SanitizedDatasetView,
+    observation_ids: Sequence[ObservationId | str],
+) -> SanitizedDatasetView:
+    """Slice SanitizedDatasetView by a sequence of ObservationIds, strictly preserving caller's order.
+
+    Recalculates in-memory dataset_hash for the sliced subset while preserving view metadata.
+
+    Args:
+        view: Source SanitizedDatasetView to slice.
+        observation_ids: Non-empty sequence of valid ObservationIds or non-empty strings.
+
+    Returns:
+        New immutable SanitizedDatasetView containing sliced observations.
+
+    Raises:
+        DataIntegrityError: If observation_ids is bare string/bytes, empty, contains invalid
+            identifiers, duplicates, or unknown IDs not present in the view.
+    """
+    if isinstance(observation_ids, (str, bytes, bytearray, memoryview)) or not isinstance(
+        observation_ids, Sequence
+    ):
+        raise DataIntegrityError(
+            f"observation_ids must be a non-string Sequence, got {type(observation_ids).__name__}"
+        )
+
+    if len(observation_ids) == 0:
+        raise DataIntegrityError("observation_ids sequence cannot be empty")
+
+    validated_ids: list[ObservationId] = []
+    seen: set[ObservationId] = set()
+    view_obs_index: dict[ObservationId, int] = {
+        obs: idx for idx, obs in enumerate(view.observation_ids)
+    }
+    indices: list[int] = []
+
+    for item in observation_ids:
+        if isinstance(item, ObservationId):
+            obs_id = item
+        elif isinstance(item, str):
+            norm_str = unicodedata.normalize("NFC", item.strip())
+            try:
+                obs_id = ObservationId(norm_str)
+            except ValueError as err:
+                raise DataIntegrityError(
+                    f"Invalid ObservationId string format '{item}': {err}"
+                ) from err
+        else:
+            raise DataIntegrityError(
+                f"Invalid observation_id element type '{type(item).__name__}': expected ObservationId or str"
+            )
+
+        if obs_id in seen:
+            raise DataIntegrityError(
+                f"Duplicate ObservationId '{obs_id}' encountered in requested slicing sequence"
+            )
+        seen.add(obs_id)
+
+        if obs_id not in view_obs_index:
+            raise DataIntegrityError(
+                f"ObservationId '{obs_id}' not present in SanitizedDatasetView observation_ids"
+            )
+        indices.append(view_obs_index[obs_id])
+        validated_ids.append(obs_id)
+
+    idx_arr = np.array(indices, dtype=np.intp)
+    sliced_obs_ids = tuple(validated_ids)
+
+    new_columns: dict[str, np.ndarray] = {}
+    for col_name, old_arr in view.columns.items():
+        sliced_arr = old_arr[idx_arr]
+        if sliced_arr.dtype == object:
+            sliced_arr.flags.writeable = False
+            col_immutable = sliced_arr
+        else:
+            raw_bytes = sliced_arr.tobytes()
+            col_immutable = np.frombuffer(raw_bytes, dtype=sliced_arr.dtype)
+        new_columns[col_name] = col_immutable
+
+    # Recalculate canonical in-memory dataset_hash (HARD-04)
+    new_dataset_hash = core_dataset_hash(
+        new_columns,
+        view.schema,
+        observation_ids=sliced_obs_ids,
+    )
+
+    return SanitizedDatasetView(
+        columns=MappingProxyType(new_columns),
+        schema=view.schema,
+        observation_ids=sliced_obs_ids,
+        candidate_feature_cols=view.candidate_feature_cols,
+        dropped_observation_ids=view.dropped_observation_ids,
+        target_label_mapping=view.target_label_mapping,
+        deferred_rules=view.deferred_rules,
+        source_dataset_hash=view.source_dataset_hash,
+        source_plan_digest=view.source_plan_digest,
+        dataset_hash=new_dataset_hash,
     )

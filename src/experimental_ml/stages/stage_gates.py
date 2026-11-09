@@ -9,6 +9,14 @@ from pathlib import Path
 
 from experimental_ml.core.findings import ContractViolationError, DataIntegrityError
 from experimental_ml.core.storage import read_json
+from experimental_ml.data.codecs import (
+    dataset_descriptor_from_dict,
+    dataset_profile_from_dict,
+    preparation_plan_from_dict,
+)
+from experimental_ml.data.loader import load_dataset
+from experimental_ml.data.preparation import SanitizedDatasetView, sanitize_dataset
+from experimental_ml.data.schema import load_schema_spec
 from experimental_ml.validation.codecs import partition_plan_from_dict
 from experimental_ml.validation.storage import read_splits_csv_gz
 
@@ -113,6 +121,17 @@ def verify_partition_gate(experiment_dir: Path | str) -> None:
             f"diverges from sanitized_view dataset_hash '{view_hash}'"
         )
 
+    # Check plan digest correspondence between sanitized_view and active preparation_plan (REV-M2-05)
+    prep_plan_path = exp_dir / PREPARATION_PLAN_REL_PATH
+    prep_dict = read_json(prep_plan_path)
+    prep_digest = prep_dict.get("plan_digest")
+    view_plan_digest = view_dict.get("source_plan_digest")
+    if prep_digest and view_plan_digest and prep_digest != view_plan_digest:
+        raise DataIntegrityError(
+            f"sanitized_view source_plan_digest '{view_plan_digest}' "
+            f"diverges from active preparation_plan plan_digest '{prep_digest}'"
+        )
+
     # 2. Strict consistency between splits.csv.gz and partition_plan.json (STORE-06)
     expected_total = len(plan.development_ids) + len(plan.holdout_ids)
     if len(splits_rows) != expected_total:
@@ -151,13 +170,48 @@ def verify_partition_gate(experiment_dir: Path | str) -> None:
                 col_val = row.get(f"fold_{k}")
                 in_train = oid in fold_train_sets[k]
                 in_val = oid in fold_val_sets[k]
-                if in_train and col_val != "TRAIN":
+                expected_role = "TRAIN" if in_train else ("VAL" if in_val else "EXCLUDED")
+                if col_val != expected_role:
                     raise DataIntegrityError(
-                        f"Observation '{oid}' in train_ids of fold_{k} but marked as '{col_val}' in splits.csv.gz"
-                    )
-                if in_val and col_val != "VAL":
-                    raise DataIntegrityError(
-                        f"Observation '{oid}' in val_ids of fold_{k} but marked as '{col_val}' in splits.csv.gz"
+                        f"Observation '{oid}' in fold_{k} expected to be '{expected_role}' "
+                        f"but marked as '{col_val}' in splits.csv.gz"
                     )
         else:
             raise DataIntegrityError(f"Invalid holdout_role '{role}' for observation '{oid}'")
+
+
+def reconstruct_sanitized_view(experiment_dir: Path | str) -> SanitizedDatasetView:
+    """Reconstruct in-memory SanitizedDatasetView from upstream Stage 1 artifacts (REV-M2-08).
+
+    Verifies the preparation gate preconditions and executes deterministic
+    sanitization from persisted dataset descriptor, profile, and preparation plan.
+
+    Args:
+        experiment_dir: Path to the experiment directory.
+
+    Returns:
+        Deterministic, immutable SanitizedDatasetView.
+
+    Raises:
+        ContractViolationError: If preparation gate fails.
+        DataIntegrityError: If artifacts are missing or corrupted.
+    """
+    exp_dir = Path(experiment_dir).resolve()
+    verify_preparation_gate(exp_dir)
+
+    desc_path = exp_dir / DATASET_DESCRIPTOR_REL_PATH
+    prof_path = exp_dir / DATASET_PROFILE_REL_PATH
+    prep_plan_path = exp_dir / PREPARATION_PLAN_REL_PATH
+
+    desc = dataset_descriptor_from_dict(read_json(desc_path))
+    if not desc.raw_source_path or not desc.schema_path:
+        raise DataIntegrityError(
+            "Dataset descriptor lacks raw source path or schema path for reloading"
+        )
+
+    schema = load_schema_spec(desc.schema_path)
+    bundle = load_dataset(desc.raw_source_path, schema=schema)
+    prof = dataset_profile_from_dict(read_json(prof_path))
+    plan = preparation_plan_from_dict(read_json(prep_plan_path))
+
+    return sanitize_dataset(bundle, prof, plan)

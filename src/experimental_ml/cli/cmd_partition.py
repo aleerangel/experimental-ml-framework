@@ -26,6 +26,7 @@ from experimental_ml.stages.stage_gates import (
     PREPARATION_PLAN_REL_PATH,
     SPLITS_CSV_GZ_REL_PATH,
     SPLITS_SCHEMA_REL_PATH,
+    reconstruct_sanitized_view,
     verify_partition_gate,
     verify_preparation_gate,
 )
@@ -44,26 +45,6 @@ from experimental_ml.validation.types import (
     PartitionStrategy,
 )
 from experimental_ml.validation.validators import validate_partition_plan
-
-
-def _reconstruct_sanitized_view(exp_dir: Path):
-    """Reconstruct SanitizedDatasetView from upstream Stage 1 artifacts."""
-    desc_path = exp_dir / DATASET_DESCRIPTOR_REL_PATH
-    prof_path = exp_dir / DATASET_PROFILE_REL_PATH
-    prep_plan_path = exp_dir / PREPARATION_PLAN_REL_PATH
-
-    desc = dataset_descriptor_from_dict(read_json(desc_path))
-    profile = dataset_profile_from_dict(read_json(prof_path))
-    prep_plan = preparation_plan_from_dict(read_json(prep_plan_path))
-
-    if not desc.raw_source_path or not desc.schema_path:
-        raise DataIntegrityError(
-            "Dataset descriptor lacks raw source path or schema path for reloading"
-        )
-
-    schema = _load_schema_spec(desc.schema_path)
-    bundle = load_dataset(desc.raw_source_path, schema=schema)
-    return sanitize_dataset(bundle, profile, prep_plan)
 
 
 def handle_partition_build(args: argparse.Namespace) -> int:
@@ -96,8 +77,8 @@ def handle_partition_build(args: argparse.Namespace) -> int:
         master_seed=master_seed,
     )
 
-    # Reconstruct sanitized view
-    view = _reconstruct_sanitized_view(exp_dir)
+    # Reconstruct sanitized view using public stages API (REV-M2-08)
+    view = reconstruct_sanitized_view(exp_dir)
 
     # Build deterministic partition plan
     plan = build_partition_plan(view, config)
@@ -138,7 +119,7 @@ def handle_partition_verify(args: argparse.Namespace) -> int:
     # Mathematical invariant validation
     plan_dict = read_json(exp_dir / PARTITION_PLAN_REL_PATH)
     plan = partition_plan_from_dict(plan_dict)
-    view = _reconstruct_sanitized_view(exp_dir)
+    view = reconstruct_sanitized_view(exp_dir)
 
     validate_partition_plan(plan, view)
 

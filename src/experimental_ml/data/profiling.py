@@ -642,7 +642,7 @@ def evaluate_findings(
                     )
                 )
 
-    # 8. E1_TARGET_NOT_NUMERIC
+    # 8. E1_TARGET_NOT_NUMERIC & E1_TARGET_ZERO_VARIANCE
     if schema_task_type == TaskType.REGRESSION and schema_target_col in column_profiles:
         target_phys = column_profiles[schema_target_col].physical_type
         if target_phys in ("object", "bool"):
@@ -653,6 +653,21 @@ def evaluate_findings(
                     context={
                         "column": schema_target_col,
                         "physical_type": target_phys,
+                    },
+                )
+            )
+        elif (
+            target_profile.numeric_stats is not None
+            and (n_rows - column_profiles[schema_target_col].n_missing) > 1
+            and target_profile.numeric_stats.range == 0.0
+        ):
+            findings.append(
+                make_finding(
+                    code="E1_TARGET_ZERO_VARIANCE",
+                    message=f"Regression target '{schema_target_col}' has zero variance (constant value {target_profile.numeric_stats.min}).",
+                    context={
+                        "column": schema_target_col,
+                        "range": 0.0,
                     },
                 )
             )

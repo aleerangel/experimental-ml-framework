@@ -15,6 +15,7 @@ from experimental_ml.stages.stage_gates import (
     SPLITS_SCHEMA_REL_PATH,
     verify_partition_gate,
     verify_preparation_gate,
+    reconstruct_sanitized_view,
 )
 
 __all__ = [
@@ -27,4 +28,5 @@ __all__ = [
     "SPLITS_SCHEMA_REL_PATH",
     "verify_preparation_gate",
     "verify_partition_gate",
+    "reconstruct_sanitized_view",
 ]

@@ -27,6 +27,7 @@ from experimental_ml.data.profiling import (
 from experimental_ml.data.query import (
     get_column_array,
     slice_bundle_by_observation_ids,
+    slice_view_by_observation_ids,
 )
 from experimental_ml.data.schema import (
     ColumnSemanticType,
@@ -60,6 +61,7 @@ __all__ = [
     "load_dataset",
     "get_column_array",
     "slice_bundle_by_observation_ids",
+    "slice_view_by_observation_ids",
     "PreparationRule",
     "PreparationPlan",
     "SanitizedDatasetView",
