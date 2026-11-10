@@ -116,12 +116,12 @@ T4
 **Requirement**: EXP-02, EXP-03, EXP-04, EXP-05
 
 **Done when**:
-- [ ] `compute_pearson` and `compute_spearman` pass against standard mathematical definitions and handle ties via average fractional ranks
-- [ ] `compute_correlation_ratio` calculates $\eta = \sqrt{\text{SS}_{\text{between}} / \text{SS}_{\text{total}}} \in [0, 1]$
-- [ ] `compute_cramers_v` calculates $V \in [0, 1]$ derived from 2D contingency table
-- [ ] Zero variance, constant columns and degenerate math return `(nan, MetricStatus.UNDEFINED_NAN)`
-- [ ] Unit tests pass in `tests/unit/features/test_stats.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_stats.py -v`
+- [x] `compute_pearson` and `compute_spearman` pass against standard mathematical definitions and handle ties via average fractional ranks
+- [x] `compute_correlation_ratio` calculates $\eta = \sqrt{\text{SS}_{\text{between}} / \text{SS}_{\text{total}}} \in [0, 1]$
+- [x] `compute_cramers_v` calculates $V \in [0, 1]$ derived from 2D contingency table
+- [x] Zero variance, constant columns and degenerate math return `(nan, MetricStatus.UNDEFINED_NAN)`
+- [x] Unit tests pass in `tests/unit/features/test_stats.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_stats.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
