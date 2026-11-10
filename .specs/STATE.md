@@ -36,25 +36,18 @@
 
 ## Handoff
 
-- **Feature**: m2-hardening-and-m3-readiness (Hardening Pós-Auditoria do Marco M2 e Transição para o Marco M3)
-- **Phase / Task**: Concluído e Aceito — **Marco M2 (Stage 1 Data Pipeline) 100% Hardened, Homologado e Sincronizado**
+- **Feature**: m3-1-exploratory-features (Sub-marco M3.1 — Relatório Exploratório de Relações de Features)
+- **Phase / Task**: Concluído e Aceito — **Sub-marco M3.1 100% Homologado e Verificado**
 - **Completed**:
-  - Resolução formal dos 11 achados da auditoria de integridade do Marco M2:
-    - `REV-M2-01`: Compatibilização de códigos entre profiling e preparation (`E1_FEATURE_CONSTANT`, `E1_SCALE_DISPARITY`, `W1_SCALE_DISPARITY`) e marcação irresolvível de `E1_TARGET_CONSTANT`.
-    - `REV-M2-02`: Prevenção de folds vazios em `stratified_kfold_split`, `holdout_split`, `bootstrap_split`, `PartitionConfig` e asserção de invariante formal em `validate_partition_plan`.
-    - `REV-M2-03`: Rejeição estrita de NaNs/missing values em partições temporais (`temporal_split` e `validate_partition_plan`).
-    - `REV-M2-04`: Preservação de tipos primitivos (`int`, `bool`, `float`, `str`) em chaves de `target_label_mapping` via serialização JSON estruturada.
-    - `REV-M2-05`: Verificação estrita de correspondência de `source_plan_digest` no `verify_partition_gate`.
-    - `REV-M2-06`: Validação completa da matriz de splits para os 3 papéis (`TRAIN`, `VAL`, `EXCLUDED`).
-    - `REV-M2-07`: Pureza de runtime da CLI via PEP 562 (`numpy` e `hashlib` ausentes de `sys.modules`).
-    - `REV-M2-08`: Disponibilização das APIs públicas `slice_view_by_observation_ids` (`data/query.py`) e `reconstruct_sanitized_view` (`stages/stage_gates.py`).
-    - `REV-M2-09`, `REV-M2-10`, `REV-M2-11`: Emissão de `E1_TARGET_ZERO_VARIANCE`, documentação metodológica de empates temporais e acesso defensivo a `Finding.context`.
-  - Implementação de 17 testes de regressão dedicados em `tests/unit/test_m2_hardening_regression.py`.
-  - Suíte completa do repositório: 193 testes automatizados aprovados (100% de sucesso, 0 regressões).
-  - Parecer formal do *Independent Hardening Verifier* aprovado com veredito `PASS` (100% de conformidade).
-  - Commit registrado na branch `main`: `de7e8d6`.
-  - Documentação do repositório (`README.md`, `ETAPA_ATUAL_ENGENHARIA.md`, `ARQUITETURA_E_CONTRATOS.md`, `.specs/STATE.md`) integralmente sincronizada.
-- **In-progress**: Preparação e especificação da etapa M3 (Stage 2 Feature Engineering).
-- **Next step**: Iniciar especificação e design do Marco M3 (`.specs/features/m3-features/` e módulo `src/experimental_ml/features/`).
+  - Implementação dos modelos de dados imutáveis `ExploratoryFeatureReport`, `AssociationMeasure`, `RedundancyPair`, constante `SCOPE_EXPLORATORY_FULL_DATA = "EXPLORATORY_FULL_DATA"` e avisos metodológicos mandatórios (`CA-E2-01`, `EXP-01`, `EXP-07`).
+  - Serialização determinística `.to_dict()` e reconstrução `.from_dict()` compatível com JSON RFC 8259 (`allow_nan=False`).
+  - Implementação pura em NumPy dos algoritmos estatísticos `compute_pearson`, `compute_spearman` (com fractional ranking para empates), `compute_correlation_ratio` ($\eta$) e `compute_cramers_v` ($V$), com tratamento estrito de variância nula e degenerescência retornando `MetricStatus.UNDEFINED_NAN` (ADR-005, CA-GER-03, `EXP-02` a `EXP-05`).
+  - Implementação de `explore_features(view, redundancy_threshold=0.85)` com despacho por tipo de tarefa, matriz de redundância preditor-preditor e extração canônica ordenada de pares de alta redundância (`EXP-06`, `EXP-08`).
+  - Exportação da API pública em `src/experimental_ml/features/__init__.py`.
+  - Suíte completa de testes expandida para **208 testes automatizados** com 100% de aprovação (0 regressões).
+  - Parecer formal do *Independent Verifier* aprovado com veredito `PASS` (100% de conformidade, zero achados, `validate_verification.py` código 0).
+  - Commits registrados na branch `main`: `18d73dd`, `0da194e`, `acfa913`, `ae252a9`, `b757812`, `2d19ae7`.
+- **In-progress**: Preparação e especificação do Sub-marco M3.2 (Definição e Validação de Cenários de Features — `FeatureScenario`, `validate_scenarios`, `scenarios.json`).
+- **Next step**: Elaborar a especificação do Sub-marco M3.2 sob `.specs/features/m3-2-feature-scenarios/spec.md`.
 - **Blockers**: none
 - **Branch**: main
