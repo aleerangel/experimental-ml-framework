@@ -1,6 +1,6 @@
 # m3-4-cli-end-to-end proofs
 
-**HEAD**: e418c20
+**HEAD**: 99b5857
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 8 pass, 0 fail
@@ -50,5 +50,5 @@ collecting ... collected 1 item
 
 tests/integration/features/test_features_cli_integration.py::test_feat_08_end_to_end_cli_pipeline PASSED [100%]
 
-============================== 1 passed in 1.63s ===============================
+============================== 1 passed in 1.72s ===============================
 ```

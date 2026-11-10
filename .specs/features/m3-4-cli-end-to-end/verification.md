@@ -1,7 +1,7 @@
 # m3-4-cli-end-to-end verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at e418c20
+**Proofs**: `proofs.md` at 99b5857
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks
@@ -19,7 +19,7 @@
 
 ## Own examples
 
-Eight boundary, malformed input, missing directory, protected column leakage, and dictionary schema edge cases were independently executed and evaluated at `HEAD` (`e418c20`):
+Eight boundary, malformed input, missing directory, protected column leakage, and dictionary schema edge cases were independently executed and evaluated at `HEAD` (`99b5857`):
 
 1. **Diretório de experimento inexistente em `explore`, `scenarios` e `verify`**:
    - Invocados `expml features explore`, `expml features scenarios` e `expml features verify` apontando `--experiment-dir /caminho/inexistente`.
