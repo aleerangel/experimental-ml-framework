@@ -93,12 +93,12 @@ T4
 **Requirement**: SCN-01, SCN-02, SCN-03
 
 **Done when**:
-- [ ] `ScenarioMode` and `FeatureScenario` defined with immutability guarantees (`frozen=True, slots=True`)
-- [ ] `FIXED` mode enforces non-empty unique `selected_features` and forbids dynamic parameters
-- [ ] `DYNAMIC` mode enforces `strategy_name` and forbids pre-calculated `selected_features`
-- [ ] `.to_dict()` and `.from_dict()` perform lossless roundtrip conversion
-- [ ] Unit tests pass in `tests/unit/features/test_feature_scenarios.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_feature_scenarios.py -v`
+- [x] `ScenarioMode` and `FeatureScenario` defined with immutability guarantees (`frozen=True, slots=True`)
+- [x] `FIXED` mode enforces non-empty unique `selected_features` and forbids dynamic parameters
+- [x] `DYNAMIC` mode enforces `strategy_name` and forbids pre-calculated `selected_features`
+- [x] `.to_dict()` and `.from_dict()` perform lossless roundtrip conversion
+- [x] Unit tests pass in `tests/unit/features/test_feature_scenarios.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_feature_scenarios.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
