@@ -36,20 +36,21 @@
 
 ## Handoff
 
-- **Feature**: m3-2-feature-scenarios (Sub-marco M3.2 — Definição e Validação de Cenários de Features)
-- **Phase / Task**: Concluído e Aceito — **Sub-marco M3.2 100% Homologado e Verificado**
+- **Feature**: m3-3-intra-fold-selection (Sub-marco M3.3 — Seleção Dinâmica Intra-Fold de Features e Estabilidade)
+- **Phase / Task**: Concluído e Aceito — **Sub-marco M3.3 100% Homologado e Verificado**
 - **Completed**:
-  - Implementação do modelo de dados imutável `FeatureScenario` suportando `ScenarioMode.FIXED` e `ScenarioMode.DYNAMIC` com validação de slug e parâmetros (`SCN-01`).
-  - Restrições estritas do modo `FIXED` (exigência de sequência não-vazia de atributos únicos e proibição de parâmetros dinâmicos) (`SCN-02`).
-  - Salvaguarda mandatória anti-leakage para modo `DYNAMIC` (exigência de `strategy_name` e proibição irrestrita de `selected_features` pré-calculados) (`SCN-03`, `RF2.4`, `ADR-002`).
-  - Implementação de `validate_scenarios(scenarios, view)`: unicidade de IDs, validação de pertinência a `candidate_feature_cols`, disjunção estrita com papéis protegidos (alvo, grupo, IDs, tempo, ignore) e emissão de `ScenariosCatalog` vinculado a `view.dataset_hash` (`SCN-04`, `SCN-05`).
-  - Serialização determinística `.to_dict()` e reconstrução `.from_dict()` compatível com JSON RFC 8259 (`SCN-06`).
-  - Persistência atômica (`save_scenarios`, `load_scenarios`) com `write_json_atomic` e proteção de sobreescrita (`SCN-07`).
-  - Portão de validação de etapa `verify_scenarios_gate(target, view)` em `stages/stage_gates.py` com verificação física de arquivo, equivalência de `dataset_hash` e re-validação estrutural (`SCN-08`).
-  - Suíte completa de testes expandida para **218 testes automatizados** com 100% de aprovação (0 regressões).
+  - Implementação do modelo imutável `SelectionResult(frozen=True, slots=True)` com tuplas imutáveis, mapeamentos protegidos via `MappingProxyType`, e roundtrip `.to_dict()` / `.from_dict()` (`SEL-01`).
+  - Implementação de `select_features_in_fold`: bypass funcional puro imediato para cenários `FIXED` sem exigir `y_train` e sem efetuar cálculos redundantes (`SEL-02`).
+  - Implementação de seleção dinâmica via `VARIANCE_THRESHOLD` ajustada estritamente sobre `X_train` (`SEL-03`).
+  - Implementação de seleção dinâmica via `TOP_K_RELEVANCE` ranqueando preditores pelo grau de associação com `y_train` via métricas em NumPy puro (`SEL-04`).
+  - Implementação de `apply_feature_selection(X_eval, selection_result)` projetando colunas estritamente na ordem definida no treino e rejeitando ausências parciais com `ContractViolationError` (`SEL-05`).
+  - Implementação do modelo `SelectionStabilityReport` e da função `compute_selection_stability(fold_selections, n_total_candidates)` calculando similaridade pareada de Jaccard e índice de Kuncheva corrigido para o acaso com tratamento rigoroso de casos de fronteira (`SEL-06`).
+  - Salvaguarda mandatória contra seleções vazias (lançando `DataIntegrityError` quando 0 preditores atendem aos critérios de seleção dinâmica) (`SEL-07`).
+  - Re-exportação pública em `experimental_ml.features` e suíte de integração ponta a ponta validando ausência de leakage e pureza estrita de runtime sem bibliotecas externas de ML (`SEL-08`, `XCUT-02`).
+  - Suíte completa de testes expandida para **228 testes automatizados** com 100% de aprovação (0 regressões).
   - Parecer formal do *Independent Verifier* aprovado com veredito `PASS` (100% de conformidade, zero achados, `validate_verification.py` código 0).
-  - Commits registrados na branch `feat/m3-2-feature-scenarios`: `f9eecbd`, `a48ce47`, `411a046`, `053ac23`, `187b11f`, `f4b21f4`, `2a5c8f4`.
-- **In-progress**: Preparação e especificação do Sub-marco M3.3 (Seleção Dinâmica de Features Intra-Fold — `select_features_in_fold`, `SelectionResult`, e medição de estabilidade de seleção).
-- **Next step**: Criar branch `feat/m3-3-intra-fold-selection` a partir da integração e elaborar a especificação sob `.specs/features/m3-3-intra-fold-selection/spec.md`.
+  - Commits registrados na branch `feat/m3-3-intra-fold-selection`: `8c224fa`, `8fa8430`, `0d386c7`, `abe1685`, `044bc2c`, `fe9f201`.
+- **In-progress**: Preparação do Sub-marco M3.4 (CLI de Features e Homologação Ponta a Ponta — `expml features explore` e `expml features scenarios`).
+- **Next step**: Fazer merge da branch `feat/m3-3-intra-fold-selection` na `main`, criar branch `feat/m3-4-cli-end-to-end` e elaborar a especificação sob `.specs/features/m3-4-cli-end-to-end/spec.md`.
 - **Blockers**: none
-- **Branch**: feat/m3-2-feature-scenarios
+- **Branch**: feat/m3-3-intra-fold-selection
