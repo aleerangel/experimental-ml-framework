@@ -167,7 +167,120 @@ class FeatureScenario:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class ScenariosCatalog:
+    """Immutable catalog of validated feature scenarios bound to a sanitized dataset hash."""
+
+    scenarios: tuple[FeatureScenario, ...]
+    dataset_hash: str
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.dataset_hash, str) or not self.dataset_hash.strip():
+            raise ConfigurationError("dataset_hash must be a non-empty string.")
+
+        if not isinstance(self.scenarios, tuple):
+            object.__setattr__(self, "scenarios", tuple(self.scenarios))
+
+        if not isinstance(self.metadata, MappingProxyType):
+            object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize catalog to a JSON-compliant primitive dictionary."""
+        return {
+            "dataset_hash": self.dataset_hash,
+            "scenarios": [s.to_dict() for s in self.scenarios],
+            "metadata": dict(self.metadata),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> ScenariosCatalog:
+        """Reconstruct catalog from dictionary representation."""
+        scenarios = tuple(FeatureScenario.from_dict(item) for item in data.get("scenarios", []))
+        return cls(
+            scenarios=scenarios,
+            dataset_hash=data["dataset_hash"],
+            metadata=MappingProxyType(dict(data.get("metadata", {}))),
+        )
+
+
+def validate_scenarios(
+    scenarios: Sequence[FeatureScenario],
+    view: Any,
+) -> ScenariosCatalog:
+    """Validate a collection of feature scenarios against a SanitizedDatasetView.
+
+    Verifies scenario_id uniqueness, candidate feature membership, protected column
+    disjunction, and binds the resulting catalog to view.dataset_hash (SCN-04, SCN-05).
+
+    Args:
+        scenarios: Sequence of FeatureScenario instances to validate.
+        view: Validated SanitizedDatasetView from Stage 1 (M2.2).
+
+    Returns:
+        Immutable ScenariosCatalog bound to view.dataset_hash.
+
+    Raises:
+        ContractViolationError: If view is not a SanitizedDatasetView, or if any scenario
+            violates candidate membership or protected column rules.
+        ConfigurationError: If scenarios sequence is empty or has duplicate scenario_ids.
+    """
+    # Duck-typing / type check for SanitizedDatasetView without hard circular imports
+    if not hasattr(view, "candidate_feature_cols") or not hasattr(view, "schema") or not hasattr(view, "dataset_hash"):
+        raise ContractViolationError(
+            f"validate_scenarios requires a SanitizedDatasetView, got {type(view).__name__}"
+        )
+
+    if not scenarios:
+        raise ConfigurationError("At least one FeatureScenario must be provided.")
+
+    seen_ids: set[str] = set()
+    for s in scenarios:
+        if not isinstance(s, FeatureScenario):
+            raise ContractViolationError(
+                f"All elements in scenarios must be FeatureScenario instances, got {type(s).__name__}"
+            )
+        if s.scenario_id in seen_ids:
+            raise ConfigurationError(
+                f"Duplicate scenario_id detected: '{s.scenario_id}'"
+            )
+        seen_ids.add(s.scenario_id)
+
+    schema = view.schema
+    candidate_cols = set(view.candidate_feature_cols)
+
+    # Protected columns that must never be used as predictor features
+    target_cols = {schema.target_col} if isinstance(schema.target_col, str) else set(schema.target_col)
+    group_cols = {schema.group_col} if schema.group_col else set()
+    id_cols = {schema.observation_id_col} if schema.observation_id_col else set()
+    time_cols = {schema.time_col} if schema.time_col else set()
+    ignore_cols = set(schema.ignore_cols) if schema.ignore_cols else set()
+
+    protected_cols = target_cols | group_cols | id_cols | time_cols | ignore_cols
+
+    for s in scenarios:
+        if s.mode == ScenarioMode.FIXED:
+            for feat in s.selected_features:
+                if feat in protected_cols:
+                    raise ContractViolationError(
+                        f"Fixed scenario '{s.scenario_id}' includes protected column '{feat}' "
+                        f"(intersecting with target, group, observation_id, time, or ignore columns)."
+                    )
+                if feat not in candidate_cols:
+                    raise ContractViolationError(
+                        f"Fixed scenario '{s.scenario_id}' includes column '{feat}' which is not in candidate_feature_cols."
+                    )
+
+    return ScenariosCatalog(
+        scenarios=tuple(scenarios),
+        dataset_hash=view.dataset_hash,
+        metadata=MappingProxyType({"n_scenarios": len(scenarios)}),
+    )
+
+
 __all__ = [
     "ScenarioMode",
     "FeatureScenario",
+    "ScenariosCatalog",
+    "validate_scenarios",
 ]

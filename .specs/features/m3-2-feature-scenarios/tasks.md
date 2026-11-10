@@ -117,12 +117,12 @@ T4
 **Requirement**: SCN-04, SCN-05, SCN-06
 
 **Done when**:
-- [ ] `ScenariosCatalog` defined with immutability and roundtrip serialization
-- [ ] `validate_scenarios` verifies unique IDs, candidate feature membership, and protected column disjunction
-- [ ] Rejects duplicate IDs, missing features, or protected column inclusions with typed domain errors
-- [ ] Returns `ScenariosCatalog` bound to `view.dataset_hash`
-- [ ] Unit tests pass in `tests/unit/features/test_feature_scenarios.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_feature_scenarios.py -v`
+- [x] `ScenariosCatalog` defined with immutability and roundtrip serialization
+- [x] `validate_scenarios` verifies unique IDs, candidate feature membership, and protected column disjunction
+- [x] Rejects duplicate IDs, missing features, or protected column inclusions with typed domain errors
+- [x] Returns `ScenariosCatalog` bound to `view.dataset_hash`
+- [x] Unit tests pass in `tests/unit/features/test_feature_scenarios.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_feature_scenarios.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
