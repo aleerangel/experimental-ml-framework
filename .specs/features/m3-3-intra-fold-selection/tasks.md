@@ -93,12 +93,12 @@ T4
 **Requirement**: SEL-01, SEL-02, SEL-03, SEL-04, SEL-07
 
 **Done when**:
-- [ ] `SelectionResult` defined with frozen slots and mapping proxies
-- [ ] `select_features_in_fold` bypasses calculations for `FIXED` scenarios
-- [ ] `VARIANCE_THRESHOLD` and `TOP_K_RELEVANCE` execute strictly on training data
-- [ ] Rejects empty selections with `DataIntegrityError`
-- [ ] Unit tests pass in `tests/unit/features/test_selection.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_selection.py -v`
+- [x] `SelectionResult` defined with frozen slots and mapping proxies
+- [x] `select_features_in_fold` bypasses calculations for `FIXED` scenarios
+- [x] `VARIANCE_THRESHOLD` and `TOP_K_RELEVANCE` execute strictly on training data
+- [x] Rejects empty selections with `DataIntegrityError`
+- [x] Unit tests pass in `tests/unit/features/test_selection.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_selection.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
