@@ -206,8 +206,8 @@ Proof: run integration | tests/integration/features/test_features_integration.py
 ## Handoff
 
 **Settled mid-build**: none  
-**Dispatched**: none  
-**Walked**: pending  
+**Dispatched**: Verifier (validate.md)  
+**Walked**: done (check_proofs passed at HEAD ae252a9)  
 
 ---
 
