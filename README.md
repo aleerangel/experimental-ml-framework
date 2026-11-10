@@ -13,8 +13,8 @@ O projeto fornece infraestrutura modular, determinística e pedagógica para con
 | **Versão Atual** | `0.1.0.dev0` (Hatchling / PEP 517 / PEP 621) |
 | **Compatibilidade** | Python `>= 3.10` (testado e verificado em Python 3.12) |
 | **Dependência Única de Runtime** | `numpy >= 1.24.0` |
-| **Fase Atual do Projeto** | **Fase 4: Implementação TDD do MVP** (Marcos M1 e M2 concluídos e consolidados; Sub-marcos M3.1, M3.2 e M3.3 concluídos e aceitos) |
-| **Suíte de Testes** | **228 verificações automatizadas** com 100% de aprovação via `pytest` |
+| **Fase Atual do Projeto** | **Fase 4: Implementação TDD do MVP** (Marcos M1, M2 e M3 concluídos, consolidados e aceitos) |
+| **Suíte de Testes** | **236 verificações automatizadas** com 100% de aprovação via `pytest` |
 | **Governança Técnica** | TLC Spec-Driven Development (`spec.md`, `design.md`, `tasks.md`, `proofs.md`, `verification.md`) |
 
 ---
@@ -103,13 +103,26 @@ expml data sanitize \
   --experiment-dir experimentos/meu_ensaio \
   --rules caminho/para/regras.json
 
-# 4. Geração de particionamento compartilhado e matriz de divisões
+# 4. Exploração de relações estatísticas e redundâncias de features
+expml features explore \
+  --experiment-dir experimentos/meu_ensaio
+
+# 5. Validação e persistência de cenários de features
+expml features scenarios \
+  --experiment-dir experimentos/meu_ensaio \
+  --scenarios caminho/para/scenarios.json
+
+# 6. Verificação do portão de validação de cenários
+expml features verify \
+  --experiment-dir experimentos/meu_ensaio
+
+# 7. Geração de particionamento compartilhado e matriz de divisões
 expml partition build \
   --experiment-dir experimentos/meu_ensaio \
   --config caminho/para/partition_config.json \
   --seed 42
 
-# 5. Verificação de portões de etapa e integridade matemática das partições
+# 8. Verificação de portões de etapa e integridade matemática das partições
 expml partition verify \
   --experiment-dir experimentos/meu_ensaio
 ```
@@ -434,6 +447,8 @@ experimental-ml-framework/
 │       ├── cli/                     # Interface de linha de comando (Nível 7)
 │       │   ├── __init__.py
 │       │   ├── cmd_data.py          # Subcomandos expml data profile e sanitize
+│       │   ├── cmd_data.py          # Subcomandos expml data profile e sanitize
+│       │   ├── cmd_features.py      # Subcomandos expml features explore, scenarios e verify
 │       │   ├── cmd_partition.py     # Subcomandos expml partition build e verify
 │       │   └── main.py              # Ponto de entrada expml e despachante
 │       ├── core/                    # Núcleo transversal de domínio (Nível 0)
@@ -479,7 +494,7 @@ experimental-ml-framework/
 │           ├── storage.py           # write_splits_csv_gz determinístico e schema
 │           ├── types.py             # PartitionConfig, PartitionPlan, FoldPartition
 │           └── validators.py        # validate_partition_plan e invariantes matemáticos
-├── tests/                           # Suíte de testes automatizados (228 testes)
+├── tests/                           # Suíte de testes automatizados (236 testes)
 │   ├── integration/                 # Testes de integração transversal
 │   ├── test_smoke.py                # Testes de fumaça da CLI e empacotamento
 │   └── unit/                        # Testes unitários (core, metrics, data, validation, cli, stages, features, hardening)
@@ -502,7 +517,7 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 | **M1.4** | **Datasets & Schemas:** Ingestão tabular imutável (`load_dataset`, `DatasetBundle`), buffers `bytes` imutáveis recusando escrita, parser RFC 4180 e tipagem semântica. | **Concluído e Aceito** |
 | **M1.5** | **Foundation Hardening:** Saneamento transversal dos 10 achados de auditoria, framing binário de `dataset_hash`, detecção centralizada de `NaN` e testes de integração. | **Concluído e Aceito** |
 | **M2** | **Diagnóstico, Saneamento e Particionamento:** Pipeline de dados da Etapa 1 e Etapa 4A completo (**M2.1 a M2.5 Concluídos e Aceitos**): triagem (`profile_dataset`), plano e saneamento (`create_preparation_plan`, `sanitize_dataset`), particionamento compartilhado (`build_partition_plan`), persistência atômica e portões de etapa (`stage_gates`), e CLI unificada com homologação fim a fim. **Hardening pós-auditoria consolidado (REV-M2-01 a REV-M2-11) com 193 testes aprovados.** | **Concluído e Aceito** |
-| **M3** | **Cenários de Features:** **M3.1, M3.2 e M3.3 Concluídos e Aceitos:** Análise exploratória univariada/bivariada (`explore_features`), matriz de redundância preditor-preditor, rotulagem mandatória `EXPLORATORY_FULL_DATA`, modelagem declarativa de cenários fixos e dinâmicos (`FeatureScenario`), validação estrita contra visão saneada (`validate_scenarios`), persistência atômica (`save_scenarios`, `load_scenarios`), portão de validação de etapa `verify_scenarios_gate`, seleção intra-fold de features (`select_features_in_fold`), projeção em avaliação (`apply_feature_selection`) e análise de estabilidade (`compute_selection_stability` via Jaccard e Kuncheva corrigido pelo acaso), totalizando 228 testes aprovados. **M3.4 planejado** (CLI de features e homologação fim a fim). | **Em Andamento (M3.1, M3.2 e M3.3 Concluídos)** |
+| **M3** | **Cenários de Features:** **Marco M3 Integralmente Concluído e Aceito (M3.1 a M3.4):** Análise exploratória univariada/bivariada (`explore_features`), matriz de redundância preditor-preditor, rotulagem mandatória `EXPLORATORY_FULL_DATA`, modelagem declarativa de cenários fixos e dinâmicos (`FeatureScenario`), validação estrita contra visão saneada (`validate_scenarios`), persistência atômica (`save_scenarios`, `load_scenarios`), portão de validação de etapa `verify_scenarios_gate`, seleção intra-fold de features (`select_features_in_fold`), projeção em avaliação (`apply_feature_selection`), análise de estabilidade (`compute_selection_stability` via Jaccard e Kuncheva corrigido pelo acaso), subcomandos CLI (`expml features explore`, `scenarios`, `verify`), pureza de runtime `CLI-10` e homologação integrada fim a fim em subprocessos isolados, totalizando 236 testes aprovados com 100% de sucesso. | **Concluído e Aceito** |
 | **M4** | **Modelos e Tuning:** Registro de modelos (`models`), pré-processamento em duas camadas e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
 | **M5** | **Execução Matricial:** Orquestração da matriz $M \times C \times F$ (`orchestration`), tolerância a falhas, persistência e retomada (*Checkpoint & Resume*). | Planejado |
 | **M6** | **Estatística:** Consolidação descritiva, teste $t$ corrigido de Nadeau-Bengio, Wilcoxon pareado, controle de FWER/FDR (Holm/BH) e Fronteira de Pareto (`statistics`). | Planejado |

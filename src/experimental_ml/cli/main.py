@@ -61,6 +61,25 @@ def build_parser() -> argparse.ArgumentParser:
     verify_p = part_subparsers.add_parser("verify", help="Verify partition plan invariants and stage gates.")
     verify_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
 
+    # --- features command ---
+    feat_parser = subparsers.add_parser("features", help="Feature exploration and scenario configuration.")
+    feat_subparsers = feat_parser.add_subparsers(dest="subcommand", metavar="<subcommand>")
+
+    # features explore
+    explore_p = feat_subparsers.add_parser("explore", help="Run exploratory feature analysis.")
+    explore_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
+    explore_p.add_argument("--force", action="store_true", help="Overwrite existing output artifacts.")
+
+    # features scenarios
+    scenarios_p = feat_subparsers.add_parser("scenarios", help="Validate and save feature scenarios.")
+    scenarios_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
+    scenarios_p.add_argument("--scenarios", required=True, help="Path to scenarios JSON file.")
+    scenarios_p.add_argument("--force", action="store_true", help="Overwrite existing output artifacts.")
+
+    # features verify
+    feat_verify_p = feat_subparsers.add_parser("verify", help="Verify feature scenarios gate.")
+    feat_verify_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
+
     return parser
 
 
@@ -114,6 +133,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return handle_partition_build(args)
             if args.subcommand == "verify":
                 return handle_partition_verify(args)
+        elif args.command == "features":
+            from experimental_ml.cli.cmd_features import (
+                handle_features_explore,
+                handle_features_scenarios,
+                handle_features_verify,
+            )
+
+            if args.subcommand == "explore":
+                return handle_features_explore(args)
+            if args.subcommand == "scenarios":
+                return handle_features_scenarios(args)
+            if args.subcommand == "verify":
+                return handle_features_verify(args)
     except ExperimentalMLError as exc:
         sys.stderr.write(f"Error: {exc}\n")
         return 2

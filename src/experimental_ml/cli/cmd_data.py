@@ -60,6 +60,7 @@ def _load_schema_spec(schema_path: Path | str) -> DatasetSchemaSpec:
         column_semantic_types=semantic_types,
         group_col=d.get("group_col"),
         time_col=d.get("time_col"),
+        observation_id_col=d.get("observation_id_col"),
         ignore_cols=tuple(d.get("ignore_cols", ())),
     )
 
