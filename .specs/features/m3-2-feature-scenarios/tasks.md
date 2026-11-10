@@ -141,11 +141,11 @@ T4
 **Requirement**: SCN-07, SCN-08
 
 **Done when**:
-- [ ] `save_scenarios` writes `scenarios.json` atomically and respects `overwrite=False`
-- [ ] `load_scenarios` restores validated `ScenariosCatalog`
-- [ ] `verify_scenarios_gate` checks file existence, dataset hash equality, and structural re-validation
-- [ ] Unit tests pass in `tests/unit/features/test_scenarios_storage.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/features/ -v`
+- [x] `save_scenarios` writes `scenarios.json` atomically and respects `overwrite=False`
+- [x] `load_scenarios` restores validated `ScenariosCatalog`
+- [x] `verify_scenarios_gate` checks file existence, dataset hash equality, and structural re-validation
+- [x] Unit tests pass in `tests/unit/features/test_scenarios_storage.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/features/ -v`
 
 **Tests**: unit  
 **Gate**: quick  

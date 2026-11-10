@@ -17,6 +17,7 @@ from experimental_ml.core.findings import (
     ContractViolationError,
     DataIntegrityError,
 )
+from experimental_ml.core.storage import read_json, write_json_atomic
 
 _VALID_SLUG_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
@@ -278,9 +279,56 @@ def validate_scenarios(
     )
 
 
+def save_scenarios(
+    catalog: ScenariosCatalog,
+    path: Any,
+    *,
+    overwrite: bool = False,
+) -> None:
+    """Save ScenariosCatalog to disk atomically formatted as UTF-8 JSON.
+
+    Args:
+        catalog: Validated ScenariosCatalog instance.
+        path: File destination path (typically configuration/scenarios.json).
+        overwrite: If False, raises ConfigurationError if destination exists (STORE-07).
+
+    Raises:
+        ContractViolationError: If catalog is not a ScenariosCatalog.
+        ConfigurationError: If path exists and overwrite=False.
+    """
+    if not isinstance(catalog, ScenariosCatalog):
+        raise ContractViolationError(
+            f"save_scenarios requires a ScenariosCatalog instance, got {type(catalog).__name__}"
+        )
+    write_json_atomic(path, catalog.to_dict(), overwrite=overwrite)
+
+
+def load_scenarios(path: Any) -> ScenariosCatalog:
+    """Load and reconstruct a ScenariosCatalog from a JSON file.
+
+    Args:
+        path: Path to scenarios.json document.
+
+    Returns:
+        Reconstructed ScenariosCatalog instance.
+
+    Raises:
+        FileNotFoundError: If path does not exist.
+        ConfigurationError: If document schema or data is invalid.
+    """
+    data = read_json(path)
+    if not isinstance(data, dict) or "scenarios" not in data or "dataset_hash" not in data:
+        raise ConfigurationError(
+            f"Invalid scenarios configuration document at '{path}'. Expected dict with 'scenarios' and 'dataset_hash'."
+        )
+    return ScenariosCatalog.from_dict(data)
+
+
 __all__ = [
     "ScenarioMode",
     "FeatureScenario",
     "ScenariosCatalog",
     "validate_scenarios",
+    "save_scenarios",
+    "load_scenarios",
 ]
