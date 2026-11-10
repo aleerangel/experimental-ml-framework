@@ -206,8 +206,8 @@ Proof: run integration | tests/integration/features/test_scenarios_integration.p
 ## Handoff
 
 **Settled mid-build**: none  
-**Dispatched**: none  
-**Walked**: pending  
+**Dispatched**: Verifier (validate.md)  
+**Walked**: done (check_proofs passed at HEAD 187b11f)  
 
 ---
 
