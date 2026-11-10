@@ -36,18 +36,20 @@
 
 ## Handoff
 
-- **Feature**: m3-1-exploratory-features (Sub-marco M3.1 — Relatório Exploratório de Relações de Features)
-- **Phase / Task**: Concluído e Aceito — **Sub-marco M3.1 100% Homologado e Verificado**
+- **Feature**: m3-2-feature-scenarios (Sub-marco M3.2 — Definição e Validação de Cenários de Features)
+- **Phase / Task**: Concluído e Aceito — **Sub-marco M3.2 100% Homologado e Verificado**
 - **Completed**:
-  - Implementação dos modelos de dados imutáveis `ExploratoryFeatureReport`, `AssociationMeasure`, `RedundancyPair`, constante `SCOPE_EXPLORATORY_FULL_DATA = "EXPLORATORY_FULL_DATA"` e avisos metodológicos mandatórios (`CA-E2-01`, `EXP-01`, `EXP-07`).
-  - Serialização determinística `.to_dict()` e reconstrução `.from_dict()` compatível com JSON RFC 8259 (`allow_nan=False`).
-  - Implementação pura em NumPy dos algoritmos estatísticos `compute_pearson`, `compute_spearman` (com fractional ranking para empates), `compute_correlation_ratio` ($\eta$) e `compute_cramers_v` ($V$), com tratamento estrito de variância nula e degenerescência retornando `MetricStatus.UNDEFINED_NAN` (ADR-005, CA-GER-03, `EXP-02` a `EXP-05`).
-  - Implementação de `explore_features(view, redundancy_threshold=0.85)` com despacho por tipo de tarefa, matriz de redundância preditor-preditor e extração canônica ordenada de pares de alta redundância (`EXP-06`, `EXP-08`).
-  - Exportação da API pública em `src/experimental_ml/features/__init__.py`.
-  - Suíte completa de testes expandida para **208 testes automatizados** com 100% de aprovação (0 regressões).
+  - Implementação do modelo de dados imutável `FeatureScenario` suportando `ScenarioMode.FIXED` e `ScenarioMode.DYNAMIC` com validação de slug e parâmetros (`SCN-01`).
+  - Restrições estritas do modo `FIXED` (exigência de sequência não-vazia de atributos únicos e proibição de parâmetros dinâmicos) (`SCN-02`).
+  - Salvaguarda mandatória anti-leakage para modo `DYNAMIC` (exigência de `strategy_name` e proibição irrestrita de `selected_features` pré-calculados) (`SCN-03`, `RF2.4`, `ADR-002`).
+  - Implementação de `validate_scenarios(scenarios, view)`: unicidade de IDs, validação de pertinência a `candidate_feature_cols`, disjunção estrita com papéis protegidos (alvo, grupo, IDs, tempo, ignore) e emissão de `ScenariosCatalog` vinculado a `view.dataset_hash` (`SCN-04`, `SCN-05`).
+  - Serialização determinística `.to_dict()` e reconstrução `.from_dict()` compatível com JSON RFC 8259 (`SCN-06`).
+  - Persistência atômica (`save_scenarios`, `load_scenarios`) com `write_json_atomic` e proteção de sobreescrita (`SCN-07`).
+  - Portão de validação de etapa `verify_scenarios_gate(target, view)` em `stages/stage_gates.py` com verificação física de arquivo, equivalência de `dataset_hash` e re-validação estrutural (`SCN-08`).
+  - Suíte completa de testes expandida para **218 testes automatizados** com 100% de aprovação (0 regressões).
   - Parecer formal do *Independent Verifier* aprovado com veredito `PASS` (100% de conformidade, zero achados, `validate_verification.py` código 0).
-  - Commits registrados na branch `main`: `18d73dd`, `0da194e`, `acfa913`, `ae252a9`, `b757812`, `2d19ae7`.
-- **In-progress**: Preparação e especificação do Sub-marco M3.2 (Definição e Validação de Cenários de Features — `FeatureScenario`, `validate_scenarios`, `scenarios.json`).
-- **Next step**: Elaborar a especificação do Sub-marco M3.2 sob `.specs/features/m3-2-feature-scenarios/spec.md`.
+  - Commits registrados na branch `feat/m3-2-feature-scenarios`: `f9eecbd`, `a48ce47`, `411a046`, `053ac23`, `187b11f`, `f4b21f4`, `2a5c8f4`.
+- **In-progress**: Preparação e especificação do Sub-marco M3.3 (Seleção Dinâmica de Features Intra-Fold — `select_features_in_fold`, `SelectionResult`, e medição de estabilidade de seleção).
+- **Next step**: Criar branch `feat/m3-3-intra-fold-selection` a partir da integração e elaborar a especificação sob `.specs/features/m3-3-intra-fold-selection/spec.md`.
 - **Blockers**: none
-- **Branch**: main
+- **Branch**: feat/m3-2-feature-scenarios

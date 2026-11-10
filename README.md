@@ -13,8 +13,8 @@ O projeto fornece infraestrutura modular, determinística e pedagógica para con
 | **Versão Atual** | `0.1.0.dev0` (Hatchling / PEP 517 / PEP 621) |
 | **Compatibilidade** | Python `>= 3.10` (testado e verificado em Python 3.12) |
 | **Dependência Única de Runtime** | `numpy >= 1.24.0` |
-| **Fase Atual do Projeto** | **Fase 4: Implementação TDD do MVP** (Marcos M1 e M2 concluídos e consolidados; Sub-marco M3.1 de exploração de features concluído e aceito) |
-| **Suíte de Testes** | **208 verificações automatizadas** com 100% de aprovação via `pytest` |
+| **Fase Atual do Projeto** | **Fase 4: Implementação TDD do MVP** (Marcos M1 e M2 concluídos e consolidados; Sub-marcos M3.1 e M3.2 concluídos e aceitos) |
+| **Suíte de Testes** | **218 verificações automatizadas** com 100% de aprovação via `pytest` |
 | **Governança Técnica** | TLC Spec-Driven Development (`spec.md`, `design.md`, `tasks.md`, `proofs.md`, `verification.md`) |
 
 ---
@@ -387,7 +387,7 @@ pytest tests/integration/ -v
 pytest tests/test_smoke.py -v
 ```
 
-### Comportamento Verificado (208 Verificações com 100% de Sucesso)
+### Comportamento Verificado (218 Verificações com 100% de Sucesso)
 
 - **12 testes de fumaça (`tests/test_smoke.py`):** Configuração de build, metadados em `pyproject.toml`, versão pública `0.1.0.dev0` e códigos de saída da CLI (`--version`, `--help`, flags inválidas com código `2`).
 - **22 testes de núcleo (`tests/unit/test_core.py`):** Imutabilidade de identificadores, determinismo de sementes (`SeedSequence`), regras de hashing do ADR-007 e detecção centralizada de ausentes (`is_nan_scalar`, `is_missing_scalar`).
@@ -398,7 +398,7 @@ pytest tests/test_smoke.py -v
 - **16 testes de preparação e saneamento (`tests/unit/data/test_preparation.py`):** Regras de saneamento, plano determinístico `READY` vs `INCOMPLETE` e emissão de `SanitizedDatasetView`.
 - **16 testes de particionamento e validação (`tests/unit/validation/`):** Estratégias K-Fold, Stratified, Group, Bootstrap, Temporal e Holdout, validação matemática de disjunção e determinismo de `splits.csv.gz`.
 - **17 testes de hardening pós-auditoria (`tests/unit/test_m2_hardening_regression.py`):** Cobertura dedicada dos achados `REV-M2-01` a `REV-M2-11` (compatibilidade profiling/preparation, prevenção de folds vazios, rejeição de missing/NaN em tempos, fidelidade de tipos JSON, integridade de digests no partition gate, validação integral de papéis em splits, pureza de tempo de execução da CLI e API pública `slice_view_by_observation_ids`).
-- **15 testes de features (`tests/unit/features/`, `tests/integration/features/`):** Modelos de relatório exploratório (`ExploratoryFeatureReport`, `AssociationMeasure`, `RedundancyPair`), algoritmos estatísticos em NumPy puro (Pearson, Spearman com postos médios para empates, Razão de Correlação $\eta$, V de Cramér), matriz de redundância preditor-preditor, rotulagem mandatória `EXPLORATORY_FULL_DATA` e pureza em runtime (XCUT-02).
+- **25 testes de features (`tests/unit/features/`, `tests/integration/features/`):** Modelos de relatório exploratório (`ExploratoryFeatureReport`, `AssociationMeasure`, `RedundancyPair`), algoritmos estatísticos em NumPy puro (Pearson, Spearman com postos médios para empates, Razão de Correlação $\eta$, V de Cramér), matriz de redundância preditor-preditor, modelos declarativos de cenários (`FeatureScenario`, `ScenariosCatalog`), validação estrita contra visão saneada, salvaguarda anti-leakage para cenários dinâmicos, persistência atômica (`save_scenarios`, `load_scenarios`), portão de etapa `verify_scenarios_gate` e pureza em runtime (`XCUT-02`).
 - **4 testes de codecs e descritores (`tests/unit/data/test_codecs.py`, `tests/unit/validation/test_splits_storage.py`):** Serialização e desserialização sem perda de descritores e planos.
 - **2 testes de portões de etapa (`tests/unit/stages/test_stage_gates.py`):** Bloqueio por divergência de hashes e rejeição de matrizes de splits adulteradas.
 - **13 testes unitários de CLI (`tests/unit/cli/`):** Despachante hierárquico, supressão de tracebacks em código 2, pureza arquitetural sem `numpy`/`hashlib`, ocultação de hashes e subcomandos de dados e partições.
@@ -499,7 +499,7 @@ O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes
 | **M1.4** | **Datasets & Schemas:** Ingestão tabular imutável (`load_dataset`, `DatasetBundle`), buffers `bytes` imutáveis recusando escrita, parser RFC 4180 e tipagem semântica. | **Concluído e Aceito** |
 | **M1.5** | **Foundation Hardening:** Saneamento transversal dos 10 achados de auditoria, framing binário de `dataset_hash`, detecção centralizada de `NaN` e testes de integração. | **Concluído e Aceito** |
 | **M2** | **Diagnóstico, Saneamento e Particionamento:** Pipeline de dados da Etapa 1 e Etapa 4A completo (**M2.1 a M2.5 Concluídos e Aceitos**): triagem (`profile_dataset`), plano e saneamento (`create_preparation_plan`, `sanitize_dataset`), particionamento compartilhado (`build_partition_plan`), persistência atômica e portões de etapa (`stage_gates`), e CLI unificada com homologação fim a fim. **Hardening pós-auditoria consolidado (REV-M2-01 a REV-M2-11) com 193 testes aprovados.** | **Concluído e Aceito** |
-| **M3** | **Cenários de Features:** **M3.1 Concluído e Aceito:** Análise exploratória univariada/bivariada (`explore_features`), matriz de redundância preditor-preditor, rotulagem mandatória `EXPLORATORY_FULL_DATA` e 3 avisos metodológicos do SRS. **M3.2 a M3.4 em andamento/planejados** (cenários fixos e dinâmicos, seleção intra-fold e CLI). | **Em Andamento (M3.1 Concluído)** |
+| **M3** | **Cenários de Features:** **M3.1 e M3.2 Concluídos e Aceitos:** Análise exploratória univariada/bivariada (`explore_features`), matriz de redundância preditor-preditor, rotulagem mandatória `EXPLORATORY_FULL_DATA`, modelagem declarativa de cenários fixos e dinâmicos (`FeatureScenario`), validação estrita contra visão saneada (`validate_scenarios`), persistência atômica (`save_scenarios`, `load_scenarios`) e portão de validação de etapa `verify_scenarios_gate`. **M3.3 e M3.4 em andamento/planejados** (seleção intra-fold e CLI). | **Em Andamento (M3.1 e M3.2 Concluídos)** |
 | **M4** | **Modelos e Tuning:** Registro de modelos (`models`), pré-processamento em duas camadas e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
 | **M5** | **Execução Matricial:** Orquestração da matriz $M \times C \times F$ (`orchestration`), tolerância a falhas, persistência e retomada (*Checkpoint & Resume*). | Planejado |
 | **M6** | **Estatística:** Consolidação descritiva, teste $t$ corrigido de Nadeau-Bengio, Wilcoxon pareado, controle de FWER/FDR (Holm/BH) e Fronteira de Pareto (`statistics`). | Planejado |
