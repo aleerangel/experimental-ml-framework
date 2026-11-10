@@ -120,3 +120,126 @@ def test_feat_03_features_explore_overwrite_protection(
     # Third run with --force succeeds with code 0
     code3 = main(["features", "explore", "--experiment-dir", str(exp_dir), "--force"])
     assert code3 == 0
+
+
+def test_feat_04_features_scenarios_success(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """FEAT-04 (Check C4): expml features scenarios validates and saves configuration/scenarios.json, exits 0."""
+    exp_dir = _setup_sanitized_experiment(tmp_path)
+
+    scenarios_file = tmp_path / "scenarios.json"
+    scenarios_content = [
+        {
+            "scenario_id": "all_features",
+            "name": "All Features",
+            "description": "Baseline scenario with all features",
+            "scientific_justification": "Literature standard",
+            "mode": "FIXED",
+            "selected_features": ["x1", "x2"],
+        },
+        {
+            "scenario_id": "dyn_var",
+            "name": "Dynamic Variance",
+            "description": "Variance threshold selection",
+            "scientific_justification": "Noise removal",
+            "mode": "DYNAMIC",
+            "strategy_name": "VARIANCE_THRESHOLD",
+            "strategy_params": {"threshold": 0.01},
+        },
+    ]
+    scenarios_file.write_text(json.dumps(scenarios_content), encoding="utf-8")
+
+    code = main([
+        "features", "scenarios",
+        "--experiment-dir", str(exp_dir),
+        "--scenarios", str(scenarios_file),
+    ])
+    assert code == 0
+
+    captured = capsys.readouterr()
+    assert "Feature scenarios validated and saved successfully" in captured.out
+    assert "Scenarios validated: 2" in captured.out
+
+    catalog_path = exp_dir / SCENARIOS_CATALOG_REL_PATH
+    assert catalog_path.exists()
+
+    with open(catalog_path, "r", encoding="utf-8") as f:
+        catalog_dict = json.load(f)
+    assert len(catalog_dict["scenarios"]) == 2
+
+
+def test_feat_05_features_scenarios_rejection(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """FEAT-05 (Check C5): expml features scenarios rejects invalid scenarios with code 2 and formatted stderr."""
+    exp_dir = _setup_sanitized_experiment(tmp_path)
+
+    # Scenario with unknown feature
+    invalid_file = tmp_path / "invalid_scenarios.json"
+    invalid_content = [
+        {
+            "scenario_id": "invalid_feat",
+            "name": "Invalid",
+            "description": "Invalid feature",
+            "scientific_justification": "Testing failure",
+            "mode": "FIXED",
+            "selected_features": ["nonexistent_feature"],
+        }
+    ]
+    invalid_file.write_text(json.dumps(invalid_content), encoding="utf-8")
+
+    code = main([
+        "features", "scenarios",
+        "--experiment-dir", str(exp_dir),
+        "--scenarios", str(invalid_file),
+    ])
+    assert code == 2
+
+    captured = capsys.readouterr()
+    assert "Error:" in captured.err
+    assert "Traceback" not in captured.err
+    assert "nonexistent_feature" in captured.err
+
+
+def test_feat_06_features_verify_gate(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """FEAT-06 (Check C6): expml features verify validates stage gate (code 0), fails if catalog missing (code 2)."""
+    exp_dir = _setup_sanitized_experiment(tmp_path)
+
+    # Before creating scenarios, verify fails with code 2
+    code_fail = main(["features", "verify", "--experiment-dir", str(exp_dir)])
+    assert code_fail == 2
+
+    captured = capsys.readouterr()
+    assert "Error:" in captured.err
+
+    # Create scenarios
+    scenarios_file = tmp_path / "scenarios.json"
+    scenarios_content = [
+        {
+            "scenario_id": "s1",
+            "name": "Baseline",
+            "description": "Baseline",
+            "scientific_justification": "Baseline",
+            "mode": "FIXED",
+            "selected_features": ["x1"],
+        }
+    ]
+    scenarios_file.write_text(json.dumps(scenarios_content), encoding="utf-8")
+
+    code_create = main([
+        "features", "scenarios",
+        "--experiment-dir", str(exp_dir),
+        "--scenarios", str(scenarios_file),
+    ])
+    assert code_create == 0
+
+    # Now verify succeeds with code 0
+    code_ok = main(["features", "verify", "--experiment-dir", str(exp_dir)])
+    assert code_ok == 0
+
+    captured_ok = capsys.readouterr()
+    assert "Feature scenarios gate verified successfully" in captured_ok.out
+

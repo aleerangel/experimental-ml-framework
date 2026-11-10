@@ -106,10 +106,10 @@ T3
 **Requirement**: FEAT-04, FEAT-05, FEAT-06
 
 **Done when**:
-- [ ] `expml features scenarios` validates and saves `configuration/scenarios.json`
-- [ ] Invalid scenarios (e.g. unknown column, empty features) exit with code 2 and clean stderr message
-- [ ] `expml features verify` passes for valid configuration and fails with code 2 on gate violations
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cmd_features.py -v`
+- [x] `expml features scenarios` validates and saves `configuration/scenarios.json`
+- [x] Invalid scenarios (e.g. unknown column, empty features) exit with code 2 and clean stderr message
+- [x] `expml features verify` passes for valid configuration and fails with code 2 on gate violations
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cmd_features.py -v`
 
 **Tests**: unit  
 **Gate**: quick  

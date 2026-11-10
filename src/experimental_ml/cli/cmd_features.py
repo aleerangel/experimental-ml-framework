@@ -10,11 +10,18 @@ from pathlib import Path
 import sys
 
 from experimental_ml.core.findings import ConfigurationError
-from experimental_ml.core.storage import write_json_atomic
+from experimental_ml.core.storage import read_json, write_json_atomic
 from experimental_ml.features.exploration import explore_features
+from experimental_ml.features.scenarios import (
+    FeatureScenario,
+    save_scenarios,
+    validate_scenarios,
+)
 from experimental_ml.stages.stage_gates import (
     EXPLORATORY_FEATURES_REL_PATH,
+    SCENARIOS_CATALOG_REL_PATH,
     reconstruct_sanitized_view,
+    verify_scenarios_gate,
 )
 
 
@@ -65,16 +72,66 @@ def handle_features_explore(args: argparse.Namespace) -> int:
 
 
 def handle_features_scenarios(args: argparse.Namespace) -> int:
-    """Execute scenarios validation and save configuration/scenarios.json.
+    """Validate feature scenarios against sanitized view and save configuration/scenarios.json.
 
-    (Will be implemented in T2)
+    Args:
+        args: Parsed CLI arguments containing experiment_dir, scenarios, and optional force.
+
+    Returns:
+        0 on success, non-zero on error.
     """
-    raise NotImplementedError("Features scenarios subcommand will be implemented in T2")
+    experiment_dir = Path(args.experiment_dir).resolve()
+    if not experiment_dir.exists():
+        raise ConfigurationError(f"Experiment directory not found at '{experiment_dir}'")
+
+    scenarios_path = Path(args.scenarios).resolve()
+    if not scenarios_path.exists():
+        raise ConfigurationError(f"Scenarios file not found at '{scenarios_path}'")
+
+    scenarios_data = read_json(scenarios_path)
+    if isinstance(scenarios_data, list):
+        raw_scenarios = scenarios_data
+    elif isinstance(scenarios_data, dict) and "scenarios" in scenarios_data:
+        raw_scenarios = scenarios_data["scenarios"]
+    else:
+        raise ConfigurationError(
+            "Scenarios file must contain a JSON list of scenario objects or a dictionary with 'scenarios' key"
+        )
+
+    scenarios = [FeatureScenario.from_dict(item) for item in raw_scenarios]
+
+    view = reconstruct_sanitized_view(experiment_dir)
+    catalog = validate_scenarios(scenarios, view)
+
+    dest_path = experiment_dir / SCENARIOS_CATALOG_REL_PATH
+    save_scenarios(catalog, dest_path, overwrite=getattr(args, "force", False))
+
+    sys.stdout.write(
+        f"Feature scenarios validated and saved successfully:\n"
+        f"  - Scenarios validated: {len(catalog.scenarios)}\n"
+        f"  - Catalog: {dest_path.relative_to(experiment_dir)}\n"
+    )
+    return 0
 
 
 def handle_features_verify(args: argparse.Namespace) -> int:
-    """Execute feature scenarios gate verification.
+    """Verify feature scenarios stage gate.
 
-    (Will be implemented in T2)
+    Args:
+        args: Parsed CLI arguments containing experiment_dir.
+
+    Returns:
+        0 on success, non-zero on error.
     """
-    raise NotImplementedError("Features verify subcommand will be implemented in T2")
+    experiment_dir = Path(args.experiment_dir).resolve()
+    if not experiment_dir.exists():
+        raise ConfigurationError(f"Experiment directory not found at '{experiment_dir}'")
+
+    catalog = verify_scenarios_gate(experiment_dir)
+
+    sys.stdout.write(
+        f"Feature scenarios gate verified successfully:\n"
+        f"  - Scenarios count: {len(catalog.scenarios)}\n"
+        f"  - Catalog: {SCENARIOS_CATALOG_REL_PATH}\n"
+    )
+    return 0
