@@ -204,7 +204,44 @@ def select_features_in_fold(
         )
 
 
+def apply_feature_selection(
+    X_eval: Mapping[str, np.ndarray],
+    selection_result: SelectionResult,
+) -> dict[str, np.ndarray]:
+    """Project the feature selection fitted on training data onto evaluation data (SEL-05).
+
+    Filters columns in X_eval to retain strictly the features present in
+    selection_result.selected_features in identical order, without data leakage.
+
+    Args:
+        X_eval: Mapping of feature names to 1D evaluation arrays (validation or test fold).
+        selection_result: Validated SelectionResult produced by select_features_in_fold.
+
+    Returns:
+        Dictionary of filtered feature arrays ordered canonically by selected_features.
+
+    Raises:
+        ContractViolationError: If selection_result is invalid or any selected feature
+            is missing from X_eval.
+    """
+    if not isinstance(selection_result, SelectionResult):
+        raise ContractViolationError(
+            f"apply_feature_selection requires a SelectionResult, got {type(selection_result).__name__}"
+        )
+
+    filtered: dict[str, np.ndarray] = {}
+    for feat_name in selection_result.selected_features:
+        if feat_name not in X_eval:
+            raise ContractViolationError(
+                f"Selected feature '{feat_name}' is missing from evaluation data."
+            )
+        filtered[feat_name] = X_eval[feat_name]
+
+    return filtered
+
+
 __all__ = [
     "SelectionResult",
     "select_features_in_fold",
+    "apply_feature_selection",
 ]

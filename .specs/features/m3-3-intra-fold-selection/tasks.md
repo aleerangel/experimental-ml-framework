@@ -117,11 +117,11 @@ T4
 **Requirement**: SEL-05
 
 **Done when**:
-- [ ] `apply_feature_selection` filters columns matching `selected_features` in order
-- [ ] Raises `ContractViolationError` when any selected feature is missing from evaluation data
-- [ ] Preserves array immutability and underlying buffers
-- [ ] Unit tests pass in `tests/unit/features/test_selection.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_selection.py -v`
+- [x] `apply_feature_selection` filters columns matching `selected_features` in order
+- [x] Raises `ContractViolationError` when any selected feature is missing from evaluation data
+- [x] Preserves array immutability and underlying buffers
+- [x] Unit tests pass in `tests/unit/features/test_selection.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_selection.py -v`
 
 **Tests**: unit  
 **Gate**: quick  

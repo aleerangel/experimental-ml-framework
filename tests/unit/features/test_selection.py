@@ -13,6 +13,7 @@ from experimental_ml.core.findings import (
 from experimental_ml.features.scenarios import FeatureScenario
 from experimental_ml.features.selection import (
     SelectionResult,
+    apply_feature_selection,
     select_features_in_fold,
 )
 
@@ -151,3 +152,35 @@ def test_sel_07_empty_selection_rejection() -> None:
 
     with pytest.raises(DataIntegrityError, match="resulted in 0 selected features"):
         select_features_in_fold(X_train, y_train=None, scenario=scenario)
+
+
+def test_sel_05_apply_feature_selection() -> None:
+    """Proof C5: Verify apply_feature_selection filters evaluation data preserving order (SEL-05)."""
+    selection_res = SelectionResult(
+        selected_features=("feat_b", "feat_a"),
+        scores={"feat_b": 0.9, "feat_a": 0.7},
+        fitted_params={},
+        strategy_name="TOP_K_RELEVANCE",
+    )
+
+    X_eval = {
+        "feat_a": np.array([1.0, 2.0]),
+        "feat_b": np.array([3.0, 4.0]),
+        "feat_c": np.array([5.0, 6.0]),
+    }
+
+    filtered = apply_feature_selection(X_eval, selection_res)
+
+    # 1. Retains strictly selected features in exact order
+    assert list(filtered.keys()) == ["feat_b", "feat_a"]
+    assert np.array_equal(filtered["feat_b"], np.array([3.0, 4.0]))
+    assert np.array_equal(filtered["feat_a"], np.array([1.0, 2.0]))
+    assert "feat_c" not in filtered
+
+    # 2. Missing feature in evaluation data raises ContractViolationError
+    X_eval_missing = {
+        "feat_a": np.array([1.0, 2.0]),
+    }
+    with pytest.raises(ContractViolationError, match="Selected feature 'feat_b' is missing"):
+        apply_feature_selection(X_eval_missing, selection_res)
+
