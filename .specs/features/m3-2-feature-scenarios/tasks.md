@@ -164,10 +164,10 @@ T4
 **Requirement**: SCN-01, SCN-02, SCN-03, SCN-04, SCN-05, SCN-06, SCN-07, SCN-08
 
 **Done when**:
-- [ ] Public symbols exported in `features/__init__.py` and `stages/__init__.py`
-- [ ] Integration suite verifies end-to-end flow from raw data ingestion to verified scenarios gate
-- [ ] Subprocess test proves absence of external ML libraries in `sys.modules` (`XCUT-02`)
-- [ ] Full test suite passes: `.venv/bin/pytest tests/ -v`
+- [x] Public symbols exported in `features/__init__.py` and `stages/__init__.py`
+- [x] Integration suite verifies end-to-end flow from raw data ingestion to verified scenarios gate
+- [x] Subprocess test proves absence of external ML libraries in `sys.modules` (`XCUT-02`)
+- [x] Full test suite passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  
