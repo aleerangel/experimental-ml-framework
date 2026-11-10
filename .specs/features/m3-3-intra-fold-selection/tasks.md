@@ -163,10 +163,10 @@ T4
 **Requirement**: SEL-01, SEL-02, SEL-03, SEL-04, SEL-05, SEL-06, SEL-07, SEL-08
 
 **Done when**:
-- [ ] Public symbols exported in `features/__init__.py`
-- [ ] Integration suite verifies cross-fold feature selection, evaluation projection and stability calculation
-- [ ] Subprocess test proves absence of external ML libraries in `sys.modules` (`XCUT-02`)
-- [ ] Full test suite passes: `.venv/bin/pytest tests/ -v`
+- [x] Public symbols exported in `features/__init__.py`
+- [x] Integration suite verifies cross-fold feature selection, evaluation projection and stability calculation
+- [x] Subprocess test proves absence of external ML libraries in `sys.modules` (`XCUT-02`)
+- [x] Full test suite passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  

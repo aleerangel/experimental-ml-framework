@@ -1,7 +1,7 @@
-"""Feature engineering, exploratory relation analysis, and scenario definition.
+"""Feature engineering, exploratory relation analysis, scenario definition, and intra-fold selection.
 
-Complies with EXP-01 to EXP-08, SCN-01 to SCN-08, RF2.1, RF2.2, RF2.3, CA-E2-01, CA-E2-02,
-ADR-002, ADR-005, ADR-007, and ADR-008.
+Complies with EXP-01 to EXP-08, SCN-01 to SCN-08, SEL-01 to SEL-08, RF2.1, RF2.2, RF2.3, RF2.4,
+CA-E2-01, CA-E2-02, ADR-002, ADR-005, ADR-007, and ADR-008.
 """
 
 from experimental_ml.features.exploration import explore_features
@@ -12,6 +12,15 @@ from experimental_ml.features.scenarios import (
     load_scenarios,
     save_scenarios,
     validate_scenarios,
+)
+from experimental_ml.features.selection import (
+    SelectionResult,
+    apply_feature_selection,
+    select_features_in_fold,
+)
+from experimental_ml.features.stability import (
+    SelectionStabilityReport,
+    compute_selection_stability,
 )
 from experimental_ml.features.stats import (
     compute_correlation_ratio,
@@ -46,4 +55,10 @@ __all__ = [
     "validate_scenarios",
     "save_scenarios",
     "load_scenarios",
+    # M3.3: Intra-fold feature selection & stability
+    "SelectionResult",
+    "select_features_in_fold",
+    "apply_feature_selection",
+    "SelectionStabilityReport",
+    "compute_selection_stability",
 ]
