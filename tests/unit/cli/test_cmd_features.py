@@ -243,3 +243,45 @@ def test_feat_06_features_verify_gate(
     captured_ok = capsys.readouterr()
     assert "Feature scenarios gate verified successfully" in captured_ok.out
 
+
+def test_feat_07_cli_purity() -> None:
+    """FEAT-07 (Check C7): Clean process invocation of expml does not import numpy or hashlib in sys.modules."""
+    import ast
+    import subprocess
+    import sys
+
+    # 1. AST check: no file in cli/ directly imports forbidden modules
+    cli_dir = Path(__file__).resolve().parent.parent.parent.parent / "src" / "experimental_ml" / "cli"
+    py_files = list(cli_dir.glob("*.py"))
+    assert len(py_files) >= 3
+
+    forbidden = {"numpy", "hashlib"}
+    for py_file in py_files:
+        tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    root_mod = alias.name.split(".")[0]
+                    assert root_mod not in forbidden, f"{py_file.name} imports forbidden module '{root_mod}'"
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    root_mod = node.module.split(".")[0]
+                    assert root_mod not in forbidden, f"{py_file.name} imports from forbidden module '{root_mod}'"
+
+    # 2. Subprocess check: loading expml dispatcher does not populate sys.modules with numpy or hashlib
+    code_snippet = (
+        "import sys\n"
+        "from experimental_ml.cli.main import main\n"
+        "main(['--help'])\n"
+        "assert 'numpy' not in sys.modules, f'numpy loaded in sys.modules'\n"
+        "assert 'hashlib' not in sys.modules, f'hashlib loaded in sys.modules'\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code_snippet],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, f"Subprocess purity failed: {result.stderr}"
+
+

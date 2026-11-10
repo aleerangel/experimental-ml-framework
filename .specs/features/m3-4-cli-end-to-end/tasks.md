@@ -128,9 +128,9 @@ T3
 **Requirement**: FEAT-07, FEAT-08
 
 **Done when**:
-- [ ] Clean subprocess verification proves `numpy` and `hashlib` are absent from `sys.modules` on help/version calls
-- [ ] Full end-to-end multi-stage pipeline passes through CLI subprocesses with exit code 0
-- [ ] Full test suite passes: `.venv/bin/pytest tests/ -v`
+- [x] Clean subprocess verification proves `numpy` and `hashlib` are absent from `sys.modules` on help/version calls
+- [x] Full end-to-end multi-stage pipeline passes through CLI subprocesses with exit code 0
+- [x] Full test suite passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  
