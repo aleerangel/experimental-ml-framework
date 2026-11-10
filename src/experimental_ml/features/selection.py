@@ -153,7 +153,7 @@ def select_features_in_fold(
             strategy_name="VARIANCE_THRESHOLD",
         )
 
-    elif strategy in ("TOP_K_RELEVANCE", "MUTUAL_INFO_TOP_K"):
+    elif strategy == "TOP_K_RELEVANCE":
         if y_train is None:
             raise ContractViolationError(
                 f"Supervised selection strategy '{strategy}' requires y_train."
@@ -200,7 +200,7 @@ def select_features_in_fold(
     else:
         raise ConfigurationError(
             f"Unsupported dynamic feature selection strategy: '{strategy}'. "
-            "Supported strategies: ['VARIANCE_THRESHOLD', 'TOP_K_RELEVANCE', 'MUTUAL_INFO_TOP_K']"
+            "Supported strategies: ['VARIANCE_THRESHOLD', 'TOP_K_RELEVANCE']"
         )
 
 

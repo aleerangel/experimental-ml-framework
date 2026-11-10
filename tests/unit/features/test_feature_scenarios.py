@@ -114,15 +114,15 @@ def test_scn_03_dynamic_scenario_anti_leakage() -> None:
     # 1. Valid dynamic scenario
     dyn = FeatureScenario(
         scenario_id="top_k_relevance",
-        name="Top K Mutual Information",
-        description="Selects top K features by mutual information within fold",
+        name="Top K Relevance Selection",
+        description="Selects top K features by statistical relevance within fold",
         scientific_justification="Removes noise while avoiding pre-partition leakage",
         mode="DYNAMIC",
-        strategy_name="MUTUAL_INFO_TOP_K",
+        strategy_name="TOP_K_RELEVANCE",
         strategy_params={"k": 5},
     )
     assert dyn.mode == ScenarioMode.DYNAMIC
-    assert dyn.strategy_name == "MUTUAL_INFO_TOP_K"
+    assert dyn.strategy_name == "TOP_K_RELEVANCE"
     assert dyn.selected_features == ()
     assert dyn.strategy_params["k"] == 5
 
