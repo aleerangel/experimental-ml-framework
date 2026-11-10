@@ -140,12 +140,12 @@ T4
 **Requirement**: EXP-01, EXP-06, EXP-08
 
 **Done when**:
-- [ ] Rejects invalid view, non-sanitized input or invalid threshold with `ValidationError` / `ConfigurationError`
-- [ ] Computes target associations with correct metrics for each feature
-- [ ] Computes symmetric predictor redundancy matrix and extracts canonically sorted `high_redundancy_pairs`
-- [ ] Binds `scope = "EXPLORATORY_FULL_DATA"`, `dataset_hash` and mandatory methodological warnings
-- [ ] Unit tests pass in `tests/unit/features/test_exploration.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_exploration.py -v`
+- [x] Rejects invalid view, non-sanitized input or invalid threshold with `ValidationError` / `ConfigurationError`
+- [x] Computes target associations with correct metrics for each feature
+- [x] Computes symmetric predictor redundancy matrix and extracts canonically sorted `high_redundancy_pairs`
+- [x] Binds `scope = "EXPLORATORY_FULL_DATA"`, `dataset_hash` and mandatory methodological warnings
+- [x] Unit tests pass in `tests/unit/features/test_exploration.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_exploration.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
