@@ -8,6 +8,7 @@ from __future__ import annotations
 from experimental_ml.stages.stage_gates import (
     DATASET_DESCRIPTOR_REL_PATH,
     DATASET_PROFILE_REL_PATH,
+    EXPLORATORY_FEATURES_REL_PATH,
     PARTITION_PLAN_REL_PATH,
     PREPARATION_PLAN_REL_PATH,
     SANITIZED_VIEW_REL_PATH,
@@ -23,6 +24,7 @@ from experimental_ml.stages.stage_gates import (
 __all__ = [
     "DATASET_DESCRIPTOR_REL_PATH",
     "DATASET_PROFILE_REL_PATH",
+    "EXPLORATORY_FEATURES_REL_PATH",
     "PREPARATION_PLAN_REL_PATH",
     "SCENARIOS_CATALOG_REL_PATH",
     "SANITIZED_VIEW_REL_PATH",
