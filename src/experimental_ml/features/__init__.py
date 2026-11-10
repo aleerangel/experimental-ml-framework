@@ -1,9 +1,18 @@
 """Feature engineering, exploratory relation analysis, and scenario definition.
 
-Complies with EXP-01 to EXP-08, RF2.1, CA-E2-01, ADR-005, ADR-007, and ADR-008.
+Complies with EXP-01 to EXP-08, SCN-01 to SCN-08, RF2.1, RF2.2, RF2.3, CA-E2-01, CA-E2-02,
+ADR-002, ADR-005, ADR-007, and ADR-008.
 """
 
 from experimental_ml.features.exploration import explore_features
+from experimental_ml.features.scenarios import (
+    FeatureScenario,
+    ScenarioMode,
+    ScenariosCatalog,
+    load_scenarios,
+    save_scenarios,
+    validate_scenarios,
+)
 from experimental_ml.features.stats import (
     compute_correlation_ratio,
     compute_cramers_v,
@@ -19,6 +28,7 @@ from experimental_ml.features.types import (
 )
 
 __all__ = [
+    # M3.1: Exploratory analysis
     "explore_features",
     "compute_pearson",
     "compute_spearman",
@@ -29,4 +39,11 @@ __all__ = [
     "AssociationMeasure",
     "RedundancyPair",
     "ExploratoryFeatureReport",
+    # M3.2: Scenarios modeling & catalog
+    "ScenarioMode",
+    "FeatureScenario",
+    "ScenariosCatalog",
+    "validate_scenarios",
+    "save_scenarios",
+    "load_scenarios",
 ]

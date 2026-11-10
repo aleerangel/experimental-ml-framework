@@ -17,6 +17,11 @@ from experimental_ml.data.codecs import (
 from experimental_ml.data.loader import load_dataset
 from experimental_ml.data.preparation import SanitizedDatasetView, sanitize_dataset
 from experimental_ml.data.schema import load_schema_spec
+from experimental_ml.features.scenarios import (
+    ScenariosCatalog,
+    load_scenarios,
+    validate_scenarios,
+)
 from experimental_ml.validation.codecs import partition_plan_from_dict
 from experimental_ml.validation.storage import read_splits_csv_gz
 
@@ -24,6 +29,7 @@ from experimental_ml.validation.storage import read_splits_csv_gz
 DATASET_DESCRIPTOR_REL_PATH = "data/dataset_descriptor.json"
 DATASET_PROFILE_REL_PATH = "data/dataset_profile.json"
 PREPARATION_PLAN_REL_PATH = "configuration/preparation_plan.json"
+SCENARIOS_CATALOG_REL_PATH = "configuration/scenarios.json"
 SANITIZED_VIEW_REL_PATH = "data/sanitized_view.json"
 PARTITION_PLAN_REL_PATH = "partitions/partition_plan.json"
 SPLITS_CSV_GZ_REL_PATH = "partitions/splits.csv.gz"
@@ -215,3 +221,50 @@ def reconstruct_sanitized_view(experiment_dir: Path | str) -> SanitizedDatasetVi
     plan = preparation_plan_from_dict(read_json(prep_plan_path))
 
     return sanitize_dataset(bundle, prof, plan)
+
+
+def verify_scenarios_gate(
+    target: Path | str,
+    view: SanitizedDatasetView | None = None,
+) -> ScenariosCatalog:
+    """Verify that Stage 2 feature scenarios exist, are valid, and hashes match view (SCN-08).
+
+    Args:
+        target: Path to scenarios.json file OR experiment directory root containing
+            configuration/scenarios.json.
+        view: Optional SanitizedDatasetView. If omitted and target is an experiment
+            directory, view will be reconstructed via reconstruct_sanitized_view.
+
+    Returns:
+        Validated ScenariosCatalog.
+
+    Raises:
+        ContractViolationError: If scenarios.json is missing or invalid.
+        DataIntegrityError: If dataset_hash does not match the view.
+    """
+    path = Path(target).resolve()
+    if path.is_dir():
+        catalog_path = path / SCENARIOS_CATALOG_REL_PATH
+        active_view = view if view is not None else reconstruct_sanitized_view(path)
+    else:
+        catalog_path = path
+        active_view = view
+
+    if not catalog_path.exists():
+        raise ContractViolationError(
+            f"Scenarios configuration file not found: '{catalog_path}' (SCN-08)"
+        )
+
+    catalog = load_scenarios(catalog_path)
+
+    if active_view is not None:
+        if catalog.dataset_hash != active_view.dataset_hash:
+            raise DataIntegrityError(
+                f"Scenarios catalog dataset_hash mismatch: expected '{active_view.dataset_hash}', "
+                f"got '{catalog.dataset_hash}'"
+            )
+        # Structural re-validation against active view
+        validate_scenarios(catalog.scenarios, active_view)
+
+    return catalog
+
