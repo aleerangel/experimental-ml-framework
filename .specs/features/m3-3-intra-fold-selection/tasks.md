@@ -140,11 +140,11 @@ T4
 **Requirement**: SEL-06
 
 **Done when**:
-- [ ] `SelectionStabilityReport` defined with immutability and JSON roundtrip
-- [ ] `compute_selection_stability` computes Jaccard and Kuncheva index across folds
-- [ ] Correctly handles chance correction (returning ~0 for random and 1.0 for identical sets)
-- [ ] Unit tests pass in `tests/unit/features/test_stability.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_stability.py -v`
+- [x] `SelectionStabilityReport` defined with immutability and JSON roundtrip
+- [x] `compute_selection_stability` computes Jaccard and Kuncheva index across folds
+- [x] Correctly handles chance correction (returning ~0 for random and 1.0 for identical sets)
+- [x] Unit tests pass in `tests/unit/features/test_stability.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/features/test_stability.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
