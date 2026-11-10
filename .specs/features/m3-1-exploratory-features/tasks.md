@@ -164,10 +164,10 @@ T4
 **Requirement**: EXP-01, EXP-02, EXP-03, EXP-04, EXP-05, EXP-06, EXP-07, EXP-08
 
 **Done when**:
-- [ ] `__init__.py` exposes public interface with strict `__all__`
-- [ ] Integration tests exercise full pipeline with regression and classification datasets
-- [ ] Invariance and zero external runtime dependencies verified (`XCUT-02`)
-- [ ] Full test suite passes: `.venv/bin/pytest tests/ -v`
+- [x] `__init__.py` exposes public interface with strict `__all__`
+- [x] Integration tests exercise full pipeline with regression and classification datasets
+- [x] Invariance and zero external runtime dependencies verified (`XCUT-02`)
+- [x] Full test suite passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  
