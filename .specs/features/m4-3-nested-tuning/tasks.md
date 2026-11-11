@@ -206,11 +206,11 @@ T7
 **Requirement**: TUN-06
 
 **Done when**:
-- [ ] Trials producing `UNDEFINED_NAN` in any fold are disqualified from beating valid candidates
-- [ ] Total failure across all candidates raises `TuningOptimizationError`
-- [ ] `TuningOptimizationError` preserves diagnostic details and inherits from `ContractViolationError`
-- [ ] Unit tests pass in `tests/unit/tuning/test_tuning_failures.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_failures.py -v`
+- [x] Trials producing `UNDEFINED_NAN` in any fold are disqualified from beating valid candidates
+- [x] Total failure across all candidates raises `TuningOptimizationError`
+- [x] `TuningOptimizationError` preserves diagnostic details and inherits from `ContractViolationError`
+- [x] Unit tests pass in `tests/unit/tuning/test_tuning_failures.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_failures.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
