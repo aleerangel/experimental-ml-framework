@@ -50,24 +50,33 @@
 - **Date**: 2026-11-11
 - **Status**: active
 
+### AD-007
+- **Decision**: Subsistema de otimização aninhada de hiperparâmetros (`experimental_ml.tuning`) confinado estritamente ao treino externo (`CA-E4B-01`), com validação cruzada aninhada ($K_{\text{inner}} \ge 2$), desqualificação mandatória de candidatos com `UNDEFINED_NAN` (ADR-005) e pureza de runtime sem frameworks externos de busca (`XCUT-02`).
+- **Reason**: Atender aos requisitos `RF3.5`, `ADR-003`, `ADR-005` e `CA-E4B-01`, garantindo que a seleção de hiperparâmetros reflita o desempenho de generalização interno sem vazamento de dados de avaliação ou holdout externo, que falhas numéricas ou métricas degeneradas jamais vençam candidatos válidos ou sejam coagidas para zero, e que Grid e Random Search operem com reproducibilidade exata sob semente.
+- **Trade-off**: Requer geradores próprios de produto cartesiano e amostragem aleatória em NumPy puro, particionamento de índices de dobras internas desacoplado de bibliotecas externas e instanciação compulsória de instâncias desacopladas via `instantiate_fresh_model`.
+- **Scope**: Pacote `experimental_ml.tuning` e integração transversal com `models` e `metrics`.
+- **Date**: 2026-11-11
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m4-2-two-layer-preprocessing (Sub-marco M4.2 — Pipeline de Pré-processamento em Duas Camadas)
-- **Phase / Task**: Conclusão formal do Sub-marco M4.2 (Etapa 3 / Marco M4)
+- **Feature**: m4-3-nested-tuning (Sub-marco M4.3 — Otimização de Hiperparâmetros Aninhada Intra-Fold)
+- **Phase / Task**: Conclusão formal do Sub-marco M4.3 (Etapa 3 / Marco M4)
 - **Completed**:
-  - Conclusão e homologação formal de 100% dos Marcos M1 (`m1-1` a `m1-5`), M2 (`m2-1` a `m2-5`), M3 (`m3-1` a `m3-4`) e M4.1 (`m4-1-model-registry-contracts`).
-  - Especificação, Design e Execução do Sub-marco M4.2 (`m4-2-two-layer-preprocessing`) com 7 tarefas granulares concluídas e 24 critérios de aceitação formalmente comprovados (`check_proofs.py`: 24 pass, 0 fail).
-  - Implementação de `src/experimental_ml/models/preprocessing/`:
-    - `types.py`: `ScalerType`, `PreprocessingStepSpec`, `TwoLayerPreprocessingSpec`, `TwoLayerPreprocessingState`.
-    - `scalers.py`: `StandardScaler`, `MinMaxScaler`, `MaxAbsScaler`, `RobustScaler`, `AngularScaler` puros em NumPy com tratamento robusto de variância zero e colunas constantes sem divisão por zero.
-    - `kernel.py`: `PrecomputedKernelAdapter` com isolamento sem vazamento de partição ($(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ no ajuste e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ na transformação) e validação estrita de matrizes quadradas.
-    - `pipeline.py`: `validate_two_layer_preprocessing` com bloqueio de duplicação acidental de transformadores (`CA-E3-02`), `fit_two_layer_preprocessing` com projeção intermediária estrita intra-fold (`CA-E4B-01`), e `apply_two_layer_preprocessing` com projeção sem mutação de estado.
-    - `__init__.py`: Exportação limpa da API pública em `__all__`, re-exportada em `models`.
-  - Pureza estrita de runtime (`XCUT-02`): dependência única de `numpy>=1.24.0`, subprocesso comprovando zero importações mandatórias de bibliotecas externas de ML.
-  - Verificação independente realizada com veredito `PASS` (0 findings) e portão `validate_verification.py` aprovado com 0 erros e 0 avisos.
+  - Conclusão e homologação formal de 100% dos Marcos M1 (`m1-1` a `m1-5`), M2 (`m2-1` a `m2-5`), M3 (`m3-1` a `m3-4`), M4.1 (`m4-1-model-registry-contracts`) e M4.2 (`m4-2-two-layer-preprocessing`).
+  - Especificação, Design e Execução do Sub-marco M4.3 (`m4-3-nested-tuning`) com 7 tarefas granulares concluídas e 24 critérios de aceitação formalmente comprovados (`check_proofs.py`: 24 pass, 0 fail).
+  - Implementação de `src/experimental_ml/tuning/`:
+    - `types.py`: `SearchStrategy` (enum de 4 membros: `FIXED`, `GRID_SEARCH`, `RANDOM_SEARCH`, `CUSTOM_TUNER`), frozen dataclasses com slots (`HyperparameterSearchSpec`, `TuningTrialRecord`, `TuningResult`) e exceção especializada `TuningOptimizationError` (herdando de `ContractViolationError`).
+    - `validation.py`: `validate_search_spec` validando compatibilidade contra `METRICS_CATALOG`, consistência de direção (`MAXIMIZE` / `MINIMIZE`), $K_{\text{inner}} \ge 2$ e orçamentos de busca (`ConfigurationError`).
+    - `candidates.py`: `generate_candidates` gerando produto cartesiano ordenado e determinístico no Grid Search e amostragem controlada por semente no Random Search.
+    - `partitioning.py`: `split_inner_folds` gerando particionamento K-Fold interno puro em NumPy estritamente no intervalo $[0, N_{\text{train}}-1]$ com arrays read-only e disjunção matemática $(\text{Train}_{\text{inner}} \cap \text{Val}_{\text{inner}} = \emptyset)$.
+    - `engine.py`: `run_nested_tuning` executando nested CV com alocação limpa de estimadores por dobra (`instantiate_fresh_model`), avaliação via `experimental_ml.metrics`, desqualificação estrita de candidatos com `UNDEFINED_NAN` (ADR-005), disparo de `TuningOptimizationError` sob falha total e seleção determinística de $\theta^*$.
+    - `__init__.py`: Exportação limpa da API pública em `__all__`.
+  - Pureza estrita de runtime (`XCUT-02`): dependência única de `numpy>=1.24.0`, subprocesso comprovando zero importações de frameworks externos de tuning ou ML (`optuna`, `ray`, `sklearn`, `scipy`).
+  - Verificação independente realizada com veredito `PASS` (0 findings) e portão `validate_verification.py --strict` aprovado com 0 erros e 0 avisos.
   - Artefatos de homologação gerados: `verification.md`, `ACCEPTANCE.md` e `RESULTS.md`.
-  - Suíte total do framework expandida de 272 para 297 testes automatizados (25 novos testes: 22 unitários em `tests/unit/models/` e 3 de integração em `tests/integration/models/`), 100% aprovados.
-- **In-progress**: Transição para o Sub-marco M4.3 (`m4-3-nested-tuning` — Otimização de Hiperparâmetros Aninhada Intra-Fold).
-- **Next step**: Homologação / merge da branch `feat/m4-2-two-layer-preprocessing` e inicialização da especificação de M4.3.
+  - Suíte total do framework expandida de 297 para 321 testes automatizados (24 novos testes: 21 unitários em `tests/unit/tuning/` e 3 de integração em `tests/integration/tuning/`), 100% aprovados.
+- **In-progress**: Transição para o Sub-marco M4.4 (`m4-4-model-persistence-cli` — Persistência em Disco de `models.json`, Portão de Validação e Subcomandos da CLI `expml models`).
+- **Next step**: Homologação / merge da branch `feat/m4-3-nested-tuning` e inicialização da especificação de M4.4.
 - **Blockers**: none
-- **Branch**: feat/m4-2-two-layer-preprocessing
+- **Branch**: feat/m4-3-nested-tuning
