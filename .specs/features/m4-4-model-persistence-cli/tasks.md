@@ -184,11 +184,11 @@ T7
 **Requirement**: MPC-05
 
 **Done when**:
-- [ ] `handle_models_validate` validates and saves `configuration/models.json`
-- [ ] Existing `models.json` without `--force` raises error and returns code 2
-- [ ] Missing models input file or invalid data returns code 2
-- [ ] Unit tests pass in `tests/unit/cli/test_cli_models_validate.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cli_models_validate.py -v`
+- [x] `handle_models_validate` validates and saves `configuration/models.json`
+- [x] Existing `models.json` without `--force` raises error and returns code 2
+- [x] Missing models input file or invalid data returns code 2
+- [x] Unit tests pass in `tests/unit/cli/test_cli_models_validate.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cli_models_validate.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
