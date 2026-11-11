@@ -118,12 +118,12 @@ T7
 **Requirement**: PRE-02
 
 **Done when**:
-- [ ] `validate_two_layer_preprocessing` validates specifications without mutating fields
-- [ ] Accidental duplication of scalers or transformations across Layer 1 and Layer 2 raises `ConfigurationError`
-- [ ] Invalid step IDs, unknown transformer types, or bad parameters raise `ConfigurationError`
-- [ ] Empty specifications are accepted as pass-through
-- [ ] Unit tests pass in `tests/unit/models/test_preprocessing_validation.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_validation.py -v`
+- [x] `validate_two_layer_preprocessing` validates specifications without mutating fields
+- [x] Accidental duplication of scalers or transformations across Layer 1 and Layer 2 raises `ConfigurationError`
+- [x] Invalid step IDs, unknown transformer types, or bad parameters raise `ConfigurationError`
+- [x] Empty specifications are accepted as pass-through
+- [x] Unit tests pass in `tests/unit/models/test_preprocessing_validation.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_validation.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
