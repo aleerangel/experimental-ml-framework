@@ -231,13 +231,13 @@ T8
 **Requirement**: MOD-08
 
 **Done when**:
-- [ ] `DummyBaselineModel` implements `"mean"` regression with mean prediction and std uncertainty
-- [ ] `DummyBaselineModel` implements `"median"` regression with median prediction and MAD uncertainty
-- [ ] `DummyBaselineModel` implements `"most_frequent"` classification with lexicographical tie-break and class probabilities
-- [ ] `AnalyticalBiometricModel` evaluates formula directly without fitting
-- [ ] `AnalyticalBiometricModel` raises `ContractViolationError` when required features are missing
-- [ ] Unit tests pass in `tests/unit/models/test_model_baselines.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_baselines.py -v`
+- [x] `DummyBaselineModel` implements `"mean"` regression with mean prediction and std uncertainty
+- [x] `DummyBaselineModel` implements `"median"` regression with median prediction and MAD uncertainty
+- [x] `DummyBaselineModel` implements `"most_frequent"` classification with lexicographical tie-break and class probabilities
+- [x] `AnalyticalBiometricModel` evaluates formula directly without fitting
+- [x] `AnalyticalBiometricModel` raises `ContractViolationError` when required features are missing
+- [x] Unit tests pass in `tests/unit/models/test_model_baselines.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_baselines.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
