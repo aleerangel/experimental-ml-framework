@@ -140,11 +140,11 @@ T7
 **Requirement**: MPC-03
 
 **Done when**:
-- [ ] `save_models_catalog` writes catalog atomically to disk
-- [ ] Existing destination without overwrite raises `ConfigurationError`
-- [ ] `load_models_catalog` reads and reconstructs catalog with matching hash
-- [ ] Unit tests pass in `tests/unit/models/test_models_storage.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_models_storage.py -v`
+- [x] `save_models_catalog` writes catalog atomically to disk
+- [x] Existing destination without overwrite raises `ConfigurationError`
+- [x] `load_models_catalog` reads and reconstructs catalog with matching hash
+- [x] Unit tests pass in `tests/unit/models/test_models_storage.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_models_storage.py -v`
 
 **Tests**: unit  
 **Gate**: quick  

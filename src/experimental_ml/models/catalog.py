@@ -216,10 +216,27 @@ def model_spec_to_dict(spec: ModelSpec) -> dict[str, Any]:
     """Serialize a ModelSpec instance to a JSON-compatible dictionary."""
     # Determine serializable factory reference
     factory_ref: str
-    if hasattr(spec.estimator_factory, "__qualname__") and hasattr(spec.estimator_factory, "__module__"):
+    if hasattr(spec.estimator_factory, "_factory_ref"):
+        factory_ref = getattr(spec.estimator_factory, "_factory_ref")
+    elif spec.family == ModelFamily.BASELINE:
+        strat = spec.parameters.get("strategy", "mean")
+        if strat == "median":
+            factory_ref = "DUMMY_BASELINE_MEDIAN"
+        elif strat == "most_frequent":
+            factory_ref = "DUMMY_BASELINE_MOST_FREQUENT"
+        else:
+            factory_ref = "DUMMY_BASELINE_MEAN"
+    elif spec.family in (ModelFamily.BIOMETRIC_MODEL, ModelFamily.ANALYTICAL_EQUATION):
+        factory_ref = "ANALYTICAL_BIOMETRIC"
+    elif (
+        hasattr(spec.estimator_factory, "__qualname__")
+        and hasattr(spec.estimator_factory, "__module__")
+        and "<locals>" not in spec.estimator_factory.__qualname__
+        and "<lambda>" not in spec.estimator_factory.__qualname__
+    ):
         factory_ref = f"{spec.estimator_factory.__module__}:{spec.estimator_factory.__qualname__}"
     else:
-        factory_ref = str(spec.estimator_factory)
+        factory_ref = str(getattr(spec.estimator_factory, "__name__", spec.estimator_factory))
 
     result: dict[str, Any] = {
         "model_id": spec.model_id,
