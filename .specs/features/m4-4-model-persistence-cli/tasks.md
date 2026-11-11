@@ -117,11 +117,11 @@ T7
 **Requirement**: MPC-02
 
 **Done when**:
-- [ ] Built-in baseline identifiers resolve to valid estimator factories
-- [ ] Import strings in `module:qualname` format resolve to valid callables
-- [ ] Invalid module, attribute, or non-callable references raise `ConfigurationError`
-- [ ] Unit tests pass in `tests/unit/models/test_models_resolution.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_models_resolution.py -v`
+- [x] Built-in baseline identifiers resolve to valid estimator factories
+- [x] Import strings in `module:qualname` format resolve to valid callables
+- [x] Invalid module, attribute, or non-callable references raise `ConfigurationError`
+- [x] Unit tests pass in `tests/unit/models/test_models_resolution.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_models_resolution.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
