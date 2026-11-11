@@ -141,12 +141,12 @@ T8
 **Requirement**: MOD-03
 
 **Done when**:
-- [ ] `instantiate_fresh_model` passes seed to `estimator_factory(seed)` and handles `seed=None`
-- [ ] Reused instances or singletons are detected and rejected with `ContractViolationError`
-- [ ] Factory exceptions are wrapped and raised as `ConfigurationError`
-- [ ] Mutating or training one instance leaves other instances untouched
-- [ ] Unit tests pass in `tests/unit/models/test_model_instantiation.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_instantiation.py -v`
+- [x] `instantiate_fresh_model` passes seed to `estimator_factory(seed)` and handles `seed=None`
+- [x] Reused instances or singletons are detected and rejected with `ContractViolationError`
+- [x] Factory exceptions are wrapped and raised as `ConfigurationError`
+- [x] Mutating or training one instance leaves other instances untouched
+- [x] Unit tests pass in `tests/unit/models/test_model_instantiation.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_instantiation.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
