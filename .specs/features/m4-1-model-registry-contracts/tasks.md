@@ -163,11 +163,11 @@ T8
 **Requirement**: MOD-04
 
 **Done when**:
-- [ ] `fit_model` executes training exclusively on training arrays when `requires_fit=True`
-- [ ] `fit_model` transparently bypasses training as a no-op when `requires_fit=False`
-- [ ] Dimension mismatches ($N_X \neq N_y$) and empty arrays ($N=0$) raise `ContractViolationError`
-- [ ] Unit tests pass in `tests/unit/models/test_model_fit.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_fit.py -v`
+- [x] `fit_model` executes training exclusively on training arrays when `requires_fit=True`
+- [x] `fit_model` transparently bypasses training as a no-op when `requires_fit=False`
+- [x] Dimension mismatches ($N_X \neq N_y$) and empty arrays ($N=0$) raise `ContractViolationError`
+- [x] Unit tests pass in `tests/unit/models/test_model_fit.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_fit.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
