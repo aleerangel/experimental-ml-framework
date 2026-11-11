@@ -209,11 +209,11 @@ T7
 **Requirement**: PRE-04
 
 **Done when**:
-- [ ] `apply_two_layer_preprocessing` projects `X_eval` through Layer 1 and Layer 2 using stored state
-- [ ] State parameters and attributes are never re-estimated or mutated during projection
-- [ ] Feature count mismatches and invalid inputs raise `ContractViolationError`
-- [ ] Unit tests pass in `tests/unit/models/test_preprocessing_apply.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_apply.py -v`
+- [x] `apply_two_layer_preprocessing` projects `X_eval` through Layer 1 and Layer 2 using stored state
+- [x] State parameters and attributes are never re-estimated or mutated during projection
+- [x] Feature count mismatches and invalid inputs raise `ContractViolationError`
+- [x] Unit tests pass in `tests/unit/models/test_preprocessing_apply.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_apply.py -v`
 
 **Tests**: unit  
 **Gate**: quick  

@@ -218,7 +218,70 @@ def fit_two_layer_preprocessing(
     )
 
 
+def apply_two_layer_preprocessing(
+    state: TwoLayerPreprocessingState,
+    X_eval: np.ndarray,
+) -> np.ndarray:
+    """Project evaluation data through fitted two-layer preprocessing without state mutation.
+
+    Applies Layer 1 followed by Layer 2 using strictly the parameters fitted on training data.
+
+    Args:
+        state: TwoLayerPreprocessingState instance.
+        X_eval: 2D NumPy array of evaluation predictors.
+
+    Returns:
+        Transformed 2D NumPy array.
+
+    Raises:
+        ContractViolationError: If X_eval is not a 2D array, is empty, non-finite,
+            or if feature count does not match the expected input dimensionality.
+    """
+    if not isinstance(state, TwoLayerPreprocessingState):
+        raise ConfigurationError(
+            f"Expected TwoLayerPreprocessingState, got {type(state).__name__}"
+        )
+
+    if not isinstance(X_eval, np.ndarray):
+        X_eval = np.asarray(X_eval)
+    if X_eval.ndim != 2:
+        raise ContractViolationError(
+            f"X_eval must be a 2D array, got ndim={X_eval.ndim} with shape {X_eval.shape}"
+        )
+    if X_eval.shape[0] == 0 or X_eval.shape[1] == 0:
+        raise ContractViolationError(f"X_eval must not be empty, got shape {X_eval.shape}")
+    if not np.all(np.isfinite(X_eval)):
+        raise ContractViolationError("X_eval contains non-finite values (NaN or Inf)")
+
+    current_X = X_eval.astype(float, copy=True)
+
+    # 1. Project through Layer 1 steps
+    for transformer in state.layer1_fitted_state:
+        if transformer is not None:
+            if hasattr(transformer, "n_features_in_") and transformer.n_features_in_ is not None:
+                if current_X.shape[1] != transformer.n_features_in_:
+                    raise ContractViolationError(
+                        f"Feature count mismatch in Layer 1: expected {transformer.n_features_in_}, "
+                        f"got {current_X.shape[1]}"
+                    )
+            current_X = transformer.transform(current_X)
+
+    # 2. Project through Layer 2 steps
+    for transformer in state.layer2_fitted_state:
+        if transformer is not None:
+            if hasattr(transformer, "n_features_in_") and transformer.n_features_in_ is not None:
+                if current_X.shape[1] != transformer.n_features_in_:
+                    raise ContractViolationError(
+                        f"Feature count mismatch in Layer 2: expected {transformer.n_features_in_}, "
+                        f"got {current_X.shape[1]}"
+                    )
+            current_X = transformer.transform(current_X)
+
+    return current_X
+
+
 __all__ = [
     "validate_two_layer_preprocessing",
     "fit_two_layer_preprocessing",
+    "apply_two_layer_preprocessing",
 ]
