@@ -383,8 +383,8 @@ Proof: run integration | tests/integration/models/test_models_integration.py::te
 ## Handoff
 
 **Settled mid-build**: none  
-**Dispatched**: none  
-**Walked**: pending  
+**Dispatched**: Verifier (validate.md)  
+**Walked**: done (check_proofs passed at HEAD 6d0aa19)  
 
 ---
 
