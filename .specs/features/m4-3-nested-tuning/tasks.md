@@ -117,12 +117,12 @@ T7
 **Requirement**: TUN-02
 
 **Done when**:
-- [ ] `validate_search_spec` validates valid search specifications without error
-- [ ] `inner_cv_folds < 2` or non-integer folds raise `ConfigurationError`
-- [ ] Unknown metrics or conflicting metric directions raise `ConfigurationError`
-- [ ] Non-positive `n_iter` in `RANDOM_SEARCH` raises `ConfigurationError`
-- [ ] Unit tests pass in `tests/unit/tuning/test_tuning_validation.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_validation.py -v`
+- [x] `validate_search_spec` validates valid search specifications without error
+- [x] `inner_cv_folds < 2` or non-integer folds raise `ConfigurationError`
+- [x] Unknown metrics or conflicting metric directions raise `ConfigurationError`
+- [x] Non-positive `n_iter` in `RANDOM_SEARCH` raises `ConfigurationError`
+- [x] Unit tests pass in `tests/unit/tuning/test_tuning_validation.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_validation.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
