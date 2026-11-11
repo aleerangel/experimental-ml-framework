@@ -228,11 +228,11 @@ T7
 **Requirement**: MPC-07
 
 **Done when**:
-- [ ] `main.py` registers `models` subparser with `validate` and `verify` commands
-- [ ] `cmd_models.py` maintains zero file-level heavy imports (`CLI-10`)
-- [ ] Subprocess integration tests execute full CLI lifecycle with exit codes 0 and 2
-- [ ] Integration tests pass in `tests/integration/models/test_models_cli_integration.py`
-- [ ] Full gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] `main.py` registers `models` subparser with `validate` and `verify` commands
+- [x] `cmd_models.py` maintains zero file-level heavy imports (`CLI-10`)
+- [x] Subprocess integration tests execute full CLI lifecycle with exit codes 0 and 2
+- [x] Integration tests pass in `tests/integration/models/test_models_cli_integration.py`
+- [x] Full gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  
