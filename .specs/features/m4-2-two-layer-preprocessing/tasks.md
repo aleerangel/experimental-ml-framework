@@ -232,11 +232,11 @@ T7
 **Requirement**: PRE-07
 
 **Done when**:
-- [ ] `preprocessing/__init__.py` and `models/__init__.py` cleanly export public API in `__all__`
-- [ ] End-to-end integration tests execute full two-layer preprocessing lifecycle
-- [ ] Subprocess inspection asserts runtime purity without external ML framework imports
-- [ ] Integration tests pass in `tests/integration/models/test_preprocessing_integration.py`
-- [ ] Full gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] `preprocessing/__init__.py` and `models/__init__.py` cleanly export public API in `__all__`
+- [x] End-to-end integration tests execute full two-layer preprocessing lifecycle
+- [x] Subprocess inspection asserts runtime purity without external ML framework imports
+- [x] Integration tests pass in `tests/integration/models/test_preprocessing_integration.py`
+- [x] Full gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  

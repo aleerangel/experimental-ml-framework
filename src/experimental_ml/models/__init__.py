@@ -16,6 +16,14 @@ from experimental_ml.models.execution import (
     predict_model,
     reset_active_instances,
 )
+from experimental_ml.models.preprocessing import (
+    ScalerType,
+    TwoLayerPreprocessingSpec,
+    TwoLayerPreprocessingState,
+    apply_two_layer_preprocessing,
+    fit_two_layer_preprocessing,
+    validate_two_layer_preprocessing,
+)
 from experimental_ml.models.spec import (
     ModelSpec,
     validate_model_spec,
@@ -43,4 +51,10 @@ __all__ = [
     "extract_model_diagnostics",
     "DummyBaselineModel",
     "AnalyticalBiometricModel",
+    "ScalerType",
+    "TwoLayerPreprocessingSpec",
+    "TwoLayerPreprocessingState",
+    "validate_two_layer_preprocessing",
+    "fit_two_layer_preprocessing",
+    "apply_two_layer_preprocessing",
 ]
