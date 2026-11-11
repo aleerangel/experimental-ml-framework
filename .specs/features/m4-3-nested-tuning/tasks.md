@@ -141,11 +141,11 @@ T7
 **Requirement**: TUN-03
 
 **Done when**:
-- [ ] `GRID_SEARCH` produces deterministic Cartesian product of parameter combinations
-- [ ] `RANDOM_SEARCH` samples exactly `n_iter` candidates deterministically with seed
-- [ ] `FIXED` produces a single candidate mapping
-- [ ] Unit tests pass in `tests/unit/tuning/test_tuning_candidates.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_candidates.py -v`
+- [x] `GRID_SEARCH` produces deterministic Cartesian product of parameter combinations
+- [x] `RANDOM_SEARCH` samples exactly `n_iter` candidates deterministically with seed
+- [x] `FIXED` produces a single candidate mapping
+- [x] Unit tests pass in `tests/unit/tuning/test_tuning_candidates.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_candidates.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
