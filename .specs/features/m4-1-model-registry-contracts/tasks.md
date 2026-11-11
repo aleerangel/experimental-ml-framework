@@ -118,11 +118,11 @@ T8
 **Requirement**: MOD-02, MOD-07
 
 **Done when**:
-- [ ] `ModelSpec` defined with immutability guarantees and parameters wrapped in `MappingProxyType`
-- [ ] `validate_model_spec` validates fields and contradictory capabilities without executing code
-- [ ] `validate_models_catalog` validates sequences, rejects duplicates, and returns immutable mapping
-- [ ] Unit tests pass in `tests/unit/models/test_model_spec.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_spec.py -v`
+- [x] `ModelSpec` defined with immutability guarantees and parameters wrapped in `MappingProxyType`
+- [x] `validate_model_spec` validates fields and contradictory capabilities without executing code
+- [x] `validate_models_catalog` validates sequences, rejects duplicates, and returns immutable mapping
+- [x] Unit tests pass in `tests/unit/models/test_model_spec.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_spec.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
