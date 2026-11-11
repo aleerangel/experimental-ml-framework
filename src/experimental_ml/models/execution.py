@@ -172,8 +172,170 @@ def fit_model(
     return model, fit_diag
 
 
+def _is_model_fitted(model: Any) -> bool:
+    """Check whether a model instance has been fitted."""
+    if hasattr(model, "__is_fitted__"):
+        return bool(model.__is_fitted__)
+    if hasattr(model, "is_fitted"):
+        attr = getattr(model, "is_fitted")
+        return bool(attr() if callable(attr) else attr)
+    if hasattr(model, "__dict__"):
+        for k in model.__dict__:
+            if k.endswith("_") and not k.startswith("_"):
+                return True
+    return False
+
+
+def predict_model(
+    model: Any,
+    model_spec: ModelSpec,
+    X_eval: np.ndarray,
+) -> dict[str, np.ndarray | None]:
+    """Execute model prediction and enforce standard tripartite output verification.
+
+    Returns a standardized dictionary containing 'y_pred', 'y_std', and 'y_proba' (MOD-05).
+
+    Args:
+        model: Fitted model instance or analytical model.
+        model_spec: Declarative specification of the model.
+        X_eval: 2D NumPy array of evaluation predictors.
+
+    Returns:
+        Dictionary with keys 'y_pred', 'y_std', and 'y_proba'.
+
+    Raises:
+        ContractViolationError: If model is unfitted, if X_eval dimensions are invalid,
+            or if outputs violate declared capabilities (dimensions, bounds, non-negativity).
+    """
+    validate_model_spec(model_spec)
+
+    if not isinstance(X_eval, np.ndarray):
+        X_eval = np.asarray(X_eval)
+
+    if X_eval.ndim != 2:
+        raise ContractViolationError(
+            f"X_eval must be a 2D array, got ndim={X_eval.ndim} with shape {X_eval.shape}"
+        )
+
+    n_samples = X_eval.shape[0]
+    if n_samples == 0:
+        raise ContractViolationError("X_eval must not be empty (N=0)")
+
+    # Verify fitted state for trainable models (AC-M41-05-06)
+    if model_spec.capabilities.requires_fit and not _is_model_fitted(model):
+        raise ContractViolationError(
+            f"Model '{model_spec.model_id}' declared requires_fit=True but has not been fitted."
+        )
+
+    if not hasattr(model, "predict") or not callable(model.predict):
+        raise ContractViolationError(
+            f"Model '{model_spec.model_id}' lacks a callable predict() method."
+        )
+
+    # 1. Prediction & Uncertainty acquisition
+    y_pred: np.ndarray | None = None
+    y_std: np.ndarray | None = None
+
+    if model_spec.capabilities.supports_uncertainty:
+        if hasattr(model, "predict_std") and callable(model.predict_std):
+            y_pred = model.predict(X_eval)
+            y_std = model.predict_std(X_eval)
+        elif hasattr(model, "predict_uncertainty") and callable(model.predict_uncertainty):
+            y_pred = model.predict(X_eval)
+            y_std = model.predict_uncertainty(X_eval)
+        else:
+            try:
+                res = model.predict(X_eval, return_std=True)
+                if isinstance(res, tuple) and len(res) == 2:
+                    y_pred, y_std = res
+                else:
+                    y_pred = res
+            except (TypeError, Exception):
+                y_pred = model.predict(X_eval)
+    else:
+        y_pred = model.predict(X_eval)
+
+    # 2. Validate y_pred (AC-M41-05-01)
+    if y_pred is None:
+        raise ContractViolationError(f"Model '{model_spec.model_id}' predict() returned None")
+    if not isinstance(y_pred, np.ndarray):
+        y_pred = np.asarray(y_pred)
+    if y_pred.ndim != 1 or y_pred.shape[0] != n_samples:
+        raise ContractViolationError(
+            f"y_pred shape {y_pred.shape} must be a 1D array of length {n_samples}"
+        )
+
+    # 3. Validate y_std (AC-M41-05-02, AC-M41-05-04, AC-M41-05-07)
+    if model_spec.capabilities.supports_uncertainty:
+        if y_std is None:
+            raise ContractViolationError(
+                f"Model '{model_spec.model_id}' declared supports_uncertainty=True "
+                f"but produced None for y_std."
+            )
+        if not isinstance(y_std, np.ndarray):
+            y_std = np.asarray(y_std)
+        if y_std.ndim != 1 or y_std.shape[0] != n_samples:
+            raise ContractViolationError(
+                f"y_std shape {y_std.shape} must be a 1D array of length {n_samples}"
+            )
+        if not np.all(np.isfinite(y_std)):
+            raise ContractViolationError(
+                f"y_std contains non-finite values (NaN or Inf)"
+            )
+        if np.any(y_std < 0.0):
+            raise ContractViolationError(
+                f"y_std contains negative uncertainty values (< 0.0)"
+            )
+    else:
+        y_std = None
+
+    # 4. Validate y_proba (AC-M41-05-03, AC-M41-05-05, AC-M41-05-08)
+    y_proba: np.ndarray | None = None
+    if model_spec.capabilities.supports_predict_proba:
+        if not hasattr(model, "predict_proba") or not callable(model.predict_proba):
+            raise ContractViolationError(
+                f"Model '{model_spec.model_id}' declared supports_predict_proba=True "
+                f"but lacks a callable predict_proba() method."
+            )
+        raw_proba = model.predict_proba(X_eval)
+        if raw_proba is None:
+            raise ContractViolationError(
+                f"Model '{model_spec.model_id}' predict_proba() returned None"
+            )
+        if not isinstance(raw_proba, np.ndarray):
+            y_proba = np.asarray(raw_proba)
+        else:
+            y_proba = raw_proba
+
+        if y_proba.ndim != 2 or y_proba.shape[0] != n_samples:
+            raise ContractViolationError(
+                f"y_proba shape {y_proba.shape} must be 2D with {n_samples} rows."
+            )
+        if not np.all(np.isfinite(y_proba)):
+            raise ContractViolationError("y_proba contains non-finite values (NaN or Inf)")
+        if np.any(y_proba < 0.0) or np.any(y_proba > 1.0):
+            raise ContractViolationError(
+                "y_proba values must be strictly bounded in [0.0, 1.0]"
+            )
+        row_sums = np.sum(y_proba, axis=1)
+        if not np.allclose(row_sums, 1.0, atol=1e-5):
+            raise ContractViolationError(
+                f"y_proba row sums must equal 1.0 within numerical tolerance, got {row_sums}"
+            )
+    else:
+        # Strictly None even if supports_decision_function is True (AC-M41-05-05)
+        y_proba = None
+
+    return {
+        "y_pred": y_pred,
+        "y_std": y_std,
+        "y_proba": y_proba,
+    }
+
+
 __all__ = [
     "instantiate_fresh_model",
     "reset_active_instances",
     "fit_model",
+    "predict_model",
 ]

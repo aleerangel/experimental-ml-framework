@@ -184,13 +184,13 @@ T8
 **Requirement**: MOD-05
 
 **Done when**:
-- [ ] `predict_model` returns dict with keys `"y_pred"`, `"y_std"`, `"y_proba"`
-- [ ] `y_pred` validated as 1D array with length matching evaluation samples
-- [ ] `y_std` validated for finitude, non-negativity, or enforced as `None` when disabled
-- [ ] `y_proba` validated for shape, $[0, 1]$ bounds, unit row sum, or enforced as `None` when disabled
-- [ ] Unfitted trainable models and runtime capability violations raise `ContractViolationError`
-- [ ] Unit tests pass in `tests/unit/models/test_model_predict.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_predict.py -v`
+- [x] `predict_model` returns dict with keys `"y_pred"`, `"y_std"`, `"y_proba"`
+- [x] `y_pred` validated as 1D array with length matching evaluation samples
+- [x] `y_std` validated for finitude, non-negativity, or enforced as `None` when disabled
+- [x] `y_proba` validated for shape, $[0, 1]$ bounds, unit row sum, or enforced as `None` when disabled
+- [x] Unfitted trainable models and runtime capability violations raise `ContractViolationError`
+- [x] Unit tests pass in `tests/unit/models/test_model_predict.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_predict.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
