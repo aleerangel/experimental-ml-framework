@@ -185,11 +185,11 @@ T7
 **Requirement**: TUN-05
 
 **Done when**:
-- [ ] `run_nested_tuning` evaluates candidates across inner folds using fresh model instances
-- [ ] Inner fold scores are computed via `METRICS_CATALOG` and aggregated as arithmetic mean
-- [ ] Winning candidate $\theta^*$ selected by declared direction with deterministic tie-breaking
-- [ ] Unit tests pass in `tests/unit/tuning/test_tuning_execution.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_execution.py -v`
+- [x] `run_nested_tuning` evaluates candidates across inner folds using fresh model instances
+- [x] Inner fold scores are computed via `METRICS_CATALOG` and aggregated as arithmetic mean
+- [x] Winning candidate $\theta^*$ selected by declared direction with deterministic tie-breaking
+- [x] Unit tests pass in `tests/unit/tuning/test_tuning_execution.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_execution.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
