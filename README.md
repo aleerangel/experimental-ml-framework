@@ -1,52 +1,49 @@
 # Experimental ML Framework
 
-Framework experimental agnóstico para pesquisa científica em Aprendizado de Máquina (*Machine Learning* — ML), voltado a tarefas de regressão e classificação sobre dados tabulares.
+Framework agnóstico para pesquisa científica em Aprendizado de Máquina (*Machine Learning* — ML), projetado para condução, auditoria e publicação de experimentos rigorosos sobre dados tabulares (regressão e classificação).
 
-O projeto fornece infraestrutura modular, determinística e pedagógica para condução, auditoria e publicação de experimentos científicos, priorizando a integridade metodológica, a prevenção ativa de vazamento de dados (*data leakage*) e a reprodutibilidade integral dos resultados.
+O projeto prioriza a integridade metodológica, a prevenção estrutural de vazamento de dados (*data leakage*), o determinismo numérico e a reprodutibilidade integral de resultados científicos.
 
 ---
 
 ## Sumário Executivo
 
-| Atributo | Estado e Especificação |
+| Atributo | Especificação e Estado |
 | :--- | :--- |
-| **Versão Atual** | `0.1.0.dev0` (Hatchling / PEP 517 / PEP 621) |
-| **Compatibilidade** | Python `>= 3.10` (testado e verificado em Python 3.12) |
+| **Versão** | `0.1.0.dev0` (Hatchling / PEP 517 / PEP 621) |
+| **Compatibilidade** | Python `>= 3.10` (testado e homologado em Python 3.12) |
 | **Dependência Única de Runtime** | `numpy >= 1.24.0` |
-| **Fase Atual do Projeto** | **Fase 4: Implementação TDD do MVP** (Marcos M1, M2 e M3 concluídos, consolidados e aceitos) |
-| **Suíte de Testes** | **236 verificações automatizadas** com 100% de aprovação via `pytest` |
+| **Estado Atual** | **Fase 4: Implementação TDD do MVP** (Marcos M1, M2 e M3 concluídos e aceitos) |
+| **Garantia de Qualidade** | **236 testes automatizados** com 100% de aprovação via `pytest` |
 | **Governança Técnica** | TLC Spec-Driven Development (`spec.md`, `design.md`, `tasks.md`, `proofs.md`, `verification.md`) |
 
 ---
 
-## 1. Sobre o Projeto
+## 1. Visão Geral e Princípios Arquiteturais
 
-### O Problema Abordado
+### Motivação Científica
 
-A pesquisa experimental em Aprendizado de Máquina frequentemente enfrenta desafios metodológicos que comprometem a validade, a auditoria e a comparabilidade dos resultados publicados:
+A pesquisa experimental em ML frequentemente padece de vulnerabilidades metodológicas sutis:
+- **Vazamento de dados (*data leakage*):** pré-processamento, imputação ou seleção de atributos ajustados fora da partição de treino.
+- **Mutações silenciosas:** alterações implícitas na base bruta (remoção de linhas ou coerção de tipos) sem registro auditável.
+- **Otimismo em hiperparâmetros:** ausência de validação cruzada aninhada (*Nested CV*), inflando métricas reportadas.
+- **Inferência estatística frágil:** comparações baseadas em médias simples sem testes de hipótese adequados, sem correção para múltiplos testes ou confundindo ausência de significância com equivalência prática.
+- **Acoplamento entre execução e relato:** necessidade de reexecutar rotinas onerosas apenas para ajustar tabelas ou figuras de artigos.
 
-- **Vazamento de dados (*data leakage*):** ajuste acidental de transformações de pré-processamento, imputações ou seleção de atributos fora do laço interno de treino de cada partição.
-- **Mutações silenciosas:** alterações não declaradas ou automáticas nos dados brutos de entrada (como descarte de linhas com valores ausentes ou coerção arbitrária de tipos).
-- **Viés de seleção de hiperparâmetros:** ausência de validação cruzada aninhada (*Nested CV*), resultando em estimativas de erro superotimistas.
-- **Inferência estatística frágil:** declaração de modelos vencedores baseada em médias simples, sem testes pareados adequados, sem correção de comparações múltiplas ou confundindo ausência de significância estatística ($p \ge \alpha$) com equivalência entre algoritmos.
-- **Acoplamento entre execução e apresentação:** necessidade de reexecutar experimentos onerosos apenas para reformatar tabelas ou recalcular testes estatísticos.
+### Decisões Arquiteturais Centrais (ADRs)
 
-### Princípios Arquiteturais Centrais
-
-O `experimental-ml-framework` aborda esses problemas através de decisões arquiteturais fundamentadas (**ADRs**):
-
-1. **Arquitetura Agnóstica sem Estimadores Próprios ([ADR-001](REFERENCIAS_E_FUNDAMENTACAO.md)):** O framework não reescreve algoritmos de ML internamente; recebe modelos e funções externas (Scikit-Learn, XGBoost, modelos analíticos sem `fit`, funções customizadas e circuitos quânticos) através de contratos funcionais uniformes.
-2. **Prevenção Estrutural de Vazamento ([ADR-002](REFERENCIAS_E_FUNDAMENTACAO.md)):** Todo ajuste de parâmetros (pré-processamento, seleção de atributos e calibração de modelos) ocorre estritamente nos dados de treino de cada partição externa.
-3. **Semântica Estrita de `UNDEFINED_NAN` ([ADR-005](REFERENCIAS_E_FUNDAMENTACAO.md)):** Casos matematicamente degenerados retornam `NaN` com status explícito `MetricStatus.UNDEFINED_NAN`, sendo estritamente proibida a coerção silenciosa para zero.
-4. **Determinismo e Hashing Canônico SHA-256 ([ADR-007](REFERENCIAS_E_FUNDAMENTACAO.md)):** Derivação hierárquica de sementes via `numpy.random.SeedSequence` e hashing estrutural tripartite (`dataset_hash`, `raw_source_hash`, `schema_hash`) sensível à ordem, colunas e `observation_ids`.
-5. **Paradigma Puramente Modular sem Classes de Negócio ([ADR-008](REFERENCIAS_E_FUNDAMENTACAO.md)):** Código interno baseado em funções explícitas e estruturas de dados imutáveis com `slots`, evitando estados ocultos e prevenindo vazamentos acidentais por reutilização de instâncias.
+1. **Arquitetura Agnóstica sem Estimadores Próprios ([ADR-001](REFERENCIAS_E_FUNDAMENTACAO.md)):** O framework atua como infraestrutura de protocolo; recebe modelos e funções externas (Scikit-Learn, XGBoost, modelos analíticos sem `fit`, funções customizadas ou circuitos quânticos) através de contratos funcionais desacoplados.
+2. **Prevenção Estrutural de Vazamento ([ADR-002](REFERENCIAS_E_FUNDAMENTACAO.md)):** Toda operação parametrizada (pré-processamento, seleção de atributos e calibração de modelos) ocorre estritamente dentro dos dados de treino de cada partição externa.
+3. **Semântica Estrita de Casos Degenerados ([ADR-005](REFERENCIAS_E_FUNDAMENTACAO.md)):** Situações matematicamente indefinidas retornam `NaN` com status formal `MetricStatus.UNDEFINED_NAN`, proibindo coerções silenciosas para zero.
+4. **Determinismo e Hashing Canônico SHA-256 ([ADR-007](REFERENCIAS_E_FUNDAMENTACAO.md)):** Sementes derivadas hierarquicamente via `numpy.random.SeedSequence` e hashing estrutural tripartite (`dataset_hash`, `raw_source_hash`, `schema_hash`) sensível à ordem, colunas e `observation_ids`.
+5. **Paradigma Puramente Modular e Imutável ([ADR-008](REFERENCIAS_E_FUNDAMENTACAO.md)):** Subsistemas organizados em funções puras e estruturas de dados imutáveis (`slots`), eliminando estados ocultos e prevenindo vazamentos acidentais por reutilização de instâncias.
 
 ### O Ciclo Operacional em 6 Etapas
 
 ```mermaid
 flowchart LR
-    E1["Etapa 1<br/>Ingestão, Triagem e<br/>Diagnóstico da Base"] -->|"DatasetBundle<br/>DatasetProfile<br/>PreparationPlan"| E2["Etapa 2<br/>Exploração e<br/>Cenários de Features"]
-    E2 -->|"ExploratoryReport<br/>ScenariosCatalog"| E3["Etapa 3<br/>Modelos, Circuitos<br/>e Nested Tuning"]
+    E1["Etapa 1<br/>Ingestão, Triagem e<br/>Saneamento"] -->|"SanitizedDatasetView<br/>PreparationPlan"| E2["Etapa 2<br/>Exploração e<br/>Cenários de Features"]
+    E2 -->|"ExploratoryReport<br/>ScenariosCatalog"| E3["Etapa 3<br/>Modelos, Circuitos<br/>e Tuning Aninhado"]
     E3 -->|"ModelsCatalog<br/>SearchSpecs"| E4A["Etapa 4A<br/>Particionamento<br/>Compartilhado"]
     E4A -->|"PartitionPlan"| E4B["Etapa 4B<br/>Execução Matricial<br/>e Persistência"]
     E4B -->|"runs/ & predictions/"| E5["Etapa 5<br/>Consolidação e<br/>Comparação Estatística"]
@@ -58,11 +55,10 @@ flowchart LR
 ## 2. Instalação
 
 ### Pré-requisitos
+- Python `>= 3.10`
+- Git
 
-- **Python:** Versão `>= 3.10` instalada no sistema operacional.
-- **Git:** Para clonar o repositório.
-
-### Passo a Passo
+### Instalação no Ambiente Local
 
 ```bash
 # 1. Clonar o repositório
@@ -74,12 +70,12 @@ python3 -m venv .venv
 source .venv/bin/activate
 # No Windows: .venv\Scripts\activate
 
-# 3. Atualizar o pip e instalar em modo editável com dependências de desenvolvimento
+# 3. Instalar o pacote em modo editável com dependências de desenvolvimento
 pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
-Após a instalação, o executável de linha de comando `expml` estará disponível diretamente no ambiente ativo.
+Após a instalação, o comando `expml` estará acessível diretamente no terminal.
 
 ---
 
@@ -88,56 +84,58 @@ Após a instalação, o executável de linha de comando `expml` estará disponí
 ### Interface de Linha de Comando (`expml`)
 
 ```bash
-# 1. Informações básicas e ajuda
+# Informações e ajuda geral
 expml --version
 expml --help
 
-# 2. Perfilamento estatístico e diagnóstico da base de dados
+# 1. Etapa 1: Triagem estatística e diagnóstico da base
 expml data profile \
   --data caminho/para/dados.csv \
   --schema caminho/para/schema.json \
   --output-dir experimentos/meu_ensaio
 
-# 3. Saneamento determinístico aplicando regras de preparação
+# 2. Etapa 1: Saneamento determinístico via plano de preparação
 expml data sanitize \
   --experiment-dir experimentos/meu_ensaio \
   --rules caminho/para/regras.json
 
-# 4. Exploração de relações estatísticas e redundâncias de features
+# 3. Etapa 2: Exploração de correlações e redundâncias de atributos
 expml features explore \
   --experiment-dir experimentos/meu_ensaio
 
-# 5. Validação e persistência de cenários de features
+# 4. Etapa 2: Validação e persistência de cenários de atributos
 expml features scenarios \
   --experiment-dir experimentos/meu_ensaio \
   --scenarios caminho/para/scenarios.json
 
-# 6. Verificação do portão de validação de cenários
+# 5. Etapa 2: Verificação do portão de validação de cenários
 expml features verify \
   --experiment-dir experimentos/meu_ensaio
 
-# 7. Geração de particionamento compartilhado e matriz de divisões
+# 6. Etapa 4A: Geração de particionamento compartilhado e matriz de divisões
 expml partition build \
   --experiment-dir experimentos/meu_ensaio \
   --config caminho/para/partition_config.json \
   --seed 42
 
-# 8. Verificação de portões de etapa e integridade matemática das partições
+# 7. Etapa 4A: Verificação do portão de particionamento e disjunção de folds
 expml partition verify \
   --experiment-dir experimentos/meu_ensaio
 ```
 
+---
+
 ### Exemplos Programáticos em Python
 
-#### 1. Versão e Verificação de Ambiente
+#### 1. Versão e Ponto de Entrada
 ```python
 import experimental_ml
 
 print(experimental_ml.__version__)
-# Saída: 0.1.0.dev0
+# Saída esperada: 0.1.0.dev0
 ```
 
-#### 2. Ingestão e Esquemas Tabulares (`experimental_ml.data`)
+#### 2. Ingestão Imutável e Esquemas Tabulares (`experimental_ml.data`)
 ```python
 from experimental_ml.core import TaskType
 from experimental_ml.data import (
@@ -148,7 +146,7 @@ from experimental_ml.data import (
     slice_bundle_by_observation_ids,
 )
 
-# 1. Declaração imutável do esquema estrutural
+# Declaração do esquema estrutural com normalização NFC
 schema = DatasetSchemaSpec(
     target_col="y",
     task_type=TaskType.REGRESSION,
@@ -159,15 +157,14 @@ schema = DatasetSchemaSpec(
     },
 )
 
-# 2. Ingestão com posse exclusiva e buffers imutáveis em nível C
-data_source = {"feat1": [1.5, 2.5, 3.5], "parcela": ["A", "A", "B"], "y": [10.0, 20.0, 30.0]}
-bundle = load_dataset(data_source, schema)
+# Ingestão com posse exclusiva e buffers protegidos contra escrita em C
+data = {"feat1": [1.5, 2.5, 3.5], "parcela": ["A", "A", "B"], "y": [10.0, 20.0, 30.0]}
+bundle = load_dataset(data, schema)
 
-# 3. Consulta de coluna como view somente-leitura
+# Consulta como view somente-leitura e fatiamento ordenado
 arr = get_column_array(bundle, "feat1", copy=False)
-
-# 4. Fatiamento imutável preservando a ordenação solicitada
 sub_bundle = slice_bundle_by_observation_ids(bundle, ["obs_000002", "obs_000000"])
+assert len(sub_bundle.observation_ids) == 2
 ```
 
 #### 3. Triagem Estatística e Diagnóstico Estrutural (`experimental_ml.data.profile_dataset`)
@@ -181,7 +178,6 @@ from experimental_ml.data import (
     profile_dataset,
 )
 
-# 1. Esquema e carga dos dados tabulares
 schema = DatasetSchemaSpec(
     target_col="y",
     task_type=TaskType.REGRESSION,
@@ -192,70 +188,14 @@ schema = DatasetSchemaSpec(
 )
 bundle = load_dataset({"x": [10.0, 20.0, 30.0, 40.0], "y": [1.0, 2.0, 3.0, 4.0]}, schema)
 
-# 2. Configuração de limiares heurísticos de triagem
+# Perfilamento sem mutação na base (preserva o dataset_hash)
 config = ProfileConfig(rare_class_proportion=0.05, small_group_size=5)
-
-# 3. Execução da triagem estatística sem mutação da base
 profile = profile_dataset(bundle, config)
 assert profile.n_rows == 4
 assert profile.columns["x"].numeric_stats.mean == 25.0
 ```
 
-#### 4. Motor de Métricas e Avaliação (`experimental_ml.metrics`)
-```python
-import numpy as np
-from experimental_ml.core import MetricDirection
-from experimental_ml.metrics import (
-    compute_metric,
-    get_metric_spec,
-    is_better,
-    aggregate_fold_metrics,
-)
-
-# 1. Cálculo de métricas puras vetorizadas em float64
-y_true = np.array([10.0, 20.0, 30.0], dtype=np.float64)
-y_pred = np.array([11.0, 19.0, 32.0], dtype=np.float64)
-rmse_val = compute_metric("rmse", y_true, y_pred)
-
-# 2. Consulta de metadados de direção e tolerância
-spec = get_metric_spec("rmse")
-
-# 3. Comparação de candidatos com semântica estrita de tolerância (rtol)
-melhor = is_better(cand_a=rmse_val, cand_b=rmse_val, direction=spec.direction)
-
-# 4. Agregação entre partições com controle de cobertura
-agg = aggregate_fold_metrics([rmse_val, rmse_val])
-```
-
-#### 5. Núcleo de Domínio e Reprodutibilidade (`experimental_ml.core`)
-```python
-from experimental_ml.core import (
-    ExperimentId,
-    TaskType,
-    derive_seeds,
-    config_hash,
-    dataset_hash,
-    make_finding,
-)
-
-# 1. Identificadores de domínio imutáveis e tipados
-exp_id = ExperimentId("exp_baseline_01")
-
-# 2. Derivação hierárquica e determinística de sementes (ADR-007)
-seeds = derive_seeds(master_seed=42, count=3)
-
-# 3. Hashing canônico de configurações (ADR-007)
-h_config = config_hash({"task": TaskType.REGRESSION, "alpha": 0.01})
-
-# 4. Hashing estrutural canônico de dados tabulares
-data = {"feature1": [1.0, 2.0], "feature2": [10, 20]}
-h_data = dataset_hash(data)
-
-# 5. Construtores de diagnósticos estruturados
-finding = make_finding(code="E1_ZERO_VARIANCE", message="Coluna com variância nula.")
-```
-
-#### 6. Saneamento e Particionamento Compartilhado (`experimental_ml.data` e `experimental_ml.validation`)
+#### 4. Saneamento e Particionamento Compartilhado (`experimental_ml.data` e `experimental_ml.validation`)
 ```python
 from experimental_ml.core import TaskType
 from experimental_ml.data import (
@@ -275,7 +215,6 @@ from experimental_ml.validation import (
     validate_partition_plan,
 )
 
-# 1. Esquema e carregamento de dataset tabular
 schema = DatasetSchemaSpec(
     target_col="target",
     task_type=TaskType.BINARY_CLASSIFICATION,
@@ -290,22 +229,14 @@ raw_data = {
     "target": [0, 1, 0, 1, 0, 1],
 }
 bundle = load_dataset(raw_data, schema)
-
-# 2. Perfilamento estrutural e plano de preparação determinístico
 profile = profile_dataset(bundle)
-rule = PreparationRule(
-    finding_code="E1_CATEGORICAL_UNENCODED",
-    column="feat2",
-    kind="ACCEPT_AS_IS",
-)
+
+# Plano de preparação formalizado e saneamento determinístico
+rule = PreparationRule(finding_code="E1_CATEGORICAL_UNENCODED", column="feat2", kind="ACCEPT_AS_IS")
 plan = create_preparation_plan(profile, rules=[rule])
-assert plan.status == "READY"
-
-# 3. Saneamento determinístico e visão saneada imutável
 view = sanitize_dataset(bundle, profile, plan)
-assert len(view.observation_ids) == 6
 
-# 4. Construção e validação matemática de particionamento compartilhado
+# Particionamento imutável compartilhado entre todas as configurações
 config = PartitionConfig(
     strategy=PartitionStrategy.KFOLD,
     regime=EvaluationRegime.CV_ONLY,
@@ -317,230 +248,213 @@ validate_partition_plan(part_plan, view)
 assert len(part_plan.folds) == 3
 ```
 
+#### 5. Exploração de Features e Cenários Experimentais (`experimental_ml.features`)
+```python
+from experimental_ml.core import TaskType
+from experimental_ml.data import (
+    DatasetSchemaSpec,
+    ColumnSemanticType,
+    load_dataset,
+    profile_dataset,
+    create_preparation_plan,
+    sanitize_dataset,
+)
+from experimental_ml.features import (
+    FeatureScenario,
+    explore_features,
+    validate_scenarios,
+)
+
+schema = DatasetSchemaSpec(
+    target_col="y",
+    task_type=TaskType.REGRESSION,
+    column_semantic_types={
+        "f1": ColumnSemanticType.NUMERIC_CONTINUOUS,
+        "f2": ColumnSemanticType.NUMERIC_CONTINUOUS,
+        "y": ColumnSemanticType.NUMERIC_CONTINUOUS,
+    },
+)
+bundle = load_dataset({"f1": [1.0, 2.0, 3.0, 4.0], "f2": [2.0, 4.0, 6.0, 8.0], "y": [10.0, 20.0, 30.0, 40.0]}, schema)
+profile = profile_dataset(bundle)
+plan = create_preparation_plan(profile, rules=[])
+view = sanitize_dataset(bundle, profile, plan)
+
+# Análise exploratória rotulada preventivamente contra data leakage
+report = explore_features(view)
+assert report.scope == "EXPLORATORY_FULL_DATA"
+
+# Definição e validação estrita de cenários contra a visão saneada
+scenario = FeatureScenario(
+    scenario_id="sc_subset",
+    name="Subset Feature 1",
+    description="Subconjunto restrito à primeira feature",
+    scientific_justification="Redução de dimensionalidade por hipótese de domínio",
+    mode="FIXED",
+    selected_features=("f1",),
+)
+validated_catalog = validate_scenarios([scenario], view)
+assert len(validated_catalog.scenarios) == 1
+```
+
+#### 6. Avaliação e Catálogo de Métricas (`experimental_ml.metrics`)
+```python
+import numpy as np
+from experimental_ml.core import MetricDirection
+from experimental_ml.metrics import (
+    compute_metric,
+    get_metric_spec,
+    is_better,
+    aggregate_fold_metrics,
+)
+
+y_true = np.array([10.0, 20.0, 30.0], dtype=np.float64)
+y_pred = np.array([11.0, 19.0, 32.0], dtype=np.float64)
+
+# Métricas puras em float64 sem coerção silenciosa de NaNs
+rmse_val = compute_metric("rmse", y_true, y_pred)
+spec = get_metric_spec("rmse")
+
+# Comparação com semântica estrita de tolerância (rtol)
+melhor = is_better(cand_a=rmse_val, cand_b=rmse_val, direction=spec.direction)
+agg = aggregate_fold_metrics([rmse_val, rmse_val])
+assert agg.mean > 0.0
+```
+
+#### 7. Núcleo Determinístico, Hashing e Sementes (`experimental_ml.core`)
+```python
+from experimental_ml.core import (
+    ExperimentId,
+    TaskType,
+    derive_seeds,
+    config_hash,
+    dataset_hash,
+    make_finding,
+)
+
+# Identificadores tipados e imutáveis
+exp_id = ExperimentId("exp_baseline_01")
+
+# Derivação determinística de sementes (ADR-007)
+seeds = derive_seeds(master_seed=42, count=3)
+
+# Hashing estrutural imutável e sensível ao conteúdo
+h_config = config_hash({"task": TaskType.REGRESSION, "alpha": 0.01})
+h_data = dataset_hash({"f1": [1.0, 2.0], "f2": [10, 20]})
+
+# Diagnóstico padronizado
+finding = make_finding(code="E1_ZERO_VARIANCE", message="Coluna com variância nula.")
+assert finding.severity.value == "CONFIRMED_ISSUE"
+```
+
 ---
 
-## 4. Módulos e Funcionalidades Disponíveis
+## 4. Arquitetura em Camadas e Módulos
 
 O framework organiza-se em camadas modulares com níveis estritos de dependência:
 
-### Camada 1: Ingestão, Esquemas, Diagnósticos e Saneamento (`experimental_ml.data` — Nível 1)
-- **Ingestão Imutável (`load_dataset`):** Suporte a CSV, TXT, TSV (com sniffer RFC 4180 de delimitadores `,`, `;`, `\t`, `|` e múltiplos espaços) e fontes em memória (`dict`, `ndarray` 2D, registros, duck-typed `DataFrame`).
-- **Buffers Imutáveis em C:** Colunas numéricas e booleanas respaldadas por buffers `bytes` imutáveis que recusam `setflags(write=True)` com `ValueError`. Colunas `object` restritas a escalares imutáveis com `writeable=False`.
-- **Esquema Semântico (`DatasetSchemaSpec`):** Validação de papéis de variáveis (`target_col`, `group_col`, `observation_id_col`, `time_col`, `ignore_cols`), normalização Unicode NFC e bloqueio de vazamento da Onda 2.
-- **Identificadores Estáveis (`ObservationId`):** Atribuição determinística posicional `obs_000000` ou validação estrita de unicidade e não-nulidade na fonte.
-- **Hashes Tripartites:** `dataset_hash` (digest de memória invariante a quebras de linha e sensível à ordem das colunas e aos IDs), `raw_source_hash` (digest do arquivo em disco) e `schema_hash` (`config_hash` determinístico do esquema).
-- **Triagem Estatística (`profile_dataset` — Sub-marco M2.1):**
-  - Perfis estruturais `DatasetProfile` e por coluna `ColumnProfile` configuráveis via `ProfileConfig`.
-  - Distribuições numéricas completas (média, mediana, desvio padrão, min, max, quartis, IQR, skewness, outliers $1.5 \times \text{IQR}$) e categóricas (frequências e proporções).
-  - Análise especializada do alvo (variância zero, contagem de classes, desbalanceamento e mapeamento binário para $\{0,1\}$ com emissão de `E1_TARGET_BINARY_UNMAPPED`).
-  - Análise de agrupamento (`group_col`) com detecção de grupos com poucas amostras ou valores ausentes.
-  - Detecção determinística de linhas duplicadas (excluindo apenas `observation_id`).
-  - Catálogo canônico fechado de 15 achados diagnósticos (8 `CONFIRMED_ISSUE` + 7 `HEURISTIC_WARNING`) com severidade imutável e ordenação canônica determinística.
-- **Plano de Preparação e Saneamento Determinístico (`create_preparation_plan`, `sanitize_dataset` — Sub-marco M2.2):**
-  - Associação explícita de regras (`PreparationRule`: `DROP_ROWS`, `EXCLUDE_COLUMN`, `MAP_BINARY_TARGET`, `DEFER_INTRA_FOLD`, `ACCEPT_AS_IS`) para cada achado confirmado.
-  - Bloqueio de planos `INCOMPLETE` com `ContractViolationError` caso haja achados confirmados sem regras admissíveis.
-  - Emissão da visão saneada imutável `SanitizedDatasetView` com conjunto final de `candidate_feature_cols`.
-- **Codecs Lossless e Descritores (`codecs.py`, `descriptors.py` — Sub-marco M2.4):**
-  - Serialização e desserialização bidirecional de `DatasetDescriptor`, `SanitizedViewDescriptor`, `DatasetProfile` e `PreparationPlan` sem perda de precisão e em conformidade estrita com a RFC 8259.
-
-### Camada 2: Particionamento Compartilhado e Validação (`experimental_ml.validation` — Nível 2)
-- **Estratégias de Validação Cruzada e Holdout:** Suporte a `KFOLD`, `STRATIFIED_KFOLD`, `GROUP_KFOLD`, `BOOTSTRAP`, `TEMPORAL` e `HOLDOUT`.
-- **Regimes de Avaliação:** `CV_ONLY`, `HOLDOUT_ONLY` e `CV_AND_HOLDOUT`.
-- **Geração Determinística de Planos (`build_partition_plan` — Sub-marco M2.3):**
-  - Criação de `PartitionPlan` imutável consumindo contratos de `SanitizedDatasetView` sem acoplamento a rotinas de saneamento.
-  - Identificador canônico `plan_id` SHA-256 de 64 caracteres sensível à configuração, semente e conjuntos exatos de treino/validação/holdout.
-- **Validação Matemática de Invariantes (`validate_partition_plan`):**
-  - Verificação de disjunção $(\text{Treino}_k \cap \text{Val}_k = \emptyset)$, separação de holdout, ausência de vazamento de grupos em `GROUP_KFOLD` e ordenação temporal monotônica em `TEMPORAL`.
-- **Armazenamento Determinístico de Splits (`write_splits_csv_gz`, `read_splits_csv_gz` — Sub-marco M2.4):**
-  - Gravação de matriz tabular `splits.csv.gz` compactada com `gzip.GzipFile(mtime=0.0)`, garantindo determinismo binário bit a bit entre execuções repetidas com os mesmos parâmetros, acompanhada de `splits.schema.json`.
-
-### Camada de Portões de Etapa (`experimental_ml.stages` — Nível 3)
-- **Verificação de Portão de Preparação (`verify_preparation_gate`):** Garante a existência e o alinhamento de hashes entre `dataset_descriptor.json`, `dataset_profile.json` e `preparation_plan.json`, bloqueando planos `INCOMPLETE`.
-- **Verificação de Portão de Partição (`verify_partition_gate`):** Assegura compatibilidade estrita entre `sanitized_view.json`, `partition_plan.json` e as linhas efetivas de `splits.csv.gz`.
-
-### Persistência Atômica de Artefatos (`experimental_ml.core.storage` — Nível 0)
-- **Escrita Atômica Transacional (`write_json_atomic`):** Gravação via arquivo temporário com `fsync` e substituição atômica (`os.replace`), com remoção limpa de temporários em caso de falha.
-- **Proteção contra Sobrescrita Acidental:** Bloqueio com `ConfigurationError` caso o arquivo de destino já exista e `overwrite=False`.
-
-### Motor de Métricas de Avaliação (`experimental_ml.metrics` — Nível 1)
-- **Catálogo Canônico Centralizado (`METRICS_CATALOG`):** 15 especificações formais de métricas (`MetricSpec`) com metadados de direção, famílias e tolerâncias rigorosas.
-- **Métricas de Regressão e Alinhamento:** Implementação vetorizada em dupla precisão `float64` de `mae`, `rmse`, `mbe` (preservando o viés assinado e comparando por magnitude absoluta), `r2`, `rmse_rel_pct`, `mape`, `pearson` e `kta` (com suporte a centralização $HKH$).
-- **Métricas de Classificação:** Métricas discretas `accuracy`, `balanced_accuracy`, `precision`, `recall` e `f1` (com avaliação pelo próprio denominador $2TP + FP + FN$), além de probabilísticas `roc_auc` (empates exatos via postos médios e OVR) e `log_loss` (com validação estrita de distribuições e clipping $\epsilon = 10^{-15}$).
-- **Semântica de Casos Degenerados ([ADR-005](REFERENCIAS_E_FUNDAMENTACAO.md)):** Retorno de `MetricStatus.UNDEFINED_NAN` sem coerção silenciosa para zero.
-- **Agregação e Ranqueamento:** `aggregate_fold_metrics` com controle de cobertura (`VALID`, `PARTIAL_COVERAGE`, `UNDEFINED_NAN`) e `rank_configurations` com ordenação lexicográfica e precedência estrita de cobertura.
-
-### Fundação Transversal (`experimental_ml.core` — Nível 0)
-- **Tipos de Identificadores Imutáveis:** `ExperimentId`, `PartitionPlanId`, `ScenarioId`, `ModelId`, `CellId`, `ComparisonId`, `ArtifactId` e `ObservationId`.
-- **Enumerações Canônicas:** `TaskType`, `ExecutionStatus`, `FindingSeverity`, `MetricDirection`, `AggregationScope`, `MetricStatus` e `ErrorPolicy`.
-- **Derivação Determinística de Sementes:** `derive_seeds` e `spawn_child_seeds` baseadas em `numpy.random.SeedSequence` (RNF01, ADR-007).
-- **Hashing Canônico SHA-256 ([ADR-007](REFERENCIAS_E_FUNDAMENTACAO.md)):** `config_hash` e `dataset_hash` com normalização Unicode NFC, ordenação lexicográfica de chaves e tratamento estrito de tipos e valores especiais (`-0.0`, `NaN`, `+/-Inf`).
-- **Diagnósticos Estruturados:** Estrutura imutável `Finding`, construtores `make_finding` e `make_warning`, e hierarquia de exceções de integridade.
-
-### Interface de Linha de Comando (`experimental_ml.cli` — Nível 7)
-- Ponto de entrada executável `expml` estruturado em despachantes hierárquicos (`data profile`, `data sanitize`, `partition build`, `partition verify`).
-- **Pureza Arquitetural:** Zero importações de `numpy` ou `hashlib` na camada CLI, delegando operações aos módulos de negócio.
-- **Códigos de Saída Padronizados:** Código `0` para sucesso/ajuda, código `2` para erros de domínio e precondições sem traceback, e código `1` para falhas inesperadas.
-- **Higiene de Saída:** Ocultação rigorosa de hashes criptográficos em `stdout` e `stderr`.
+| Camada Arquitetural | Nível | Módulo | Responsabilidade Central |
+| :--- | :---: | :--- | :--- |
+| **Fundação Transversal** | Nível 0 | `experimental_ml.core` | Tipos identificadores imutáveis, enums canônicas, derivação de sementes (`SeedSequence`), hashing canônico SHA-256 (`ADR-007`), diagnósticos estruturados (`Finding`) e persistência atômica (`storage.py`). |
+| **Ingestão e Saneamento** | Nível 1 | `experimental_ml.data` | Ingestão com buffers imutáveis em C (`load_dataset`), parser RFC 4180 com sniffer, esquemas declarativos (`DatasetSchemaSpec`), triagem estatística (`profile_dataset`), catálogo de 15 achados, plano de preparação (`create_preparation_plan`) e visão saneada (`SanitizedDatasetView`). |
+| **Métricas e Avaliação** | Nível 1 | `experimental_ml.metrics` | Catálogo canônico de 15 métricas (`METRICS_CATALOG`), implementações puras em `float64` (regressão, classificação, alinhamento KTA), tratamento formal `UNDEFINED_NAN` (`ADR-005`), agregação inter-dobras e ranqueamento lexicográfico. |
+| **Cenários de Features** | Nível 2 | `experimental_ml.features` | Análise exploratória univariada/redundâncias (`explore_features`) com rotulagem `EXPLORATORY_FULL_DATA`, modelagem de cenários fixos e dinâmicos (`FeatureScenario`), validação contra visão saneada, seleção intra-fold (`select_features_in_fold`) e estabilidade inter-dobras (Jaccard e Kuncheva). |
+| **Particionamento** | Nível 2 | `experimental_ml.validation` | Estratégias de particionamento (K-Fold, Stratified, Group, Bootstrap, Temporal, Holdout), geração determinística do `PartitionPlan`, validação matemática de invariantes e disjunção de folds, e matriz `splits.csv.gz` compactada com `mtime=0.0`. |
+| **Portões de Validação** | Nível 3 | `experimental_ml.stages` | Portões de integridade entre etapas (`verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`) com checagem de hashes e layout canônico. |
+| **Modelos e Hiperparâmetros** | Nível 4 | `experimental_ml.models` | *(Em desenvolvimento — Marco M4)* Contratos de modelo (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento em 2 camadas e busca aninhada (*Nested CV*). |
+| **Execução Matricial** | Nível 5 | `experimental_ml.orchestration` | *(Planejado — Marco M5)* Máquina de estados das células $(m, c, f)$, paralelismo, tolerância a falhas e retomada verificada (*Checkpoint & Resume*). |
+| **Estatística Comparativa** | Nível 5 | `experimental_ml.statistics` | *(Planejado — Marco M6)* Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm/BH), Fronteira de Pareto e síntese estruturada de conclusões. |
+| **Relatórios e Pacote** | Nível 6 | `experimental_ml.reporting` | *(Planejado — Marco M7)* Relatórios completos (Markdown/HTML), tabelas (CSV/LaTeX `booktabs`), figuras e pacote de reprodutibilidade com manifesto `ArtifactProvenance`. |
+| **Interface de Linha de Comando** | Nível 7 | `experimental_ml.cli` | Ponto de entrada modularizado `expml` (`data`, `features`, `partition`, `models`, `run`), com pura delegação funcional, códigos de saída padronizados e sem dependências pesadas no topo (`CLI-10`). |
 
 ---
 
-## 5. Testes e Garantia de Qualidade
-
-O projeto utiliza o **Pytest** para automação e validação contínua de integridade.
-
-### Execução da Suíte
-
-```bash
-# Executar a suíte completa de testes (176 testes)
-pytest tests/ -v
-
-# Executar suítes especializadas
-pytest tests/unit/ -v
-pytest tests/integration/ -v
-pytest tests/test_smoke.py -v
-```
-
-### Comportamento Verificado (218 Verificações com 100% de Sucesso)
-
-- **12 testes de fumaça (`tests/test_smoke.py`):** Configuração de build, metadados em `pyproject.toml`, versão pública `0.1.0.dev0` e códigos de saída da CLI (`--version`, `--help`, flags inválidas com código `2`).
-- **22 testes de núcleo (`tests/unit/test_core.py`):** Imutabilidade de identificadores, determinismo de sementes (`SeedSequence`), regras de hashing do ADR-007 e detecção centralizada de ausentes (`is_nan_scalar`, `is_missing_scalar`).
-- **3 testes de armazenamento atômico (`tests/unit/core/test_storage.py`):** Escrita atômica transacional, limpeza de temporários em falha e proteção de sobrescrita com `ConfigurationError`.
-- **22 testes de métricas (`tests/unit/test_metrics.py`):** Exatidão numérica das 15 métricas vetorizadas em `float64` sob tolerâncias rigorosas por família (`rtol`/`atol`), mitigação de overflow quadrático intermediário, semântica `UNDEFINED_NAN` e ranqueamento lexicográfico.
-- **36 testes de esquemas e dados (`tests/unit/test_data_schemas.py`):** Imutabilidade de buffers C (`setflags(write=True)` levanta `ValueError`), integridade RFC 4180, identificadores `ObservationId`, hashes tripartites e fatiamento ordenado.
-- **13 testes de profiling e achados (`tests/unit/data/test_profiling.py`):** Distribuições numéricas e categóricas, análise do alvo e grupos, catálogo de 15 achados, emissão de `E1_TARGET_ZERO_VARIANCE` e ordenação canônica determinística.
-- **16 testes de preparação e saneamento (`tests/unit/data/test_preparation.py`):** Regras de saneamento, plano determinístico `READY` vs `INCOMPLETE` e emissão de `SanitizedDatasetView`.
-- **16 testes de particionamento e validação (`tests/unit/validation/`):** Estratégias K-Fold, Stratified, Group, Bootstrap, Temporal e Holdout, validação matemática de disjunção e determinismo de `splits.csv.gz`.
-- **17 testes de hardening pós-auditoria (`tests/unit/test_m2_hardening_regression.py`):** Cobertura dedicada dos achados `REV-M2-01` a `REV-M2-11` (compatibilidade profiling/preparation, prevenção de folds vazios, rejeição de missing/NaN em tempos, fidelidade de tipos JSON, integridade de digests no partition gate, validação integral de papéis em splits, pureza de tempo de execução da CLI e API pública `slice_view_by_observation_ids`).
-- **25 testes de features (`tests/unit/features/`, `tests/integration/features/`):** Modelos de relatório exploratório (`ExploratoryFeatureReport`, `AssociationMeasure`, `RedundancyPair`), algoritmos estatísticos em NumPy puro (Pearson, Spearman com postos médios para empates, Razão de Correlação $\eta$, V de Cramér), matriz de redundância preditor-preditor, modelos declarativos de cenários (`FeatureScenario`, `ScenariosCatalog`), validação estrita contra visão saneada, salvaguarda anti-leakage para cenários dinâmicos, persistência atômica (`save_scenarios`, `load_scenarios`), portão de etapa `verify_scenarios_gate` e pureza em runtime (`XCUT-02`).
-- **4 testes de codecs e descritores (`tests/unit/data/test_codecs.py`, `tests/unit/validation/test_splits_storage.py`):** Serialização e desserialização sem perda de descritores e planos.
-- **2 testes de portões de etapa (`tests/unit/stages/test_stage_gates.py`):** Bloqueio por divergência de hashes e rejeição de matrizes de splits adulteradas.
-- **13 testes unitários de CLI (`tests/unit/cli/`):** Despachante hierárquico, supressão de tracebacks em código 2, pureza arquitetural sem `numpy`/`hashlib`, ocultação de hashes e subcomandos de dados e partições.
-- **18 testes de integração transversal (`tests/integration/`):** Fluxos integrados ponta a ponta de M1, M2 e M3.1, invariância cross-process de hashes, execução de todos os blocos Python documentados no `README.md`, layout canônico de diretórios e homologação fim a fim por subprocesso com prova de equivalência binária bit a bit.
-
----
-
-## 6. Estrutura do Repositório
+## 5. Estrutura do Repositório
 
 ```
 experimental-ml-framework/
 ├── .specs/                          # Governança TLC Spec-Driven
 │   ├── STATE.md                     # Decisões arquiteturais ativas e registro de handoff
-│   └── features/                    # Artefatos por marco (spec, design, tasks, proofs, verification)
-│       ├── m1-1-setup-cli-smoke/    # Marco M1.1
-│       ├── m1-2-core/               # Marco M1.2
-│       ├── m1-3-metrics/            # Marco M1.3
-│       ├── m1-4-datasets-schemas/   # Marco M1.4
-│       ├── m1-5-foundation-hardening/ # Marco M1.5 Hardening
-│       ├── m2-diagnostics-partitioning/ # Sub-marco M2.1 Profiling
-│       ├── m2-2-preparation-plan-sanitization/ # Sub-marco M2.2 Saneamento
-│       ├── m2-3-partitioning-engine/ # Sub-marco M2.3 Particionamento
-│       ├── m2-4-artifacts-stage-gates/ # Sub-marco M2.4 Persistência e Portões
-│       └── m2-5-cli-end-to-end/     # Sub-marco M2.5 CLI e Aceite Fim a Fim
-├── engenharia_software/             # Documentação técnica central
+│   └── features/                    # Especificações, tarefas, provas e verificações por submarco
+├── engenharia_software/             # Documentação de Engenharia de Software
 │   ├── ESPECIFICACAO_REQUISITOS.md  # Especificação formal de requisitos (SRS v2.0)
 │   ├── ARQUITETURA_E_CONTRATOS.md   # Arquitetura em camadas, contratos e modelo de dados
-│   ├── PROCESSO_DE_ACEITE_DE_MARCOS.md # Governança de aceite formal de entregas
-│   └── ETAPA_ATUAL_ENGENHARIA.md    # Registro detalhado de estado e roadmap
+│   ├── PROCESSO_DE_ACEITE_DE_MARCOS.md # Governança e critérios formais de aceite
+│   └── ETAPA_ATUAL_ENGENHARIA.md    # Estado atual e roadmap detalhado
 ├── src/
-│   └── experimental_ml/             # Código-fonte da biblioteca (layout src/)
-│       ├── __init__.py              # Raiz do pacote (exposição de __version__)
+│   └── experimental_ml/             # Pacote da biblioteca (layout src/)
 │       ├── cli/                     # Interface de linha de comando (Nível 7)
-│       │   ├── __init__.py
-│       │   ├── cmd_data.py          # Subcomandos expml data profile e sanitize
-│       │   ├── cmd_data.py          # Subcomandos expml data profile e sanitize
-│       │   ├── cmd_features.py      # Subcomandos expml features explore, scenarios e verify
-│       │   ├── cmd_partition.py     # Subcomandos expml partition build e verify
-│       │   └── main.py              # Ponto de entrada expml e despachante
-│       ├── core/                    # Núcleo transversal de domínio (Nível 0)
-│       │   ├── enums.py             # Enumerações canônicas
-│       │   ├── findings.py          # Diagnósticos Finding e exceções formais
-│       │   ├── hashing.py           # config_hash, dataset_hash, is_nan_scalar (ADR-007)
-│       │   ├── seeds.py             # Derivação SeedSequence (RNF01)
-│       │   ├── storage.py           # write_json_atomic e read_json
-│       │   └── types.py             # Identificadores imutáveis (ObservationId, etc.)
-│       ├── data/                    # Ingestão, esquemas, diagnóstico e preparação (Nível 1)
-│       │   ├── codecs.py            # Codecs lossless de descritores e perfis
-│       │   ├── descriptors.py       # DatasetDescriptor e SanitizedViewDescriptor
-│       │   ├── loader.py            # Ingestão load_dataset com buffers imutáveis
-│       │   ├── parsing.py           # Parser RFC 4180 com sniffer automático
-│       │   ├── preparation.py       # create_preparation_plan e sanitize_dataset
-│       │   ├── profiling.py         # profile_dataset, DatasetProfile, 15 achados
-│       │   ├── query.py             # get_column_array, slice_bundle_by_observation_ids, slice_view_by_observation_ids
-│       │   ├── schema.py            # DatasetSchemaSpec, load_schema_spec e validação de papéis
-│       │   ├── types.py             # ColumnSemanticType, ColumnDescriptor, DatasetBundle
-│       │   └── validation.py        # Validação estrutural e integridade de IDs
-│       ├── features/                # Exploração de relações e cenários de features (Nível 2)
-│       │   ├── __init__.py          # API pública do módulo features
-│       │   ├── exploration.py       # explore_features, associações com alvo e redundância de preditores
-│       │   ├── scenarios.py         # FeatureScenario, ScenariosCatalog, validate_scenarios, save/load_scenarios
-│       │   ├── selection.py         # select_features_in_fold, apply_feature_selection, SelectionResult
-│       │   ├── stability.py         # compute_selection_stability, SelectionStabilityReport (Jaccard, Kuncheva)
-│       │   ├── stats.py             # Métricas em NumPy puro (Pearson, Spearman com postos médios, Eta, Cramér's V)
-│       │   └── types.py             # ExploratoryFeatureReport, AssociationMeasure, RedundancyPair
-│       ├── metrics/                 # Camada de métricas e alinhamento (Nível 1)
-│       │   ├── aggregation.py       # is_better, aggregate_fold_metrics, rank_configurations
-│       │   ├── catalog.py           # METRICS_CATALOG e despacho compute_metric
-│       │   ├── classification.py    # 7 métricas de classificação
-│       │   ├── regression.py        # 8 métricas de regressão e alinhamento
-│       │   ├── types.py             # MetricValue, MetricSpec, RankedCandidate
-│       │   └── validation.py        # Validações numéricas e scaled_quadratic_sum
-│       ├── stages/                  # Portões de validação entre etapas (Nível 3)
-│       │   ├── __init__.py          # verify_preparation_gate, verify_partition_gate, verify_scenarios_gate
-│       │   └── stage_gates.py       # Verificações de integridade cruzada, digests e layout
-│       └── validation/              # Particionamento compartilhado e validação (Nível 2)
-│           ├── codecs.py            # Codecs de PartitionPlan
-│           ├── engine.py            # build_partition_plan e derivação de plan_id
-│           ├── splitters.py         # Divisões puras (kfold, stratified, group, etc.)
-│           ├── storage.py           # write_splits_csv_gz determinístico e schema
-│           ├── types.py             # PartitionConfig, PartitionPlan, FoldPartition
-│           └── validators.py        # validate_partition_plan e invariantes matemáticos
-├── tests/                           # Suíte de testes automatizados (236 testes)
-│   ├── integration/                 # Testes de integração transversal
-│   ├── test_smoke.py                # Testes de fumaça da CLI e empacotamento
-│   └── unit/                        # Testes unitários (core, metrics, data, validation, cli, stages, features, hardening)
-├── pyproject.toml                   # Metadados do projeto e dependências declaradas
-├── README.md                        # Porta de entrada do repositório
-└── REFERENCIAS_E_FUNDAMENTACAO.md   # Justificativas científicas e normativas (ADRs)
+│       ├── core/                    # Núcleo transversal de domínio, hashes e sementes (Nível 0)
+│       ├── data/                    # Ingestão, esquemas, diagnóstico e saneamento (Nível 1)
+│       ├── features/                # Exploração, cenários e seleção de features (Nível 2)
+│       ├── metrics/                 # Catálogo e cálculo de métricas vetorizadas (Nível 1)
+│       ├── stages/                  # Portões de validação e integridade de etapas (Nível 3)
+│       └── validation/              # Particionamento compartilhado e validação matemática (Nível 2)
+├── tests/                           # Suíte de testes automatizados (236 verificações)
+│   ├── integration/                 # Testes de integração transversal e subprocessos
+│   ├── test_smoke.py                # Testes de fumaça da CLI e metadados de empacotamento
+│   └── unit/                        # Testes unitários modulares
+├── pyproject.toml                   # Configuração de build (Hatchling) e dependências
+├── README.md                        # Documento de apresentação e guia rápido
+└── REFERENCIAS_E_FUNDAMENTACAO.md   # Fundamentação teórica, bibliografia e ADRs
 ```
 
 ---
 
-## 7. Roadmap e Estado dos Marcos
+## 6. Testes e Garantia de Qualidade
 
-O desenvolvimento do MVP é organizado em marcos progressivos guiados por testes (TDD). A tabela a seguir distingue o que já foi implementado do que está planejado:
+A integridade do framework é assegurada de forma contínua pelo **Pytest**.
 
-| Marco | Escopo e Responsabilidade | Estado |
+### Execução da Suíte
+
+```bash
+# Executar a suíte completa de testes (236 verificações automatizadas)
+pytest tests/ -v
+
+# Executar suítes específicas
+pytest tests/unit/ -v
+pytest tests/integration/ -v
+pytest tests/test_smoke.py -v
+```
+
+### Cobertura por Domínio
+
+- **Smoke & Empacotamento (12 testes):** Ponto de entrada CLI, metadados PEP 621, `--version`, `--help` e códigos de saída sem traceback.
+- **Núcleo & Fundações (25 testes):** Imutabilidade de tipos (`ObservationId`), derivação hierárquica determinística de sementes (`SeedSequence`), regras de hashing tripartite do ADR-007 e persistência atômica com `fsync`.
+- **Métricas de Avaliação (22 testes):** Exatidão das 15 métricas em `float64`, tolerâncias numéricas rígidas, mitigação de overflow quadrático intermediário, tratamento formal `UNDEFINED_NAN` e ordenação lexicográfica.
+- **Ingestão, Esquemas e Diagnóstico (53 testes):** Buffers imutáveis em C (`ValueError` em tentativa de escrita), conformidade RFC 4180, identificadores estáveis, catálogo canônico de 15 achados diagnósticos, planos de preparação determinísticos e emissão de `SanitizedDatasetView`.
+- **Particionamento Compartilhado (20 testes):** Estratégias K-Fold, Stratified, Group, Bootstrap, Temporal e Holdout, validação matemática de disjunção $(\text{Train} \cap \text{Val} = \emptyset)$ e determinismo de `splits.csv.gz` com `mtime=0.0`.
+- **Cenários e Seleção de Features (25 testes):** Exploração de relações atributo-alvo e atributo-atributo, rotulagem mandatória `EXPLORATORY_FULL_DATA`, modelagem declarativa de cenários fixos e dinâmicos, seleção intra-fold livre de data leakage e métricas de estabilidade (Jaccard e Kuncheva).
+- **Hardening de Auditoria e Portões de Etapa (19 testes):** Regressões dedicadas dos achados da auditoria M2 (`REV-M2-01` a `REV-M2-11`), validação de integridade nos portões de etapa (`stage_gates`) e isolamento de runtime.
+- **Integração e Homologação Ponta a Ponta (60 testes):** Execução automatizada e isolada de todos os blocos de código documentados no `README.md`, integridade cross-process de hashes sob diferentes sementes de ambiente e pipelines integrados completos via subprocessos.
+
+---
+
+## 7. Roadmap de Implementação TDD (Marcos M1 a M7)
+
+O ciclo de vida do framework segue o processo de aceite estabelecido em [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md):
+
+| Marco | Escopo e Responsabilidade Principal | Estado |
 | :--- | :--- | :---: |
-| **M1.1** | **Configuração e CLI Base:** `pyproject.toml`, layout `src/experimental_ml/`, comando `expml` (`--version`, `--help`) e suíte de fumaça. | **Concluído e Aceito** |
-| **M1.2** | **Contratos e Funções de Core:** Tipos de IDs imutáveis, enums, derivação `derive_seeds` (`SeedSequence`), `config_hash`/`dataset_hash` (ADR-007) e `Finding`. | **Concluído e Aceito** |
-| **M1.3** | **Motor de Métricas:** Catálogo `METRICS_CATALOG`, regras para `MetricStatus.UNDEFINED_NAN` (ADR-005) e 15 métricas vetorizadas em `float64`. | **Concluído e Aceito** |
-| **M1.4** | **Datasets & Schemas:** Ingestão tabular imutável (`load_dataset`, `DatasetBundle`), buffers `bytes` imutáveis recusando escrita, parser RFC 4180 e tipagem semântica. | **Concluído e Aceito** |
-| **M1.5** | **Foundation Hardening:** Saneamento transversal dos 10 achados de auditoria, framing binário de `dataset_hash`, detecção centralizada de `NaN` e testes de integração. | **Concluído e Aceito** |
-| **M2** | **Diagnóstico, Saneamento e Particionamento:** Pipeline de dados da Etapa 1 e Etapa 4A completo (**M2.1 a M2.5 Concluídos e Aceitos**): triagem (`profile_dataset`), plano e saneamento (`create_preparation_plan`, `sanitize_dataset`), particionamento compartilhado (`build_partition_plan`), persistência atômica e portões de etapa (`stage_gates`), e CLI unificada com homologação fim a fim. **Hardening pós-auditoria consolidado (REV-M2-01 a REV-M2-11) com 193 testes aprovados.** | **Concluído e Aceito** |
-| **M3** | **Cenários de Features:** **Marco M3 Integralmente Concluído e Aceito (M3.1 a M3.4):** Análise exploratória univariada/bivariada (`explore_features`), matriz de redundância preditor-preditor, rotulagem mandatória `EXPLORATORY_FULL_DATA`, modelagem declarativa de cenários fixos e dinâmicos (`FeatureScenario`), validação estrita contra visão saneada (`validate_scenarios`), persistência atômica (`save_scenarios`, `load_scenarios`), portão de validação de etapa `verify_scenarios_gate`, seleção intra-fold de features (`select_features_in_fold`), projeção em avaliação (`apply_feature_selection`), análise de estabilidade (`compute_selection_stability` via Jaccard e Kuncheva corrigido pelo acaso), subcomandos CLI (`expml features explore`, `scenarios`, `verify`), pureza de runtime `CLI-10` e homologação integrada fim a fim em subprocessos isolados, totalizando 236 testes aprovados com 100% de sucesso. | **Concluído e Aceito** |
-| **M4** | **Modelos e Tuning:** Registro de modelos (`models`), pré-processamento em duas camadas e busca aninhada de hiperparâmetros (`tuning`). | Planejado |
-| **M5** | **Execução Matricial:** Orquestração da matriz $M \times C \times F$ (`orchestration`), tolerância a falhas, persistência e retomada (*Checkpoint & Resume*). | Planejado |
-| **M6** | **Estatística:** Consolidação descritiva, teste $t$ corrigido de Nadeau-Bengio, Wilcoxon pareado, controle de FWER/FDR (Holm/BH) e Fronteira de Pareto (`statistics`). | Planejado |
-| **M7** | **Relatórios e Reprodutibilidade:** Relatórios em Markdown/HTML, 7 famílias de tabelas/figuras, manifesto `ArtifactProvenance` e reprodução do experimento de referência `prognose_florestal`. | Planejado |
+| **M1** | **Fundações Transversais:** CLI base, tipos imutáveis, derivação de sementes, hashing canônico, motor de métricas com 15 especificações, esquemas tabulares e ingestão imutável em C. | **Concluído e Aceito** |
+| **M2** | **Diagnóstico e Particionamento:** Triagem estatística da base, plano formal de preparação, saneamento determinístico, particionamento compartilhado (CV e Holdout), persistência atômica, portões de etapa e CLI unificada. | **Concluído e Aceito** |
+| **M3** | **Cenários e Seleção de Features:** Análise exploratória univariada/redundâncias, modelagem declarativa de cenários fixos/dinâmicos, seleção intra-fold anti-leakage, estabilidade inter-dobras (Jaccard e Kuncheva) e CLI de features. | **Concluído e Aceito** |
+| **M4** | **Modelos e Hiperparâmetros:** Contratos de modelos (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento em 2 camadas e busca aninhada (*Nested CV*). | **Em Especificação (M4.1)** |
+| **M5** | **Execução Matricial:** Orquestração da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$, paralelismo, tolerância a falhas e retomada de execuções (*Checkpoint & Resume*). | Planejado |
+| **M6** | **Estatística Comparativa:** Teste $t$ de Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm-Bonferroni, Benjamini-Hochberg) e Fronteira de Pareto multi-critério. | Planejado |
+| **M7** | **Relatórios e Reprodutibilidade:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas e figuras, manifesto de proveniência (`ArtifactProvenance`) e pacote portável de replicação. | Planejado |
 
 ---
 
 ## 8. Documentação Técnica e Referências
 
-### Documentação Central de Engenharia
-
-| Documento | Descrição |
-| :--- | :--- |
-| [`engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md`](engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md) | **Processo de Aceite de Marcos:** Regras de governança, tríade documental (`SPEC.md`, `ACCEPTANCE.md`, `RESULTS.md`) e critérios objetivos de aprovação. |
-| [`engenharia_software/ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md) | **Especificação de Requisitos de Software (SRS v2.0):** Requisitos funcionais das 6 etapas, requisitos não-funcionais e critérios de aceitação. |
-| [`engenharia_software/ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md) | **Arquitetura, Contratos e Modelo de Dados:** Camadas, pipeline de 6 etapas, contratos de módulos, modelo de dados e pacote de reprodutibilidade. |
-| [`engenharia_software/ETAPA_ATUAL_ENGENHARIA.md`](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md) | **Registro de Estado da Engenharia:** Situação atual no ciclo de vida e roadmap detalhado de implementação. |
-| [`REFERENCIAS_E_FUNDAMENTACAO.md`](REFERENCIAS_E_FUNDAMENTACAO.md) | **Fundamentação Teórico-Técnica e Bibliografia:** Justificativas científicas e normativas para as decisões de projeto (ADRs), com 25 referências. |
-
-
+- **Engenharia de Requisitos:** [`engenharia_software/ESPECIFICACAO_REQUISITOS.md`](engenharia_software/ESPECIFICACAO_REQUISITOS.md)
+- **Arquitetura, Contratos e Modelo de Dados:** [`engenharia_software/ARQUITETURA_E_CONTRATOS.md`](engenharia_software/ARQUITETURA_E_CONTRATOS.md)
+- **Governança de Aceite de Marcos:** [`engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md`](engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md)
+- **Estado Atual da Engenharia e Roadmap:** [`engenharia_software/ETAPA_ATUAL_ENGENHARIA.md`](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md)
+- **Fundamentação Científica e ADRs:** [`REFERENCIAS_E_FUNDAMENTACAO.md`](REFERENCIAS_E_FUNDAMENTACAO.md)
 
 ---
 
 ## Licença
 
-Este projeto é distribuído sob os termos da licença MIT (consulte o arquivo [`LICENSE`](LICENSE) e [`pyproject.toml`](pyproject.toml)).
+Este projeto é software livre distribuído sob os termos da licença MIT. Para detalhes, consulte o arquivo [`LICENSE`](LICENSE).
