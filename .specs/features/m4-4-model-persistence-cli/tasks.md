@@ -205,11 +205,11 @@ T7
 **Requirement**: MPC-06
 
 **Done when**:
-- [ ] `handle_models_verify` successfully verifies valid models stage gate and returns code 0
-- [ ] Missing artifacts or failed preconditions print error and return code 2
-- [ ] Missing experiment directory returns code 2
-- [ ] Unit tests pass in `tests/unit/cli/test_cli_models_verify.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cli_models_verify.py -v`
+- [x] `handle_models_verify` successfully verifies valid models stage gate and returns code 0
+- [x] Missing artifacts or failed preconditions print error and return code 2
+- [x] Missing experiment directory returns code 2
+- [x] Unit tests pass in `tests/unit/cli/test_cli_models_verify.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/cli/test_cli_models_verify.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
