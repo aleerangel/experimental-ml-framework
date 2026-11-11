@@ -42,23 +42,32 @@
 - **Date**: 2026-11-10
 - **Status**: active
 
+### AD-006
+- **Decision**: Pipeline funcional de pré-processamento em 2 camadas (Camada 1: Cenário/Domínio; Camada 2: Modelo/Tecnologia) com prevenção de duplicação acidental, ajuste estrito intra-fold, escalonadores puros em NumPy e adaptador de kernel pré-computado sem vazamento.
+- **Reason**: Atender aos requisitos `RF3.4`, `CA-E3-02`, `CA-E4B-01` e `XCUT-02`, prevenindo vazamento de dados de avaliação no pré-processamento intra-fold, impedindo reescalonamento redundante ou contraditório entre camadas, garantindo estabilidade numérica com variância zero sem dependência de scikit-learn, e fornecendo Gram matrices $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ no ajuste e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ na inferência.
+- **Trade-off**: Requer manutenção de tipos congelados (`TwoLayerPreprocessingSpec`, `TwoLayerPreprocessingState`), implementação própria em NumPy de escalonadores comuns (`StandardScaler`, `MinMaxScaler`, `MaxAbsScaler`, `RobustScaler`, `AngularScaler`) e projeção intermediária explícita $X_{\text{inter}}$ durante o ajuste da Camada 2.
+- **Scope**: Módulo `models.preprocessing` e integração com `models`.
+- **Date**: 2026-11-11
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m4-1-model-registry-contracts (Sub-marco M4.1 — Registro de Modelos, Capacidades e Contratos Funcionais)
-- **Phase / Task**: Conclusão formal do Sub-marco M4.1 (Etapa 3 / Marco M4)
+- **Feature**: m4-2-two-layer-preprocessing (Sub-marco M4.2 — Pipeline de Pré-processamento em Duas Camadas)
+- **Phase / Task**: Conclusão formal do Sub-marco M4.2 (Etapa 3 / Marco M4)
 - **Completed**:
-  - Conclusão e homologação formal de 100% dos Marcos M1 (`m1-1` a `m1-5`), M2 (`m2-1` a `m2-5`) e M3 (`m3-1` a `m3-4`).
-  - Especificação, Design e Execução do Sub-marco M4.1 (`m4-1-model-registry-contracts`) com 8 tarefas granulares concluídas e 35 critérios de aceitação formalmente comprovados (`check_proofs.py`: 35 pass, 0 fail).
-  - Implementação de `src/experimental_ml/models/` com `types.py` (`ModelFamily`, `ModelCapabilities`, `ModelDiagnostics`), `spec.py` (`ModelSpec`, `validate_model_spec`, `validate_models_catalog`), `execution.py` (`instantiate_fresh_model`, `fit_model`, `predict_model`), `diagnostics.py` (`extract_model_diagnostics`), `baselines.py` (`DummyBaselineModel`, `AnalyticalBiometricModel`) e `__init__.py`.
-  - Isolamento estrito de memória (`CA-E3-01`) via rastreamento de instâncias e rejeição de singletons (`ContractViolationError`).
-  - Contrato de predição tripartite verificado (`y_pred` 1D com $len = N$, `y_std` finito e $\ge 0$, `y_proba` 2D no simplex unitário).
-  - Suporte nativo a modelos analíticos/biométricos sem treino (`requires_fit=False`, `RF3.2`) com bypass no-op.
-  - Snapshot de diagnósticos imutável e independente com cópia defensiva profunda (`RF3.6`).
-  - Pureza estrita de runtime (`XCUT-02`): dependência única de `numpy>=1.24.0`, zero dependências mandatórias de ML frameworks externos.
-  - Verificação independente realizada com veredito `PASS` (0 findings) e portão `validate_verification.py` aprovado com 0 erros.
-  - Artefatos de homologação gerados: `ACCEPTANCE.md` e `RESULTS.md`.
-  - Suíte total do framework expandida de 236 para 272 testes automatizados (36 novos testes em `tests/unit/models/` e `tests/integration/models/`), 100% aprovados.
-- **In-progress**: Transição para o Sub-marco M4.2 (`m4-2-two-layer-preprocessing` — Pipeline de Pré-processamento em 2 Camadas).
-- **Next step**: Homologação / merge da branch `feat/m4-1-model-registry-contracts` e inicialização da especificação de M4.2.
+  - Conclusão e homologação formal de 100% dos Marcos M1 (`m1-1` a `m1-5`), M2 (`m2-1` a `m2-5`), M3 (`m3-1` a `m3-4`) e M4.1 (`m4-1-model-registry-contracts`).
+  - Especificação, Design e Execução do Sub-marco M4.2 (`m4-2-two-layer-preprocessing`) com 7 tarefas granulares concluídas e 24 critérios de aceitação formalmente comprovados (`check_proofs.py`: 24 pass, 0 fail).
+  - Implementação de `src/experimental_ml/models/preprocessing/`:
+    - `types.py`: `ScalerType`, `PreprocessingStepSpec`, `TwoLayerPreprocessingSpec`, `TwoLayerPreprocessingState`.
+    - `scalers.py`: `StandardScaler`, `MinMaxScaler`, `MaxAbsScaler`, `RobustScaler`, `AngularScaler` puros em NumPy com tratamento robusto de variância zero e colunas constantes sem divisão por zero.
+    - `kernel.py`: `PrecomputedKernelAdapter` com isolamento sem vazamento de partição ($(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ no ajuste e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ na transformação) e validação estrita de matrizes quadradas.
+    - `pipeline.py`: `validate_two_layer_preprocessing` com bloqueio de duplicação acidental de transformadores (`CA-E3-02`), `fit_two_layer_preprocessing` com projeção intermediária estrita intra-fold (`CA-E4B-01`), e `apply_two_layer_preprocessing` com projeção sem mutação de estado.
+    - `__init__.py`: Exportação limpa da API pública em `__all__`, re-exportada em `models`.
+  - Pureza estrita de runtime (`XCUT-02`): dependência única de `numpy>=1.24.0`, subprocesso comprovando zero importações mandatórias de bibliotecas externas de ML.
+  - Verificação independente realizada com veredito `PASS` (0 findings) e portão `validate_verification.py` aprovado com 0 erros e 0 avisos.
+  - Artefatos de homologação gerados: `verification.md`, `ACCEPTANCE.md` e `RESULTS.md`.
+  - Suíte total do framework expandida de 272 para 297 testes automatizados (25 novos testes: 22 unitários em `tests/unit/models/` e 3 de integração em `tests/integration/models/`), 100% aprovados.
+- **In-progress**: Transição para o Sub-marco M4.3 (`m4-3-nested-tuning` — Otimização de Hiperparâmetros Aninhada Intra-Fold).
+- **Next step**: Homologação / merge da branch `feat/m4-2-two-layer-preprocessing` e inicialização da especificação de M4.3.
 - **Blockers**: none
-- **Branch**: feat/m4-1-model-registry-contracts
+- **Branch**: feat/m4-2-two-layer-preprocessing
