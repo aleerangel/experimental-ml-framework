@@ -9,10 +9,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import re
 from types import MappingProxyType
-from typing import Any, Callable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Sequence
 
 from experimental_ml.core.findings import ConfigurationError
 from experimental_ml.models.types import ModelCapabilities, ModelFamily
+
+if TYPE_CHECKING:
+    from experimental_ml.models.preprocessing.types import TwoLayerPreprocessingSpec
+    from experimental_ml.tuning.types import HyperparameterSearchSpec
 
 _MODEL_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
@@ -30,6 +34,8 @@ class ModelSpec:
     scientific_justification: str
     parameters: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
     random_seed_policy: str = "fixed"
+    preprocessing: Any | None = None
+    search_spec: Any | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.parameters, MappingProxyType):
@@ -107,6 +113,14 @@ def validate_model_spec(spec: ModelSpec) -> ModelSpec:
             "Contradictory capabilities: requires_fit=False cannot be combined "
             "with supports_sample_weight=True"
         )
+
+    if spec.preprocessing is not None:
+        from experimental_ml.models.preprocessing.pipeline import validate_two_layer_preprocessing
+        validate_two_layer_preprocessing(spec.preprocessing)
+
+    if spec.search_spec is not None:
+        from experimental_ml.tuning.validation import validate_search_spec
+        validate_search_spec(spec.search_spec)
 
     return spec
 
