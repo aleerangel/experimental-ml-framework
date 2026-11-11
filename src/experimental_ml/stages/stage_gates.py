@@ -30,6 +30,7 @@ DATASET_DESCRIPTOR_REL_PATH = "data/dataset_descriptor.json"
 DATASET_PROFILE_REL_PATH = "data/dataset_profile.json"
 PREPARATION_PLAN_REL_PATH = "configuration/preparation_plan.json"
 SCENARIOS_CATALOG_REL_PATH = "configuration/scenarios.json"
+MODELS_CATALOG_REL_PATH = "configuration/models.json"
 EXPLORATORY_FEATURES_REL_PATH = "reports/exploratory_features.json"
 SANITIZED_VIEW_REL_PATH = "data/sanitized_view.json"
 PARTITION_PLAN_REL_PATH = "partitions/partition_plan.json"
@@ -268,4 +269,48 @@ def verify_scenarios_gate(
         validate_scenarios(catalog.scenarios, active_view)
 
     return catalog
+
+
+def verify_models_gate(target: Path | str) -> Any:
+    """Verify that Stage 3 models catalog exists, is valid, and preparation gate holds.
+
+    Args:
+        target: Path to models.json file OR experiment directory root containing
+            configuration/models.json.
+
+    Returns:
+        Validated ModelsCatalog instance.
+
+    Raises:
+        ContractViolationError: If preparation gate is not READY, or if catalog has 0 models.
+        DataIntegrityError: If configuration/models.json is missing or corrupted.
+    """
+    from experimental_ml.models.spec import validate_models_catalog
+    from experimental_ml.models.storage import load_models_catalog
+
+    path = Path(target).resolve()
+    if path.is_dir():
+        catalog_path = path / MODELS_CATALOG_REL_PATH
+        # Precondition: preparation gate must hold (STORE-05)
+        verify_preparation_gate(path)
+    else:
+        catalog_path = path
+        exp_dir = path.parent.parent
+        if (exp_dir / PREPARATION_PLAN_REL_PATH).exists():
+            verify_preparation_gate(exp_dir)
+
+    if not catalog_path.exists():
+        raise DataIntegrityError(f"Models catalog missing at '{catalog_path}'")
+
+    try:
+        catalog = load_models_catalog(catalog_path)
+    except Exception as exc:
+        raise DataIntegrityError(f"Failed to load models catalog at '{catalog_path}': {exc}") from exc
+
+    if len(catalog.models) == 0:
+        raise ContractViolationError(f"Models catalog at '{catalog_path}' cannot be empty")
+
+    validate_models_catalog(catalog.models)
+    return catalog
+
 

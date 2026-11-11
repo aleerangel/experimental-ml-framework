@@ -161,11 +161,11 @@ T7
 **Requirement**: MPC-04
 
 **Done when**:
-- [ ] `verify_models_gate` verifies preparation gate precondition
-- [ ] Missing `models.json` raises `DataIntegrityError`
-- [ ] Empty catalog or duplicate model IDs raise `ContractViolationError`
-- [ ] Unit tests pass in `tests/unit/stages/test_models_stage_gate.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/stages/test_models_stage_gate.py -v`
+- [x] `verify_models_gate` verifies preparation gate precondition
+- [x] Missing `models.json` raises `DataIntegrityError`
+- [x] Empty catalog or duplicate model IDs raise `ContractViolationError`
+- [x] Unit tests pass in `tests/unit/stages/test_models_stage_gate.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/stages/test_models_stage_gate.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
