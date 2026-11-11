@@ -326,8 +326,8 @@ Proof: run integration | tests/integration/models/test_preprocessing_integration
 ## Handoff
 
 **Settled mid-build**: none  
-**Dispatched**: none  
-**Walked**: pending  
+**Dispatched**: Verifier (validate.md)  
+**Walked**: done (check_proofs passed at HEAD bece29c)  
 
 ---
 
