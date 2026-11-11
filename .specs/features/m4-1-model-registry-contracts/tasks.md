@@ -256,11 +256,11 @@ T8
 **Requirement**: MOD-09
 
 **Done when**:
-- [ ] `src/experimental_ml/models/__init__.py` cleanly exports public API in `__all__`
-- [ ] End-to-end integration tests execute full lifecycle pipeline with reference models
-- [ ] Subprocess inspection asserts runtime purity without external ML framework imports
-- [ ] Integration tests pass in `tests/integration/models/test_models_integration.py`
-- [ ] Full gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] `src/experimental_ml/models/__init__.py` cleanly exports public API in `__all__`
+- [x] End-to-end integration tests execute full lifecycle pipeline with reference models
+- [x] Subprocess inspection asserts runtime purity without external ML framework imports
+- [x] Integration tests pass in `tests/integration/models/test_models_integration.py`
+- [x] Full gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  
