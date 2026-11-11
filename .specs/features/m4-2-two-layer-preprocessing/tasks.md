@@ -142,13 +142,13 @@ T7
 **Requirement**: PRE-05
 
 **Done when**:
-- [ ] `StandardScaler` centers to $0.0$ and unit variance, handling constant columns cleanly
-- [ ] `MinMaxScaler` scales to target range, handling constant columns
-- [ ] `MaxAbsScaler` scales to $[-1.0, 1.0]$, handling all-zero columns
-- [ ] `RobustScaler` scales by median and IQR, handling zero IQR
-- [ ] `AngularScaler` scales features to $[0.0, \pi]$ for quantum gates
-- [ ] Unit tests pass in `tests/unit/models/test_preprocessing_scalers.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_scalers.py -v`
+- [x] `StandardScaler` centers to $0.0$ and unit variance, handling constant columns cleanly
+- [x] `MinMaxScaler` scales to target range, handling constant columns
+- [x] `MaxAbsScaler` scales to $[-1.0, 1.0]$, handling all-zero columns
+- [x] `RobustScaler` scales by median and IQR, handling zero IQR
+- [x] `AngularScaler` scales features to $[0.0, \pi]$ for quantum gates
+- [x] Unit tests pass in `tests/unit/models/test_preprocessing_scalers.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_scalers.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
