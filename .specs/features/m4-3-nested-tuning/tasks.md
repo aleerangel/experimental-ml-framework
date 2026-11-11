@@ -229,11 +229,11 @@ T7
 **Requirement**: TUN-07
 
 **Done when**:
-- [ ] `tuning/__init__.py` cleanly exports public API in `__all__`
-- [ ] End-to-end integration tests execute full nested tuning lifecycle
-- [ ] Subprocess inspection asserts runtime purity without external tuning imports
-- [ ] Integration tests pass in `tests/integration/tuning/test_tuning_integration.py`
-- [ ] Full gate check passes: `.venv/bin/pytest tests/ -v`
+- [x] `tuning/__init__.py` cleanly exports public API in `__all__`
+- [x] End-to-end integration tests execute full nested tuning lifecycle
+- [x] Subprocess inspection asserts runtime purity without external tuning imports
+- [x] Integration tests pass in `tests/integration/tuning/test_tuning_integration.py`
+- [x] Full gate check passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  
