@@ -188,11 +188,11 @@ T7
 **Requirement**: PRE-03
 
 **Done when**:
-- [ ] `fit_two_layer_preprocessing` fits Layer 1 and Layer 2 sequentially with intermediate projection
-- [ ] Parameters depend strictly on `X_train` without reference to evaluation data
-- [ ] 1D arrays, empty arrays, or non-finite inputs raise `ContractViolationError`
-- [ ] Unit tests pass in `tests/unit/models/test_preprocessing_fit.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_fit.py -v`
+- [x] `fit_two_layer_preprocessing` fits Layer 1 and Layer 2 sequentially with intermediate projection
+- [x] Parameters depend strictly on `X_train` without reference to evaluation data
+- [x] 1D arrays, empty arrays, or non-finite inputs raise `ContractViolationError`
+- [x] Unit tests pass in `tests/unit/models/test_preprocessing_fit.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_fit.py -v`
 
 **Tests**: unit  
 **Gate**: quick  

@@ -9,7 +9,17 @@ from __future__ import annotations
 import re
 from typing import Any, Set
 
+import numpy as np
+
 from experimental_ml.core.findings import ConfigurationError, ContractViolationError
+from experimental_ml.models.preprocessing.kernel import PrecomputedKernelAdapter
+from experimental_ml.models.preprocessing.scalers import (
+    AngularScaler,
+    MaxAbsScaler,
+    MinMaxScaler,
+    RobustScaler,
+    StandardScaler,
+)
 from experimental_ml.models.preprocessing.types import (
     PreprocessingStepSpec,
     ScalerType,
@@ -113,6 +123,102 @@ def validate_two_layer_preprocessing(
     return spec
 
 
+def _instantiate_step_transformer(step: PreprocessingStepSpec) -> Any:
+    """Instantiate a transformer object from its declarative step specification."""
+    ttype = step.transformer_type.upper().strip()
+    params = dict(step.parameters)
+
+    if ttype == ScalerType.STANDARD.value:
+        return StandardScaler(**params)
+    elif ttype == ScalerType.MINMAX.value:
+        return MinMaxScaler(**params)
+    elif ttype == ScalerType.MAXABS.value:
+        return MaxAbsScaler(**params)
+    elif ttype == ScalerType.ROBUST.value:
+        return RobustScaler(**params)
+    elif ttype == ScalerType.ANGULAR.value:
+        return AngularScaler(**params)
+    elif ttype == "PRECOMPUTED_KERNEL":
+        if "kernel_func" not in params or not callable(params["kernel_func"]):
+            raise ConfigurationError(
+                f"PRECOMPUTED_KERNEL step '{step.step_id}' requires callable 'kernel_func' parameter"
+            )
+        return PrecomputedKernelAdapter(kernel_func=params["kernel_func"])
+    elif ttype == "PASSTHROUGH":
+        return None
+    elif ttype == "CUSTOM":
+        if "factory" in params and callable(params["factory"]):
+            return params["factory"]()
+        if "transformer" in params:
+            return params["transformer"]
+        raise ConfigurationError(
+            f"CUSTOM step '{step.step_id}' requires 'factory' or 'transformer' parameter"
+        )
+    raise ConfigurationError(f"Unsupported transformer_type: {ttype}")
+
+
+def fit_two_layer_preprocessing(
+    spec: TwoLayerPreprocessingSpec,
+    X_train: np.ndarray,
+) -> TwoLayerPreprocessingState:
+    """Fit two-layer preprocessing pipeline strictly on training data (CA-E4B-01).
+
+    Layer 1 (Scenario) is fitted on X_train and used to project X_inter.
+    Layer 2 (Model-specific) is fitted on X_inter.
+    All fitted statistics depend strictly on X_train.
+
+    Args:
+        spec: TwoLayerPreprocessingSpec defining Layer 1 and Layer 2 steps.
+        X_train: 2D NumPy array of training predictors.
+
+    Returns:
+        Immutable TwoLayerPreprocessingState containing fitted transformers.
+
+    Raises:
+        ContractViolationError: If X_train is not a 2D array, is empty (N=0),
+            or contains non-finite values.
+    """
+    validate_two_layer_preprocessing(spec)
+
+    if not isinstance(X_train, np.ndarray):
+        X_train = np.asarray(X_train)
+    if X_train.ndim != 2:
+        raise ContractViolationError(
+            f"X_train must be a 2D array, got ndim={X_train.ndim} with shape {X_train.shape}"
+        )
+    if X_train.shape[0] == 0 or X_train.shape[1] == 0:
+        raise ContractViolationError(f"X_train must not be empty, got shape {X_train.shape}")
+    if not np.all(np.isfinite(X_train)):
+        raise ContractViolationError("X_train contains non-finite values (NaN or Inf)")
+
+    current_X = X_train.astype(float, copy=True)
+    layer1_fitted: list[Any] = []
+
+    # 1. Fit & Transform Layer 1 steps
+    for step_spec in spec.layer1_steps:
+        transformer = _instantiate_step_transformer(step_spec)
+        if transformer is not None:
+            transformer.fit(current_X)
+            current_X = transformer.transform(current_X)
+        layer1_fitted.append(transformer)
+
+    # 2. Fit & Transform Layer 2 steps on intermediate representation X_inter
+    layer2_fitted: list[Any] = []
+    for step_spec in spec.layer2_steps:
+        transformer = _instantiate_step_transformer(step_spec)
+        if transformer is not None:
+            transformer.fit(current_X)
+            current_X = transformer.transform(current_X)
+        layer2_fitted.append(transformer)
+
+    return TwoLayerPreprocessingState(
+        spec=spec,
+        layer1_fitted_state=tuple(layer1_fitted),
+        layer2_fitted_state=tuple(layer2_fitted),
+    )
+
+
 __all__ = [
     "validate_two_layer_preprocessing",
+    "fit_two_layer_preprocessing",
 ]
