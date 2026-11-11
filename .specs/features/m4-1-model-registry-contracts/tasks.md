@@ -209,12 +209,12 @@ T8
 **Requirement**: MOD-06
 
 **Done when**:
-- [ ] `extract_model_diagnostics` produces an immutable `ModelDiagnostics` record
-- [ ] Diagnostics operate as an independent snapshot decoupled from subsequent model mutations
-- [ ] Unsupported mutable complex objects raise `ContractViolationError`
-- [ ] Model attributes and predictions remain untouched by diagnostic extraction
-- [ ] Unit tests pass in `tests/unit/models/test_model_diagnostics.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_diagnostics.py -v`
+- [x] `extract_model_diagnostics` produces an immutable `ModelDiagnostics` record
+- [x] Diagnostics operate as an independent snapshot decoupled from subsequent model mutations
+- [x] Unsupported mutable complex objects raise `ContractViolationError`
+- [x] Model attributes and predictions remain untouched by diagnostic extraction
+- [x] Unit tests pass in `tests/unit/models/test_model_diagnostics.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_model_diagnostics.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
