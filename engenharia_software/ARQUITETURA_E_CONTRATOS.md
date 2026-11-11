@@ -1,9 +1,9 @@
 # Especificação Arquitetural, Contratos Conceituais e Modelo de Dados — `experimental-ml-framework`
 
-> **Documento:** Arquitetura de Software, Contratos de Módulos, Modelo de Dados e Recorte de MVP  
-> **Versão:** 1.0.0  
-> **Data:** 04 de Novembro de 2026  
-> **Status:** Consolidado e Aprovado (Fases 2 e 3; Fase 4 em andamento com M1.1, M1.2, M1.3 e M1.4 implementados e aceitos)  
+> **Documento:** Arquitetura de Software, Contratos de Módulos, Modelo de Dados e Recorte de MVP<br/>
+> **Versão:** 1.2.0<br/>
+> **Data:** 10 de Novembro de 2026<br/>
+> **Status:** Consolidado e Aprovado (Marcos M1, M2 e M3 integralmente implementados, auditados e aceitos com 236 testes automatizados; Marco M4 em andamento com especificação M4.1)<br/>
 > **Documentos Relacionados:** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md) | [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
 ---
@@ -163,8 +163,8 @@ src/experimental_ml/cli/
 ├── __init__.py
 ├── main.py              # Ponto de entrada (`expml`) e registro modular dos subparsers
 ├── cmd_data.py          # Etapa 1: `expml data profile`, `expml data sanitize`
-├── cmd_features.py      # Etapa 2: `expml features explore`, `expml features validate-scenarios`
-├── cmd_models.py        # Etapa 3: `expml models validate`
+├── cmd_features.py      # Etapa 2: `expml features explore`, `expml features scenarios`, `expml features verify`
+├── cmd_models.py        # Etapa 3: `expml models validate`, `expml models verify`
 ├── cmd_partition.py     # Etapa 4A: `expml partition build`, `expml partition verify`
 ├── cmd_run.py           # Etapa 4B: `expml run start`, `expml run resume`, `expml run status`
 ├── cmd_stats.py         # Etapa 5: `expml stats compare`, `expml stats pareto`, `expml stats acquire`
@@ -301,10 +301,26 @@ Oferecer análises exploratórias sobre as relações entre os atributos e com a
      * Define uma regra parametrizada de seleção ou redução de dimensionalidade (`strategy_name: str`, `strategy_params: dict`) — como redução de multicolinearidade, seleção por relevância, Top-$K$ ou extração de componentes (ex.: `PCA`).
      * **Garantia Invariante:** Não produz uma lista única global na Etapa 2; sua função de seleção é executada exclusivamente sobre os dados de treino de cada *fold* durante a Etapa 4.
 3. **Catálogo Validado de Cenários (`scenarios` / `configuration/scenarios.json`):**
-   * Coleção imutável (`tuple`/`list` de dicionários validados pela função `validate_scenarios(scenarios, sanitized_view)`) registrada para o experimento junto ao `dataset_hash` da `SanitizedDatasetView`. A validação comprova que todo cenário `FIXED` contém apenas colunas existentes em `candidate_feature_cols` e disjuntas de `{target_col, group_col, observation_id_col, time_col} ∪ ignore_cols`, e só grava `configuration/scenarios.json` quando todos os cenários são aprovados.
+   * Coleção imutável (`ScenariosCatalog` com tupla de `FeatureScenario` validada pela função pura `validate_scenarios(scenarios, sanitized_view)`) registrada para o experimento junto ao `dataset_hash` da `SanitizedDatasetView`.
+   * **Regras de Validação e Anti-Leakage:** A validação comprova que todo cenário `FIXED` contém apenas colunas existentes em `candidate_feature_cols` e estritamente disjuntas de `{target_col, group_col, observation_id_col, time_col} ∪ ignore_cols`. Cenários `DYNAMIC` exigem obrigatoriamente `strategy_name` não-vazio e proíbem terminantemente atributos pré-calculados (`selected_features == ()`), prevenindo vazamento antes da partição. A persistência atômica `save_scenarios` só grava `configuration/scenarios.json` quando todos os cenários são aprovados.
+4. **Relatório de Estabilidade de Seleção (`SelectionStabilityReport` — Sub-marco M3.3):**
+   * Estrutura imutável gerada por `compute_selection_stability(fold_selections, total_features)` que quantifica o grau de concordância entre os atributos selecionados ao longo das dobras:
+   * **Similaridade de Jaccard:** Mede a sobreposição média par a par de atributos selecionados entre todos os pares de folds ($J_{ij} = |S_i \cap S_j| / |S_i \cup S_j|$).
+   * **Consistência de Kuncheva Corrigida para o Acaso:** Índice formal normalizado em $[-1.0, 1.0]$, corrigindo a sobreposição observada pela probabilidade hipergeométrica esperada pelo acaso.
+   * **Matriz de Estabilidade:** Tabela simétrica par a par e frequências de seleção por atributo (`selection_frequencies`).
 
-#### Ponto de Extensão Funcional (`select_features_in_fold`)
-* Contrato funcional `select_features_in_fold(X_train, y_train, scenario_spec, random_state) -> SelectionResult`, despachando para funções puras registráveis e retornando a lista ordenada de atributos selecionados (ou parâmetros da projeção reduzida ajustada no treino), os escores/estatísticas calculados no treino e os parâmetros aplicados para posterior aplicação em `X_eval` via `apply_feature_selection(X_eval, selection_result)`.
+#### Ponto de Extensão Funcional (`select_features_in_fold` e `apply_feature_selection`)
+* **`select_features_in_fold(X_train, y_train, scenario, random_state) -> SelectionResult`:**
+  * Despacho funcional puro que opera estritamente nos dados de treino de cada partição externa:
+    * Modo `FIXED`: Bypass imediato, retornando os atributos estáticos do cenário com scores nulos.
+    * Modo `DYNAMIC`: Executa a estratégia declarada sobre os dados de treino da dobra. Na Onda 1, suporta nativamente:
+      * `VARIANCE_THRESHOLD`: Seleção não-supervisionada descartando atributos com variância populacional $\le$ limiar configurado.
+      * `TOP_K_RELEVANCE`: Seleção supervisionada ranqueando atributos por relevância univariada com o alvo (Pearson, Cramér's V ou Razão de Correlação $\eta$) e retendo os top-$K$ preditores com desempate lexicográfico determinístico.
+  * Retorna `SelectionResult` imutável contendo tupla ordenada de atributos selecionados, dicionário congelado de escores (`scores`), parâmetros ajustados e nome da estratégia.
+* **`apply_feature_selection(X_eval, selection_result) -> dict[str, np.ndarray]`:**
+  * Projeta a seleção ajustada no treino sobre os dados de avaliação/teste da partição sem consultar estatísticas ou rótulos do conjunto de avaliação, levantando `ContractViolationError` se algum atributo selecionado estiver ausente.
+* **Portão de Etapa (`verify_scenarios_gate` — Sub-marco M3.2/M3.4):**
+  * Verifica a integridade estrutural entre `configuration/scenarios.json`, `sanitized_view.json` e `dataset_descriptor.json`, garantindo que os cenários estejam aprovados contra o `dataset_hash` vigente antes da execução matricial.
 
 ---
 
@@ -672,10 +688,10 @@ A ordem de implementação respeita as dependências entre os módulos de `src/e
 
 | Marco | Módulos Incluídos | Riscos Científicos Mitigados | Testes de Aceitação Objetivos (Critérios Obrigatórios e Condicionais da Onda 1) |
 | :--- | :--- | :--- | :--- |
-| **M1 — Fundação, Contratos Base, Motor de Métricas, Ingestão Tabular e Esqueleto da CLI** | `core`, `metrics`, `data` (schemas & loader), `cli` (base) | • Indefinição de direção de otimização;<br/>• Distorções numéricas em métricas (ex.: arredondamentos indevidos);<br/>• Falta de determinismo em sementes e hashes;<br/>• Coerção indevida de `NaN` para `0.0`;<br/>• Mutação silenciosa de dados na ingestão;<br/>• Inconsistência de delimitadores tabulares. | • **TA-M1.1 (`M1.1` — Concluído):** Ambiente virtual instalado (`.venv` com Python 3.12), instalação editável validada (`pip install -e ".[dev]"`), ponto de entrada da CLI (`expml --version` / `--help`) e *smoke tests* aprovados (`tests/test_smoke.py`, 12/12 testes).<br/>• **TA-M1.2 (`M1.2` / `CA-GER-01` / `CA-GER-02` — Concluído):** Identificadores imutáveis, enums canônicos, determinismo de `derive_seeds` (`SeedSequence`) e canonicidade de `config_hash` e `dataset_hash` (Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas) aprovados em `tests/unit/test_core.py` (18/18 testes).<br/>• **TA-M1.3 (`M1.3` / `CA-GER-03` / `CA-COND-REG-01` / `CA-COND-CLAS-01` — Concluído):** Exatidão das 15 funções de métricas com tolerâncias específicas (`rtol`/`atol`) por família, casos degenerados retornando `MetricStatus.UNDEFINED_NAN` e bloqueio de seleção/ranking para `UNDEFINED_NAN` aprovados em `tests/unit/test_metrics.py` (22/22 testes).<br/>• **TA-M1.4 (`M1.4` / `CA-E1-01` parcial — Concluído):** Ingestão tabular imutável (`load_dataset`, `DatasetBundle`), buffers `bytes` imutáveis recusando `setflags(write=True)`, integridade RFC 4180 com sniffer automático de delimitadores, identificadores `ObservationId`, hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários seguros aprovados em `tests/unit/test_data_schemas.py` (29/29 testes). |
-| **M2 — Diagnóstico Estrutural, Sanitização e Particionamento Auditado** | `data` (profile & sanitize), `validation`, `cli` (`data`, `partition`) | • Avanço com `CONFIRMED_ISSUE` não tratado;<br/>• Vazamento entre treino/validação/holdout ou grupos;<br/>• Irreprodutibilidade das partições. | • **TA-M2.1 (`CA-E1-01` & `CA-E1-02` — Diagnóstico e `PreparationPlan`):** Diagnóstico estrutural (`profile_dataset`), separação exata entre `CONFIRMED_ISSUE` e `HEURISTIC_WARNING`, bloqueio de `sanitize_dataset` se houver `CONFIRMED_ISSUE` sem regra no `PreparationPlan` e ausência de ajuste de estatísticas globais na Etapa 1.<br/>• **TA-M2.2 (`CA-E4A-01` & `CA-COND-PART-01` — Disjunção de Partição):** Asserção matemática em `kfold_split`, `stratified_kfold_split`, `group_kfold_split` ($G \ge K$) e `holdout_split` comprovando: $\text{Train}_k \cap \text{Val}_k = \emptyset$, $\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$, $\text{Grupos}(\text{Dev}) \cap \text{Grupos}(\text{Holdout}) = \emptyset$ e isolamento total do `holdout_ids`.<br/>• **TA-M2.3 (`CA-E4A-02` — Reprodutibilidade do `PartitionPlan`):** Comprovar que, sob a mesma `SanitizedDatasetView`, configuração e semente, `build_partition_plan` produz o mesmo `partition_plan_id` e as mesmas listas de `observation_id` por partição. |
-| **M3 — Exploração e Cenários de Features sem Vazamento** | `features`, `cli` (`features`) | • Seleção de atributos contaminada por dados de validação/teste;<br/>• Inclusão de colunas proibidas nos preditores. | • **TA-M3.1 (`CA-E2-01` — Rótulo Exploratório):** Garantir que `ExploratoryFeatureReport` carregue `scope = EXPLORATORY_FULL_DATA` e não possa ser convertido silenciosamente em seleção pré-partição.<br/>• **TA-M3.2 (`CA-E2-02` — Validação de Cenários):** Verificar que `validate_scenarios(scenarios, sanitized_view)` rejeita colunas inexistentes ou pertencentes a `{target, group, id, time} ∪ ignore_cols` e grava `scenarios.json` vinculado ao `dataset_hash`.<br/>• **TA-M3.3 (`CA-E4B-01` parcial — Seleção Dinâmica Intra-Fold):** Modificar observações exclusivamente no conjunto de validação de um *fold* e comprovar que o resultado de `select_features_in_fold(X_train, y_train, scenario_spec, seed)` permanece inalterado, além de calcular o índice de estabilidade entre *folds*. |
-| **M4 — Funções de Modelos, Pré-processamento em 2 Camadas e Nested Tuning** | `models`, `tuning`, `cli` (`models`) | • Contaminação de pesos/estado entre *folds*;<br/>• Transformação estatística ajustada fora do treino;<br/>• Duplicação acidental de escalonamento;<br/>• Vazamento da validação externa na escolha de hiperparâmetros. | • **TA-M4.1 (`CA-E3-01` — Isolamento de Instância):** Ajustar um modelo com estado mutável em um *fold*, instanciar um novo para o próximo *fold* via `instantiate_fresh_model` e comprovar que nenhum peso/atributo ajustado anterior persiste.<br/>• **TA-M4.2 (`CA-COND-MOD-01` & `CA-COND-MOD-02`):** Executar função analítica com `requires_fit=False` sem ajuste artificial e verificar a passagem de $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ para funções externas de kernel pré-computado.<br/>• **TA-M4.3 (`CA-E3-02` & `CA-E4B-01` parcial — 2 Camadas e Bloqueio de Duplicação):** Comprovar que parâmetros de `fit_two_layer_preprocessing` dependem apenas de `X_train` e que configurar padronização idêntica nas duas camadas dispara bloqueio em `validate_two_layer_preprocessing`.<br/>• **TA-M4.4 (`CA-E3-02` & `CA-E4B-01` parcial — Nested Tuning):** Comprovar que `validate_search_spec` exige métrica/direção explícitas e que `run_nested_tuning` (`grid_search` e `random_search`) subdivide apenas `X_train, y_train`, produzindo o mesmo $\theta^*$ quando `X_val, y_val` são alterados. |
+| **M1 — Fundação, Contratos Base, Motor de Métricas, Ingestão Tabular e Esqueleto da CLI** *(Concluído e Aceito)* | `core`, `metrics`, `data` (schemas & loader), `cli` (base) | • Indefinição de direção de otimização;<br/>• Distorções numéricas em métricas (ex.: arredondamentos indevidos);<br/>• Falta de determinismo em sementes e hashes;<br/>• Coerção indevida de `NaN` para `0.0`;<br/>• Mutação silenciosa de dados na ingestão;<br/>• Inconsistência de delimitadores tabulares. | • **TA-M1.1 (`M1.1` — Concluído):** Ambiente virtual instalado (`.venv` com Python 3.12), instalação editável validada (`pip install -e ".[dev]"`), ponto de entrada da CLI (`expml --version` / `--help`) e *smoke tests* aprovados (`tests/test_smoke.py`, 12/12 testes).<br/>• **TA-M1.2 (`M1.2` / `CA-GER-01` / `CA-GER-02` — Concluído):** Identificadores imutáveis, enums canônicos, determinismo de `derive_seeds` (`SeedSequence`) e canonicidade de `config_hash` e `dataset_hash` (Unicode NFC, `-0.0`, `NaN`/`Inf`, coleções aninhadas) aprovados em `tests/unit/test_core.py` (18/18 testes).<br/>• **TA-M1.3 (`M1.3` / `CA-GER-03` / `CA-COND-REG-01` / `CA-COND-CLAS-01` — Concluído):** Exatidão das 15 funções de métricas com tolerâncias específicas (`rtol`/`atol`) por família, casos degenerados retornando `MetricStatus.UNDEFINED_NAN` e bloqueio de seleção/ranking para `UNDEFINED_NAN` aprovados em `tests/unit/test_metrics.py` (22/22 testes).<br/>• **TA-M1.4 (`M1.4` / `CA-E1-01` parcial — Concluído):** Ingestão tabular imutável (`load_dataset`, `DatasetBundle`), buffers `bytes` imutáveis recusando `setflags(write=True)`, integridade RFC 4180 com sniffer automático de delimitadores, identificadores `ObservationId`, hashes tripartites (`dataset_hash`, `raw_source_hash`, `schema_hash`) e utilitários seguros aprovados em `tests/unit/test_data_schemas.py` (29/29 testes).<br/>• **TA-M1.5 (`M1.5` — Concluído):** Saneamento transversal dos 10 achados da auditoria e testes de integração transversal em `tests/integration/test_m1_foundation_integration.py` (96 testes). |
+| **M2 — Diagnóstico Estrutural, Sanitização e Particionamento Auditado** *(Concluído e Aceito)* | `data` (profile & sanitize), `validation`, `stages`, `cli` (`data`, `partition`) | • Avanço com `CONFIRMED_ISSUE` não tratado;<br/>• Vazamento entre treino/validação/holdout ou grupos;<br/>• Irreprodutibilidade das partições. | • **TA-M2.1 (`CA-E1-01` & `CA-E1-02` — Concluído):** Diagnóstico estrutural (`profile_dataset`), catálogo de 15 achados (8 `CONFIRMED_ISSUE` + 7 `HEURISTIC_WARNING`) e invariância de `dataset_hash`.<br/>• **TA-M2.2 (`CA-E1-02` parcial — Concluído):** Saneamento determinístico (`create_preparation_plan`, `sanitize_dataset`) e emissão de `SanitizedDatasetView`.<br/>• **TA-M2.3 (`CA-E4A-01` & `CA-COND-PART-01` — Concluído):** Disjunção matemática ($\text{Train}_k \cap \text{Val}_k = \emptyset$), isolamento de grupos e monotonicidade temporal em `build_partition_plan` e `validate_partition_plan`.<br/>• **TA-M2.4 (`CA-E4A-02` — Concluído):** Persistência atômica, matriz compactada `splits.csv.gz` com `mtime=0.0` e portões `verify_preparation_gate` e `verify_partition_gate`.<br/>• **TA-M2.5 & Hardening (`REV-M2-01` a `REV-M2-11` — Concluído):** Subcomandos `expml data` e `partition`, pureza de runtime sem NumPy/hashlib nos metadados da CLI (`CLI-10`), 17 testes de regressão de auditoria e homologação ponta a ponta (193 testes). |
+| **M3 — Exploração e Cenários de Features sem Vazamento** *(Concluído e Aceito)* | `features`, `stages`, `cli` (`features`) | • Seleção de atributos contaminada por dados de validação/teste;<br/>• Inclusão de colunas proibidas nos preditores;<br/>• Instabilidade na seleção inter-dobras. | • **TA-M3.1 (`CA-E2-01` — Concluído):** Relatório `explore_features` com rotulagem compulsória `scope = EXPLORATORY_FULL_DATA`, correlações univariadas (Pearson, Spearman com postos médios, $\eta$, Cramér's V), matriz de redundância e 3 avisos metodológicos.<br/>• **TA-M3.2 (`CA-E2-02` — Concluído):** Modelos `FeatureScenario` (`FIXED` e `DYNAMIC`), validação `validate_scenarios` com bloqueio de atributos pré-calculados em dinâmicos, persistência atômica (`save_scenarios`, `load_scenarios`) e portão `verify_scenarios_gate`.<br/>• **TA-M3.3 (`CA-E4B-01` parcial — Concluído):** Seleção intra-fold livre de data leakage (`select_features_in_fold` com `VARIANCE_THRESHOLD` e `TOP_K_RELEVANCE`), projeção em avaliação (`apply_feature_selection`) e cálculo de estabilidade inter-dobras (`compute_selection_stability` via Jaccard e Kuncheva corrigido).<br/>• **TA-M3.4 & Hardening (`ACH-M3-01` a `ACH-M3-03` — Concluído):** Subcomandos `expml features explore`, `scenarios` e `verify`, conformidade `CLI-10`, saneamento do alias não implementado `MUTUAL_INFO_TOP_K` e homologação ponta a ponta integrada (236 testes). |
+| **M4 — Funções de Modelos, Pré-processamento em 2 Camadas e Nested Tuning** *(Em Desenvolvimento)* | `models`, `tuning`, `stages`, `cli` (`models`) | • Contaminação de pesos/estado entre *folds*;<br/>• Transformação estatística ajustada fora do treino;<br/>• Duplicação acidental de escalonamento;<br/>• Vazamento da validação externa na escolha de hiperparâmetros. | • **TA-M4.1 (`CA-E3-01` — Isolamento de Instância):** Ajustar um modelo com estado mutável em um *fold*, instanciar um novo para o próximo *fold* via `instantiate_fresh_model` e comprovar que nenhum peso/atributo ajustado anterior persiste.<br/>• **TA-M4.2 (`CA-COND-MOD-01` & `CA-COND-MOD-02`):** Executar função analítica com `requires_fit=False` sem ajuste artificial e verificar a passagem de $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ para funções externas de kernel pré-computado.<br/>• **TA-M4.3 (`CA-E3-02` & `CA-E4B-01` parcial — 2 Camadas e Bloqueio de Duplicação):** Comprovar que parâmetros de `fit_two_layer_preprocessing` dependem apenas de `X_train` e que configurar padronização idêntica nas duas camadas dispara bloqueio em `validate_two_layer_preprocessing`.<br/>• **TA-M4.4 (`CA-E3-02` & `CA-E4B-01` parcial — Nested Tuning):** Comprovar que `validate_search_spec` exige métrica/direção explícitas e que `run_nested_tuning` (`grid_search` e `random_search`) subdivide apenas `X_train, y_train`, produzindo o mesmo $\theta^*$ quando `X_val, y_val` são alterados. |
 | **M5 — Execução Matricial, Tolerância a Falhas e Checkpoint/Resume** | `orchestration`, `cli` (`run`) | • Aborto completo de experimento longo por falha em uma célula;<br/>• Conversão silenciosa de falha em métrica zero;<br/>• Retomada inconsistente após alteração de dados/configuração. | • **TA-M5.1 (`CA-E4B-01` — Sincronia de Partições):** Comprovar que todas as células $(m, c, f)$ executadas referenciam o mesmo `partition_plan_id` e avaliam exatamente os mesmos `observation_id` em cada *fold* $f$.<br/>• **TA-M5.2 (`CA-E4B-02` parcial — Isolamento de Falha):** Injetar um modelo que lança exceção no *fold* 2; verificar que em modo `FAULT_TOLERANT` a célula $(m, c, 2)$ fica com estado `FAILED` e metadados do erro, sem valor numérico zero nas métricas, enquanto as demais células concluem com `COMPLETED`.<br/>• **TA-M5.3 (`CA-E4B-02` parcial — Persistência e Resume Verificado):** Interromper uma matriz com 50% das células concluídas, retomar via `resume_experiment_matrix` e comprovar que apenas os 50% restantes são executados, preservando predições e métricas das células já concluídas; tentar retomar após alterar `dataset_hash` ou `PartitionPlan` e verificar bloqueio (`exit code 2`). |
 | **M6 — Consolidação e Comparação Estatística Rigorosa** | `statistics`, `cli` (`stats`) | • Consolidação sobre matriz com células pendentes;<br/>• Subestimação de variância em validação cruzada;<br/>• Descarte silencioso de *folds* falhos;<br/>• Confusão entre $p \ge \alpha$ e equivalência. | • **TA-M6.1 (`CA-E5-01` — Regra de Passagem 4B $\rightarrow$ 5 e Incompletude):** Verificar bloqueio da Etapa 5 quando há células não-terminais ou `0` concluídas; validar que 5A consolida cobertura parcial com `PARTIAL_COVERAGE` sem converter `FAILED` em zero, e que 5B exige $\ge 2$ configurações e $J_{\text{pareados}} \ge 2$ *folds* válidos em CV (bloqueando testes multi-fold em `HOLDOUT_ONLY` e emitindo alerta para $J < 6$ no Wilcoxon).<br/>• **TA-M6.2 (`CA-E5-02` parcial — Exatidão Estatística por Família):** Validar `paired_nadeau_bengio_test` (incluindo $s^2_d = 0$), `paired_wilcoxon_test`, `holm_bonferroni` e `benjamini_hochberg` contra `scipy.stats` e vetores analíticos em `float64` respeitando as tolerâncias justificadas por família (Seção 7.2).<br/>• **TA-M6.3 (`CA-E5-02` parcial — Pareto e Conclusões Rastreáveis):** Validar a igualdade exata do conjunto não-dominado em `compute_pareto_frontier` (excluindo `UNRANKABLE`) e verificar que `StructuredConclusion` referencia campos numéricos existentes sem declarar equivalência a partir de $p \ge 0.05$. |
 | **M7 — Relatórios Científicos, Proveniência e Reprodução de Referência** | `reporting`, `cli` (`report`), integração das Etapas 1 a 6 | • Recálculo oculto na camada de visualização;<br/>• Exposição indevida de hashes em tabelas científicas;<br/>• Caminhos absolutos quebrando portabilidade. | • **TA-M7.1 (`CA-E6-01` — Somente-Leitura e Paridade):** Gerar relatórios (Markdown/HTML), tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF) a partir de um diretório persistido sem invocar funções de ajuste/predição de modelos e comprovando paridade numérica com `statistics/*.json`.<br/>• **TA-M7.2 (`CA-E6-02` — Linhagem, Ocultação de Hashes e Portabilidade):** Verificar que 100% dos artefatos constam em `artifact_provenance.json` e `checksums.sha256` com caminhos relativos, que zero strings `SHA-256` aparecem nos relatórios/tabelas de usuário e que `expml report verify` aprova após mover o diretório (`exit 0`) e falha ao alterar 1 byte (`exit 2`).<br/>• **TA-M7.3 (`CA02` — Reprodução `prognose_florestal`):** Cumprimento do protocolo da Seção 8 *(nota: os testes dos Marcos M1–M6 usam fixtures sintéticas autocontidas em `tests/fixtures/`; os arquivos de dados e vetores de referência de `prognose_florestal` constituem dependência externa pendente para execução do `TA-M7.3` no Marco M7)*. |
@@ -769,6 +785,46 @@ O Marco M1 é dividido em **quatro entregas sequenciais e independentemente veri
   * Aprovação de 12 testes unitários em `tests/unit/test_profiling.py` e 6 testes de integração em `tests/integration/test_profiling_integration.py`.
   * Homologação formal aprovada sob `.specs/features/m2-diagnostics-partitioning/`.
 
+#### Entrega M2.2 — Plano de Preparação e Saneamento Determinístico (Concluída)
+* **Escopo:** Funções `create_preparation_plan` e `sanitize_dataset`, estruturas imutáveis `PreparationPlan`, `PreparationRule` e `SanitizedDatasetView`.
+* **Resultados e Verificação:** Regras determinísticas de saneamento pré-partição (`DROP_ROWS`, `EXCLUDE_COLUMN`, `MAP_BINARY_TARGET`, `DEFER_INTRA_FOLD`, `ACCEPT_AS_IS`), bloqueio com `ContractViolationError` para planos incompletos, e emissão de visão saneada com `candidate_feature_cols` e recálculo canônico de hash. Aprovado sob `.specs/features/m2-2-preparation-plan-sanitization/`.
+
+#### Entrega M2.3 — Motor de Particionamento Compartilhado e Validação Matemática (Concluída)
+* **Escopo:** Funções `build_partition_plan` e `validate_partition_plan` em `experimental_ml.validation`, cobrindo estratégias K-Fold, Stratified K-Fold, Group K-Fold, Bootstrap, Temporal e Holdout nos regimes `CV_ONLY`, `HOLDOUT_ONLY` e `CV_AND_HOLDOUT`.
+* **Resultados e Verificação:** Comprovação matemática de disjunção estrita ($\text{Train}_k \cap \text{Val}_k = \emptyset$), isolamento de grupos e monotonicidade temporal. Aprovado sob `.specs/features/m2-3-partitioning-engine/`.
+
+#### Entrega M2.4 — Persistência Atômica, Codecs Lossless e Portões de Estágio (Concluída)
+* **Escopo:** Codecs RFC 8259 em `data/codecs.py` e `validation/codecs.py`, matriz `splits.csv.gz` compactada deterministicamente com `gzip.GzipFile(mtime=0.0)` acompanhada de `splits.schema.json`, e portões `verify_preparation_gate` e `verify_partition_gate` em `stages/stage_gates.py`.
+* **Resultados e Verificação:** Determinismo de bytes bit a bit comprovado e bloqueio de artefatos com hash divergente. Aprovado sob `.specs/features/m2-4-artifacts-stage-gates/`.
+
+#### Entrega M2.5 — CLI de Dados e Partição e Homologação Ponta a Ponta (Concluída)
+* **Escopo:** Subcomandos `expml data profile`, `expml data sanitize`, `expml partition build` e `expml partition verify`, pureza de runtime sem `numpy`/`hashlib` nos metadados da CLI (`CLI-10`) e códigos de saída padronizados.
+* **Resultados e Verificação:** Homologação integrada multi-etapa via subprocessos isolados aprovada sob `.specs/features/m2-5-cli-end-to-end/` (176 testes no repositório).
+
+#### Hardening Pós-Auditoria de Integridade do Marco M2 (`REV-M2-01` a `REV-M2-11`) (Concluída)
+* **Escopo:** Resolução transversal de 11 achados de auditoria: prevenção de folds vazios em holdout/bootstrap, integridade de NaNs temporais, fidelidade de tipos JSON em `target_label_mapping`, APIs públicas `slice_view_by_observation_ids` e `reconstruct_sanitized_view`, exportação sob demanda via PEP 562 em `core` e emissão de `E1_TARGET_ZERO_VARIANCE`.
+* **Resultados e Verificação:** 17 testes de regressão dedicados em `tests/unit/test_m2_hardening_regression.py` (totalizando 193 testes aprovados com parecer PASS independente).
+
+#### Entrega M3.1 — Relatório Exploratório de Relações de Features (Concluída)
+* **Escopo:** Função pura `explore_features` sobre `SanitizedDatasetView`, métricas univariadas (Pearson, Spearman com empates fracionários por postos médios, Razão de Correlação $\eta$, V de Cramér), matriz simétrica de redundância preditor-preditor, rotulagem mandatória `scope = "EXPLORATORY_FULL_DATA"` e 3 avisos metodológicos mandatórios (`CA-E2-01`).
+* **Resultados e Verificação:** 10/10 checks aprovados, verificação independente TLC com veredito PASS e total de 208 testes aprovados sob `.specs/features/m3-1-exploratory-features/`.
+
+#### Entrega M3.2 — Definição e Validação de Cenários de Features (Concluída)
+* **Escopo:** Modelos declarativos imutáveis `FeatureScenario` (`FIXED` e `DYNAMIC`), catálogo validado contra esquema da `SanitizedDatasetView` (`validate_scenarios`), salvaguarda anti-leakage proibindo atributos pré-calculados em dinâmicos, persistência atômica (`save_scenarios`, `load_scenarios`) e portão de etapa `verify_scenarios_gate` em `stages`.
+* **Resultados e Verificação:** 8/8 checks aprovados e total de 218 testes aprovados sob `.specs/features/m3-2-feature-scenarios/`.
+
+#### Entrega M3.3 — Seleção Dinâmica Intra-fold e Estabilidade (Concluída)
+* **Escopo:** Modelo `SelectionResult`, contrato funcional puro `select_features_in_fold` com bypass imediato em modo `FIXED` e estratégias `VARIANCE_THRESHOLD` e `TOP_K_RELEVANCE` calculadas estritamente nos dados de treino da dobra, projeção em avaliação `apply_feature_selection`, modelo `SelectionStabilityReport` e métricas de estabilidade inter-dobras `compute_selection_stability` (similaridade de Jaccard e índice de consistência de Kuncheva corrigido para o acaso).
+* **Resultados e Verificação:** 8/8 checks aprovados e total de 228 testes aprovados sob `.specs/features/m3-3-intra-fold-selection/`.
+
+#### Entrega M3.4 — CLI de Features e Homologação Ponta a Ponta (Concluída)
+* **Escopo:** Subcomandos `expml features explore`, `expml features scenarios` e `expml features verify`, validação de pureza arquitetural sem NumPy/hashlib nos metadados da CLI (`CLI-10`), códigos de saída padronizados e homologação integrada da Etapa 2 via subprocessos independentes.
+* **Resultados e Verificação:** 8/8 checks aprovados e total de 236 testes aprovados sob `.specs/features/m3-4-cli-end-to-end/`.
+
+#### Saneamento Pós-Auditoria de Integridade do Marco M3 (`ACH-M3-01` a `ACH-M3-03`) (Concluída)
+* **Escopo:** Remoção do alias não-implementado `"MUTUAL_INFO_TOP_K"` restringindo a seleção supervisionada às estratégias validadas da Onda 1, sincronização formal das provas TLC em `proofs.md` e `verification.md`, e confirmação da invariância matemática contra alvos nulos na Onda 1 (`ACH-M3-02`).
+* **Resultados e Verificação:** Parecer formal PASS confirmado com zero erros em `validate_verification.py` e 236 testes aprovados.
+
 #### Comandos Reprodutíveis de Instalação, Execução de Testes e Qualidade
 ```bash
 # 1. Criação do ambiente virtual e instalação em modo editável com dependências de teste
@@ -779,29 +835,23 @@ python3 -m venv .venv
 # 2. Verificação empírica das versões instaladas no ambiente
 .venv/bin/python -c "import sys, numpy, pytest; print(sys.version); print('numpy:', numpy.__version__, 'pytest:', pytest.__version__)"
 
-# 3. Gate da Entrega M1.1 (Smoke tests — Concluído: 12/12)
-.venv/bin/pytest tests/test_smoke.py -v
-
-# 4. Gate da Entrega M1.2 (Testes unitários do core — Concluído: 22/22)
-.venv/bin/pytest tests/unit/test_core.py -v
-
-# 5. Gate da Entrega M1.3 (Testes unitários de metrics — Concluído: 22/22)
-.venv/bin/pytest tests/unit/test_metrics.py -v
-
-# 6. Gate da Entrega M1.4 (Testes unitários de data/schemas — Concluído: 36/36)
-.venv/bin/pytest tests/unit/test_data_schemas.py -v
-
-# 7. Gate da Entrega M1.5 (Testes de integração transversal M1 — Concluído: 4/4)
-.venv/bin/pytest tests/integration/test_m1_foundation_integration.py -v
-
-# 8. Gate da Entrega M2.1 (Profiling e Diagnósticos — Concluído: 12 unitários + 6 integração)
-.venv/bin/pytest tests/unit/test_profiling.py -v
-.venv/bin/pytest tests/integration/test_profiling_integration.py -v
-
-# 9. Suíte Completa do Repositório (Concluído: 114/114 testes)
+# 3. Execução da suíte completa de testes (236 verificações automatizadas com 100% de sucesso)
 .venv/bin/pytest tests/ -v --tb=short
+
+# 4. Execução de suítes modulares por domínio
+.venv/bin/pytest tests/test_smoke.py -v
+.venv/bin/pytest tests/unit/test_core.py -v
+.venv/bin/pytest tests/unit/test_metrics.py -v
+.venv/bin/pytest tests/unit/test_data_schemas.py -v
+.venv/bin/pytest tests/unit/data/test_profiling.py -v
+.venv/bin/pytest tests/unit/data/test_preparation.py -v
+.venv/bin/pytest tests/unit/validation/ -v
+.venv/bin/pytest tests/unit/features/ -v
+.venv/bin/pytest tests/unit/cli/ -v
+.venv/bin/pytest tests/unit/test_m2_hardening_regression.py -v
+.venv/bin/pytest tests/integration/ -v
 ```
-*(Nota: O Marco M1 encontra-se 100% concluído e aceito. O Marco M2 está em andamento, com o Sub-marco M2.1 Profiling concluído e aceito, e o Sub-marco M2.2 Saneamento como próximo passo).*
+*(Nota: Os Marcos M1, M2 e M3 encontram-se 100% concluídos, auditados e aceitos na branch `main`. O desenvolvimento atual concentra-se no Marco M4 — Modelos, Hiperparâmetros e Tuning).*
 
 ---
 

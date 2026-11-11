@@ -34,22 +34,26 @@
 - **Date**: 2026-11-09
 - **Status**: active
 
+### AD-005
+- **Decision**: Saneamento das estratégias supervisionadas de features na Onda 1 e formalização desacoplada do contrato funcional de modelos heterogêneos (`ModelSpec`, `ModelCapabilities`).
+- **Reason**: Eliminar aliases não documentados (`MUTUAL_INFO_TOP_K`, `ACH-M3-01`) restringindo a seleção supervisionada da Onda 1 à estratégia formal `TOP_K_RELEVANCE` e `VARIANCE_THRESHOLD`, e padronizar o ciclo de modelos em funções puras (`instantiate_fresh_model`, `fit_model`, `predict_model`, `extract_model_diagnostics`) com suporte a modelos analíticos sem treino (`requires_fit=False`) e retorno padronizado tripartite (`y_pred`, `y_std`, `y_proba`).
+- **Trade-off**: Redução de dimensionalidade via PCA e estimadores contínuos avançados de informação mútua são formalmente alocados para a Onda 2.
+- **Scope**: Módulos `features` e `models`.
+- **Date**: 2026-11-10
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m3-4-cli-end-to-end (Sub-marco M3.4 — CLI de Features e Homologação Ponta a Ponta)
-- **Phase / Task**: Concluído e Aceito — **Marco M3 Integralmente Homologado e Verificado**
+- **Feature**: m4-1-model-registry-contracts (Sub-marco M4.1 — Registro de Modelos, Capacidades e Contratos Funcionais)
+- **Phase / Task**: Início do Marco M4 — Especificação Técnica Revisada e Validada
 - **Completed**:
-  - Implementação de `src/experimental_ml/cli/cmd_features.py` e registro do subcomando `features` no despachante principal `expml` (`FEAT-01`).
-  - Implementação de `expml features explore`: reconstituição da visão saneada, execução de `explore_features`, gravação atômica de `reports/exploratory_features.json` com rotulagem `EXPLORATORY_FULL_DATA` e proteção `--force` (`FEAT-02`, `FEAT-03`).
-  - Implementação de `expml features scenarios`: validação semântica e anti-leakage contra a base e gravação de `configuration/scenarios.json` (`FEAT-04`).
-  - Tratamento de exceções e padronização de códigos de saída: rejeição de cenários inválidos com código `2` e mensagens limpas no `stderr` sem tracebacks Python (`FEAT-05`).
-  - Implementação de `expml features verify`: verificação de portão de validação de cenários via `verify_scenarios_gate` (`FEAT-06`).
-  - Cumprimento rigoroso do contrato `CLI-10`: pureza arquitetural sem `numpy` ou `hashlib` em `sys.modules` na carga inicial da CLI (`FEAT-07`).
-  - Homologação integrada multi-etapa via subprocessos independentes encadeando Etapa 1, Etapa 2 e Etapa 4A com zero hashes de 64 caracteres expostos em terminal (`FEAT-08`).
-  - Suíte completa de testes expandida para **236 testes automatizados** com 100% de aprovação (0 regressões).
-  - Parecer formal do *Independent Verifier* aprovado com veredito `PASS` (100% de conformidade, zero achados, `validate_verification.py` código 0).
-  - Commits registrados na branch `feat/m3-4-cli-end-to-end`: `f9e0929`, `cbdfb32`, `196d734`, `e418c20`, `37f4f71`.
-- **In-progress**: Conclusão da Etapa 2 (Feature Engineering & Scenarios) e preparação para o Marco M4 (Modelos e Tuning).
-- **Next step**: Fazer merge da branch `feat/m3-4-cli-end-to-end` na `main`, atualizar governança e iniciar a especificação do Marco M4.
+  - Conclusão e homologação formal de 100% dos Marcos M1 (`m1-1` a `m1-5`), M2 (`m2-1` a `m2-5` com hardening `REV-M2-01` a `REV-M2-11`) e M3 (`m3-1` a `m3-4` com saneamento `ACH-M3-01` a `ACH-M3-03`).
+  - Merge formal de M3 na branch `main` (Pull Request #15, commit `4191bb4`).
+  - Reestruturação e concisão abrangente do `README.md` (commit `aaba3dc`).
+  - Revisão, saneamento e sincronização completa de toda a documentação de engenharia (`ARQUITETURA_E_CONTRATOS.md`, `ESPECIFICACAO_REQUISITOS.md`, `ETAPA_ATUAL_ENGENHARIA.md`).
+  - Suíte completa de 236 testes automatizados com 100% de aprovação no repositório.
+  - Elaboração e refinamento minucioso de [`.specs/features/m4-1-model-registry-contracts/spec.md`](features/m4-1-model-registry-contracts/spec.md) com 29 critérios de aceitação em formato EARS, validado com zero erros em `validate_spec.py`.
+- **In-progress**: Início do Design Técnico e Planejamento de Tarefas do Sub-marco M4.1.
+- **Next step**: Aprovação humana da especificação M4.1 e elaboração de `design.md` e `tasks.md`.
 - **Blockers**: none
-- **Branch**: feat/m3-4-cli-end-to-end
+- **Branch**: main (documentação transversal sincronizada; trabalho de implementação de M4.1 na branch `feat/m4-1-model-registry-contracts`)

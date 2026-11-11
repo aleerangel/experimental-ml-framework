@@ -1,11 +1,11 @@
 # Engenharia de Software — `experimental-ml-framework`
 
-> **Documento de Registro de Estado da Engenharia**  
-> **Data:** 09 de Novembro de 2026  
-> **Repositório de Origem (Referência Científica):** `prognose_florestal`  
-> **Novo Repositório (Framework Científico Agnóstico):** `experimental-ml-framework`  
-> **Especificação de Requisitos (SRS v2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)  
-> **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)  
+> **Documento de Registro de Estado da Engenharia**<br/>
+> **Data:** 10 de Novembro de 2026<br/>
+> **Repositório de Origem (Referência Científica):** `prognose_florestal`<br/>
+> **Novo Repositório (Framework Científico Agnóstico):** `experimental-ml-framework`<br/>
+> **Especificação de Requisitos (SRS v2.1):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
+> **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
 > **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
 ---
@@ -146,6 +146,43 @@ flowchart LR
       * **REV-M2-09, REV-M2-10, REV-M2-11:** Emissão de `E1_TARGET_ZERO_VARIANCE` em regressão, documentação metodológica de empates temporais e acesso seguro a `Finding.context` quando nulo.
     * Aprovação de 17 testes de regressão dedicados em `tests/unit/test_m2_hardening_regression.py` (totalizando 193 testes aprovados no repositório com 100% de sucesso).
     * Verificação formal por subagente independente (*Independent Hardening Verifier*) com veredito `PASS` em 100% dos 11 achados.
+15. **Fase 4 — Sub-marco M3.1 Concluído (`m3-1-exploratory-features`):**
+    * Implementação do relatório exploratório univariado e bivariado em `src/experimental_ml/features/exploration.py`:
+      * Função pura `explore_features(sanitized_view)` executada estritamente sobre `SanitizedDatasetView` com rotulagem compulsória `scope = "EXPLORATORY_FULL_DATA"` e 3 avisos metodológicos mandatórios (`CA-E2-01`).
+      * Métricas univariadas de associação com o alvo: correlação linear de Pearson, correlação monotônica de Spearman com tratamento exato de empates por postos médios fracionários, Razão de Correlação $\eta$ para mistos e V de Cramér para pares categóricos.
+      * Matriz simétrica de redundância preditor-preditor e catalogação de pares com multicolinearidade severa (`high_redundancy_pairs`).
+    * Aprovação de 10/10 checks determinísticos e total de 208 testes aprovados sob `.specs/features/m3-1-exploratory-features/`.
+16. **Fase 4 — Sub-marco M3.2 Concluído (`m3-2-feature-scenarios`):**
+    * Modelagem declarativa e persistência de cenários em `src/experimental_ml/features/scenarios.py`:
+      * Estrutura imutável `FeatureScenario` suportando modos `FIXED` e `DYNAMIC`.
+      * Validação semântica e anti-leakage em `validate_scenarios`: comprovação de que atributos pertencem a `candidate_feature_cols` e são estritamente disjuntos de `{target, group, id, time} ∪ ignore_cols`, exigindo `strategy_name` não-vazio e proibindo atributos pré-calculados em dinâmicos (`selected_features == ()`).
+      * Persistência atômica transacional `save_scenarios` e `load_scenarios` em `configuration/scenarios.json`.
+      * Portão de integridade `verify_scenarios_gate` em `src/experimental_ml/stages/stage_gates.py`.
+    * Aprovação de 8/8 checks determinísticos e total de 218 testes aprovados sob `.specs/features/m3-2-feature-scenarios/`.
+17. **Fase 4 — Sub-marco M3.3 Concluído (`m3-3-intra-fold-selection`):**
+    * Seleção dinâmica livre de vazamento e análise de estabilidade em `src/experimental_ml/features/`:
+      * Contrato funcional puro `select_features_in_fold` com bypass imediato em modo `FIXED` e estratégias `VARIANCE_THRESHOLD` e `TOP_K_RELEVANCE` calculadas estritamente nos dados de treino de cada dobra.
+      * Função de projeção pura `apply_feature_selection(X_eval, selection_result)` com rejeição de atributos ausentes (`ContractViolationError`).
+      * Módulo de estabilidade `src/experimental_ml/features/stability.py`: cálculo da similaridade de Jaccard média inter-dobras e índice de consistência de Kuncheva corrigido pelo acaso (`SelectionStabilityReport`).
+    * Aprovação de 8/8 checks determinísticos e total de 228 testes aprovados sob `.specs/features/m3-3-intra-fold-selection/`.
+18. **Fase 4 — Sub-marco M3.4 Concluído (`m3-4-cli-end-to-end`):**
+    * Interface de linha de comando da Etapa 2 em `src/experimental_ml/cli/cmd_features.py`:
+      * Subcomandos `expml features explore`, `expml features scenarios` e `expml features verify`.
+      * Cumprimento estrito do contrato `CLI-10`: zero importações de `numpy` ou `hashlib` na carga inicial da CLI.
+      * Códigos de saída padronizados (0 para sucesso, 2 para erros de domínio sem tracebacks).
+      * Homologação integrada multi-etapa via subprocessos independentes encadeando Etapas 1, 2 e 4A com total determinismo e sem exposição de hashes criptográficos em terminal.
+    * Aprovação de 8/8 checks determinísticos e total de 236 testes aprovados sob `.specs/features/m3-4-cli-end-to-end/`.
+19. **Fase 4 — Auditoria Independente e Saneamento do Marco M3 Concluídos:**
+    * Auditoria técnica abrangente de encerramento do Marco M3 e saneamento formal dos achados:
+      * **ACH-M3-01:** Remoção do alias não-implementado `"MUTUAL_INFO_TOP_K"` de `selection.py`, restringindo a seleção supervisionada da Onda 1 à estratégia formal `TOP_K_RELEVANCE`.
+      * **ACH-M3-02:** Confirmação da invariância matemática do construtor de `DatasetSchemaSpec` contra alvos nulos na Onda 1.
+      * **ACH-M3-03:** Sincronização e validação das provas TLC via `check_proofs.py` e `validate_verification.py` (0 erros, 0 avisos).
+    * Parecer de encerramento aprovado com veredito `PASS` e merge da branch `feat/m3-4-cli-end-to-end` na `main`.
+20. **Fase 4 — Marco M4 em Andamento (Modelos, Pré-processamento e Tuning):**
+    * Início da Etapa 3 com a criação da branch `feat/m4-1-model-registry-contracts`.
+    * Elaboração, revisão e validação formal da especificação de requisitos de `m4-1-model-registry-contracts` ([`.specs/features/m4-1-model-registry-contracts/spec.md`](../.specs/features/m4-1-model-registry-contracts/spec.md)):
+      * 29 critérios de aceitação em formato EARS cobrindo enum `ModelFamily`, capacidades `ModelCapabilities`, isolamento de instâncias `instantiate_fresh_model`, ciclo de vida funcional (`fit_model`, `predict_model`, `extract_model_diagnostics`), validação declarativa de `ModelSpec` e de catálogo em memória (`validate_models_catalog`), e baselines canônicos de referência.
+      * Validador `validate_spec.py` aprovado com 0 erros e 0 avisos.
 
 ---
 
@@ -156,11 +193,11 @@ flowchart LR
 | **Fundação Transversal** | Nível 0 | `core` | Transversal (Etapas 1–6) | Tipos de IDs, `derive_seeds` (`SeedSequence`), `config_hash`, `dataset_hash`, `write_json_atomic`, `read_json` e exceções de contrato |
 | **Fundação Transversal** | Nível 1 | `metrics` | Transversal (Etapas 2, 3, 4 e 5) | `METRICS_CATALOG`, `MetricValue`, `AggregatedMetricValue`, `aggregate_fold_metrics`, `is_better` e 15 funções de métricas vetorizadas |
 | **Camada 1: Definição e Triagem** | Nível 1 | `data` | Etapa 1 | `load_dataset`, `profile_dataset`, `create_preparation_plan`, `sanitize_dataset`, `slice_view_by_observation_ids` $\rightarrow$ `DatasetBundle`, `DatasetProfile`, `PreparationPlan`, `SanitizedDatasetView` |
-| **Camada 1: Definição e Triagem** | Nível 2 | `features` | Etapa 2 | `explore_features`, `validate_scenarios`, `select_features_in_fold` (seletores e `PCA`) $\rightarrow$ `ExploratoryFeatureReport`, catálogo `scenarios` (`FIXED`/`DYNAMIC`) |
+| **Camada 1: Definição e Triagem** | Nível 2 | `features` | Etapa 2 | `explore_features`, `validate_scenarios`, `select_features_in_fold` (`VARIANCE_THRESHOLD`, `TOP_K_RELEVANCE`), `apply_feature_selection`, `compute_selection_stability` $\rightarrow$ `ExploratoryFeatureReport`, `ScenariosCatalog` (`FIXED`/`DYNAMIC`), `SelectionResult`, `SelectionStabilityReport` |
 | **Camada 1: Definição e Triagem** | Nível 2 | `models` | Etapa 3A | `instantiate_fresh_model`, `fit_model`, `predict_model`, `extract_model_diagnostics`, `fit_two_layer_preprocessing` (incluindo roteamento para kernels externos) $\rightarrow$ `ModelSpec`, `ModelDiagnostics` |
 | **Camada 1: Definição e Triagem** | Nível 3 | `tuning` | Etapa 3B | `run_nested_tuning` (`fixed`, `grid_search`, `random_search`) $\rightarrow$ `HyperparameterSearchSpec`, histórico de tentativas |
 | **Camada 2: Validação e Execução Matricial** | Nível 2 | `validation` | Etapa 4A | `build_partition_plan`, `validate_partition_plan`, `write_splits_csv_gz` $\rightarrow$ `PartitionPlan`, matriz `splits.csv.gz` |
-| **Camada de Portões de Etapa** | Nível 3 | `stages` | Portões 1 e 4A | `verify_preparation_gate`, `verify_partition_gate`, `reconstruct_sanitized_view`, layout canônico de diretórios de experimento |
+| **Camada de Portões de Etapa** | Nível 3 | `stages` | Portões 1, 2 e 4A | `verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `reconstruct_sanitized_view`, layout canônico de diretórios de experimento |
 | **Camada 2: Validação e Execução Matricial** | Nível 4 | `orchestration` | Etapa 4B | `run_experiment_matrix`, `resume_experiment_matrix`, `save_cell_result` $\rightarrow$ `CellResultRecord`, `PredictionRecord` (com `y_std` e comitê $\hat{\mu}_i, \hat{\sigma}_i$), `TimingBreakdown` |
 | **Camada 3: Comparação Estatística e Publicação** | Nível 5 | `statistics` | Etapa 5 | `consolidate_descriptive`, `evaluate_method_suitability`, `run_statistical_comparisons`, `compute_pareto_frontier`, `score_candidate_acquisition`, `synthesize_conclusions` $\rightarrow$ `StatisticalComparisonReport`, `StructuredConclusion` |
 | **Camada 3: Comparação Estatística e Publicação** | Nível 6 | `reporting` | Etapa 6 | `select_report_content`, `build_table_model`, `build_figure_spec`, `render_full_report`, `build_reproducibility_package` $\rightarrow$ `TableModel`, `PlotSpecification`, `ArtifactProvenance` |
@@ -186,7 +223,11 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
    * **M3.2 (Concluído e Aceito — Definição e Validação de Cenários de Features):** Modelos declarativos imutáveis `FeatureScenario` (`FIXED` e `DYNAMIC`), catálogo validado contra esquema da `SanitizedDatasetView` (`validate_scenarios`), salvaguarda anti-leakage proibindo atributos pré-calculados em dinâmicos, persistência atômica (`save_scenarios`, `load_scenarios`) e portão de etapa `verify_scenarios_gate` em `stages`, totalizando 218 testes aprovados.
    * **M3.3 (Concluído e Aceito — Seleção Dinâmica Intra-fold e Estabilidade):** Modelo `SelectionResult`, contrato funcional puro `select_features_in_fold` com bypass imediato em modo `FIXED` e estratégias `VARIANCE_THRESHOLD` e `TOP_K_RELEVANCE` calculadas estritamente nos dados de treino do fold, projeção em avaliação `apply_feature_selection` com rejeição de ausências parciais (`ContractViolationError`), modelo `SelectionStabilityReport` e métricas de estabilidade inter-dobras `compute_selection_stability` (similaridade de Jaccard e índice de consistência de Kuncheva corrigido para o acaso), totalizando 228 testes aprovados.
    * **M3.4 (Concluído e Aceito — CLI de Features e Homologação Ponta a Ponta):** Subcomandos `expml features explore`, `expml features scenarios` e `expml features verify`, validação de pureza arquitetural sem NumPy/hashlib nos metadados da CLI (`CLI-10`), códigos de saída padronizados e homologação integrada da Etapa 2 via subprocessos independentes, totalizando 236 testes aprovados na suíte global.
-4. **Marco M4 (`models` + `tuning` + CLI `models` — Próximo Marco):** Funções `instantiate_fresh_model`, `fit_model`, `predict_model` (clássicos, analíticos com `requires_fit=False` e quânticos/customizados), pré-processamento funcional em 2 camadas (`fit_two_layer_preprocessing`, `apply_two_layer_preprocessing`) com bloqueio de duplicação e *Nested Tuning* (`run_nested_tuning`).
+4. **Marco M4 (`models` + `tuning` + CLI `models` — Em Andamento):**
+   * **M4.1 (Em Especificação/Design — Registro de Modelos, Capacidades e Contratos Funcionais):** `ModelSpec`, `ModelCapabilities`, `ModelDiagnostics`, `instantiate_fresh_model`, `fit_model`, `predict_model`, `extract_model_diagnostics`, baselines canônicos (`DummyBaselineModel`, `AnalyticalBiometricModel`) e validação em memória de catálogo (`validate_models_catalog`).
+   * **M4.2 (Planejado — Pré-processamento em Duas Camadas):** `fit_two_layer_preprocessing`, `apply_two_layer_preprocessing`, escalonadores de atributos e bloqueio de duplicação em `validate_two_layer_preprocessing`.
+   * **M4.3 (Planejado — Otimização Aninhada de Hiperparâmetros):** `HyperparameterSearchSpec`, `run_nested_tuning` (*Nested CV* com Grid e Random Search livres de vazamento).
+   * **M4.4 (Planejado — Persistência, Portão de Validação e CLI de Modelos):** Persistência de `models.json`, portão `verify_models_gate` e subcomandos `expml models`.
 5. **Marco M5 (`orchestration` + CLI `run`):** Funções `run_experiment_matrix` e `resume_experiment_matrix` com máquina de estados, modos `FAULT_TOLERANT` / `FAIL_FAST`, paralelismo em dois níveis, persistência atômica (`save_cell_result`) e retomada verificada (*Checkpoint & Resume*).
 6. **Marco M6 (`statistics` + CLI `stats`):** Funções de consolidação descritiva, adequação metodológica, tratamento de *folds* incompletos, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, tamanho de efeito, relevância prática, Fronteira de Pareto, funções de aquisição e `synthesize_conclusions`.
 7. **Marco M7 (`reporting` + CLI `report` + Verificação `prognose_florestal`):** Funções de geração de relatórios completos (MD/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência (`ArtifactProvenance`), pacote de reprodutibilidade e reprodução agnóstica do experimento de referência `prognose_florestal`.
