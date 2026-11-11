@@ -165,11 +165,11 @@ T7
 **Requirement**: PRE-06
 
 **Done when**:
-- [ ] `PrecomputedKernelAdapter` passes $(X_{\text{train}}, X_{\text{train}})$ during fit and saves reference
-- [ ] `PrecomputedKernelAdapter` passes $(X_{\text{eval}}, X_{\text{train}})$ during transform
-- [ ] Non-square training outputs, non-finite values, and dimension mismatches raise `ContractViolationError`
-- [ ] Unit tests pass in `tests/unit/models/test_preprocessing_kernel.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_kernel.py -v`
+- [x] `PrecomputedKernelAdapter` passes $(X_{\text{train}}, X_{\text{train}})$ during fit and saves reference
+- [x] `PrecomputedKernelAdapter` passes $(X_{\text{eval}}, X_{\text{train}})$ during transform
+- [x] Non-square training outputs, non-finite values, and dimension mismatches raise `ContractViolationError`
+- [x] Unit tests pass in `tests/unit/models/test_preprocessing_kernel.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/models/test_preprocessing_kernel.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
