@@ -162,11 +162,11 @@ T7
 **Requirement**: TUN-04
 
 **Done when**:
-- [ ] `split_inner_folds` partitions indices $0 \dots N-1$ into $K$ disjoint fold pairs
-- [ ] Validation sets across folds form a complete partition of training indices
-- [ ] $N < K_{\text{inner}}$ raises `ContractViolationError`
-- [ ] Unit tests pass in `tests/unit/tuning/test_tuning_partitioning.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_partitioning.py -v`
+- [x] `split_inner_folds` partitions indices $0 \dots N-1$ into $K$ disjoint fold pairs
+- [x] Validation sets across folds form a complete partition of training indices
+- [x] $N < K_{\text{inner}}$ raises `ContractViolationError`
+- [x] Unit tests pass in `tests/unit/tuning/test_tuning_partitioning.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/tuning/test_tuning_partitioning.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
