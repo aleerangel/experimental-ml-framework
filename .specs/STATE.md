@@ -45,15 +45,20 @@
 ## Handoff
 
 - **Feature**: m4-1-model-registry-contracts (Sub-marco M4.1 — Registro de Modelos, Capacidades e Contratos Funcionais)
-- **Phase / Task**: Início do Marco M4 — Especificação Técnica Revisada e Validada
+- **Phase / Task**: Conclusão formal do Sub-marco M4.1 (Etapa 3 / Marco M4)
 - **Completed**:
-  - Conclusão e homologação formal de 100% dos Marcos M1 (`m1-1` a `m1-5`), M2 (`m2-1` a `m2-5` com hardening `REV-M2-01` a `REV-M2-11`) e M3 (`m3-1` a `m3-4` com saneamento `ACH-M3-01` a `ACH-M3-03`).
-  - Merge formal de M3 na branch `main` (Pull Request #15, commit `4191bb4`).
-  - Reestruturação e concisão abrangente do `README.md` (commit `aaba3dc`).
-  - Revisão, saneamento e sincronização completa de toda a documentação de engenharia (`ARQUITETURA_E_CONTRATOS.md`, `ESPECIFICACAO_REQUISITOS.md`, `ETAPA_ATUAL_ENGENHARIA.md`).
-  - Suíte completa de 236 testes automatizados com 100% de aprovação no repositório.
-  - Elaboração e refinamento minucioso de [`.specs/features/m4-1-model-registry-contracts/spec.md`](features/m4-1-model-registry-contracts/spec.md) com 29 critérios de aceitação em formato EARS, validado com zero erros em `validate_spec.py`.
-- **In-progress**: Início do Design Técnico e Planejamento de Tarefas do Sub-marco M4.1.
-- **Next step**: Aprovação humana da especificação M4.1 e elaboração de `design.md` e `tasks.md`.
+  - Conclusão e homologação formal de 100% dos Marcos M1 (`m1-1` a `m1-5`), M2 (`m2-1` a `m2-5`) e M3 (`m3-1` a `m3-4`).
+  - Especificação, Design e Execução do Sub-marco M4.1 (`m4-1-model-registry-contracts`) com 8 tarefas granulares concluídas e 35 critérios de aceitação formalmente comprovados (`check_proofs.py`: 35 pass, 0 fail).
+  - Implementação de `src/experimental_ml/models/` com `types.py` (`ModelFamily`, `ModelCapabilities`, `ModelDiagnostics`), `spec.py` (`ModelSpec`, `validate_model_spec`, `validate_models_catalog`), `execution.py` (`instantiate_fresh_model`, `fit_model`, `predict_model`), `diagnostics.py` (`extract_model_diagnostics`), `baselines.py` (`DummyBaselineModel`, `AnalyticalBiometricModel`) e `__init__.py`.
+  - Isolamento estrito de memória (`CA-E3-01`) via rastreamento de instâncias e rejeição de singletons (`ContractViolationError`).
+  - Contrato de predição tripartite verificado (`y_pred` 1D com $len = N$, `y_std` finito e $\ge 0$, `y_proba` 2D no simplex unitário).
+  - Suporte nativo a modelos analíticos/biométricos sem treino (`requires_fit=False`, `RF3.2`) com bypass no-op.
+  - Snapshot de diagnósticos imutável e independente com cópia defensiva profunda (`RF3.6`).
+  - Pureza estrita de runtime (`XCUT-02`): dependência única de `numpy>=1.24.0`, zero dependências mandatórias de ML frameworks externos.
+  - Verificação independente realizada com veredito `PASS` (0 findings) e portão `validate_verification.py` aprovado com 0 erros.
+  - Artefatos de homologação gerados: `ACCEPTANCE.md` e `RESULTS.md`.
+  - Suíte total do framework expandida de 236 para 272 testes automatizados (36 novos testes em `tests/unit/models/` e `tests/integration/models/`), 100% aprovados.
+- **In-progress**: Transição para o Sub-marco M4.2 (`m4-2-two-layer-preprocessing` — Pipeline de Pré-processamento em 2 Camadas).
+- **Next step**: Homologação / merge da branch `feat/m4-1-model-registry-contracts` e inicialização da especificação de M4.2.
 - **Blockers**: none
-- **Branch**: main (documentação transversal sincronizada; trabalho de implementação de M4.1 na branch `feat/m4-1-model-registry-contracts`)
+- **Branch**: feat/m4-1-model-registry-contracts
