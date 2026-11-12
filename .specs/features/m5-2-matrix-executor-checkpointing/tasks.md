@@ -157,14 +157,14 @@ T5 --> T6
 **Requirement**: ORCH-11, ORCH-14
 
 **Done when**:
-- [ ] `MatrixProgressCallback` protocol and `NullProgressCallback` defined
-- [ ] `run_experiment_matrix` executes cells sequentially when `outer_n_jobs = 1`
-- [ ] Cell artifacts and `execution_state.json` saved atomically after every cell
-- [ ] `FAULT_TOLERANT` mode logs cell failure and proceeds with remaining cells
-- [ ] `FAIL_FAST` mode halts execution and re-raises exception
-- [ ] Cancellation marks remaining pending cells as `CANCELLED`
-- [ ] Unit tests pass in `tests/unit/orchestration/test_matrix_engine_sequential.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_matrix_engine_sequential.py -v`
+- [x] `MatrixProgressCallback` protocol and `NullProgressCallback` defined
+- [x] `run_experiment_matrix` executes cells sequentially when `outer_n_jobs = 1`
+- [x] Cell artifacts and `execution_state.json` saved atomically after every cell
+- [x] `FAULT_TOLERANT` mode logs cell failure and proceeds with remaining cells
+- [x] `FAIL_FAST` mode halts execution and re-raises exception
+- [x] Cancellation marks remaining pending cells as `CANCELLED`
+- [x] Unit tests pass in `tests/unit/orchestration/test_matrix_engine_sequential.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_matrix_engine_sequential.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
