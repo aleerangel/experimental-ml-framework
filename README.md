@@ -355,6 +355,86 @@ finding = make_finding(code="E1_ZERO_VARIANCE", message="Coluna com variância n
 assert finding.severity.value == "CONFIRMED_ISSUE"
 ```
 
+#### 8. Contratos de Modelos, Baselines e Ciclo Funcional (`experimental_ml.models`)
+```python
+import numpy as np
+from experimental_ml.models import (
+    ModelCapabilities,
+    ModelFamily,
+    ModelSpec,
+    fit_model,
+    instantiate_fresh_model,
+    predict_model,
+    resolve_estimator_factory,
+)
+
+# Especificação declarativa do modelo e resolução de factory canônica
+spec = ModelSpec(
+    model_id="baseline_mean",
+    display_name="Dummy Mean Baseline",
+    family=ModelFamily.BASELINE,
+    capabilities=ModelCapabilities(requires_fit=True, supports_predict=True),
+    estimator_factory=resolve_estimator_factory("DUMMY_BASELINE_MEAN"),
+    description="Baseline ingênuo que prediz a média do conjunto de treino",
+    scientific_justification="Ponto de partida metodológico para calibrar o ganho real de modelos complexos",
+)
+
+# Ciclo funcional: instanciação com isolamento estrito, ajuste e predição
+model = instantiate_fresh_model(spec)
+X_train = np.array([[1.0], [2.0], [3.0]], dtype=np.float64)
+y_train = np.array([10.0, 20.0, 30.0], dtype=np.float64)
+fitted_model, diagnostics = fit_model(model, spec, X_train, y_train)
+
+X_test = np.array([[4.0], [5.0]], dtype=np.float64)
+outputs = predict_model(fitted_model, spec, X_test)
+assert np.allclose(outputs["y_pred"], [20.0, 20.0])
+```
+
+#### 9. Validação Cruzada Aninhada e Tuning de Hiperparâmetros (`experimental_ml.tuning`)
+```python
+import numpy as np
+from experimental_ml.core import MetricDirection
+from experimental_ml.models import (
+    ModelCapabilities,
+    ModelFamily,
+    ModelSpec,
+    resolve_estimator_factory,
+)
+from experimental_ml.tuning import (
+    HyperparameterSearchSpec,
+    SearchStrategy,
+    run_nested_tuning,
+)
+
+model_spec = ModelSpec(
+    model_id="baseline_mean",
+    display_name="Dummy Mean Baseline",
+    family=ModelFamily.BASELINE,
+    capabilities=ModelCapabilities(requires_fit=True, supports_predict=True),
+    estimator_factory=resolve_estimator_factory("DUMMY_BASELINE_MEAN"),
+    description="Baseline ingênuo que prediz a média",
+    scientific_justification="Ponto de partida metodológico",
+)
+
+# Espaço de busca declarativo e particionamento interno anti-leakage
+search_spec = HyperparameterSearchSpec(
+    search_strategy=SearchStrategy.FIXED,
+    param_grid={},
+    optimization_metric="rmse",
+    direction=MetricDirection.MINIMIZE,
+    inner_cv_folds=2,
+    seed=42,
+)
+
+X_train = np.array([[1.0], [2.0], [3.0], [4.0]], dtype=np.float64)
+y_train = np.array([10.0, 20.0, 30.0, 40.0], dtype=np.float64)
+
+# Execução de Nested CV confinado estritamente ao treino externo
+result = run_nested_tuning(search_spec, model_spec, X_train, y_train)
+assert result.best_score is not None
+assert len(result.trials) == 1
+```
+
 ---
 
 ## 4. Arquitetura em Camadas e Módulos
@@ -368,8 +448,9 @@ O framework organiza-se em camadas modulares com níveis estritos de dependênci
 | **Métricas e Avaliação** | Nível 1 | `experimental_ml.metrics` | Catálogo canônico de 15 métricas (`METRICS_CATALOG`), implementações puras em `float64` (regressão, classificação, alinhamento KTA), tratamento formal `UNDEFINED_NAN` (`ADR-005`), agregação inter-dobras e ranqueamento lexicográfico. |
 | **Cenários de Features** | Nível 2 | `experimental_ml.features` | Análise exploratória univariada/redundâncias (`explore_features`) com rotulagem `EXPLORATORY_FULL_DATA`, modelagem de cenários fixos e dinâmicos (`FeatureScenario`), validação contra visão saneada, seleção intra-fold (`select_features_in_fold`) e estabilidade inter-dobras (Jaccard e Kuncheva). |
 | **Particionamento** | Nível 2 | `experimental_ml.validation` | Estratégias de particionamento (K-Fold, Stratified, Group, Bootstrap, Temporal, Holdout), geração determinística do `PartitionPlan`, validação matemática de invariantes e disjunção de folds, e matriz `splits.csv.gz` compactada com `mtime=0.0`. |
-| **Portões de Validação** | Nível 3 | `experimental_ml.stages` | Portões de integridade entre etapas (`verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`) com checagem de hashes e layout canônico. |
-| **Modelos e Hiperparâmetros** | Nível 4 | `experimental_ml.models` | *(Em desenvolvimento — Marco M4)* Contratos de modelo (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento em 2 camadas e busca aninhada (*Nested CV*). |
+| **Portões de Validação** | Nível 3 | `experimental_ml.stages` | Portões de integridade entre etapas (`verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `verify_models_gate`) com checagem de hashes e layout canônico. |
+| **Modelos e Pré-processamento** | Nível 4 | `experimental_ml.models` | Contratos agnósticos de modelo (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), isolamento estrito de instâncias (`_ActiveInstancesRegistry`), baselines canônicos, pré-processamento em 2 camadas (scalers e kernels pré-computados) e catálogo auditado. |
+| **Tuning e Otimização Aninhada** | Nível 4 | `experimental_ml.tuning` | Particionamento interno puro em NumPy, geração determinística de candidatos (`Grid`, `Random`, `Fixed`), validação declarativa de espaços e busca aninhada (*Nested CV*) com isolamento estrito anti-leakage e desqualificação por `UNDEFINED_NAN`. |
 | **Execução Matricial** | Nível 5 | `experimental_ml.orchestration` | *(Planejado — Marco M5)* Máquina de estados das células $(m, c, f)$, paralelismo, tolerância a falhas e retomada verificada (*Checkpoint & Resume*). |
 | **Estatística Comparativa** | Nível 5 | `experimental_ml.statistics` | *(Planejado — Marco M6)* Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm/BH), Fronteira de Pareto e síntese estruturada de conclusões. |
 | **Relatórios e Pacote** | Nível 6 | `experimental_ml.reporting` | *(Planejado — Marco M7)* Relatórios completos (Markdown/HTML), tabelas (CSV/LaTeX `booktabs`), figuras e pacote de reprodutibilidade com manifesto `ArtifactProvenance`. |
@@ -396,9 +477,11 @@ experimental-ml-framework/
 │       ├── data/                    # Ingestão, esquemas, diagnóstico e saneamento (Nível 1)
 │       ├── features/                # Exploração, cenários e seleção de features (Nível 2)
 │       ├── metrics/                 # Catálogo e cálculo de métricas vetorizadas (Nível 1)
+│       ├── models/                  # Contratos de modelos, pré-processamento em 2 camadas e catálogo (Nível 4)
 │       ├── stages/                  # Portões de validação e integridade de etapas (Nível 3)
+│       ├── tuning/                  # Particionamento interno e otimização aninhada - Nested CV (Nível 4)
 │       └── validation/              # Particionamento compartilhado e validação matemática (Nível 2)
-├── tests/                           # Suíte de testes automatizados (236 verificações)
+├── tests/                           # Suíte de testes automatizados (348 verificações)
 │   ├── integration/                 # Testes de integração transversal e subprocessos
 │   ├── test_smoke.py                # Testes de fumaça da CLI e metadados de empacotamento
 │   └── unit/                        # Testes unitários modulares
@@ -416,7 +499,7 @@ A integridade do framework é assegurada de forma contínua pelo **Pytest**.
 ### Execução da Suíte
 
 ```bash
-# Executar a suíte completa de testes (236 verificações automatizadas)
+# Executar a suíte completa de testes (348 verificações automatizadas)
 pytest tests/ -v
 
 # Executar suítes específicas
@@ -430,11 +513,13 @@ pytest tests/test_smoke.py -v
 - **Smoke & Empacotamento (12 testes):** Ponto de entrada CLI, metadados PEP 621, `--version`, `--help` e códigos de saída sem traceback.
 - **Núcleo & Fundações (25 testes):** Imutabilidade de tipos (`ObservationId`), derivação hierárquica determinística de sementes (`SeedSequence`), regras de hashing tripartite do ADR-007 e persistência atômica com `fsync`.
 - **Métricas de Avaliação (22 testes):** Exatidão das 15 métricas em `float64`, tolerâncias numéricas rígidas, mitigação de overflow quadrático intermediário, tratamento formal `UNDEFINED_NAN` e ordenação lexicográfica.
-- **Ingestão, Esquemas e Diagnóstico (53 testes):** Buffers imutáveis em C (`ValueError` em tentativa de escrita), conformidade RFC 4180, identificadores estáveis, catálogo canônico de 15 achados diagnósticos, planos de preparação determinísticos e emissão de `SanitizedDatasetView`.
-- **Particionamento Compartilhado (20 testes):** Estratégias K-Fold, Stratified, Group, Bootstrap, Temporal e Holdout, validação matemática de disjunção $(\text{Train} \cap \text{Val} = \emptyset)$ e determinismo de `splits.csv.gz` com `mtime=0.0`.
-- **Cenários e Seleção de Features (25 testes):** Exploração de relações atributo-alvo e atributo-atributo, rotulagem mandatória `EXPLORATORY_FULL_DATA`, modelagem declarativa de cenários fixos e dinâmicos, seleção intra-fold livre de data leakage e métricas de estabilidade (Jaccard e Kuncheva).
-- **Hardening de Auditoria e Portões de Etapa (19 testes):** Regressões dedicadas dos achados da auditoria M2 (`REV-M2-01` a `REV-M2-11`), validação de integridade nos portões de etapa (`stage_gates`) e isolamento de runtime.
-- **Integração e Homologação Ponta a Ponta (60 testes):** Execução automatizada e isolada de todos os blocos de código documentados no `README.md`, integridade cross-process de hashes sob diferentes sementes de ambiente e pipelines integrados completos via subprocessos.
+- **Ingestão, Esquemas e Diagnóstico (66 testes):** Buffers imutáveis em C (`ValueError` em tentativa de escrita), conformidade RFC 4180, identificadores estáveis, catálogo canônico de 15 achados diagnósticos, planos de preparação determinísticos e emissão de `SanitizedDatasetView`.
+- **Particionamento Compartilhado (21 testes):** Estratégias K-Fold, Stratified, Group, Bootstrap, Temporal e Holdout, validação matemática de disjunção $(\text{Train} \cap \text{Val} = \emptyset)$ e determinismo de `splits.csv.gz` com `mtime=0.0`.
+- **Cenários e Seleção de Features (36 testes):** Exploração de relações atributo-alvo e atributo-atributo, rotulagem mandatória `EXPLORATORY_FULL_DATA`, modelagem declarativa de cenários fixos e dinâmicos, seleção intra-fold livre de data leakage e métricas de estabilidade (Jaccard e Kuncheva).
+- **Modelos e Pré-processamento em 2 Camadas (78 testes):** Contratos agnósticos (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), isolamento estrito de instâncias por identidade (`_ActiveInstancesRegistry`), baselines canônicos, escalonadores puros em NumPy, adaptadores de kernel pré-computado sem vazamento e persistência atômica com resolução `module:qualname`.
+- **Tuning e Otimização Aninhada (25 testes):** Particionamento interno em NumPy sem vazamento, geração determinística de candidatos (Grid, Random e Fixed), validação declarativa de espaços, motor de *Nested Cross-Validation* com pré-processamento intra-fold e desqualificação rigorosa por `UNDEFINED_NAN`.
+- **Hardening de Auditoria e Portões de Etapa (26 testes):** Regressões dedicadas dos achados das auditorias M2 e M4 (`REV-M2`, `AUD-M4`), validação nos portões de etapa (`verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `verify_models_gate`) e isolamento de runtime.
+- **CLI e Integração Ponta a Ponta (38 testes):** Subcomandos `data`, `features`, `partition` e `models` com pureza arquitetural CLI-10 (sem dependências pesadas no topo), verificação de contratos via subprocessos e validação de blocos de documentação.
 
 ---
 
@@ -447,8 +532,8 @@ O ciclo de vida do framework segue o processo de aceite estabelecido em [`PROCES
 | **M1** | **Fundações Transversais:** CLI base, tipos imutáveis, derivação de sementes, hashing canônico, motor de métricas com 15 especificações, esquemas tabulares e ingestão imutável em C. | **Concluído e Aceito** |
 | **M2** | **Diagnóstico e Particionamento:** Triagem estatística da base, plano formal de preparação, saneamento determinístico, particionamento compartilhado (CV e Holdout), persistência atômica, portões de etapa e CLI unificada. | **Concluído e Aceito** |
 | **M3** | **Cenários e Seleção de Features:** Análise exploratória univariada/redundâncias, modelagem declarativa de cenários fixos/dinâmicos, seleção intra-fold anti-leakage, estabilidade inter-dobras (Jaccard e Kuncheva) e CLI de features. | **Concluído e Aceito** |
-| **M4** | **Modelos e Hiperparâmetros:** Contratos de modelos (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento em 2 camadas e busca aninhada (*Nested CV*). | **Em Especificação (M4.1)** |
-| **M5** | **Execução Matricial:** Orquestração da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$, paralelismo, tolerância a falhas e retomada de execuções (*Checkpoint & Resume*). | Planejado |
+| **M4** | **Modelos e Hiperparâmetros:** Contratos agnósticos de modelos (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento em 2 camadas, busca aninhada (*Nested CV*), catálogo persistível e CLI de modelos. | **Concluído e Aceito** |
+| **M5** | **Execução Matricial:** Orquestração da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$, paralelismo, tolerância a falhas e retomada de execuções (*Checkpoint & Resume*). | **Próximo Marco (Planejado)** |
 | **M6** | **Estatística Comparativa:** Teste $t$ de Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm-Bonferroni, Benjamini-Hochberg) e Fronteira de Pareto multi-critério. | Planejado |
 | **M7** | **Relatórios e Reprodutibilidade:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas e figuras, manifesto de proveniência (`ArtifactProvenance`) e pacote portável de replicação. | Planejado |
 
