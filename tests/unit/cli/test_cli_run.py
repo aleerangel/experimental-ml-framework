@@ -149,3 +149,238 @@ def test_m54_01_05_run_verify_args_parsing() -> None:
     with pytest.raises(SystemExit) as exc_info:
         parser.parse_args(["run", "verify"])
     assert exc_info.value.code == 2
+
+
+# ==============================================================================
+# Helper: Setup fully prepared experiment (Stages 1, 2, 3, 4A)
+# ==============================================================================
+
+
+def _setup_fully_prepared_experiment(tmp_path: Path) -> Path:
+    """Helper that creates an experiment directory with Stages 1, 2, 3, 4A completed."""
+    import json
+    exp_dir = tmp_path / "exp"
+    raw_csv = tmp_path / "raw_data.csv"
+    raw_csv.write_text(
+        "id,x1,x2,y\n"
+        "1,1.0,10.0,2.0\n"
+        "2,2.0,20.0,4.0\n"
+        "3,3.0,30.0,6.0\n"
+        "4,4.0,40.0,8.0\n"
+        "5,5.0,50.0,10.0\n"
+        "6,6.0,60.0,12.0\n",
+        encoding="utf-8",
+    )
+
+    schema_file = tmp_path / "schema.json"
+    schema_dict = {
+        "target_col": "y",
+        "observation_id_col": "id",
+        "task_type": "REGRESSION",
+        "column_semantic_types": {
+            "x1": "NUMERIC_CONTINUOUS",
+            "x2": "NUMERIC_CONTINUOUS",
+            "y": "NUMERIC_CONTINUOUS",
+        },
+    }
+    schema_file.write_text(json.dumps(schema_dict), encoding="utf-8")
+
+    # Step 1: data profile
+    code = main([
+        "data", "profile",
+        "--data", str(raw_csv),
+        "--schema", str(schema_file),
+        "--output-dir", str(exp_dir),
+    ])
+    assert code == 0
+
+    # Step 2: data sanitize
+    rules_file = tmp_path / "rules.json"
+    rules_file.write_text("[]", encoding="utf-8")
+    code = main([
+        "data", "sanitize",
+        "--experiment-dir", str(exp_dir),
+        "--rules", str(rules_file),
+    ])
+    assert code == 0
+
+    # Step 3: partition build (3 folds)
+    part_file = tmp_path / "partition_config.json"
+    part_dict = {
+        "strategy": "KFOLD",
+        "regime": "CV_ONLY",
+        "n_splits": 3,
+        "master_seed": 42,
+    }
+    part_file.write_text(json.dumps(part_dict), encoding="utf-8")
+    code = main([
+        "partition", "build",
+        "--experiment-dir", str(exp_dir),
+        "--config", str(part_file),
+    ])
+    assert code == 0
+
+    # Step 4: features scenarios
+    scenarios_file = tmp_path / "scenarios.json"
+    scenarios_list = [
+        {
+            "scenario_id": "sc_baseline",
+            "name": "Baseline",
+            "description": "Baseline",
+            "scientific_justification": "Baseline",
+            "mode": "FIXED",
+            "selected_features": ["x1"],
+        }
+    ]
+    scenarios_file.write_text(json.dumps(scenarios_list), encoding="utf-8")
+    code = main([
+        "features", "scenarios",
+        "--experiment-dir", str(exp_dir),
+        "--scenarios", str(scenarios_file),
+    ])
+    assert code == 0
+
+    # Step 5: models validate
+    models_file = tmp_path / "models.json"
+    models_dict = {
+        "models": [
+            {
+                "model_id": "dummy_mean",
+                "display_name": "Dummy Mean Baseline",
+                "family": "BASELINE",
+                "estimator_factory": "DUMMY_BASELINE_MEAN",
+                "capabilities": {
+                    "requires_fit": True,
+                },
+                "description": "Baseline model predicting the mean",
+                "scientific_justification": "Comparator baseline",
+            }
+        ]
+    }
+    models_file.write_text(json.dumps(models_dict), encoding="utf-8")
+    code = main([
+        "models", "validate",
+        "--experiment-dir", str(exp_dir),
+        "--models", str(models_file),
+    ])
+    assert code == 0
+
+    return exp_dir
+
+
+# ==============================================================================
+# Phase 2: T2 - expml run start Tests (C6 to C11)
+# ==============================================================================
+
+
+def test_m54_02_01_run_start_default_execution(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C6: expml run start executa matriz completa e consolida OOF em runs (ORCH-23, AC 1, AC 5)."""
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    capsys.readouterr()
+
+    code = main(["run", "start", "--experiment-dir", str(exp_dir)])
+    captured = capsys.readouterr()
+
+    # 1. Exit code 0
+    assert code == 0
+    assert "Experiment matrix execution completed" in captured.out
+    assert "Total cells: 3" in captured.out
+    assert "Completed cells: 3" in captured.out
+
+    # 2. Artifacts created in <exp_dir>/runs
+    run_dir = exp_dir / "runs"
+    assert (run_dir / "execution_state.json").exists()
+    assert len(list((run_dir / "cells").glob("*.json"))) == 3
+    assert len(list((run_dir / "predictions").glob("*.json"))) == 3
+    assert (run_dir / "oof" / "oof_dummy_mean__sc_baseline.json").exists()
+
+
+def test_m54_02_02_run_start_custom_run_dir(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C7: expml run start com --run-dir customizado grava artefatos no diretório indicado (ORCH-23, AC 2)."""
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    custom_run = tmp_path / "custom_execution_dir"
+    capsys.readouterr()
+
+    code = main([
+        "run", "start",
+        "--experiment-dir", str(exp_dir),
+        "--run-dir", str(custom_run),
+    ])
+    assert code == 0
+
+    assert (custom_run / "execution_state.json").exists()
+    assert (custom_run / "oof" / "oof_dummy_mean__sc_baseline.json").exists()
+
+
+def test_m54_02_03_run_start_parallel_dispatch(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C8: expml run start com -j N despacha execução em paralelo (ORCH-23, AC 3)."""
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    capsys.readouterr()
+
+    code = main([
+        "run", "start",
+        "--experiment-dir", str(exp_dir),
+        "-j", "2",
+    ])
+    assert code == 0
+    assert (exp_dir / "runs" / "execution_state.json").exists()
+
+
+def test_m54_02_04_run_start_fail_fast(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C9: expml run start com --error-policy fail_fast interrompe após primeira falha (ORCH-23, AC 4)."""
+    import json
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+
+    # Invalidate model factory to trigger cell execution failure
+    models_path = exp_dir / "configuration" / "models.json"
+    models_dict = json.loads(models_path.read_text(encoding="utf-8"))
+    models_dict["models"][0]["estimator_factory"] = "non_existent_module:dummy_class"
+    models_path.write_text(json.dumps(models_dict), encoding="utf-8")
+    capsys.readouterr()
+
+    code = main([
+        "run", "start",
+        "--experiment-dir", str(exp_dir),
+        "--error-policy", "fail_fast",
+    ])
+    captured = capsys.readouterr()
+    assert code in (1, 2)
+    assert "fail_fast" in captured.err.lower() or "error" in captured.err.lower()
+
+
+def test_m54_02_05_run_start_no_oof(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C10: expml run start com --no-oof desativa consolidação out-of-fold (ORCH-23, AC 6)."""
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    capsys.readouterr()
+
+    code = main([
+        "run", "start",
+        "--experiment-dir", str(exp_dir),
+        "--no-oof",
+    ])
+    assert code == 0
+
+    run_dir = exp_dir / "runs"
+    assert (run_dir / "execution_state.json").exists()
+    assert not (run_dir / "oof").exists()
+
+
+def test_m54_02_06_run_start_overwrite_protection(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C11: expml run start recusa sobrescrita de execução existente sem --force (ORCH-23, AC 7)."""
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    capsys.readouterr()
+
+    # 1. First execution succeeds
+    code1 = main(["run", "start", "--experiment-dir", str(exp_dir)])
+    assert code1 == 0
+
+    # 2. Second execution without --force fails with code 2
+    code2 = main(["run", "start", "--experiment-dir", str(exp_dir)])
+    captured2 = capsys.readouterr()
+    assert code2 == 2
+    assert "already contains execution_state.json" in captured2.err
+    assert "--force" in captured2.err
+
+    # 3. Third execution with --force succeeds
+    code3 = main(["run", "start", "--experiment-dir", str(exp_dir), "--force"])
+    assert code3 == 0

@@ -122,14 +122,14 @@ T4 --> T5
 **Requirement**: ORCH-23  
 
 **Done when**:
-- [ ] `handle_run_start` valida pré-requisitos upstream das etapas 1 a 4A
-- [ ] Reconstitui insumos e executa matriz experimental
-- [ ] Grava em `<experiment-dir>/runs` ou `--run-dir` customizado
-- [ ] Suporta `-j` / `--parallel` e `--error-policy`
-- [ ] Consolidada OOF por padrão e omite com `--no-oof`
-- [ ] Protege contra sobrescrita sem `--force` retornando código 2
-- [ ] Testes unitários passam em `tests/unit/cli/test_cli_run.py`
-- [ ] Gate rápido aprovado
+- [x] `handle_run_start` valida pré-requisitos upstream das etapas 1 a 4A
+- [x] Reconstitui insumos e executa matriz experimental
+- [x] Grava em `<experiment-dir>/runs` ou `--run-dir` customizado
+- [x] Suporta `-j` / `--parallel` e `--error-policy`
+- [x] Consolidada OOF por padrão e omite com `--no-oof`
+- [x] Protege contra sobrescrita sem `--force` retornando código 2
+- [x] Testes unitários passam em `tests/unit/cli/test_cli_run.py`
+- [x] Gate rápido aprovado
 
 **Tests**: unit  
 **Gate**: quick  
