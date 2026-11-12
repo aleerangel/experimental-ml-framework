@@ -183,12 +183,12 @@ T5 --> T6
 **Requirement**: ORCH-12
 
 **Done when**:
-- [ ] `run_experiment_matrix` with `outer_n_jobs > 1` executes cells concurrently
-- [ ] Concurrent state updates are thread-safe without corrupted JSON writes
-- [ ] Parallel execution metrics and artifacts match sequential execution
-- [ ] Individual cell exceptions in worker threads handled according to error policy
-- [ ] Unit tests pass in `tests/unit/orchestration/test_matrix_engine_parallel.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_matrix_engine_parallel.py -v`
+- [x] `run_experiment_matrix` with `outer_n_jobs > 1` executes cells concurrently
+- [x] Concurrent state updates are thread-safe without corrupted JSON writes
+- [x] Parallel execution metrics and artifacts match sequential execution
+- [x] Individual cell exceptions in worker threads handled according to error policy
+- [x] Unit tests pass in `tests/unit/orchestration/test_matrix_engine_parallel.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_matrix_engine_parallel.py -v`
 
 **Tests**: unit  
 **Gate**: quick  

@@ -5,6 +5,7 @@ Complies with ORCH-11, ORCH-12, ORCH-13, ORCH-14, STORE-01, and XCUT-02.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 import threading
@@ -130,22 +131,18 @@ def run_experiment_matrix(
     callback = progress_callback or NullProgressCallback()
     callback.on_matrix_start(len(descriptors))
 
-    state_lock = threading.Lock()
+    state_lock = threading.RLock()
 
-    for idx, desc in enumerate(descriptors):
-        # 1. Cancellation check
+    def _execute_cell_task(desc: CellDescriptor) -> None:
+        nonlocal state
         if cancellation_check is not None and cancellation_check():
             with state_lock:
-                for rem_desc in descriptors[idx:]:
-                    state = state.with_cell_update(rem_desc.cell_id, ExecutionStatus.CANCELLED)
+                state = state.with_cell_update(desc.cell_id, ExecutionStatus.CANCELLED)
                 save_execution_state(state, dest_run_dir, overwrite=True)
-            callback.on_matrix_completed(state)
-            return state
+            return
 
-        # 2. Notify cell start
         callback.on_cell_start(desc.cell_id)
 
-        # 3. Execute cell
         try:
             cell_result, pred_record = execute_single_cell(
                 model_spec=desc.model_spec,
@@ -159,13 +156,11 @@ def run_experiment_matrix(
                 cell_id=desc.cell_id,
             )
         except Exception as exc:
-            # Under FAIL_FAST, record failure in state, save, and re-raise
             with state_lock:
                 state = state.with_cell_update(desc.cell_id, ExecutionStatus.FAILED)
                 save_execution_state(state, dest_run_dir, overwrite=True)
             raise exc
 
-        # 4. Save cell artifacts immediately
         save_cell_artifacts(
             cell_result=cell_result,
             prediction_record=pred_record,
@@ -173,16 +168,39 @@ def run_experiment_matrix(
             overwrite=True,
         )
 
-        # 5. Update and flush global execution state
         with state_lock:
             state = state.with_cell_update(desc.cell_id, cell_result.status)
             save_execution_state(state, dest_run_dir, overwrite=True)
 
-        # 6. Notify completion / failure
         if cell_result.status == ExecutionStatus.COMPLETED:
             callback.on_cell_completed(cell_result)
         else:
             callback.on_cell_failed(cell_result)
+
+    if outer_n_jobs <= 1:
+        for idx, desc in enumerate(descriptors):
+            if cancellation_check is not None and cancellation_check():
+                with state_lock:
+                    for rem_desc in descriptors[idx:]:
+                        state = state.with_cell_update(rem_desc.cell_id, ExecutionStatus.CANCELLED)
+                    save_execution_state(state, dest_run_dir, overwrite=True)
+                callback.on_matrix_completed(state)
+                return state
+            _execute_cell_task(desc)
+    else:
+        with ThreadPoolExecutor(max_workers=outer_n_jobs) as executor:
+            future_to_desc = {
+                executor.submit(_execute_cell_task, desc): desc
+                for desc in descriptors
+            }
+            for future in as_completed(future_to_desc):
+                try:
+                    future.result()
+                except Exception as exc:
+                    if error_policy == ErrorPolicy.FAIL_FAST:
+                        for f in future_to_desc:
+                            f.cancel()
+                        raise exc
 
     callback.on_matrix_completed(state)
     return state
