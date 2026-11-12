@@ -11,15 +11,28 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
-from experimental_ml.core.enums import AggregationScope, MetricStatus, TaskType
+from experimental_ml.core.enums import (
+    AggregationScope,
+    ExecutionStatus,
+    MetricDirection,
+    MetricStatus,
+    TaskType,
+)
 from experimental_ml.core.findings import (
     ConfigurationError,
     ContractViolationError,
     DataIntegrityError,
+    Finding,
 )
 from experimental_ml.core.storage import read_json, write_json_atomic
 from experimental_ml.core.types import ModelId, ObservationId, ScenarioId
-from experimental_ml.metrics.types import AggregatedMetricValue, MetricValue
+from experimental_ml.metrics.aggregation import aggregate_fold_metrics
+from experimental_ml.metrics.catalog import compute_metric, get_metric_spec
+from experimental_ml.metrics.types import (
+    AggregatedMetricValue,
+    MetricEvaluationScope,
+    MetricValue,
+)
 from experimental_ml.orchestration.types import CellResultRecord, PredictionRecord
 import numpy as np
 
@@ -207,6 +220,7 @@ def consolidate_oof_predictions(
     prediction_records: Sequence[PredictionRecord],
     *,
     cell_results: Sequence[CellResultRecord] = (),
+    metrics: Sequence[str] | None = None,
     target_observation_ids: Sequence[ObservationId | str] | None = None,
 ) -> ConsolidatedOofPredictions:
     """Consolidate out-of-fold prediction records into a canonical ConsolidatedOofPredictions.
@@ -338,6 +352,110 @@ def consolidate_oof_predictions(
         cr_folds = {cr.fold_id for cr in cell_results}
         all_folds = sorted(fold_ids_set.union(cr_folds))
 
+    # Determine which metrics to evaluate
+    if metrics is not None:
+        target_metrics = tuple(metrics)
+    elif cell_results and any(cr.metrics for cr in cell_results):
+        metric_keys_set = set()
+        for cr in cell_results:
+            if cr.status == ExecutionStatus.COMPLETED and cr.metrics:
+                metric_keys_set.update(cr.metrics.keys())
+        target_metrics = tuple(sorted(metric_keys_set))
+    else:
+        if t_type == TaskType.REGRESSION:
+            target_metrics = ("rmse", "mae", "r2")
+        elif t_type in (TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION):
+            target_metrics = ("accuracy", "f1")
+        else:
+            target_metrics = ()
+
+    # 1. Evaluate POOLED_OOF metrics
+    pooled_metrics_dict: dict[str, MetricValue] = {}
+    y_true_arr = np.asarray(y_true_list)
+    y_pred_arr = np.asarray(y_pred_list)
+
+    for m_name in target_metrics:
+        if m_name in ("log_loss", "roc_auc") and final_probas is not None:
+            pred_input = np.asarray(final_probas)
+        else:
+            pred_input = y_pred_arr
+
+        try:
+            mv = compute_metric(
+                m_name,
+                y_true_arr,
+                pred_input,
+                scope=MetricEvaluationScope.POOLED_OOF,
+            )
+            pooled_metrics_dict[m_name] = mv
+        except Exception as exc:
+            try:
+                spec = get_metric_spec(m_name)
+                m_dir = spec.direction
+            except Exception:
+                m_dir = MetricDirection.MINIMIZE
+
+            mv_nan = MetricValue(
+                metric_id=m_name,
+                value=float("nan"),
+                status=MetricStatus.UNDEFINED_NAN,
+                direction=m_dir,
+                scope=MetricEvaluationScope.POOLED_OOF,
+                n_samples=len(y_true_arr),
+                warnings=(
+                    Finding(
+                        category="UNDEFINED_NAN",
+                        message=f"Evaluation failed for pooled metric '{m_name}': {exc}",
+                    ),
+                ),
+            )
+            pooled_metrics_dict[m_name] = mv_nan
+
+    # 2. Compute FOLD_AGGREGATION metrics
+    aggregated_metrics_dict: dict[str, AggregatedMetricValue] = {}
+    if cell_results:
+        fold_metrics_by_id: dict[str, list[MetricValue]] = {}
+        for cr in cell_results:
+            if cr.status == ExecutionStatus.COMPLETED and cr.metrics:
+                for mid, mval in cr.metrics.items():
+                    fold_metrics_by_id.setdefault(mid, []).append(mval)
+
+        for mid, m_list in fold_metrics_by_id.items():
+            try:
+                amv = aggregate_fold_metrics(
+                    m_list,
+                    scope=AggregationScope.FOLD_AGGREGATION,
+                )
+                aggregated_metrics_dict[mid] = amv
+            except Exception as exc:
+                try:
+                    spec = get_metric_spec(mid)
+                    m_dir = spec.direction
+                except Exception:
+                    m_dir = MetricDirection.MINIMIZE
+
+                amv_nan = AggregatedMetricValue(
+                    metric_id=mid,
+                    mean=float("nan"),
+                    std=float("nan"),
+                    median=float("nan"),
+                    iqr=float("nan"),
+                    status=MetricStatus.UNDEFINED_NAN,
+                    direction=m_dir,
+                    scope=AggregationScope.FOLD_AGGREGATION,
+                    valid_folds=0,
+                    total_folds=len(m_list),
+                    coverage=0.0,
+                    fold_values=tuple(m_list),
+                    warnings=(
+                        Finding(
+                            category="UNDEFINED_NAN",
+                            message=f"Aggregation failed for metric '{mid}': {exc}",
+                        ),
+                    ),
+                )
+                aggregated_metrics_dict[mid] = amv_nan
+
     return ConsolidatedOofPredictions(
         model_id=m_id,
         scenario_id=sc_id,
@@ -348,8 +466,8 @@ def consolidate_oof_predictions(
         y_std=final_stds,
         y_proba=final_probas,
         residuals=residuals_tuple,
-        pooled_metrics={},
-        aggregated_metrics={},
+        pooled_metrics=pooled_metrics_dict,
+        aggregated_metrics=aggregated_metrics_dict,
         fold_ids=tuple(all_folds),
         coverage=1.0,
         status=MetricStatus.VALID,

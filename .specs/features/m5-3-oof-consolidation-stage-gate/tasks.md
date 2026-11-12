@@ -157,12 +157,12 @@ T5 --> T6
 **Requirement**: ORCH-17, ORCH-18, ORCH-19
 
 **Done when**:
-- [ ] Métricas agrupadas avaliadas com escopo `POOLED_OOF`
-- [ ] Agregações inter-dobras calculadas com escopo `FOLD_AGGREGATION`
-- [ ] Falhas numéricas capturadas com `MetricStatus.UNDEFINED_NAN`
-- [ ] `pooled_metrics` e `aggregated_metrics` persistidos separadamente
-- [ ] Testes unitários passam em `tests/unit/orchestration/test_oof_metrics.py`
-- [ ] Gate rápido aprovado
+- [x] Métricas agrupadas avaliadas com escopo `POOLED_OOF`
+- [x] Agregações inter-dobras calculadas com escopo `FOLD_AGGREGATION`
+- [x] Falhas numéricas capturadas com `MetricStatus.UNDEFINED_NAN`
+- [x] `pooled_metrics` e `aggregated_metrics` persistidos separadamente
+- [x] Testes unitários passam em `tests/unit/orchestration/test_oof_metrics.py`
+- [x] Gate rápido aprovado
 
 **Tests**: unit  
 **Gate**: quick  
@@ -326,7 +326,7 @@ Proof: run integration | tests/integration/orchestration/test_oof_integration.py
 ## Handoff
 
 - **Dispatched:** none
-- **Completed:** T1, T2
-- **In-progress:** Phase 3
-- **Next step:** Execute T3
+- **Completed:** T1, T2, T3
+- **In-progress:** Phase 4
+- **Next step:** Execute T4
 - **Blockers:** none
