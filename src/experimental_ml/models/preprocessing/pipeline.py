@@ -139,16 +139,24 @@ def _instantiate_step_transformer(step: PreprocessingStepSpec) -> Any:
     elif ttype == ScalerType.ANGULAR.value:
         return AngularScaler(**params)
     elif ttype == "PRECOMPUTED_KERNEL":
-        if "kernel_func" not in params or not callable(params["kernel_func"]):
+        kfunc = params.get("kernel_func")
+        if isinstance(kfunc, str):
+            from experimental_ml.models.catalog import resolve_estimator_factory
+            kfunc = resolve_estimator_factory(kfunc)
+        if not callable(kfunc):
             raise ConfigurationError(
                 f"PRECOMPUTED_KERNEL step '{step.step_id}' requires callable 'kernel_func' parameter"
             )
-        return PrecomputedKernelAdapter(kernel_func=params["kernel_func"])
+        return PrecomputedKernelAdapter(kernel_func=kfunc)
     elif ttype == "PASSTHROUGH":
         return None
     elif ttype == "CUSTOM":
-        if "factory" in params and callable(params["factory"]):
-            return params["factory"]()
+        factory = params.get("factory")
+        if isinstance(factory, str):
+            from experimental_ml.models.catalog import resolve_estimator_factory
+            factory = resolve_estimator_factory(factory)
+        if callable(factory):
+            return factory()
         if "transformer" in params:
             return params["transformer"]
         raise ConfigurationError(

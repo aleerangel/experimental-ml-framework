@@ -21,11 +21,52 @@ from experimental_ml.tuning.types import HyperparameterSearchSpec, SearchStrateg
 __all__ = [
     "ModelsCatalog",
     "resolve_estimator_factory",
+    "callable_to_reference",
     "model_spec_to_dict",
     "model_spec_from_dict",
     "models_catalog_to_dict",
     "models_catalog_from_dict",
 ]
+
+
+def callable_to_reference(target: Any, field_name: str = "callable") -> str:
+    """Convert a callable or reference string into a serializable, reconstructible reference string.
+
+    Complies with MPC-01, MPC-02, AUD-M4-01, and AUD-M4-04.
+    Raises ConfigurationError if the callable is a lambda, closure, local function,
+    or non-importable object without an explicit '_factory_ref'.
+    """
+    if isinstance(target, str):
+        ref = target.strip()
+        if not ref:
+            raise ConfigurationError(f"{field_name} string reference cannot be empty")
+        return ref
+
+    if hasattr(target, "_factory_ref"):
+        ref = str(getattr(target, "_factory_ref")).strip()
+        if not ref:
+            raise ConfigurationError(f"_factory_ref on {field_name} cannot be empty")
+        return ref
+
+    if callable(target):
+        mod = getattr(target, "__module__", None)
+        qualname = getattr(target, "__qualname__", None)
+        if (
+            mod
+            and qualname
+            and "<locals>" not in qualname
+            and "<lambda>" not in qualname
+        ):
+            return f"{mod}:{qualname}"
+        raise ConfigurationError(
+            f"Cannot serialize {field_name}: local functions and lambdas cannot be persisted. "
+            "Provide an importable top-level function in 'module:qualname' format or set the '_factory_ref' attribute."
+        )
+
+    raise ConfigurationError(
+        f"Cannot serialize {field_name} of type {type(target).__name__}. "
+        "Expected an importable callable or 'module:qualname' string reference."
+    )
 
 
 def resolve_estimator_factory(
@@ -69,13 +110,21 @@ def resolve_estimator_factory(
 
     # 1. Built-in baselines
     if ref == "DUMMY_BASELINE_MEAN":
-        return lambda seed=None: DummyBaselineModel(strategy="mean")
+        fn = lambda seed=None: DummyBaselineModel(strategy="mean")
+        fn._factory_ref = "DUMMY_BASELINE_MEAN"
+        return fn
     if ref == "DUMMY_BASELINE_MEDIAN":
-        return lambda seed=None: DummyBaselineModel(strategy="median")
+        fn = lambda seed=None: DummyBaselineModel(strategy="median")
+        fn._factory_ref = "DUMMY_BASELINE_MEDIAN"
+        return fn
     if ref == "DUMMY_BASELINE_MOST_FREQUENT":
-        return lambda seed=None: DummyBaselineModel(strategy="most_frequent")
+        fn = lambda seed=None: DummyBaselineModel(strategy="most_frequent")
+        fn._factory_ref = "DUMMY_BASELINE_MOST_FREQUENT"
+        return fn
     if ref == "ANALYTICAL_BIOMETRIC":
-        return lambda seed=None: AnalyticalBiometricModel()
+        fn = lambda seed=None: AnalyticalBiometricModel()
+        fn._factory_ref = "ANALYTICAL_BIOMETRIC"
+        return fn
 
     # 2. Dotted import path: module:qualname
     if ":" in ref:
@@ -137,25 +186,35 @@ def _capabilities_from_dict(data: Mapping[str, Any]) -> ModelCapabilities:
 
 
 def _preprocessing_to_dict(spec: TwoLayerPreprocessingSpec) -> dict[str, Any]:
+    def _serialize_step(s: PreprocessingStepSpec) -> dict[str, Any]:
+        ttype = s.transformer_type.upper().strip()
+        params = dict(s.parameters)
+        if ttype == "PRECOMPUTED_KERNEL" and "kernel_func" in params:
+            params["kernel_func"] = callable_to_reference(
+                params["kernel_func"], f"kernel_func in step '{s.step_id}'"
+            )
+        elif ttype == "CUSTOM" and "factory" in params:
+            params["factory"] = callable_to_reference(
+                params["factory"], f"factory in step '{s.step_id}'"
+            )
+
+        for k, v in params.items():
+            if callable(v):
+                raise ConfigurationError(
+                    f"Step '{s.step_id}' parameter '{k}' is a callable. "
+                    "Use an importable 'module:qualname' string reference or attach '_factory_ref'."
+                )
+
+        return {
+            "step_id": s.step_id,
+            "transformer_type": s.transformer_type,
+            "parameters": params,
+            "description": s.description,
+        }
+
     return {
-        "layer1_steps": [
-            {
-                "step_id": s.step_id,
-                "transformer_type": s.transformer_type,
-                "parameters": dict(s.parameters),
-                "description": s.description,
-            }
-            for s in spec.layer1_steps
-        ],
-        "layer2_steps": [
-            {
-                "step_id": s.step_id,
-                "transformer_type": s.transformer_type,
-                "parameters": dict(s.parameters),
-                "description": s.description,
-            }
-            for s in spec.layer2_steps
-        ],
+        "layer1_steps": [_serialize_step(s) for s in spec.layer1_steps],
+        "layer2_steps": [_serialize_step(s) for s in spec.layer2_steps],
         "description": spec.description,
     }
 
@@ -214,10 +273,10 @@ def _search_spec_from_dict(data: Mapping[str, Any]) -> HyperparameterSearchSpec:
 
 def model_spec_to_dict(spec: ModelSpec) -> dict[str, Any]:
     """Serialize a ModelSpec instance to a JSON-compatible dictionary."""
-    # Determine serializable factory reference
+    # Determine serializable factory reference (MPC-01, AUD-M4-04)
     factory_ref: str
     if hasattr(spec.estimator_factory, "_factory_ref"):
-        factory_ref = getattr(spec.estimator_factory, "_factory_ref")
+        factory_ref = callable_to_reference(spec.estimator_factory, f"estimator_factory for model '{spec.model_id}'")
     elif spec.family == ModelFamily.BASELINE:
         strat = spec.parameters.get("strategy", "mean")
         if strat == "median":
@@ -228,15 +287,10 @@ def model_spec_to_dict(spec: ModelSpec) -> dict[str, Any]:
             factory_ref = "DUMMY_BASELINE_MEAN"
     elif spec.family in (ModelFamily.BIOMETRIC_MODEL, ModelFamily.ANALYTICAL_EQUATION):
         factory_ref = "ANALYTICAL_BIOMETRIC"
-    elif (
-        hasattr(spec.estimator_factory, "__qualname__")
-        and hasattr(spec.estimator_factory, "__module__")
-        and "<locals>" not in spec.estimator_factory.__qualname__
-        and "<lambda>" not in spec.estimator_factory.__qualname__
-    ):
-        factory_ref = f"{spec.estimator_factory.__module__}:{spec.estimator_factory.__qualname__}"
     else:
-        factory_ref = str(getattr(spec.estimator_factory, "__name__", spec.estimator_factory))
+        factory_ref = callable_to_reference(
+            spec.estimator_factory, f"estimator_factory for model '{spec.model_id}'"
+        )
 
     result: dict[str, Any] = {
         "model_id": spec.model_id,

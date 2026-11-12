@@ -17,8 +17,53 @@ from experimental_ml.models.diagnostics import extract_model_diagnostics
 from experimental_ml.models.spec import ModelSpec, validate_model_spec
 from experimental_ml.models.types import ModelDiagnostics
 
-# Track active model instances to detect singletons and shared memory leakage (AC-M41-03-03, CA-E3-01)
-_ACTIVE_INSTANCES: weakref.WeakSet[Any] = weakref.WeakSet()
+class _ActiveInstancesRegistry:
+    """Identity-based active instances registry to detect singletons and shared memory leakage.
+
+    Complies with MOD-03 (AC-M41-03-03), CA-E3-01, and AUD-M4-02.
+    Checks strictly object identity ('is'), never value equality ('=='), and supports both
+    hashable and unhashable model objects without memory retention.
+    """
+
+    def __init__(self) -> None:
+        self._refs: dict[int, weakref.ref[Any]] = {}
+        self._non_weakable: set[int] = set()
+
+    def register_or_check(self, instance: Any, model_id: str) -> None:
+        """Register instance or raise ContractViolationError if it is already active."""
+        obj_id = id(instance)
+
+        # Check weakref registry
+        if obj_id in self._refs:
+            live = self._refs[obj_id]()
+            if live is not None and live is instance:
+                raise ContractViolationError(
+                    f"Instance isolation breach: estimator_factory for model '{model_id}' "
+                    f"returned a singleton or previously instantiated active instance {instance!r}."
+                )
+
+        # Check non-weakable fallback
+        if obj_id in self._non_weakable:
+            raise ContractViolationError(
+                f"Instance isolation breach: estimator_factory for model '{model_id}' "
+                f"returned a singleton or previously instantiated active instance {instance!r}."
+            )
+
+        def _cleanup(ref: weakref.ref[Any], target_id: int = obj_id) -> None:
+            self._refs.pop(target_id, None)
+
+        try:
+            self._refs[obj_id] = weakref.ref(instance, _cleanup)
+        except TypeError:
+            self._non_weakable.add(obj_id)
+
+    def clear(self) -> None:
+        self._refs.clear()
+        self._non_weakable.clear()
+
+
+# Track active model instances by identity to detect singletons and shared memory leakage (AC-M41-03-03, CA-E3-01, AUD-M4-02)
+_ACTIVE_INSTANCES = _ActiveInstancesRegistry()
 
 
 def reset_active_instances() -> None:
@@ -29,7 +74,7 @@ def reset_active_instances() -> None:
 def instantiate_fresh_model(model_spec: ModelSpec, seed: int | None = None) -> Any:
     """Instantiate a completely uncoupled, fresh model instance via estimator_factory.
 
-    Enforces strict instance isolation (CA-E3-01) so that weights, states, or hyperparameters
+    Enforces strict instance isolation (CA-E3-01, AUD-M4-02) so that weights, states, or hyperparameters
     never leak across folds, splits, or bootstrap resamples.
 
     Args:
@@ -58,22 +103,8 @@ def instantiate_fresh_model(model_spec: ModelSpec, seed: int | None = None) -> A
             f"estimator_factory for model '{model_spec.model_id}' returned None"
         )
 
-    # Detect singleton or reused memory instance (AC-M41-03-03)
-    try:
-        if instance in _ACTIVE_INSTANCES:
-            raise ContractViolationError(
-                f"Instance isolation breach: estimator_factory for model '{model_spec.model_id}' "
-                f"returned a singleton or previously instantiated active instance {instance!r}."
-            )
-        _ACTIVE_INSTANCES.add(instance)
-    except TypeError:
-        # Unhashable object: fallback to checking id among live references
-        for live_ref in list(_ACTIVE_INSTANCES):
-            if live_ref is instance:
-                raise ContractViolationError(
-                    f"Instance isolation breach: estimator_factory for model '{model_spec.model_id}' "
-                    f"returned an unhashable active singleton instance {instance!r}."
-                )
+    # Detect singleton or reused memory instance by identity (AUD-M4-02)
+    _ACTIVE_INSTANCES.register_or_check(instance, model_spec.model_id)
 
     return instance
 
