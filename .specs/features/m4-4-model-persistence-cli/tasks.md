@@ -314,7 +314,7 @@ Proof: run integration | tests/integration/models/test_models_cli_integration.py
 
 **Settled mid-build**: none  
 **Dispatched**: Verifier (validate.md)  
-**Walked**: done (check_proofs passed at HEAD 7dd8556)  
+**Walked**: done (check_proofs passed at HEAD 1127e45)  
 
 ---
 

@@ -136,13 +136,27 @@ def run_nested_tuning(
             )
 
             try:
+                # Intra-fold preprocessing without evaluation data leakage (AUD-M4-03, RF3.4, CA-E4B-01)
+                if model_spec.preprocessing is not None:
+                    from experimental_ml.models.preprocessing.pipeline import (
+                        apply_two_layer_preprocessing,
+                        fit_two_layer_preprocessing,
+                    )
+
+                    preproc_state = fit_two_layer_preprocessing(model_spec.preprocessing, X_in_train)
+                    X_in_train_trans = apply_two_layer_preprocessing(preproc_state, X_in_train)
+                    X_in_val_trans = apply_two_layer_preprocessing(preproc_state, X_in_val)
+                else:
+                    X_in_train_trans = X_in_train
+                    X_in_val_trans = X_in_val
+
                 # Instantiate fresh unshared model instance (CA-E3-01)
                 instance = instantiate_fresh_model(model_spec, seed=fold_seed)
                 _apply_params_to_instance(instance, dict(candidate_params))
 
-                # Fit and predict inside inner fold
-                fit_model(instance, model_spec, X_in_train, y_in_train)
-                preds = predict_model(instance, model_spec, X_in_val)
+                # Fit and predict inside inner fold on preprocessed representations
+                fit_model(instance, model_spec, X_in_train_trans, y_in_train)
+                preds = predict_model(instance, model_spec, X_in_val_trans)
 
                 if metric_entry.requires_probabilities:
                     y_prob = preds.get("y_proba")

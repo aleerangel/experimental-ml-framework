@@ -11,6 +11,7 @@ from experimental_ml.models.baselines import (
 )
 from experimental_ml.models.catalog import (
     ModelsCatalog,
+    callable_to_reference,
     model_spec_from_dict,
     model_spec_to_dict,
     models_catalog_from_dict,
@@ -70,6 +71,7 @@ __all__ = [
     "fit_two_layer_preprocessing",
     "apply_two_layer_preprocessing",
     "ModelsCatalog",
+    "callable_to_reference",
     "model_spec_to_dict",
     "model_spec_from_dict",
     "models_catalog_to_dict",

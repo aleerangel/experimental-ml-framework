@@ -13,8 +13,8 @@ O projeto prioriza a integridade metodológica, a prevenção estrutural de vaza
 | **Versão** | `0.1.0.dev0` (Hatchling / PEP 517 / PEP 621) |
 | **Compatibilidade** | Python `>= 3.10` (testado e homologado em Python 3.12) |
 | **Dependência Única de Runtime** | `numpy >= 1.24.0` |
-| **Estado Atual** | **Fase 4: Implementação TDD do MVP** (Marcos M1, M2 e M3 concluídos e aceitos) |
-| **Garantia de Qualidade** | **236 testes automatizados** com 100% de aprovação via `pytest` |
+| **Estado Atual** | **Fase 4: Implementação TDD do MVP** (Marcos M1, M2, M3 e M4 concluídos e auditados) |
+| **Garantia de Qualidade** | **348 testes automatizados** com 100% de aprovação via `pytest` |
 | **Governança Técnica** | TLC Spec-Driven Development (`spec.md`, `design.md`, `tasks.md`, `proofs.md`, `verification.md`) |
 
 ---
@@ -112,13 +112,22 @@ expml features scenarios \
 expml features verify \
   --experiment-dir experimentos/meu_ensaio
 
-# 6. Etapa 4A: Geração de particionamento compartilhado e matriz de divisões
+# 6. Etapa 3: Validação e persistência do catálogo de modelos
+expml models validate \
+  --experiment-dir experimentos/meu_ensaio \
+  --models caminho/para/models.json
+
+# 7. Etapa 3: Verificação do portão de validação de modelos
+expml models verify \
+  --experiment-dir experimentos/meu_ensaio
+
+# 8. Etapa 4A: Geração de particionamento compartilhado e matriz de divisões
 expml partition build \
   --experiment-dir experimentos/meu_ensaio \
   --config caminho/para/partition_config.json \
   --seed 42
 
-# 7. Etapa 4A: Verificação do portão de particionamento e disjunção de folds
+# 9. Etapa 4A: Verificação do portão de particionamento e disjunção de folds
 expml partition verify \
   --experiment-dir experimentos/meu_ensaio
 ```
