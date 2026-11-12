@@ -52,6 +52,7 @@ def execute_single_cell(
     metrics: Sequence[str] = (),
     error_policy: ErrorPolicy = ErrorPolicy.FAULT_TOLERANT,
     cell_seed: int | None = None,
+    cell_id: CellId | None = None,
 ) -> tuple[CellResultRecord, PredictionRecord | None]:
     """Execute a single experimental cell (m, c, f) under strict anti-leakage isolation.
 
@@ -67,6 +68,7 @@ def execute_single_cell(
         metrics: Sequence of metric names to evaluate on validation data.
         error_policy: FAULT_TOLERANT (catches exceptions and marks FAILED) or FAIL_FAST.
         cell_seed: Deterministic random seed derived for this cell.
+        cell_id: Optional explicit CellId for the cell.
 
     Returns:
         Tuple of (CellResultRecord, PredictionRecord | None).
@@ -76,7 +78,10 @@ def execute_single_cell(
     """
     fold_id = getattr(fold, "fold_id", None) or f"fold_{getattr(fold, 'fold_index', 0)}"
     plan_id = getattr(partition_plan, "partition_plan_id", None) or getattr(partition_plan, "plan_id", "default_plan")
-    cell_id = CellId(f"cell_{model_spec.model_id}_{scenario.scenario_id}_{fold_id}")
+    if cell_id is None:
+        cell_id = CellId(f"cell_{model_spec.model_id}__{scenario.scenario_id}__{fold_id}")
+    else:
+        cell_id = CellId(str(cell_id))
     t_total_start = time.perf_counter()
     current_phase = CellPhase.DATA_EXTRACTION
 
