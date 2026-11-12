@@ -1,6 +1,6 @@
 # m4-4-model-persistence-cli proofs
 
-**HEAD**: 1b8a47a
+**HEAD**: 68b7538
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 21 pass, 0 fail
@@ -48,7 +48,7 @@ tests/unit/cli/test_cmd_partition.py::test_cli_05_partition_verify_clean_and_tam
 tests/unit/cli/test_cmd_partition.py::test_cli_07_upstream_gate_missing_blocked PASSED [ 99%]
 tests/unit/cli/test_cmd_partition.py::test_cli_08_partition_build_force_flag_behavior PASSED [100%]
 
-============================= 101 passed in 0.42s ==============================
+============================= 101 passed in 0.43s ==============================
 ```
 
 `Run integration` - exit 0
@@ -68,5 +68,5 @@ tests/integration/models/test_preprocessing_integration.py::test_m42_07_01_publi
 tests/integration/models/test_preprocessing_integration.py::test_m42_07_02_runtime_purity_numpy_only PASSED [ 87%]
 tests/integration/models/test_preprocessing_integration.py::test_preprocessing_end_to_end_two_layer_pipeline PASSED [100%]
 
-============================== 8 passed in 0.96s ===============================
+============================== 8 passed in 1.08s ===============================
 ```
