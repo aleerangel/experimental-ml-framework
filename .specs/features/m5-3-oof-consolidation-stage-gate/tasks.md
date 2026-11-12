@@ -181,12 +181,12 @@ T5 --> T6
 **Requirement**: ORCH-15, ORCH-21
 
 **Done when**:
-- [ ] Cobertura parcial calculada para dobras faltantes em `FAULT_TOLERANT`
-- [ ] Status `PARTIAL_COVERAGE` atribuído às métricas afetadas
-- [ ] Lista de observações faltantes registrada em warnings
-- [ ] Falha em 100% dos folds rejeitada com `DataIntegrityError`
-- [ ] Testes unitários passam em `tests/unit/orchestration/test_oof_fault_tolerance.py`
-- [ ] Gate rápido aprovado
+- [x] Cobertura parcial calculada para dobras faltantes em `FAULT_TOLERANT`
+- [x] Status `PARTIAL_COVERAGE` atribuído às métricas afetadas
+- [x] Lista de observações faltantes registrada em warnings
+- [x] Falha em 100% dos folds rejeitada com `DataIntegrityError`
+- [x] Testes unitários passam em `tests/unit/orchestration/test_oof_fault_tolerance.py`
+- [x] Gate rápido aprovado
 
 **Tests**: unit  
 **Gate**: quick  
@@ -326,7 +326,7 @@ Proof: run integration | tests/integration/orchestration/test_oof_integration.py
 ## Handoff
 
 - **Dispatched:** none
-- **Completed:** T1, T2, T3
-- **In-progress:** Phase 4
-- **Next step:** Execute T4
+- **Completed:** T1, T2, T3, T4
+- **In-progress:** Phase 5
+- **Next step:** Execute T5
 - **Blockers:** none

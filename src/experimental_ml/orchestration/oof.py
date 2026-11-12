@@ -23,6 +23,7 @@ from experimental_ml.core.findings import (
     ContractViolationError,
     DataIntegrityError,
     Finding,
+    make_warning,
 )
 from experimental_ml.core.storage import read_json, write_json_atomic
 from experimental_ml.core.types import ModelId, ObservationId, ScenarioId
@@ -247,6 +248,11 @@ def consolidate_oof_predictions(
     if not prediction_records:
         raise DataIntegrityError("Cannot consolidate OOF predictions with zero prediction records")
 
+    if cell_results and all(cr.status != ExecutionStatus.COMPLETED for cr in cell_results):
+        raise DataIntegrityError(
+            f"All folds failed for configuration ({m_id}, {sc_id}). Cannot consolidate OOF predictions."
+        )
+
     # Data collection per observation_id
     obs_y_true: dict[ObservationId, float] = {}
     obs_y_preds: dict[ObservationId, list[float]] = {}
@@ -403,9 +409,9 @@ def consolidate_oof_predictions(
                 scope=MetricEvaluationScope.POOLED_OOF,
                 n_samples=len(y_true_arr),
                 warnings=(
-                    Finding(
-                        category="UNDEFINED_NAN",
-                        message=f"Evaluation failed for pooled metric '{m_name}': {exc}",
+                    make_warning(
+                        "W_UNDEFINED_NAN",
+                        f"Evaluation failed for pooled metric '{m_name}': {exc}",
                     ),
                 ),
             )
@@ -448,13 +454,63 @@ def consolidate_oof_predictions(
                     coverage=0.0,
                     fold_values=tuple(m_list),
                     warnings=(
-                        Finding(
-                            category="UNDEFINED_NAN",
-                            message=f"Aggregation failed for metric '{mid}': {exc}",
+                        make_warning(
+                            "W_UNDEFINED_NAN",
+                            f"Aggregation failed for metric '{mid}': {exc}",
                         ),
                     ),
                 )
                 aggregated_metrics_dict[mid] = amv_nan
+
+    # 3. Partial coverage and warnings handling
+    coverage = 1.0
+    overall_status = MetricStatus.VALID
+    warnings_list: list[str] = []
+
+    if target_observation_ids is not None:
+        expected_set = set(str(o) for o in target_observation_ids)
+        obtained_set = set(str(o) for o in sorted_obs_ids)
+        missing_obs = sorted(expected_set - obtained_set)
+        if missing_obs:
+            coverage = len(obtained_set & expected_set) / max(len(expected_set), 1)
+            overall_status = MetricStatus.PARTIAL_COVERAGE
+            warnings_list.append(
+                f"Missing {len(missing_obs)} observation(s) from target: {missing_obs}"
+            )
+    elif cell_results:
+        failed_cells = [cr for cr in cell_results if cr.status != ExecutionStatus.COMPLETED]
+        if failed_cells:
+            total_c = len(cell_results)
+            comp_c = total_c - len(failed_cells)
+            coverage = comp_c / max(total_c, 1)
+            overall_status = MetricStatus.PARTIAL_COVERAGE
+            failed_fold_ids = [cr.fold_id for cr in failed_cells]
+            warnings_list.append(
+                f"Partial coverage: {len(failed_cells)} fold(s) failed: {failed_fold_ids}"
+            )
+
+    if overall_status == MetricStatus.PARTIAL_COVERAGE:
+        updated_pooled: dict[str, MetricValue] = {}
+        for m_name, mv in pooled_metrics_dict.items():
+            if mv.status == MetricStatus.VALID:
+                updated_pooled[m_name] = MetricValue(
+                    metric_id=mv.metric_id,
+                    value=mv.value,
+                    status=MetricStatus.PARTIAL_COVERAGE,
+                    direction=mv.direction,
+                    scope=mv.scope,
+                    n_samples=mv.n_samples,
+                    warnings=mv.warnings
+                    + (
+                        make_warning(
+                            "W_PARTIAL_COVERAGE",
+                            f"Evaluated on partial coverage ({coverage:.1%})",
+                        ),
+                    ),
+                )
+            else:
+                updated_pooled[m_name] = mv
+        pooled_metrics_dict = updated_pooled
 
     return ConsolidatedOofPredictions(
         model_id=m_id,
@@ -469,8 +525,8 @@ def consolidate_oof_predictions(
         pooled_metrics=pooled_metrics_dict,
         aggregated_metrics=aggregated_metrics_dict,
         fold_ids=tuple(all_folds),
-        coverage=1.0,
-        status=MetricStatus.VALID,
-        warnings=(),
+        coverage=coverage,
+        status=overall_status,
+        warnings=tuple(warnings_list),
     )
 
