@@ -1,7 +1,7 @@
 # m4-4-model-persistence-cli verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at 68b7538
+**Proofs**: `proofs.md` at 1127e45
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks
