@@ -1,6 +1,6 @@
 # m4-4-model-persistence-cli proofs
 
-**HEAD**: 7dd8556
+**HEAD**: 1b8a47a
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 21 pass, 0 fail
@@ -34,21 +34,21 @@
 `Run unit` - exit 0
 
 ```
-tests/unit/cli/test_cmd_data.py::test_cli_08_data_profile_force_flag_behavior PASSED [ 87%]
-tests/unit/cli/test_cmd_features.py::test_feat_01_features_help PASSED   [ 88%]
-tests/unit/cli/test_cmd_features.py::test_feat_02_features_explore_success PASSED [ 89%]
-tests/unit/cli/test_cmd_features.py::test_feat_03_features_explore_overwrite_protection PASSED [ 90%]
-tests/unit/cli/test_cmd_features.py::test_feat_04_features_scenarios_success PASSED [ 91%]
-tests/unit/cli/test_cmd_features.py::test_feat_05_features_scenarios_rejection PASSED [ 92%]
-tests/unit/cli/test_cmd_features.py::test_feat_06_features_verify_gate PASSED [ 93%]
-tests/unit/cli/test_cmd_features.py::test_feat_07_cli_purity PASSED      [ 94%]
-tests/unit/cli/test_cmd_partition.py::test_cli_04_partition_build_success PASSED [ 95%]
-tests/unit/cli/test_cmd_partition.py::test_cli_04_partition_build_seed_override PASSED [ 96%]
-tests/unit/cli/test_cmd_partition.py::test_cli_05_partition_verify_clean_and_tampered PASSED [ 97%]
-tests/unit/cli/test_cmd_partition.py::test_cli_07_upstream_gate_missing_blocked PASSED [ 98%]
+tests/unit/cli/test_cmd_data.py::test_cli_08_data_profile_force_flag_behavior PASSED [ 88%]
+tests/unit/cli/test_cmd_features.py::test_feat_01_features_help PASSED   [ 89%]
+tests/unit/cli/test_cmd_features.py::test_feat_02_features_explore_success PASSED [ 90%]
+tests/unit/cli/test_cmd_features.py::test_feat_03_features_explore_overwrite_protection PASSED [ 91%]
+tests/unit/cli/test_cmd_features.py::test_feat_04_features_scenarios_success PASSED [ 92%]
+tests/unit/cli/test_cmd_features.py::test_feat_05_features_scenarios_rejection PASSED [ 93%]
+tests/unit/cli/test_cmd_features.py::test_feat_06_features_verify_gate PASSED [ 94%]
+tests/unit/cli/test_cmd_features.py::test_feat_07_cli_purity PASSED      [ 95%]
+tests/unit/cli/test_cmd_partition.py::test_cli_04_partition_build_success PASSED [ 96%]
+tests/unit/cli/test_cmd_partition.py::test_cli_04_partition_build_seed_override PASSED [ 97%]
+tests/unit/cli/test_cmd_partition.py::test_cli_05_partition_verify_clean_and_tampered PASSED [ 98%]
+tests/unit/cli/test_cmd_partition.py::test_cli_07_upstream_gate_missing_blocked PASSED [ 99%]
 tests/unit/cli/test_cmd_partition.py::test_cli_08_partition_build_force_flag_behavior PASSED [100%]
 
-============================== 96 passed in 0.41s ==============================
+============================= 101 passed in 0.42s ==============================
 ```
 
 `Run integration` - exit 0
@@ -68,5 +68,5 @@ tests/integration/models/test_preprocessing_integration.py::test_m42_07_01_publi
 tests/integration/models/test_preprocessing_integration.py::test_m42_07_02_runtime_purity_numpy_only PASSED [ 87%]
 tests/integration/models/test_preprocessing_integration.py::test_preprocessing_end_to_end_two_layer_pipeline PASSED [100%]
 
-============================== 8 passed in 0.99s ===============================
+============================== 8 passed in 0.96s ===============================
 ```

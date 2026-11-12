@@ -79,9 +79,10 @@
   - 21 critérios de aceitação de M4.4 formalmente comprovados (`check_proofs.py`: 21 pass, 0 fail).
   - Verificação independente realizada por subagente (`author != verifier`) com veredito `PASS` (0 findings) e portão `validate_verification.py --strict` aprovado com 0 erros e 0 avisos.
   - Artefatos de homologação gerados: `verification.md`, `ACCEPTANCE.md` e `RESULTS.md`.
-  - Suíte total do framework expandida de 321 para 342 testes automatizados (21 novos testes: 18 unitários e 3 de integração), 100% aprovados.
+  - Suíte total do framework expandida de 321 para 348 testes automatizados (27 novos testes em relação a M4.3: 24 unitários e 3 de integração), 100% aprovados.
   - Pureza arquitetural estrita: `CLI-10` (zero importações pesadas de nível de módulo na CLI) e `XCUT-02` (dependência única de `numpy>=1.24.0` no núcleo do framework).
-- **In-progress**: Transição para o Marco M5 (Matriz Experimental $M \times C \times F$ e Orquestração).
-- **Next step**: Homologação / merge da branch `feat/m4-4-model-persistence-cli` na main, e início do planejamento de M5.
+  - Resolução integral dos achados da Auditoria Geral do Marco M4 (AUD-M4-01 a AUD-M4-05), garantindo persistência declarativa de kernels, isolamento estrito por identidade de memória, pré-processamento intra-fold no tuning e alinhamento dos verificadores TLC.
+- **In-progress**: Homologação definitiva do Marco M4 e preparação para o Marco M5 (Matriz Experimental $M \times C \times F$ e Orquestração).
+- **Next step**: Merge da branch `feat/m4-4-model-persistence-cli` na main, e início do planejamento de M5.
 - **Blockers**: none
 - **Branch**: feat/m4-4-model-persistence-cli
