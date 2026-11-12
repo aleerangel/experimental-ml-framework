@@ -207,13 +207,13 @@ T5 --> T6
 **Requirement**: ORCH-13
 
 **Done when**:
-- [ ] `resume_experiment_matrix` loads state and verifies disk artifacts
-- [ ] Verified `COMPLETED` cells are skipped without re-computation
-- [ ] Missing or corrupt artifacts trigger re-execution of cell
-- [ ] `retry_failed = True` re-executes previously failed cells
-- [ ] Final `execution_state.json` reflects all completed and resolved cells
-- [ ] Unit tests pass in `tests/unit/orchestration/test_matrix_resume.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_matrix_resume.py -v`
+- [x] `resume_experiment_matrix` loads state and verifies disk artifacts
+- [x] Verified `COMPLETED` cells are skipped without re-computation
+- [x] Missing or corrupt artifacts trigger re-execution of cell
+- [x] `retry_failed = True` re-executes previously failed cells
+- [x] Final `execution_state.json` reflects all completed and resolved cells
+- [x] Unit tests pass in `tests/unit/orchestration/test_matrix_resume.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_matrix_resume.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
