@@ -195,11 +195,11 @@ T4 --> T5
 **Requirement**: ORCH-28  
 
 **Done when**:
-- [ ] Ciclo ponta a ponta da CLI (etapas 1 a 4B) executa e conclui com sucesso
-- [ ] Teste de retomada e checkpoint via CLI valida recuperação transparente
-- [ ] Teste de pureza comprova conformidade total com `XCUT-02` e `CLI-10`
-- [ ] Todos os testes passam na suíte global
-- [ ] Gate rápido aprovado
+- [x] Ciclo ponta a ponta da CLI (etapas 1 a 4B) executa e conclui com sucesso
+- [x] Teste de retomada e checkpoint via CLI valida recuperação transparente
+- [x] Teste de pureza comprova conformidade total com `XCUT-02` e `CLI-10`
+- [x] Todos os testes passam na suíte global
+- [x] Gate rápido aprovado
 
 **Tests**: integration  
 **Gate**: quick  
