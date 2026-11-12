@@ -232,12 +232,12 @@ T5 --> T6
 **Requirement**: ORCH-09, ORCH-10, ORCH-11, ORCH-12, ORCH-13, ORCH-14
 
 **Done when**:
-- [ ] Public matrix API cleanly exported in `src/experimental_ml/orchestration/__init__.py`
-- [ ] End-to-end integration test passes executing full matrix lifecycle
-- [ ] End-to-end resume test passes verifying crash recovery
-- [ ] Subprocess runtime purity check passes asserting zero forbidden ML frameworks
-- [ ] Integration gate check passes: `.venv/bin/pytest tests/integration/orchestration/test_matrix_integration.py -v`
-- [ ] Full test suite passes: `.venv/bin/pytest tests/ -v`
+- [x] Public matrix API cleanly exported in `src/experimental_ml/orchestration/__init__.py`
+- [x] End-to-end integration test passes executing full matrix lifecycle
+- [x] End-to-end resume test passes verifying crash recovery
+- [x] Subprocess runtime purity check passes asserting zero forbidden ML frameworks
+- [x] Integration gate check passes: `.venv/bin/pytest tests/integration/orchestration/test_matrix_integration.py -v`
+- [x] Full test suite passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  
