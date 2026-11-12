@@ -148,12 +148,12 @@ T4 --> T5
 **Requirement**: ORCH-24, ORCH-25  
 
 **Done when**:
-- [ ] `handle_run_resume` retoma execução incremental ignorando células prontas
-- [ ] Flag `--retry-failed` reexecuta células falhas
-- [ ] `handle_run_status` é puramente somente-leitura e exibe progresso percentual
-- [ ] Falta de `execution_state.json` retorna código de saída 2 sem traceback
-- [ ] Testes unitários passam em `tests/unit/cli/test_cli_run.py`
-- [ ] Gate rápido aprovado
+- [x] `handle_run_resume` retoma execução incremental ignorando células prontas
+- [x] Flag `--retry-failed` reexecuta células falhas
+- [x] `handle_run_status` é puramente somente-leitura e exibe progresso percentual
+- [x] Falta de `execution_state.json` retorna código de saída 2 sem traceback
+- [x] Testes unitários passam em `tests/unit/cli/test_cli_run.py`
+- [x] Gate rápido aprovado
 
 **Tests**: unit  
 **Gate**: quick  

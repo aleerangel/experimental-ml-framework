@@ -384,3 +384,110 @@ def test_m54_02_06_run_start_overwrite_protection(tmp_path: Path, capsys: pytest
     # 3. Third execution with --force succeeds
     code3 = main(["run", "start", "--experiment-dir", str(exp_dir), "--force"])
     assert code3 == 0
+
+
+# ==============================================================================
+# Phase 3: T3 - expml run resume and status Tests (C12 to C15)
+# ==============================================================================
+
+
+def test_m54_03_01_run_resume_skips_completed(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C12: expml run resume pula células concluídas e reexecuta pendentes (ORCH-24, AC 1)."""
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    capsys.readouterr()
+
+    # 1. Run start to completion
+    code_start = main(["run", "start", "--experiment-dir", str(exp_dir)])
+    assert code_start == 0
+
+    run_dir = exp_dir / "runs"
+    mtimes_before = {p: p.stat().st_mtime_ns for p in (run_dir / "cells").glob("*.json")}
+    capsys.readouterr()
+
+    # 2. Run resume with no pending cells
+    code_resume = main(["run", "resume", "--run-dir", str(run_dir)])
+    captured_resume = capsys.readouterr()
+
+    assert code_resume == 0
+    assert "Experiment matrix execution resumed and completed" in captured_resume.out
+    assert "Completed cells: 3" in captured_resume.out
+
+    # 3. Existing completed cell artifacts should not have been overwritten
+    mtimes_after = {p: p.stat().st_mtime_ns for p in (run_dir / "cells").glob("*.json")}
+    assert mtimes_before == mtimes_after
+
+
+def test_m54_03_02_run_resume_retry_failed(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C13: expml run resume com --retry-failed reexecuta células falhas (ORCH-24, AC 2)."""
+    import json
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    capsys.readouterr()
+
+    # 1. Run start
+    code_start = main(["run", "start", "--experiment-dir", str(exp_dir)])
+    assert code_start == 0
+
+    run_dir = exp_dir / "runs"
+    state_file = run_dir / "execution_state.json"
+    state_dict = json.loads(state_file.read_text(encoding="utf-8"))
+
+    # Mark first cell as FAILED in state
+    first_cid = next(iter(state_dict["cell_statuses"].keys()))
+    state_dict["cell_statuses"][first_cid] = "FAILED"
+    state_dict["failed_cells"] = 1
+    state_dict["completed_cells"] = 2
+    state_file.write_text(json.dumps(state_dict), encoding="utf-8")
+    capsys.readouterr()
+
+    # 2. Resume with --retry-failed
+    code_resume = main([
+        "run", "resume",
+        "--run-dir", str(run_dir),
+        "--retry-failed",
+    ])
+    captured = capsys.readouterr()
+
+    assert code_resume == 0
+    assert "Completed cells: 3" in captured.out
+    assert "Failed cells: 0" in captured.out
+
+
+def test_m54_03_03_run_status_read_only(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C14: expml run status realiza leitura puramente somente-leitura e exibe progresso (ORCH-25, AC 1)."""
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    code_start = main(["run", "start", "--experiment-dir", str(exp_dir)])
+    assert code_start == 0
+
+    run_dir = exp_dir / "runs"
+    state_file = run_dir / "execution_state.json"
+    mtime_before = state_file.stat().st_mtime_ns
+    capsys.readouterr()
+
+    code_status = main(["run", "status", "--run-dir", str(run_dir)])
+    captured = capsys.readouterr()
+
+    assert code_status == 0
+    assert "Experiment execution status:" in captured.out
+    assert "Total cells: 3" in captured.out
+    assert "Completed: 3 (100.0%)" in captured.out
+    assert "Failed: 0" in captured.out
+    assert "Pending: 0" in captured.out
+
+    # Purely read-only: state file mtime unchanged
+    mtime_after = state_file.stat().st_mtime_ns
+    assert mtime_before == mtime_after
+
+
+def test_m54_03_04_run_status_missing_state_returns_2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C15: expml run status com diretório inválido ou sem estado retorna código 2 (ORCH-25, AC 2)."""
+    empty_dir = tmp_path / "empty_run"
+    empty_dir.mkdir()
+    capsys.readouterr()
+
+    code = main(["run", "status", "--run-dir", str(empty_dir)])
+    captured = capsys.readouterr()
+
+    assert code == 2
+    assert "Error:" in captured.err
+    assert "execution_state.json" in captured.err
+    assert "Traceback" not in captured.err
