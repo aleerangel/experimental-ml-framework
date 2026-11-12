@@ -280,7 +280,7 @@ Proof: run integration | tests/integration/cli/test_run_e2e.py::test_m54_05_03_c
 ## Handoff
 
 - **Dispatched:** none
-- **Completed:** none
-- **In-progress:** T1
-- **Next step:** Implement T1 (subparsers in main.py, stub in cmd_run.py)
+- **Completed:** T1, T2, T3, T4, T5, Verification (PASS)
+- **In-progress:** none
+- **Next step:** Merge feat/m5-4-cli-run-end-to-end into main and conclude Milestone M5
 - **Blockers:** none
