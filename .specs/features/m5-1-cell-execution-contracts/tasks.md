@@ -176,13 +176,13 @@ T4 --> T5
 **Requirement**: ORCH-08
 
 **Done when**:
-- [ ] `cell_result_to_dict` and `cell_result_from_dict` achieve round-trip fidelity
-- [ ] `prediction_record_to_dict` and `prediction_record_from_dict` achieve round-trip fidelity
-- [ ] `save_cell_artifacts` atomically writes cell and prediction JSON files
-- [ ] `load_cell_artifacts` reconstructs identical instances from disk
-- [ ] Existing files trigger `ConfigurationError` when `overwrite=False`
-- [ ] Unit tests pass in `tests/unit/orchestration/test_cell_codecs.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_cell_codecs.py -v`
+- [x] `cell_result_to_dict` and `cell_result_from_dict` achieve round-trip fidelity
+- [x] `prediction_record_to_dict` and `prediction_record_from_dict` achieve round-trip fidelity
+- [x] `save_cell_artifacts` atomically writes cell and prediction JSON files
+- [x] `load_cell_artifacts` reconstructs identical instances from disk
+- [x] Existing files trigger `ConfigurationError` when `overwrite=False`
+- [x] Unit tests pass in `tests/unit/orchestration/test_cell_codecs.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_cell_codecs.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
