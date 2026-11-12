@@ -6,15 +6,22 @@ Complies with ORCH-15, ORCH-16, ORCH-17, ORCH-18, ORCH-19, ORCH-20, RF4.7, STORE
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
 from experimental_ml.core.enums import AggregationScope, MetricStatus, TaskType
-from experimental_ml.core.findings import ConfigurationError, ContractViolationError
+from experimental_ml.core.findings import (
+    ConfigurationError,
+    ContractViolationError,
+    DataIntegrityError,
+)
 from experimental_ml.core.storage import read_json, write_json_atomic
 from experimental_ml.core.types import ModelId, ObservationId, ScenarioId
 from experimental_ml.metrics.types import AggregatedMetricValue, MetricValue
+from experimental_ml.orchestration.types import CellResultRecord, PredictionRecord
+import numpy as np
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,3 +198,161 @@ def load_oof_predictions(
         )
 
     return oof_predictions_from_dict(raw)
+
+
+def consolidate_oof_predictions(
+    model_id: ModelId | str,
+    scenario_id: ScenarioId | str,
+    task_type: TaskType | str,
+    prediction_records: Sequence[PredictionRecord],
+    *,
+    cell_results: Sequence[CellResultRecord] = (),
+    target_observation_ids: Sequence[ObservationId | str] | None = None,
+) -> ConsolidatedOofPredictions:
+    """Consolidate out-of-fold prediction records into a canonical ConsolidatedOofPredictions.
+
+    Args:
+        model_id: Unique model identifier.
+        scenario_id: Unique scenario identifier.
+        task_type: ML task type (REGRESSION, BINARY_CLASSIFICATION, etc.).
+        prediction_records: Non-empty sequence of PredictionRecord instances from development folds.
+        cell_results: Optional sequence of CellResultRecord instances for fold metrics aggregation.
+        target_observation_ids: Optional full expected sequence of observation IDs.
+
+    Returns:
+        Canonical ConsolidatedOofPredictions instance.
+
+    Raises:
+        DataIntegrityError: If prediction_records is empty, or if conflicting true labels exist.
+        ContractViolationError: If inputs violate contracts.
+    """
+    m_id = ModelId(str(model_id))
+    sc_id = ScenarioId(str(scenario_id))
+    t_type = TaskType(task_type)
+
+    if not prediction_records:
+        raise DataIntegrityError("Cannot consolidate OOF predictions with zero prediction records")
+
+    # Data collection per observation_id
+    obs_y_true: dict[ObservationId, float] = {}
+    obs_y_preds: dict[ObservationId, list[float]] = {}
+    obs_y_stds: dict[ObservationId, list[float]] = {}
+    obs_y_probas: dict[ObservationId, list[tuple[float, ...]]] = {}
+    fold_ids_set: set[str] = set()
+
+    for rec in prediction_records:
+        # Extract fold_id from cell_id if possible
+        cid_str = str(rec.cell_id)
+        if "__" in cid_str:
+            fold_ids_set.add(cid_str.split("__")[-1])
+        else:
+            fold_ids_set.add(cid_str)
+
+        has_std = rec.y_std is not None
+        has_proba = rec.y_proba is not None
+
+        for idx, obs_id in enumerate(rec.observation_ids):
+            yt = float(rec.y_true[idx])
+            yp = float(rec.y_pred[idx])
+
+            if obs_id in obs_y_true:
+                existing_yt = obs_y_true[obs_id]
+                if abs(existing_yt - yt) > 1e-6:
+                    raise DataIntegrityError(
+                        f"Conflicting true labels for observation '{obs_id}': {existing_yt} vs {yt}"
+                    )
+            else:
+                obs_y_true[obs_id] = yt
+                obs_y_preds[obs_id] = []
+                obs_y_stds[obs_id] = []
+                obs_y_probas[obs_id] = []
+
+            obs_y_preds[obs_id].append(yp)
+
+            if has_std and rec.y_std is not None:
+                obs_y_stds[obs_id].append(float(rec.y_std[idx]))
+
+            if has_proba and rec.y_proba is not None:
+                obs_y_probas[obs_id].append(rec.y_proba[idx])
+
+    # Canonical sorting by observation_id
+    sorted_obs_ids = sorted(obs_y_true.keys())
+
+    y_true_list: list[float] = []
+    y_pred_list: list[float] = []
+    y_std_list: list[float] = []
+    y_proba_list: list[tuple[float, ...]] = []
+    has_any_std = any(len(obs_y_stds[o]) > 0 for o in sorted_obs_ids)
+    is_multi_fold_eval = any(len(obs_y_preds[o]) > 1 for o in sorted_obs_ids)
+    include_stds = has_any_std or is_multi_fold_eval
+
+    has_any_proba = any(len(obs_y_probas[o]) > 0 for o in sorted_obs_ids)
+
+    for o in sorted_obs_ids:
+        y_true_list.append(obs_y_true[o])
+        preds = obs_y_preds[o]
+        k = len(preds)
+
+        if k == 1:
+            mu_i = preds[0]
+            if include_stds:
+                if obs_y_stds[o]:
+                    sigma_i = obs_y_stds[o][0]
+                else:
+                    sigma_i = 0.0 if is_multi_fold_eval else float("nan")
+                y_std_list.append(sigma_i)
+        else:
+            mu_i = float(np.mean(preds))
+            if include_stds:
+                sigma_i = float(np.std(preds, ddof=1))
+                y_std_list.append(sigma_i)
+
+        y_pred_list.append(mu_i)
+
+        if has_any_proba:
+            probas = obs_y_probas[o]
+            if probas:
+                avg_p = tuple(float(p) for p in np.mean(probas, axis=0))
+                y_proba_list.append(avg_p)
+            else:
+                y_proba_list.append(())
+
+    # Residuals
+    residuals_tuple = tuple(float(yt - yp) for yt, yp in zip(y_true_list, y_pred_list))
+
+    final_stds: tuple[float, ...] | None = None
+    if include_stds:
+        # If all NaN, set to None
+        if all(math.isnan(s) for s in y_std_list):
+            final_stds = None
+        else:
+            final_stds = tuple(y_std_list)
+
+    final_probas: tuple[tuple[float, ...], ...] | None = None
+    if has_any_proba and all(len(p) > 0 for p in y_proba_list):
+        final_probas = tuple(y_proba_list)
+
+    # Fold IDs
+    all_folds = sorted(fold_ids_set)
+    if cell_results:
+        cr_folds = {cr.fold_id for cr in cell_results}
+        all_folds = sorted(fold_ids_set.union(cr_folds))
+
+    return ConsolidatedOofPredictions(
+        model_id=m_id,
+        scenario_id=sc_id,
+        task_type=t_type,
+        observation_ids=tuple(sorted_obs_ids),
+        y_true=tuple(y_true_list),
+        y_pred=tuple(y_pred_list),
+        y_std=final_stds,
+        y_proba=final_probas,
+        residuals=residuals_tuple,
+        pooled_metrics={},
+        aggregated_metrics={},
+        fold_ids=tuple(all_folds),
+        coverage=1.0,
+        status=MetricStatus.VALID,
+        warnings=(),
+    )
+

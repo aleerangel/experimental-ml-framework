@@ -132,13 +132,13 @@ T5 --> T6
 **Requirement**: ORCH-15, ORCH-16
 
 **Done when**:
-- [ ] `consolidate_oof_predictions` agrupa predições preservando valores reais
-- [ ] Ordenação canônica por `observation_id` garantida
-- [ ] Comitê $\hat{\mu}_i, \hat{\sigma}_i$ calculado corretamente para observações repetidas
-- [ ] Predição pontual e `y_std` preservados em partição única
-- [ ] Probabilidades médias calculadas em classificação
-- [ ] Testes unitários passam em `tests/unit/orchestration/test_oof_aggregation.py`
-- [ ] Gate rápido aprovado
+- [x] `consolidate_oof_predictions` agrupa predições preservando valores reais
+- [x] Ordenação canônica por `observation_id` garantida
+- [x] Comitê $\hat{\mu}_i, \hat{\sigma}_i$ calculado corretamente para observações repetidas
+- [x] Predição pontual e `y_std` preservados em partição única
+- [x] Probabilidades médias calculadas em classificação
+- [x] Testes unitários passam em `tests/unit/orchestration/test_oof_aggregation.py`
+- [x] Gate rápido aprovado
 
 **Tests**: unit  
 **Gate**: quick  
@@ -326,7 +326,7 @@ Proof: run integration | tests/integration/orchestration/test_oof_integration.py
 ## Handoff
 
 - **Dispatched:** none
-- **Completed:** T1
-- **In-progress:** Phase 2
-- **Next step:** Execute T2
+- **Completed:** T1, T2
+- **In-progress:** Phase 3
+- **Next step:** Execute T3
 - **Blockers:** none
