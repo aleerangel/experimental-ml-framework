@@ -205,14 +205,14 @@ T5 --> T6
 **Requirement**: ORCH-21
 
 **Done when**:
-- [ ] Portões upstream validados
-- [ ] Ausência de células `PENDING` ou `RUNNING` verificada
-- [ ] Integridade de artefatos de células e predições em disco verificada
-- [ ] Existência e integridade de arquivos OOF verificada
-- [ ] Divergência de `partition_plan_id` ou `dataset_hash` rejeitada com `DataIntegrityError`
-- [ ] Resumo estruturado retornado com sucesso em execuções válidas
-- [ ] Testes unitários passam em `tests/unit/stages/test_stage_runs_gate.py`
-- [ ] Gate rápido aprovado
+- [x] Portões upstream validados
+- [x] Ausência de células `PENDING` ou `RUNNING` verificada
+- [x] Integridade de artefatos de células e predições em disco verificada
+- [x] Existência e integridade de arquivos OOF verificada
+- [x] Divergência de `partition_plan_id` ou `dataset_hash` rejeitada com `DataIntegrityError`
+- [x] Resumo estruturado retornado com sucesso em execuções válidas
+- [x] Testes unitários passam em `tests/unit/stages/test_stage_runs_gate.py`
+- [x] Gate rápido aprovado
 
 **Tests**: unit  
 **Gate**: quick  
@@ -326,7 +326,7 @@ Proof: run integration | tests/integration/orchestration/test_oof_integration.py
 ## Handoff
 
 - **Dispatched:** none
-- **Completed:** T1, T2, T3, T4
-- **In-progress:** Phase 5
-- **Next step:** Execute T5
+- **Completed:** T1, T2, T3, T4, T5
+- **In-progress:** Phase 6
+- **Next step:** Execute T6
 - **Blockers:** none
