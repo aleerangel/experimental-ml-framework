@@ -132,13 +132,13 @@ T5 --> T6
 **Requirement**: ORCH-10
 
 **Done when**:
-- [ ] `MatrixExecutionState` defined with frozen immutability and slots
-- [ ] `with_cell_update` updates cell status and counts immutably
-- [ ] `matrix_execution_state_to_dict` and `from_dict` achieve round-trip fidelity
-- [ ] `save_execution_state` atomically writes `execution_state.json`
-- [ ] `load_execution_state` reconstructs exact instance from disk
-- [ ] Unit tests pass in `tests/unit/orchestration/test_matrix_state.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_matrix_state.py -v`
+- [x] `MatrixExecutionState` defined with frozen immutability and slots
+- [x] `with_cell_update` updates cell status and counts immutably
+- [x] `matrix_execution_state_to_dict` and `from_dict` achieve round-trip fidelity
+- [x] `save_execution_state` atomically writes `execution_state.json`
+- [x] `load_execution_state` reconstructs exact instance from disk
+- [x] Unit tests pass in `tests/unit/orchestration/test_matrix_state.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_matrix_state.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
