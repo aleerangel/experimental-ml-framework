@@ -124,15 +124,15 @@ T4 --> T5
 **Requirement**: ORCH-05, ORCH-06
 
 **Done when**:
-- [ ] `execute_single_cell` slices train and val sets by fold IDs
-- [ ] Feature selection operates strictly on train data
-- [ ] Nested tuning executes confined to train data
-- [ ] Two-layer preprocessing fits on train and projects val
-- [ ] Model instantiated cleanly with deterministic seed and unshared state
-- [ ] Metrics computed preserving `UNDEFINED_NAN`
-- [ ] Adversarial test proves perturbed `y_val` leaves fitted parameters unchanged
-- [ ] Unit tests pass in `tests/unit/orchestration/test_cell_execution.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_cell_execution.py -v`
+- [x] `execute_single_cell` slices train and val sets by fold IDs
+- [x] Feature selection operates strictly on train data
+- [x] Nested tuning executes confined to train data
+- [x] Two-layer preprocessing fits on train and projects val
+- [x] Model instantiated cleanly with deterministic seed and unshared state
+- [x] Metrics computed preserving `UNDEFINED_NAN`
+- [x] Adversarial test proves perturbed `y_val` leaves fitted parameters unchanged
+- [x] Unit tests pass in `tests/unit/orchestration/test_cell_execution.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_cell_execution.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
