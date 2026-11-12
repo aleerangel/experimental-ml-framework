@@ -151,13 +151,13 @@ T4 --> T5
 **Requirement**: ORCH-07
 
 **Done when**:
-- [ ] `FAULT_TOLERANT` catches exceptions without aborting process
-- [ ] `CellResultRecord` has `status = ExecutionStatus.FAILED`
-- [ ] Exact `error_phase`, `error_type`, `error_message`, and `error_traceback` populated
-- [ ] Metrics dictionary is empty and prediction record is `None` (no coercion to 0.0)
-- [ ] `FAIL_FAST` propagates exception immediately
-- [ ] Unit tests pass in `tests/unit/orchestration/test_cell_failures.py`
-- [ ] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_cell_failures.py -v`
+- [x] `FAULT_TOLERANT` catches exceptions without aborting process
+- [x] `CellResultRecord` has `status = ExecutionStatus.FAILED`
+- [x] Exact `error_phase`, `error_type`, `error_message`, and `error_traceback` populated
+- [x] Metrics dictionary is empty and prediction record is `None` (no coercion to 0.0)
+- [x] `FAIL_FAST` propagates exception immediately
+- [x] Unit tests pass in `tests/unit/orchestration/test_cell_failures.py`
+- [x] Quick gate check passes: `.venv/bin/pytest tests/unit/orchestration/test_cell_failures.py -v`
 
 **Tests**: unit  
 **Gate**: quick  
