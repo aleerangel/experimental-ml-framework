@@ -14,6 +14,7 @@ from experimental_ml.core.enums import (
     AggregationScope,
     MetricDirection,
     MetricStatus,
+    TaskType,
 )
 from experimental_ml.core.findings import ConfigurationError, Finding
 from experimental_ml.core.types import (
@@ -23,7 +24,7 @@ from experimental_ml.core.types import (
     PartitionPlanId,
     ScenarioId,
 )
-from experimental_ml.metrics.types import MetricEvaluationScope, MetricValue
+from experimental_ml.metrics.types import AggregatedMetricValue, MetricEvaluationScope, MetricValue
 from experimental_ml.models.types import ModelDiagnostics
 from experimental_ml.orchestration.types import (
     CellId,
@@ -246,4 +247,148 @@ def prediction_record_from_dict(d: dict[str, Any]) -> PredictionRecord:
         y_std=y_std,
         y_proba=y_proba,
         residuals=residuals,
+    )
+
+
+def aggregated_metric_value_to_dict(amv: AggregatedMetricValue) -> dict[str, Any]:
+    """Serialize an AggregatedMetricValue to a JSON-compatible dictionary."""
+    warnings_list = []
+    for w in amv.warnings:
+        if hasattr(w, "to_dict"):
+            warnings_list.append(w.to_dict())
+        else:
+            warnings_list.append({
+                "category": getattr(w, "category", "WARNING"),
+                "message": getattr(w, "message", str(w)),
+            })
+
+    fold_values_list = [metric_value_to_dict(fv) for fv in amv.fold_values]
+
+    return {
+        "metric_id": amv.metric_id,
+        "mean": None if math.isnan(amv.mean) else float(amv.mean),
+        "std": None if math.isnan(amv.std) else float(amv.std),
+        "median": None if math.isnan(amv.median) else float(amv.median),
+        "iqr": None if math.isnan(amv.iqr) else float(amv.iqr),
+        "status": amv.status.value,
+        "direction": amv.direction.value,
+        "scope": amv.scope.value,
+        "valid_folds": int(amv.valid_folds),
+        "total_folds": int(amv.total_folds),
+        "coverage": float(amv.coverage),
+        "fold_values": fold_values_list,
+        "warnings": warnings_list,
+    }
+
+
+def aggregated_metric_value_from_dict(d: dict[str, Any]) -> AggregatedMetricValue:
+    """Reconstruct an AggregatedMetricValue from a dictionary."""
+    raw_mean = d.get("mean")
+    mean_val = float("nan") if raw_mean is None else float(raw_mean)
+
+    raw_std = d.get("std")
+    std_val = float("nan") if raw_std is None else float(raw_std)
+
+    raw_med = d.get("median")
+    med_val = float("nan") if raw_med is None else float(raw_med)
+
+    raw_iqr = d.get("iqr")
+    iqr_val = float("nan") if raw_iqr is None else float(raw_iqr)
+
+    scope_str = d["scope"]
+    scope_obj: MetricEvaluationScope | AggregationScope
+    try:
+        scope_obj = AggregationScope(scope_str)
+    except ValueError:
+        scope_obj = MetricEvaluationScope(scope_str)
+
+    fold_vals = tuple(metric_value_from_dict(fv) for fv in d.get("fold_values", []))
+
+    warnings_list = []
+    for w in d.get("warnings", []):
+        if isinstance(w, dict):
+            warnings_list.append(
+                Finding(
+                    category=w.get("category", "WARNING"),
+                    message=w.get("message", ""),
+                    source_column=w.get("source_column"),
+                    details=w.get("details", {}),
+                )
+            )
+        else:
+            warnings_list.append(Finding(category="WARNING", message=str(w)))
+
+    return AggregatedMetricValue(
+        metric_id=d["metric_id"],
+        mean=mean_val,
+        std=std_val,
+        median=med_val,
+        iqr=iqr_val,
+        status=MetricStatus(d["status"]),
+        direction=MetricDirection(d["direction"]),
+        scope=scope_obj,
+        valid_folds=int(d["valid_folds"]),
+        total_folds=int(d["total_folds"]),
+        coverage=float(d["coverage"]),
+        fold_values=fold_vals,
+        warnings=tuple(warnings_list),
+    )
+
+
+def oof_predictions_to_dict(oof: Any) -> dict[str, Any]:
+    """Serialize a ConsolidatedOofPredictions record to a JSON-compatible dictionary."""
+    return {
+        "model_id": str(oof.model_id),
+        "scenario_id": str(oof.scenario_id),
+        "task_type": oof.task_type.value,
+        "observation_ids": [str(oid) for oid in oof.observation_ids],
+        "y_true": list(oof.y_true),
+        "y_pred": list(oof.y_pred),
+        "y_std": list(oof.y_std) if oof.y_std is not None else None,
+        "y_proba": [list(row) for row in oof.y_proba] if oof.y_proba is not None else None,
+        "residuals": list(oof.residuals) if oof.residuals is not None else None,
+        "pooled_metrics": {k: metric_value_to_dict(v) for k, v in oof.pooled_metrics.items()},
+        "aggregated_metrics": {
+            k: aggregated_metric_value_to_dict(v) for k, v in oof.aggregated_metrics.items()
+        },
+        "fold_ids": list(oof.fold_ids),
+        "coverage": float(oof.coverage),
+        "status": oof.status.value,
+        "warnings": list(oof.warnings),
+    }
+
+
+def oof_predictions_from_dict(d: dict[str, Any]) -> Any:
+    """Reconstruct a ConsolidatedOofPredictions record from a dictionary."""
+    from experimental_ml.orchestration.oof import ConsolidatedOofPredictions
+
+    y_std = tuple(float(x) for x in d["y_std"]) if d.get("y_std") is not None else None
+    y_proba = (
+        tuple(tuple(float(p) for p in row) for row in d["y_proba"])
+        if d.get("y_proba") is not None
+        else None
+    )
+    residuals = tuple(float(r) for r in d["residuals"]) if d.get("residuals") is not None else None
+
+    pooled = {k: metric_value_from_dict(v) for k, v in d.get("pooled_metrics", {}).items()}
+    aggregated = {
+        k: aggregated_metric_value_from_dict(v) for k, v in d.get("aggregated_metrics", {}).items()
+    }
+
+    return ConsolidatedOofPredictions(
+        model_id=ModelId(d["model_id"]),
+        scenario_id=ScenarioId(d["scenario_id"]),
+        task_type=TaskType(d["task_type"]),
+        observation_ids=tuple(ObservationId(oid) for oid in d["observation_ids"]),
+        y_true=tuple(float(y) for y in d["y_true"]),
+        y_pred=tuple(float(y) for y in d["y_pred"]),
+        y_std=y_std,
+        y_proba=y_proba,
+        residuals=residuals,
+        pooled_metrics=pooled,
+        aggregated_metrics=aggregated,
+        fold_ids=tuple(str(f) for f in d.get("fold_ids", ())),
+        coverage=float(d.get("coverage", 1.0)),
+        status=MetricStatus(d.get("status", MetricStatus.VALID)),
+        warnings=tuple(str(w) for w in d.get("warnings", ())),
     )

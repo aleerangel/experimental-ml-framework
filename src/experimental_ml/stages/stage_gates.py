@@ -36,6 +36,10 @@ SANITIZED_VIEW_REL_PATH = "data/sanitized_view.json"
 PARTITION_PLAN_REL_PATH = "partitions/partition_plan.json"
 SPLITS_CSV_GZ_REL_PATH = "partitions/splits.csv.gz"
 SPLITS_SCHEMA_REL_PATH = "partitions/splits.schema.json"
+EXECUTION_STATE_REL_PATH = "runs/execution_state.json"
+CELLS_DIR_REL_PATH = "runs/cells"
+PREDICTIONS_DIR_REL_PATH = "runs/predictions"
+OOF_DIR_REL_PATH = "runs/oof"
 
 
 def verify_preparation_gate(experiment_dir: Path | str) -> None:
@@ -312,5 +316,150 @@ def verify_models_gate(target: Path | str) -> Any:
 
     validate_models_catalog(catalog.models)
     return catalog
+
+
+def verify_runs_gate(target: Path | str) -> dict[str, Any]:
+    """Verify that Stage 4 execution artifacts exist, are terminal, and hashes are aligned.
+
+    Args:
+        target: Root directory of the experiment, OR runs directory containing execution_state.json.
+
+    Returns:
+        Summary dict containing execution metrics and verified configurations.
+
+    Raises:
+        ContractViolationError: If non-terminal cells (PENDING/RUNNING) exist.
+        DataIntegrityError: If execution_state is missing/corrupted, cell/prediction artifacts
+            are missing, OOF records are missing, or cross-hashes diverge.
+    """
+    from experimental_ml.core.enums import ExecutionStatus
+    from experimental_ml.orchestration.oof import load_oof_predictions
+    from experimental_ml.orchestration.state import load_execution_state
+
+    target_path = Path(target).resolve()
+
+    if (target_path / "execution_state.json").exists():
+        run_dir = target_path
+        exp_dir = target_path.parent if target_path.name == "runs" else target_path
+    elif (target_path / EXECUTION_STATE_REL_PATH).exists():
+        run_dir = target_path / "runs"
+        exp_dir = target_path
+    else:
+        run_dir = target_path / "runs" if (target_path / "runs").exists() else target_path
+        exp_dir = target_path
+        state_file = run_dir / "execution_state.json"
+        if not state_file.exists():
+            raise DataIntegrityError(f"Execution state missing at '{state_file}'")
+
+    # 1. Upstream gates verification if upstream artifacts exist in exp_dir
+    if (exp_dir / PREPARATION_PLAN_REL_PATH).exists() and (exp_dir / DATASET_DESCRIPTOR_REL_PATH).exists():
+        verify_preparation_gate(exp_dir)
+    if (exp_dir / PARTITION_PLAN_REL_PATH).exists() and (exp_dir / SPLITS_CSV_GZ_REL_PATH).exists():
+        verify_partition_gate(exp_dir)
+    if (exp_dir / SCENARIOS_CATALOG_REL_PATH).exists() and (exp_dir / SANITIZED_VIEW_REL_PATH).exists():
+        verify_scenarios_gate(exp_dir)
+    if (exp_dir / MODELS_CATALOG_REL_PATH).exists() and (exp_dir / PREPARATION_PLAN_REL_PATH).exists():
+        verify_models_gate(exp_dir)
+
+    # 2. Load execution state
+    state_file = run_dir / "execution_state.json"
+    if not state_file.exists():
+        raise DataIntegrityError(f"Execution state missing at '{state_file}'")
+
+    try:
+        exec_state = load_execution_state(run_dir)
+    except Exception as exc:
+        raise DataIntegrityError(f"Failed to load execution state at '{state_file}': {exc}") from exc
+
+    # 3. Non-terminal cell statuses check
+    non_terminal = [
+        cid
+        for cid, status in exec_state.cell_statuses.items()
+        if status in (ExecutionStatus.PENDING, ExecutionStatus.RUNNING)
+    ]
+    if non_terminal:
+        raise ContractViolationError(
+            f"Execution contains {len(non_terminal)} non-terminal cell(s) (PENDING or RUNNING): {non_terminal}"
+        )
+
+    # 4. Verify physical disk artifacts for cells
+    candidate_cells_dirs = [run_dir / "cells", exp_dir / "runs" / "cells"]
+    candidate_preds_dirs = [
+        run_dir / "predictions",
+        exp_dir / "predictions",
+        exp_dir / "runs" / "predictions",
+    ]
+    candidate_oof_dirs = [run_dir / "oof", exp_dir / "oof", exp_dir / "runs" / "oof"]
+
+    completed_configs: set[tuple[str, str]] = set()
+
+    for cid, status in exec_state.cell_statuses.items():
+        cell_file_found = any((d / f"cell_{cid}.json").exists() for d in candidate_cells_dirs)
+        if not cell_file_found:
+            raise DataIntegrityError(
+                f"Missing cell artifact for cell '{cid}' with status {status.value}"
+            )
+
+        if status == ExecutionStatus.COMPLETED:
+            pred_file_found = any((d / f"pred_{cid}.json").exists() for d in candidate_preds_dirs)
+            if not pred_file_found:
+                raise DataIntegrityError(
+                    f"Missing prediction artifact for completed cell '{cid}'"
+                )
+
+            cid_str = str(cid)
+            parts = cid_str.replace("cell_", "").split("__")
+            if len(parts) >= 3:
+                m_id, sc_id = parts[0], parts[1]
+                completed_configs.add((m_id, sc_id))
+
+    # 5. Verify OOF records exist for all completed configurations
+    for m_id, sc_id in completed_configs:
+        oof_filename = f"oof_{m_id}__{sc_id}.json"
+        oof_found_dir: Path | None = None
+        for d in candidate_oof_dirs:
+            if (d / oof_filename).exists():
+                oof_found_dir = d.parent
+                break
+
+        if oof_found_dir is None:
+            raise DataIntegrityError(
+                f"Missing consolidated OOF predictions for configuration ({m_id}, {sc_id})"
+            )
+
+        try:
+            load_oof_predictions(m_id, sc_id, oof_found_dir)
+        except Exception as exc:
+            raise DataIntegrityError(
+                f"Failed to load OOF artifact for configuration ({m_id}, {sc_id}): {exc}"
+            ) from exc
+
+    # 6. Cross-hash verification
+    if (exp_dir / PARTITION_PLAN_REL_PATH).exists():
+        part_dict = read_json(exp_dir / PARTITION_PLAN_REL_PATH)
+        expected_plan_id = part_dict.get("plan_id")
+        if expected_plan_id and exec_state.cell_statuses:
+            first_cid = next(iter(exec_state.cell_statuses.keys()))
+            for d in candidate_cells_dirs:
+                cfile = d / f"cell_{first_cid}.json"
+                if cfile.exists():
+                    c_dict = read_json(cfile)
+                    c_plan_id = c_dict.get("partition_plan_id")
+                    if c_plan_id and str(c_plan_id) != str(expected_plan_id):
+                        raise DataIntegrityError(
+                            f"partition_plan_id mismatch: expected '{expected_plan_id}', got '{c_plan_id}'"
+                        )
+                    break
+
+    return {
+        "experiment_id": str(exec_state.experiment_id),
+        "total_cells": exec_state.total_cells,
+        "completed_cells": exec_state.completed_cells,
+        "failed_cells": exec_state.failed_cells,
+        "cancelled_cells": exec_state.cancelled_cells,
+        "verified_configurations": [f"{m}__{s}" for m, s in sorted(completed_configs)],
+        "status": "READY",
+    }
+
 
 
