@@ -491,3 +491,91 @@ def test_m54_03_04_run_status_missing_state_returns_2(tmp_path: Path, capsys: py
     assert "Error:" in captured.err
     assert "execution_state.json" in captured.err
     assert "Traceback" not in captured.err
+
+
+# ==============================================================================
+# Phase 4: T4 - expml run verify and Error Handling Tests (C16 to C19)
+# ==============================================================================
+
+
+def test_m54_04_01_run_verify_valid_gate(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C16: expml run verify audita execução e retorna status READY com código 0 (ORCH-26, AC 1)."""
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    code_start = main(["run", "start", "--experiment-dir", str(exp_dir)])
+    assert code_start == 0
+
+    run_dir = exp_dir / "runs"
+    capsys.readouterr()
+
+    code_verify = main(["run", "verify", "--run-dir", str(run_dir)])
+    captured = capsys.readouterr()
+
+    assert code_verify == 0
+    assert "Stage 4 execution gate verified successfully:" in captured.out
+    assert "Status: READY" in captured.out
+    assert "Total cells: 3" in captured.out
+    assert "Completed cells: 3" in captured.out
+    assert "Verified configurations: 1" in captured.out
+
+
+def test_m54_04_02_run_verify_corrupted_gate_returns_2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C17: expml run verify com execução incompleta ou corrompida retorna código 2 (ORCH-26, AC 2)."""
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    code_start = main(["run", "start", "--experiment-dir", str(exp_dir)])
+    assert code_start == 0
+
+    run_dir = exp_dir / "runs"
+
+    # Delete OOF artifact to simulate corruption / missing artifact
+    oof_file = run_dir / "oof" / "oof_dummy_mean__sc_baseline.json"
+    oof_file.unlink()
+    capsys.readouterr()
+
+    code_verify = main(["run", "verify", "--run-dir", str(run_dir)])
+    captured = capsys.readouterr()
+
+    assert code_verify == 2
+    assert "Error:" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_m54_04_03_domain_errors_exit_code_2_no_traceback(capsys: pytest.CaptureFixture[str]) -> None:
+    """C18: Erros de domínio e precondições são emitidos sem traceback com código 2 (ORCH-27, AC 1)."""
+    capsys.readouterr()
+
+    code = main(["run", "start", "--experiment-dir", "/non_existent_dir_12345"])
+    captured = capsys.readouterr()
+
+    assert code == 2
+    assert "Error:" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_m54_04_04_hash_suppression_cli_11(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """C19: Resumos da CLI emitem textos limpos com supressão de hashes criptográficos (ORCH-27, AC 4)."""
+    import re
+    sha256_pattern = re.compile(r"\b[a-f0-9]{64}\b", re.IGNORECASE)
+
+    exp_dir = _setup_fully_prepared_experiment(tmp_path)
+    run_dir = exp_dir / "runs"
+    capsys.readouterr()
+
+    # 1. run start
+    main(["run", "start", "--experiment-dir", str(exp_dir)])
+    out_start = capsys.readouterr().out
+    assert not sha256_pattern.search(out_start), f"Hash leak in run start output: {out_start}"
+
+    # 2. run status
+    main(["run", "status", "--run-dir", str(run_dir)])
+    out_status = capsys.readouterr().out
+    assert not sha256_pattern.search(out_status), f"Hash leak in run status output: {out_status}"
+
+    # 3. run resume
+    main(["run", "resume", "--run-dir", str(run_dir)])
+    out_resume = capsys.readouterr().out
+    assert not sha256_pattern.search(out_resume), f"Hash leak in run resume output: {out_resume}"
+
+    # 4. run verify
+    main(["run", "verify", "--run-dir", str(run_dir)])
+    out_verify = capsys.readouterr().out
+    assert not sha256_pattern.search(out_verify), f"Hash leak in run verify output: {out_verify}"

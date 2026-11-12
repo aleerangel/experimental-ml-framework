@@ -172,11 +172,11 @@ T4 --> T5
 **Requirement**: ORCH-26, ORCH-27  
 
 **Done when**:
-- [ ] `handle_run_verify` audita execução via `verify_runs_gate` e confirma status `READY`
-- [ ] Falhas de portão retornam código de saída 2 sem traceback
-- [ ] Hashes criptográficos suprimidos da saída padrão do terminal
-- [ ] Testes unitários passam em `tests/unit/cli/test_cli_run.py`
-- [ ] Gate rápido aprovado
+- [x] `handle_run_verify` audita execução via `verify_runs_gate` e confirma status `READY`
+- [x] Falhas de portão retornam código de saída 2 sem traceback
+- [x] Hashes criptográficos suprimidos da saída padrão do terminal
+- [x] Testes unitários passam em `tests/unit/cli/test_cli_run.py`
+- [x] Gate rápido aprovado
 
 **Tests**: unit  
 **Gate**: quick  

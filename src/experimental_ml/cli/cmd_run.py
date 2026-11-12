@@ -272,7 +272,7 @@ def handle_run_status(args: argparse.Namespace) -> int:
 
 
 def handle_run_verify(args: argparse.Namespace) -> int:
-    """Verify stage 4 execution gate.
+    """Verify stage 4 execution and OOF gates.
 
     Args:
         args: Parsed CLI arguments.
@@ -280,4 +280,33 @@ def handle_run_verify(args: argparse.Namespace) -> int:
     Returns:
         0 on success, non-zero on error.
     """
-    raise NotImplementedError("handle_run_verify will be implemented in T4")
+    from pathlib import Path
+    import sys
+
+    from experimental_ml.core.findings import ConfigurationError, ExperimentalMLError
+    from experimental_ml.stages.stage_gates import verify_runs_gate
+
+    try:
+        run_dir = Path(args.run_dir).resolve()
+        if not run_dir.exists():
+            raise ConfigurationError(f"Run directory not found at '{run_dir}'")
+
+        summary = verify_runs_gate(run_dir)
+
+        # CLI-11: Suppress cryptographic hashes, report semantic counts and status
+        sys.stdout.write(
+            f"Stage 4 execution gate verified successfully:\n"
+            f"  - Status: {summary.get('status', 'READY')}\n"
+            f"  - Total cells: {summary.get('total_cells', 0)}\n"
+            f"  - Completed cells: {summary.get('completed_cells', 0)}\n"
+            f"  - Failed cells: {summary.get('failed_cells', 0)}\n"
+            f"  - Cancelled cells: {summary.get('cancelled_cells', 0)}\n"
+            f"  - Verified configurations: {len(summary.get('verified_configurations', []))}\n"
+        )
+        return 0
+    except ExperimentalMLError as exc:
+        sys.stderr.write(f"Error: {exc}\n")
+        return 2
+    except ValueError as exc:
+        sys.stderr.write(f"Error: {exc}\n")
+        return 2
