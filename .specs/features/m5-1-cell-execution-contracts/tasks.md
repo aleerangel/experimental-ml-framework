@@ -201,11 +201,11 @@ T4 --> T5
 **Requirement**: ORCH-05, ORCH-06, ORCH-08
 
 **Done when**:
-- [ ] Public API cleanly exported in `src/experimental_ml/orchestration/__init__.py`
-- [ ] End-to-end integration test passes executing complete cell lifecycle
-- [ ] Subprocess runtime purity check passes asserting zero external ML imports
-- [ ] Integration gate check passes: `.venv/bin/pytest tests/integration/orchestration/test_cell_integration.py -v`
-- [ ] Full test suite passes: `.venv/bin/pytest tests/ -v`
+- [x] Public API cleanly exported in `src/experimental_ml/orchestration/__init__.py`
+- [x] End-to-end integration test passes executing complete cell lifecycle
+- [x] Subprocess runtime purity check passes asserting zero external ML imports
+- [x] Integration gate check passes: `.venv/bin/pytest tests/integration/orchestration/test_cell_integration.py -v`
+- [x] Full test suite passes: `.venv/bin/pytest tests/ -v`
 
 **Tests**: integration  
 **Gate**: full  
