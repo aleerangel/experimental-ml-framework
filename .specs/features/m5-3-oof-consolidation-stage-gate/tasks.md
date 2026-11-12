@@ -231,12 +231,12 @@ T5 --> T6
 **Requirement**: ORCH-15 a ORCH-21
 
 **Done when**:
-- [ ] Símbolos públicos devidamente expostos em `__all__`
-- [ ] `consolidate_matrix_oof` consolida todas as configurações da matriz
-- [ ] Testes de integração ponta a ponta passam com sucesso
-- [ ] Teste de isolamento de subprocesso comprova pureza de dependências (`XCUT-02`)
-- [ ] Suíte completa do framework passa sem regressões: `.venv/bin/pytest tests/ -v`
-- [ ] Full gate check aprovado
+- [x] Símbolos públicos devidamente expostos em `__all__`
+- [x] `consolidate_matrix_oof` consolida todas as configurações da matriz
+- [x] Testes de integração ponta a ponta passam com sucesso
+- [x] Teste de isolamento de subprocesso comprova pureza de dependências (`XCUT-02`)
+- [x] Suíte completa do framework passa sem regressões: `.venv/bin/pytest tests/ -v`
+- [x] Full gate check aprovado
 
 **Tests**: integration  
 **Gate**: full  
@@ -326,7 +326,7 @@ Proof: run integration | tests/integration/orchestration/test_oof_integration.py
 ## Handoff
 
 - **Dispatched:** none
-- **Completed:** T1, T2, T3, T4, T5
-- **In-progress:** Phase 6
-- **Next step:** Execute T6
+- **Completed:** T1, T2, T3, T4, T5, T6
+- **In-progress:** Verification & check_proofs
+- **Next step:** Run check_proofs.py and dispatch Independent Verifier
 - **Blockers:** none

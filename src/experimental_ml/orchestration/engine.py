@@ -65,6 +65,7 @@ def run_experiment_matrix(
     experiment_id: ExperimentId | None = None,
     run_id: str | None = None,
     overwrite: bool = False,
+    auto_consolidate_oof: bool = True,
 ) -> MatrixExecutionState:
     """Execute the full experimental cell matrix with atomic incremental checkpointing.
 
@@ -206,6 +207,20 @@ def run_experiment_matrix(
                         raise exc
 
     callback.on_matrix_completed(state)
+
+    if auto_consolidate_oof and state.completed_cells > 0:
+        from experimental_ml.orchestration.oof import consolidate_matrix_oof
+
+        try:
+            consolidate_matrix_oof(
+                dest_run_dir,
+                task_type=sanitized_view.schema.task_type,
+                target_observation_ids=tuple(sanitized_view.observation_ids),
+                overwrite=True,
+            )
+        except Exception:
+            pass
+
     return state
 
 
@@ -222,6 +237,7 @@ def resume_experiment_matrix(
     retry_failed: bool = True,
     progress_callback: MatrixProgressCallback | None = None,
     cancellation_check: Callable[[], bool] | None = None,
+    auto_consolidate_oof: bool = True,
 ) -> MatrixExecutionState:
     """Resume an existing experiment matrix execution, skipping verified completed cells.
 
@@ -374,4 +390,18 @@ def resume_experiment_matrix(
                         raise exc
 
     callback.on_matrix_completed(state)
+
+    if auto_consolidate_oof and state.completed_cells > 0:
+        from experimental_ml.orchestration.oof import consolidate_matrix_oof
+
+        try:
+            consolidate_matrix_oof(
+                dest_run_dir,
+                task_type=sanitized_view.schema.task_type,
+                target_observation_ids=tuple(sanitized_view.observation_ids),
+                overwrite=True,
+            )
+        except Exception:
+            pass
+
     return state

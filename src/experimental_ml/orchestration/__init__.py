@@ -10,10 +10,14 @@ from experimental_ml.orchestration.callbacks import (
     NullProgressCallback,
 )
 from experimental_ml.orchestration.codecs import (
+    aggregated_metric_value_from_dict,
+    aggregated_metric_value_to_dict,
     cell_result_from_dict,
     cell_result_to_dict,
     metric_value_from_dict,
     metric_value_to_dict,
+    oof_predictions_from_dict,
+    oof_predictions_to_dict,
     prediction_record_from_dict,
     prediction_record_to_dict,
     timing_breakdown_from_dict,
@@ -28,6 +32,13 @@ from experimental_ml.orchestration.matrix import (
     CellDescriptor,
     build_cell_matrix,
     derive_cell_seed,
+)
+from experimental_ml.orchestration.oof import (
+    ConsolidatedOofPredictions,
+    consolidate_matrix_oof,
+    consolidate_oof_predictions,
+    load_oof_predictions,
+    save_oof_predictions,
 )
 from experimental_ml.orchestration.state import (
     MatrixExecutionState,
@@ -87,4 +98,14 @@ __all__ = [
     # Matrix engine
     "run_experiment_matrix",
     "resume_experiment_matrix",
+    # Out-of-fold consolidation & storage
+    "ConsolidatedOofPredictions",
+    "consolidate_oof_predictions",
+    "save_oof_predictions",
+    "load_oof_predictions",
+    "consolidate_matrix_oof",
+    "oof_predictions_to_dict",
+    "oof_predictions_from_dict",
+    "aggregated_metric_value_to_dict",
+    "aggregated_metric_value_from_dict",
 ]

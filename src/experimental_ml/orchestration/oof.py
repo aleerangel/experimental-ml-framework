@@ -530,3 +530,68 @@ def consolidate_oof_predictions(
         warnings=tuple(warnings_list),
     )
 
+
+def consolidate_matrix_oof(
+    run_dir: Path | str,
+    *,
+    task_type: TaskType | str | None = None,
+    target_observation_ids: Sequence[ObservationId | str] | None = None,
+    overwrite: bool = True,
+) -> dict[str, ConsolidatedOofPredictions]:
+    """Consolidate out-of-fold predictions for all completed configurations in an experiment matrix.
+
+    Args:
+        run_dir: Experiment execution directory containing execution_state.json.
+        task_type: Optional task type (defaults to TaskType.REGRESSION).
+        target_observation_ids: Optional full expected sequence of observation IDs.
+        overwrite: Whether to overwrite existing OOF files.
+
+    Returns:
+        Dict mapping configuration key "model__scenario" to ConsolidatedOofPredictions.
+    """
+    from experimental_ml.orchestration.state import load_execution_state
+    from experimental_ml.orchestration.storage import load_cell_artifacts
+
+    run_path = Path(run_dir).resolve()
+    exec_state = load_execution_state(run_path)
+
+    config_preds: dict[tuple[str, str], list[PredictionRecord]] = {}
+    config_cells: dict[tuple[str, str], list[CellResultRecord]] = {}
+
+    for cid in exec_state.cell_statuses.keys():
+        cid_str = str(cid)
+        parts = cid_str.replace("cell_", "").split("__")
+        if len(parts) >= 3:
+            m_id, sc_id = parts[0], parts[1]
+        else:
+            continue
+
+        config_key = (m_id, sc_id)
+        try:
+            cell_res, pred_rec = load_cell_artifacts(cid, run_path)
+            config_cells.setdefault(config_key, []).append(cell_res)
+            if pred_rec is not None:
+                config_preds.setdefault(config_key, []).append(pred_rec)
+        except Exception:
+            continue
+
+    resolved_task_type = TaskType(task_type) if task_type is not None else TaskType.REGRESSION
+
+    results: dict[str, ConsolidatedOofPredictions] = {}
+    for (m_id, sc_id), preds in config_preds.items():
+        if not preds:
+            continue
+        cells = config_cells.get((m_id, sc_id), [])
+        oof_record = consolidate_oof_predictions(
+            model_id=m_id,
+            scenario_id=sc_id,
+            task_type=resolved_task_type,
+            prediction_records=preds,
+            cell_results=cells,
+            target_observation_ids=target_observation_ids,
+        )
+        save_oof_predictions(oof_record, run_path, overwrite=overwrite)
+        results[f"{m_id}__{sc_id}"] = oof_record
+
+    return results
+
