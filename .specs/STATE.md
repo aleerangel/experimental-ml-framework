@@ -66,23 +66,33 @@
 - **Date**: 2026-11-11
 - **Status**: active
 
+### AD-009
+- **Decision**: Consolidação de predições out-of-fold (`ConsolidatedOofPredictions`) com ordenação lexicográfica canônica obrigatória por `observation_id`, estatísticas de comitê ($\hat{\mu}_i, \hat{\sigma}_i$) para observações com avaliações repetidas, separação estrita de escopos de métricas (`POOLED_OOF` sobre vetores concatenados vs `FOLD_AGGREGATION` para resumos estatísticos inter-folds), tolerância a falhas parciais (`MetricStatus.PARTIAL_COVERAGE`) com alerta de observações ausentes, persistência atômica (`write_json_atomic`) sob `{run_dir}/oof/oof_{model_id}__{scenario_id}.json` e portão de estágio Stage 4 (`verify_runs_gate`).
+- **Reason**: Atender aos requisitos `ORCH-15` a `ORCH-21`, `RF4.7`, `CA-E4B-01`, `STORE-01`, `STORE-03`, `STORE-05`, `ADR-005` e `ADR-008`, garantindo que predições out-of-fold de desenvolvimento sejam unificadas de forma reprodutível e determinística, permitindo o cálculo rigoroso de métricas globais sem viés de dobra, fornecendo incerteza de comitê em esquemas repetidos, registrando com precisão falhas de cobertura sob políticas tolerantes a falhas e impedindo o avanço para a etapa de consolidação analítica (Stage 5) sem a validação estrutural e integridade física de todos os artefatos de células e OOF em disco.
+- **Trade-off**: Requer cálculo em dois passos para observações com múltiplas dobras (média pontual e desvio com ddof=1), serialização dedicada em JSON com suporte a NaN (`MetricStatus.UNDEFINED_NAN`) e verificação cruzada de integridade de hashes de dataset e partições no portão Stage 4.
+- **Scope**: Módulos `experimental_ml.orchestration` e `experimental_ml.stages.stage_gates`.
+- **Date**: 2026-11-12
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m4-4-model-persistence-cli (Sub-marco M4.4 — Persistência de Modelos, Portão de Estágio e CLI) & Marco M4 Concluído
-- **Phase / Task**: Conclusão formal do Sub-marco M4.4 e encerramento integral do Marco M4 (Modelos, Ensembles e Baselines)
+- **Feature**: m5-3-oof-consolidation-stage-gate (Sub-marco M5.3 — Consolidação OOF e Portão de Estágio da Etapa 4)
+- **Phase / Task**: Conclusão formal do Sub-marco M5.3 e preparação para M5.4 (`m5-4-cli-run-end-to-end`)
 - **Completed**:
-  - Conclusão e homologação formal de todos os 4 sub-marcos de M4:
-    - M4.1 (`m4-1-model-registry-contracts`): Registrador, contratos funcionais e baselines embutidos.
-    - M4.2 (`m4-2-two-layer-preprocessing`): Pipeline em 2 camadas, escalonadores em NumPy e kernels Gram.
-    - M4.3 (`m4-3-nested-tuning`): Otimização aninhada intra-fold, Grid/Random Search, governança NaN.
-    - M4.4 (`m4-4-model-persistence-cli`): Catálogo `ModelsCatalog`, codecs JSON, resolução declarativa `resolve_estimator_factory`, persistência atômica `save_models_catalog` / `load_models_catalog`, portão de estágio Stage 3 `verify_models_gate` e CLI `expml models validate` / `expml models verify`.
-  - 21 critérios de aceitação de M4.4 formalmente comprovados (`check_proofs.py`: 21 pass, 0 fail).
-  - Verificação independente realizada por subagente (`author != verifier`) com veredito `PASS` (0 findings) e portão `validate_verification.py --strict` aprovado com 0 erros e 0 avisos.
-  - Artefatos de homologação gerados: `verification.md`, `ACCEPTANCE.md` e `RESULTS.md`.
-  - Suíte total do framework expandida de 321 para 348 testes automatizados (27 novos testes em relação a M4.3: 24 unitários e 3 de integração), 100% aprovados.
-  - Pureza arquitetural estrita: `CLI-10` (zero importações pesadas de nível de módulo na CLI) e `XCUT-02` (dependência única de `numpy>=1.24.0` no núcleo do framework).
-  - Resolução integral dos achados da Auditoria Geral do Marco M4 (AUD-M4-01 a AUD-M4-05), garantindo persistência declarativa de kernels, isolamento estrito por identidade de memória, pré-processamento intra-fold no tuning e alinhamento dos verificadores TLC.
-- **In-progress**: Homologação definitiva do Marco M4 e preparação para o Marco M5 (Matriz Experimental $M \times C \times F$ e Orquestração).
-- **Next step**: Merge da branch `feat/m4-4-model-persistence-cli` na main, e início do planejamento de M5.
+  - Implementação completa dos 6 tasks de M5.3:
+    - T1: `ConsolidatedOofPredictions`, codecs e persistência atômica (`save_oof_predictions`, `load_oof_predictions`) sob `{run_dir}/oof/oof_{model_id}__{scenario_id}.json`.
+    - T2: Agregação canônica OOF (`consolidate_oof_predictions`) com ordenação lexicográfica por `observation_id`, comitê ($\hat{\mu}_i, \hat{\sigma}_i$) e pooling de probabilidades de classificação.
+    - T3: Avaliação de métricas globais agrupadas (`POOLED_OOF`) e agregações inter-folds (`FOLD_AGGREGATION`) com resiliência a divisões por zero (`UNDEFINED_NAN`).
+    - T4: Tolerância a falhas parciais em `FAULT_TOLERANT` com `MetricStatus.PARTIAL_COVERAGE`, rastreabilidade de observações ausentes e salvaguarda contra falha total (`DataIntegrityError`).
+    - T5: Portão de estágio Stage 4 (`verify_runs_gate`) com validação upstream, ausência de estados não-terminais, presença física de artefatos em disco e consistência cruzada de hashes.
+    - T6: Orquestração matricial integrada (`consolidate_matrix_oof`, `auto_consolidate_oof`), exportações públicas canônicas e suíte de integração transversal.
+  - 25 critérios de aceitação formalmente comprovados (`check_proofs.py`: 25 pass, 0 fail).
+  - Verificação independente realizada por subagente (`author != verifier`) com veredito `PASS` (0 findings).
+  - Portão `validate_verification.py --strict` aprovado com 0 erros e 0 avisos.
+  - Documentação formal de homologação gerada: `verification.md`, `ACCEPTANCE.md` e `RESULTS.md`.
+  - Suíte total de testes do framework expandida para 438 testes automatizados, 100% aprovados.
+  - Pureza estrita de runtime: conformidade total com `XCUT-02` (apenas standard library e `numpy>=1.24.0`).
+- **In-progress**: Homologação de M5.3 e transição para M5.4 (`m5-4-cli-run-end-to-end`).
+- **Next step**: Merge da branch `feat/m5-3-oof-consolidation-stage-gate` na `main` e início do planejamento de M5.4.
 - **Blockers**: none
-- **Branch**: feat/m4-4-model-persistence-cli
+- **Branch**: feat/m5-3-oof-consolidation-stage-gate
