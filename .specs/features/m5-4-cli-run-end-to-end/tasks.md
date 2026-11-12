@@ -98,12 +98,12 @@ T4 --> T5
 **Requirement**: ORCH-22  
 
 **Done when**:
-- [ ] Subparser `run` registrado com subcomandos `start`, `resume`, `status` e `verify`
-- [ ] Argumentos configurados conforme especificação
-- [ ] Módulo `cmd_run.py` criado com stubs dos manipuladores
-- [ ] `expml run --help` exibe a ajuda dos subcomandos com código de saída 0
-- [ ] Testes unitários de parser passam em `tests/unit/cli/test_cli_run.py`
-- [ ] Gate rápido aprovado
+- [x] Subparser `run` registrado com subcomandos `start`, `resume`, `status` e `verify`
+- [x] Argumentos configurados conforme especificação
+- [x] Módulo `cmd_run.py` criado com stubs dos manipuladores
+- [x] `expml run --help` exibe a ajuda dos subcomandos com código de saída 0
+- [x] Testes unitários de parser passam em `tests/unit/cli/test_cli_run.py`
+- [x] Gate rápido aprovado
 
 **Tests**: unit  
 **Gate**: quick  
