@@ -58,25 +58,30 @@
 - **Date**: 2026-11-11
 - **Status**: active
 
+### AD-008
+- **Decision**: Persistência declarativa de catálogo de modelos (`ModelsCatalog`), resolução dinâmica de fábricas de estimadores (`resolve_estimator_factory`), portão de estágio Stage 3 (`verify_models_gate`) e interface de linha de comando `expml models` (`validate` e `verify`) com pureza de runtime (`CLI-10`) e escrita atômica (`STORE-03`, `STORE-05`).
+- **Reason**: Atender aos requisitos `MPC-01` a `MPC-07`, `RF3.1`, `RF3.2`, `RF3.6`, `CA-E3-01` e `ARQUITETURA §2.4`, permitindo que configurações de modelos sejam auditadas, versionadas em formato JSON padronizado (`configuration/models.json`), validadas contra pré-requisitos de preparação (Stage 1 READY) e resolvidas dinamicamente sem permitir a execução de caminhos arbitrários ou strings inválidas.
+- **Trade-off**: Requer resolução explícita de nomes canônicos para baselines embutidos (`DUMMY_BASELINE_MEAN`, etc.) e validação de importabilidade para caminhos externos no formato `module:qualname`, além de isolamento estrito de imports pesados na CLI.
+- **Scope**: Módulos `models.catalog`, `models.storage`, `stages.stage_gates`, `cli.cmd_models`, `cli.main` e testes associados.
+- **Date**: 2026-11-11
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m4-3-nested-tuning (Sub-marco M4.3 — Otimização de Hiperparâmetros Aninhada Intra-Fold)
-- **Phase / Task**: Conclusão formal do Sub-marco M4.3 (Etapa 3 / Marco M4)
+- **Feature**: m4-4-model-persistence-cli (Sub-marco M4.4 — Persistência de Modelos, Portão de Estágio e CLI) & Marco M4 Concluído
+- **Phase / Task**: Conclusão formal do Sub-marco M4.4 e encerramento integral do Marco M4 (Modelos, Ensembles e Baselines)
 - **Completed**:
-  - Conclusão e homologação formal de 100% dos Marcos M1 (`m1-1` a `m1-5`), M2 (`m2-1` a `m2-5`), M3 (`m3-1` a `m3-4`), M4.1 (`m4-1-model-registry-contracts`) e M4.2 (`m4-2-two-layer-preprocessing`).
-  - Especificação, Design e Execução do Sub-marco M4.3 (`m4-3-nested-tuning`) com 7 tarefas granulares concluídas e 24 critérios de aceitação formalmente comprovados (`check_proofs.py`: 24 pass, 0 fail).
-  - Implementação de `src/experimental_ml/tuning/`:
-    - `types.py`: `SearchStrategy` (enum de 4 membros: `FIXED`, `GRID_SEARCH`, `RANDOM_SEARCH`, `CUSTOM_TUNER`), frozen dataclasses com slots (`HyperparameterSearchSpec`, `TuningTrialRecord`, `TuningResult`) e exceção especializada `TuningOptimizationError` (herdando de `ContractViolationError`).
-    - `validation.py`: `validate_search_spec` validando compatibilidade contra `METRICS_CATALOG`, consistência de direção (`MAXIMIZE` / `MINIMIZE`), $K_{\text{inner}} \ge 2$ e orçamentos de busca (`ConfigurationError`).
-    - `candidates.py`: `generate_candidates` gerando produto cartesiano ordenado e determinístico no Grid Search e amostragem controlada por semente no Random Search.
-    - `partitioning.py`: `split_inner_folds` gerando particionamento K-Fold interno puro em NumPy estritamente no intervalo $[0, N_{\text{train}}-1]$ com arrays read-only e disjunção matemática $(\text{Train}_{\text{inner}} \cap \text{Val}_{\text{inner}} = \emptyset)$.
-    - `engine.py`: `run_nested_tuning` executando nested CV com alocação limpa de estimadores por dobra (`instantiate_fresh_model`), avaliação via `experimental_ml.metrics`, desqualificação estrita de candidatos com `UNDEFINED_NAN` (ADR-005), disparo de `TuningOptimizationError` sob falha total e seleção determinística de $\theta^*$.
-    - `__init__.py`: Exportação limpa da API pública em `__all__`.
-  - Pureza estrita de runtime (`XCUT-02`): dependência única de `numpy>=1.24.0`, subprocesso comprovando zero importações de frameworks externos de tuning ou ML (`optuna`, `ray`, `sklearn`, `scipy`).
-  - Verificação independente realizada com veredito `PASS` (0 findings) e portão `validate_verification.py --strict` aprovado com 0 erros e 0 avisos.
+  - Conclusão e homologação formal de todos os 4 sub-marcos de M4:
+    - M4.1 (`m4-1-model-registry-contracts`): Registrador, contratos funcionais e baselines embutidos.
+    - M4.2 (`m4-2-two-layer-preprocessing`): Pipeline em 2 camadas, escalonadores em NumPy e kernels Gram.
+    - M4.3 (`m4-3-nested-tuning`): Otimização aninhada intra-fold, Grid/Random Search, governança NaN.
+    - M4.4 (`m4-4-model-persistence-cli`): Catálogo `ModelsCatalog`, codecs JSON, resolução declarativa `resolve_estimator_factory`, persistência atômica `save_models_catalog` / `load_models_catalog`, portão de estágio Stage 3 `verify_models_gate` e CLI `expml models validate` / `expml models verify`.
+  - 21 critérios de aceitação de M4.4 formalmente comprovados (`check_proofs.py`: 21 pass, 0 fail).
+  - Verificação independente realizada por subagente (`author != verifier`) com veredito `PASS` (0 findings) e portão `validate_verification.py --strict` aprovado com 0 erros e 0 avisos.
   - Artefatos de homologação gerados: `verification.md`, `ACCEPTANCE.md` e `RESULTS.md`.
-  - Suíte total do framework expandida de 297 para 321 testes automatizados (24 novos testes: 21 unitários em `tests/unit/tuning/` e 3 de integração em `tests/integration/tuning/`), 100% aprovados.
-- **In-progress**: Transição para o Sub-marco M4.4 (`m4-4-model-persistence-cli` — Persistência em Disco de `models.json`, Portão de Validação e Subcomandos da CLI `expml models`).
-- **Next step**: Homologação / merge da branch `feat/m4-3-nested-tuning` e inicialização da especificação de M4.4.
+  - Suíte total do framework expandida de 321 para 342 testes automatizados (21 novos testes: 18 unitários e 3 de integração), 100% aprovados.
+  - Pureza arquitetural estrita: `CLI-10` (zero importações pesadas de nível de módulo na CLI) e `XCUT-02` (dependência única de `numpy>=1.24.0` no núcleo do framework).
+- **In-progress**: Transição para o Marco M5 (Matriz Experimental $M \times C \times F$ e Orquestração).
+- **Next step**: Homologação / merge da branch `feat/m4-4-model-persistence-cli` na main, e início do planejamento de M5.
 - **Blockers**: none
-- **Branch**: feat/m4-3-nested-tuning
+- **Branch**: feat/m4-4-model-persistence-cli

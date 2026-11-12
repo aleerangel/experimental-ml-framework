@@ -80,6 +80,20 @@ def build_parser() -> argparse.ArgumentParser:
     feat_verify_p = feat_subparsers.add_parser("verify", help="Verify feature scenarios gate.")
     feat_verify_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
 
+    # --- models command ---
+    models_parser = subparsers.add_parser("models", help="Model specification, validation and catalog persistence.")
+    models_subparsers = models_parser.add_subparsers(dest="subcommand", metavar="<subcommand>")
+
+    # models validate
+    models_val_p = models_subparsers.add_parser("validate", help="Validate and save models catalog.")
+    models_val_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
+    models_val_p.add_argument("--models", required=True, help="Path to models JSON file.")
+    models_val_p.add_argument("--force", action="store_true", help="Overwrite existing output artifacts.")
+
+    # models verify
+    models_ver_p = models_subparsers.add_parser("verify", help="Verify models stage gate.")
+    models_ver_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
+
     return parser
 
 
@@ -146,6 +160,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return handle_features_scenarios(args)
             if args.subcommand == "verify":
                 return handle_features_verify(args)
+        elif args.command == "models":
+            from experimental_ml.cli.cmd_models import (
+                handle_models_validate,
+                handle_models_verify,
+            )
+
+            if args.subcommand == "validate":
+                return handle_models_validate(args)
+            if args.subcommand == "verify":
+                return handle_models_verify(args)
     except ExperimentalMLError as exc:
         sys.stderr.write(f"Error: {exc}\n")
         return 2
