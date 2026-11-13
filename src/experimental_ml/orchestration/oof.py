@@ -48,7 +48,7 @@ class ConsolidatedOofPredictions:
     observation_ids: tuple[ObservationId, ...]
     y_true: tuple[float, ...]
     y_pred: tuple[float, ...]
-    y_std: tuple[float, ...] | None = None
+    y_std: tuple[float | None, ...] | None = None
     y_proba: tuple[tuple[float, ...], ...] | None = None
     residuals: tuple[float, ...] | None = None
     pooled_metrics: Mapping[str, MetricValue] = field(default_factory=dict)
@@ -95,7 +95,7 @@ class ConsolidatedOofPredictions:
         object.__setattr__(self, "y_pred", y_p)
 
         if self.y_std is not None:
-            y_s = tuple(float(s) for s in self.y_std)
+            y_s = tuple(float(s) if s is not None else None for s in self.y_std)
             if len(y_s) != n:
                 raise ContractViolationError(
                     f"y_std length ({len(y_s)}) does not match observation_ids ({n})"
@@ -319,7 +319,7 @@ def consolidate_oof_predictions(
                 if obs_y_stds[o]:
                     sigma_i = obs_y_stds[o][0]
                 else:
-                    sigma_i = 0.0 if is_multi_fold_eval else float("nan")
+                    sigma_i = None
                 y_std_list.append(sigma_i)
         else:
             mu_i = float(np.mean(preds))
@@ -340,10 +340,10 @@ def consolidate_oof_predictions(
     # Residuals
     residuals_tuple = tuple(float(yt - yp) for yt, yp in zip(y_true_list, y_pred_list))
 
-    final_stds: tuple[float, ...] | None = None
+    final_stds: tuple[float | None, ...] | None = None
     if include_stds:
-        # If all NaN, set to None
-        if all(math.isnan(s) for s in y_std_list):
+        # If all None or NaN, set to None
+        if all(s is None or (isinstance(s, float) and math.isnan(s)) for s in y_std_list):
             final_stds = None
         else:
             final_stds = tuple(y_std_list)

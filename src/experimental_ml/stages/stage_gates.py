@@ -434,22 +434,46 @@ def verify_runs_gate(target: Path | str) -> dict[str, Any]:
                 f"Failed to load OOF artifact for configuration ({m_id}, {sc_id}): {exc}"
             ) from exc
 
-    # 6. Cross-hash verification
+    # 6. Cross-hash verification across all cell records (ACH-M5-03)
     if (exp_dir / PARTITION_PLAN_REL_PATH).exists():
         part_dict = read_json(exp_dir / PARTITION_PLAN_REL_PATH)
         expected_plan_id = part_dict.get("plan_id")
-        if expected_plan_id and exec_state.cell_statuses:
-            first_cid = next(iter(exec_state.cell_statuses.keys()))
-            for d in candidate_cells_dirs:
-                cfile = d / f"cell_{first_cid}.json"
-                if cfile.exists():
-                    c_dict = read_json(cfile)
-                    c_plan_id = c_dict.get("partition_plan_id")
-                    if c_plan_id and str(c_plan_id) != str(expected_plan_id):
-                        raise DataIntegrityError(
-                            f"partition_plan_id mismatch: expected '{expected_plan_id}', got '{c_plan_id}'"
-                        )
-                    break
+        if expected_plan_id:
+            for cid in exec_state.cell_statuses.keys():
+                for d in candidate_cells_dirs:
+                    cfile = d / f"cell_{cid}.json"
+                    if cfile.exists():
+                        c_dict = read_json(cfile)
+                        c_plan_id = c_dict.get("partition_plan_id")
+                        if c_plan_id and str(c_plan_id) != str(expected_plan_id):
+                            raise DataIntegrityError(
+                                f"partition_plan_id mismatch in cell '{cid}': expected '{expected_plan_id}', got '{c_plan_id}'"
+                            )
+                        break
+
+    if (exp_dir / SANITIZED_VIEW_REL_PATH).exists():
+        view_dict = read_json(exp_dir / SANITIZED_VIEW_REL_PATH)
+        expected_dataset_hash = view_dict.get("dataset_hash")
+        if expected_dataset_hash and exec_state.source_dataset_hash:
+            if str(exec_state.source_dataset_hash) != str(expected_dataset_hash):
+                raise DataIntegrityError(
+                    f"source_dataset_hash mismatch: expected '{expected_dataset_hash}', got '{exec_state.source_dataset_hash}'"
+                )
+
+    # 7. Semantic completeness determination (ACH-M5-03)
+    is_complete = (
+        exec_state.failed_cells == 0
+        and exec_state.cancelled_cells == 0
+        and exec_state.completed_cells == exec_state.total_cells
+        and exec_state.total_cells > 0
+    )
+    status_str = "READY" if is_complete else "PARTIAL_READY"
+    warnings_list: list[str] = []
+    if not is_complete:
+        warnings_list.append(
+            f"Execution is partially complete: {exec_state.completed_cells}/{exec_state.total_cells} completed, "
+            f"{exec_state.failed_cells} failed, {exec_state.cancelled_cells} cancelled."
+        )
 
     return {
         "experiment_id": str(exec_state.experiment_id),
@@ -457,8 +481,10 @@ def verify_runs_gate(target: Path | str) -> dict[str, Any]:
         "completed_cells": exec_state.completed_cells,
         "failed_cells": exec_state.failed_cells,
         "cancelled_cells": exec_state.cancelled_cells,
+        "execution_complete": is_complete,
         "verified_configurations": [f"{m}__{s}" for m, s in sorted(completed_configs)],
-        "status": "READY",
+        "status": status_str,
+        "warnings": warnings_list,
     }
 
 

@@ -1,6 +1,6 @@
 # m5-3-oof-consolidation-stage-gate proofs
 
-**HEAD**: 9083fdc
+**HEAD**: 7850a10
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 25 pass, 0 fail
@@ -38,21 +38,21 @@
 `Run unit` - exit 0
 
 ```
-tests/unit/orchestration/test_oof_storage.py::test_m53_03_04_save_oof_no_overwrite_protection PASSED [ 85%]
-tests/unit/orchestration/test_oof_storage.py::test_oof_invariants_validation PASSED [ 87%]
-tests/unit/stages/test_models_stage_gate.py::test_m44_04_01_verify_models_gate_valid PASSED [ 88%]
-tests/unit/stages/test_models_stage_gate.py::test_m44_04_02_verify_models_gate_missing_or_empty PASSED [ 89%]
-tests/unit/stages/test_models_stage_gate.py::test_m44_04_03_verify_models_gate_unmet_precondition PASSED [ 90%]
-tests/unit/stages/test_stage_gates.py::test_store_05_hash_divergence_and_incomplete_plan_rejection PASSED [ 91%]
-tests/unit/stages/test_stage_gates.py::test_store_06_splits_tampering_and_mismatch_rejection PASSED [ 92%]
-tests/unit/stages/test_stage_runs_gate.py::test_m53_04_01_upstream_gates_verification PASSED [ 94%]
-tests/unit/stages/test_stage_runs_gate.py::test_m53_04_02_missing_or_corrupt_state_raises PASSED [ 95%]
-tests/unit/stages/test_stage_runs_gate.py::test_m53_04_03_non_terminal_cell_status_raises PASSED [ 96%]
-tests/unit/stages/test_stage_runs_gate.py::test_m53_04_04_missing_cell_artifact_raises PASSED [ 97%]
-tests/unit/stages/test_stage_runs_gate.py::test_m53_04_05_cross_hashes_mismatch_raises PASSED [ 98%]
-tests/unit/stages/test_stage_runs_gate.py::test_m53_04_06_valid_runs_gate_returns_summary PASSED [100%]
+tests/unit/stages/test_models_stage_gate.py::test_m44_04_02_verify_models_gate_missing_or_empty PASSED [ 87%]
+tests/unit/stages/test_models_stage_gate.py::test_m44_04_03_verify_models_gate_unmet_precondition PASSED [ 88%]
+tests/unit/stages/test_stage_gates.py::test_store_05_hash_divergence_and_incomplete_plan_rejection PASSED [ 89%]
+tests/unit/stages/test_stage_gates.py::test_store_06_splits_tampering_and_mismatch_rejection PASSED [ 90%]
+tests/unit/stages/test_stage_runs_gate.py::test_m53_04_01_upstream_gates_verification PASSED [ 91%]
+tests/unit/stages/test_stage_runs_gate.py::test_m53_04_02_missing_or_corrupt_state_raises PASSED [ 92%]
+tests/unit/stages/test_stage_runs_gate.py::test_m53_04_03_non_terminal_cell_status_raises PASSED [ 93%]
+tests/unit/stages/test_stage_runs_gate.py::test_m53_04_04_missing_cell_artifact_raises PASSED [ 94%]
+tests/unit/stages/test_stage_runs_gate.py::test_m53_04_05_cross_hashes_mismatch_raises PASSED [ 95%]
+tests/unit/stages/test_stage_runs_gate.py::test_m53_04_06_valid_runs_gate_returns_summary PASSED [ 96%]
+tests/unit/stages/test_stage_runs_gate.py::test_ach_m5_03_stage_gate_with_failed_cell_returns_partial_ready PASSED [ 97%]
+tests/unit/stages/test_stage_runs_gate.py::test_ach_m5_03_stage_gate_with_cancelled_cell_returns_partial_ready PASSED [ 98%]
+tests/unit/stages/test_stage_runs_gate.py::test_ach_m5_03_subsequent_cell_divergent_partition_plan_id_raises PASSED [100%]
 
-============================== 85 passed in 0.41s ==============================
+============================== 96 passed in 0.41s ==============================
 ```
 
 `Run integration` - exit 0
@@ -72,5 +72,5 @@ tests/integration/orchestration/test_oof_integration.py::test_m53_06_01_public_a
 tests/integration/orchestration/test_oof_integration.py::test_m53_06_02_end_to_end_matrix_to_oof_gate PASSED [ 90%]
 tests/integration/orchestration/test_oof_integration.py::test_m53_06_03_runtime_purity_xcut_02 PASSED [100%]
 
-============================== 10 passed in 0.62s ==============================
+============================== 10 passed in 0.55s ==============================
 ```

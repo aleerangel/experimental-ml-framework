@@ -74,25 +74,36 @@
 - **Date**: 2026-11-12
 - **Status**: active
 
+### AD-010
+- **Decision**: Interface de Linha de Comando `expml run` (subcomandos `start`, `resume`, `status`, `verify`) operando como ponto de entrada da Etapa 4B com reconstituição automatizada dos insumos das etapas anteriores (`SanitizedDatasetView`, `PartitionPlan`, `ScenariosCatalog`, `ModelsCatalog`), verificação estrita de portões upstream, supressão de hashes criptográficos na saída padrão (`CLI-11`), padronização de códigos de saída (0 para sucesso, 2 para erros de domínio sem traceback, 1 para falhas sistêmicas inesperadas via `CLI-06`) e isolamento de importações pesadas no nível de módulo (`CLI-10`).
+- **Reason**: Atender aos requisitos `ORCH-22` a `ORCH-28`, `ARQUITETURA §2.4`, `CLI-06` a `CLI-11` e `XCUT-02`, permitindo que pesquisadores e pipelines automatizados disparem matrizes de experimentos em larga escala pelo terminal, monitorem o progresso de forma puramente não-destrutiva, recuperem execuções interrompidas via checkpointing incremental e auditem formalmente a integridade física dos artefatos em disco através de `verify_runs_gate`.
+- **Trade-off**: Requer inferência inteligente do diretório de experimento em comandos de retomada e validação de precondições upstream antes de qualquer mutação de disco.
+- **Scope**: Módulos `experimental_ml.cli.main` e `experimental_ml.cli.cmd_run`.
+- **Date**: 2026-11-12
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m5-3-oof-consolidation-stage-gate (Sub-marco M5.3 — Consolidação OOF e Portão de Estágio da Etapa 4)
-- **Phase / Task**: Conclusão formal do Sub-marco M5.3 e preparação para M5.4 (`m5-4-cli-run-end-to-end`)
+- **Feature**: m5-4-cli-run-end-to-end (Sub-marco M5.4 — CLI Run End-to-End & Conclusão Integral do Marco M5)
+- **Phase / Task**: Conclusão formal do Sub-marco M5.4 e encerramento do Marco M5 (Orquestração e Execução Matricial)
 - **Completed**:
-  - Implementação completa dos 6 tasks de M5.3:
-    - T1: `ConsolidatedOofPredictions`, codecs e persistência atômica (`save_oof_predictions`, `load_oof_predictions`) sob `{run_dir}/oof/oof_{model_id}__{scenario_id}.json`.
-    - T2: Agregação canônica OOF (`consolidate_oof_predictions`) com ordenação lexicográfica por `observation_id`, comitê ($\hat{\mu}_i, \hat{\sigma}_i$) e pooling de probabilidades de classificação.
-    - T3: Avaliação de métricas globais agrupadas (`POOLED_OOF`) e agregações inter-folds (`FOLD_AGGREGATION`) com resiliência a divisões por zero (`UNDEFINED_NAN`).
-    - T4: Tolerância a falhas parciais em `FAULT_TOLERANT` com `MetricStatus.PARTIAL_COVERAGE`, rastreabilidade de observações ausentes e salvaguarda contra falha total (`DataIntegrityError`).
-    - T5: Portão de estágio Stage 4 (`verify_runs_gate`) com validação upstream, ausência de estados não-terminais, presença física de artefatos em disco e consistência cruzada de hashes.
-    - T6: Orquestração matricial integrada (`consolidate_matrix_oof`, `auto_consolidate_oof`), exportações públicas canônicas e suíte de integração transversal.
-  - 25 critérios de aceitação formalmente comprovados (`check_proofs.py`: 25 pass, 0 fail).
+  - Implementação completa dos 5 tasks de M5.4:
+    - T1: Registro dos subparsers modulares de `run` em `cli/main.py` com `start`, `resume`, `status` e `verify`.
+    - T2: Subcomando `expml run start` com validação de portões upstream, reconstituição de insumos, execução matricial com controle de workers (`-j`/`--parallel`), política de erro (`--error-policy`), consolidação automática OOF e proteção contra sobrescrita com `--force`.
+    - T3: Subcomandos `expml run resume` (com retomada incremental e `--retry-failed`) e `expml run status` (inspeção puramente somente-leitura e progresso percentual).
+    - T4: Subcomando `expml run verify` integrando `verify_runs_gate`, padronização de códigos de saída (0, 1, 2) e supressão de tracebacks e hashes criptográficos (`CLI-06`, `CLI-11`).
+    - T5: Suíte de integração transversal ponta a ponta (`tests/integration/cli/test_run_e2e.py`) executando o ciclo de vida completo (etapas 1 a 4B), crash recovery e pureza de runtime (`XCUT-02`, `CLI-10`).
+  - 22 critérios de aceitação formalmente comprovados (`check_proofs.py`: 22 pass, 0 fail).
   - Verificação independente realizada por subagente (`author != verifier`) com veredito `PASS` (0 findings).
   - Portão `validate_verification.py --strict` aprovado com 0 erros e 0 avisos.
   - Documentação formal de homologação gerada: `verification.md`, `ACCEPTANCE.md` e `RESULTS.md`.
-  - Suíte total de testes do framework expandida para 438 testes automatizados, 100% aprovados.
-  - Pureza estrita de runtime: conformidade total com `XCUT-02` (apenas standard library e `numpy>=1.24.0`).
-- **In-progress**: Homologação de M5.3 e transição para M5.4 (`m5-4-cli-run-end-to-end`).
-- **Next step**: Merge da branch `feat/m5-3-oof-consolidation-stage-gate` na `main` e início do planejamento de M5.4.
+  - Suíte total de testes do framework expandida para 460 testes automatizados, 100% aprovados.
+  - Conclusão integral de todos os 4 sub-marcos de M5:
+    - M5.1 (`m5-1-cell-execution-contracts`): Contratos funcionais, máquina de estados de célula e tempos desagregados.
+    - M5.2 (`m5-2-matrix-executor-checkpointing`): Grade cartesiana, motor de execução com paralelismo configurável e checkpoint/resume.
+    - M5.3 (`m5-3-oof-consolidation-stage-gate`): Consolidação OOF, comitê, métricas pooled vs inter-folds e portão `verify_runs_gate`.
+    - M5.4 (`m5-4-cli-run-end-to-end`): Interface de terminal `expml run`, ergonomia CLI e integração ponta a ponta.
+- **In-progress**: Homologação de M5.4 e encerramento do Marco M5.
+- **Next step**: Merge da branch `feat/m5-4-cli-run-end-to-end` na `main` e início do Marco M6 (Consolidação Descritiva e Comparação Estatística — `statistics` e CLI `stats`).
 - **Blockers**: none
-- **Branch**: feat/m5-3-oof-consolidation-stage-gate
+- **Branch**: feat/m5-4-cli-run-end-to-end

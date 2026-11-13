@@ -94,6 +94,64 @@ def build_parser() -> argparse.ArgumentParser:
     models_ver_p = models_subparsers.add_parser("verify", help="Verify models stage gate.")
     models_ver_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
 
+    # --- run command ---
+    run_parser = subparsers.add_parser("run", help="Experiment execution, resume, status and stage verification.")
+    run_subparsers = run_parser.add_subparsers(dest="subcommand", metavar="<subcommand>")
+
+    # run start
+    run_start_p = run_subparsers.add_parser("start", help="Execute an experiment matrix and consolidate OOF.")
+    run_start_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
+    run_start_p.add_argument("--run-dir", default=None, help="Optional custom run output directory.")
+    run_start_p.add_argument(
+        "-j", "--jobs", "--parallel",
+        dest="parallel",
+        type=int,
+        default=1,
+        help="Number of parallel workers (default: 1).",
+    )
+    run_start_p.add_argument(
+        "--error-policy",
+        choices=["fault_tolerant", "fail_fast"],
+        default="fault_tolerant",
+        help="Cell failure handling policy (default: fault_tolerant).",
+    )
+    run_start_p.add_argument(
+        "--no-oof",
+        action="store_true",
+        help="Disable automatic out-of-fold predictions consolidation.",
+    )
+    run_start_p.add_argument("--force", action="store_true", help="Overwrite existing execution directory if present.")
+
+    # run resume
+    run_resume_p = run_subparsers.add_parser("resume", help="Resume an interrupted experiment execution.")
+    run_resume_p.add_argument("--run-dir", required=True, help="Path to run directory containing execution_state.json.")
+    run_resume_p.add_argument(
+        "--experiment-dir",
+        default=None,
+        help="Optional path to experiment directory (inferred from run-dir if not provided).",
+    )
+    run_resume_p.add_argument(
+        "-j", "--jobs", "--parallel",
+        dest="parallel",
+        type=int,
+        default=1,
+        help="Number of parallel workers (default: 1).",
+    )
+    run_resume_p.add_argument("--retry-failed", action="store_true", help="Retry previously failed cells.")
+    run_resume_p.add_argument(
+        "--no-oof",
+        action="store_true",
+        help="Disable automatic out-of-fold predictions consolidation.",
+    )
+
+    # run status
+    run_status_p = run_subparsers.add_parser("status", help="Inspect current progress of an experiment execution.")
+    run_status_p.add_argument("--run-dir", required=True, help="Path to run directory containing execution_state.json.")
+
+    # run verify
+    run_verify_p = run_subparsers.add_parser("verify", help="Verify stage 4 execution and OOF gates.")
+    run_verify_p.add_argument("--run-dir", required=True, help="Path to run directory containing execution_state.json.")
+
     return parser
 
 
@@ -170,6 +228,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return handle_models_validate(args)
             if args.subcommand == "verify":
                 return handle_models_verify(args)
+        elif args.command == "run":
+            from experimental_ml.cli.cmd_run import (
+                handle_run_resume,
+                handle_run_start,
+                handle_run_status,
+                handle_run_verify,
+            )
+
+            if args.subcommand == "start":
+                return handle_run_start(args)
+            if args.subcommand == "resume":
+                return handle_run_resume(args)
+            if args.subcommand == "status":
+                return handle_run_status(args)
+            if args.subcommand == "verify":
+                return handle_run_verify(args)
     except ExperimentalMLError as exc:
         sys.stderr.write(f"Error: {exc}\n")
         return 2

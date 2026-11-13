@@ -11,7 +11,7 @@ from pathlib import Path
 import threading
 from typing import Callable, Sequence
 
-from experimental_ml.core.findings import ConfigurationError
+from experimental_ml.core.findings import ConfigurationError, DataIntegrityError
 from experimental_ml.core.types import ExperimentId
 from experimental_ml.data.preparation import SanitizedDatasetView
 from experimental_ml.features.scenarios import FeatureScenario
@@ -116,6 +116,8 @@ def run_experiment_matrix(
     exp_id = experiment_id or ExperimentId("exp_matrix")
     r_id = run_id or _generate_run_id()
     now_iso = datetime.now(timezone.utc).isoformat()
+    plan_id = str(getattr(partition_plan, "partition_plan_id", None) or getattr(partition_plan, "plan_id", ""))
+    view_hash = str(getattr(sanitized_view, "dataset_hash", ""))
 
     initial_statuses = {desc.cell_id: ExecutionStatus.PENDING for desc in descriptors}
     state = MatrixExecutionState(
@@ -126,6 +128,8 @@ def run_experiment_matrix(
         master_seed=master_seed,
         total_cells=len(descriptors),
         cell_statuses=initial_statuses,
+        source_dataset_hash=view_hash,
+        partition_plan_id=plan_id,
     )
     save_execution_state(state, dest_run_dir, overwrite=True)
 
@@ -271,6 +275,22 @@ def resume_experiment_matrix(
         )
 
     state = load_execution_state(dest_run_dir)
+
+    # 1. Global state identity validation against provided partition plan and dataset (ACH-M5-02)
+    plan_id = str(getattr(partition_plan, "partition_plan_id", None) or getattr(partition_plan, "plan_id", ""))
+    view_hash = str(getattr(sanitized_view, "dataset_hash", ""))
+
+    if not state.source_dataset_hash or state.source_dataset_hash != view_hash:
+        raise DataIntegrityError(
+            f"Cannot resume execution: dataset hash mismatch. "
+            f"State expects '{state.source_dataset_hash}', got '{view_hash}'"
+        )
+    if not state.partition_plan_id or state.partition_plan_id != plan_id:
+        raise DataIntegrityError(
+            f"Cannot resume execution: partition plan mismatch. "
+            f"State expects '{state.partition_plan_id}', got '{plan_id}'"
+        )
+
     descriptors = build_cell_matrix(
         model_specs=model_specs,
         scenarios=scenarios,
@@ -278,13 +298,35 @@ def resume_experiment_matrix(
         master_seed=state.master_seed,
     )
 
-    callback = progress_callback or NullProgressCallback()
-    callback.on_matrix_start(len(descriptors))
-
-    # 1. Reconcile statuses and verify physical artifacts
     cells_dir = dest_run_dir / "cells"
     preds_dir = dest_run_dir / "predictions"
 
+    # 2. Cell-level identity validation before modifying state or executing anything (ACH-M5-02)
+    from experimental_ml.core.storage import read_json
+
+    for desc in descriptors:
+        current_status = state.cell_statuses.get(desc.cell_id, ExecutionStatus.PENDING)
+        cell_file = cells_dir / f"cell_{desc.cell_id}.json"
+
+        if current_status == ExecutionStatus.COMPLETED and cell_file.exists():
+            try:
+                c_dict = read_json(cell_file)
+            except Exception as exc:
+                raise DataIntegrityError(
+                    f"Cannot resume execution: cell artifact '{cell_file.name}' is unreadable: {exc}"
+                ) from exc
+
+            c_plan_id = c_dict.get("partition_plan_id")
+            if c_plan_id and str(c_plan_id) != plan_id:
+                raise DataIntegrityError(
+                    f"Cannot resume execution: cell artifact '{cell_file.name}' belongs to "
+                    f"partition plan '{c_plan_id}', expected '{plan_id}'"
+                )
+
+    callback = progress_callback or NullProgressCallback()
+    callback.on_matrix_start(len(descriptors))
+
+    # 3. Reconcile statuses and verify physical artifacts
     for desc in descriptors:
         current_status = state.cell_statuses.get(desc.cell_id, ExecutionStatus.PENDING)
         cell_file = cells_dir / f"cell_{desc.cell_id}.json"

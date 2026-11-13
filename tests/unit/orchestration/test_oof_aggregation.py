@@ -222,3 +222,133 @@ def test_inconsistent_y_true_rejected() -> None:
             task_type=TaskType.REGRESSION,
             prediction_records=[p1, p2],
         )
+
+
+def test_ach_m5_01_single_pred_no_native_std_leaves_dispersion_none() -> None:
+    """ACH-M5-01: k=1 observation in multi-fold regime has None dispersion, never artificial 0.0."""
+    obs1 = ObservationId("obs_single")
+    obs2 = ObservationId("obs_multi")
+
+    # obs1 evaluated in fold 0 only (k=1) without native std
+    # obs2 evaluated in fold 0 and fold 1 (k=2) without native std
+    p1 = PredictionRecord(
+        cell_id=CellId("cell_m1__sc1__fold_0"),
+        observation_ids=(obs1, obs2),
+        y_true=(10.0, 20.0),
+        y_pred=(12.0, 22.0),
+        y_std=None,
+    )
+    p2 = PredictionRecord(
+        cell_id=CellId("cell_m1__sc1__fold_1"),
+        observation_ids=(obs2,),
+        y_true=(20.0,),
+        y_pred=(24.0,),
+        y_std=None,
+    )
+
+    oof = consolidate_oof_predictions(
+        model_id="m1",
+        scenario_id="sc1",
+        task_type=TaskType.REGRESSION,
+        prediction_records=[p1, p2],
+    )
+
+    idx_single = oof.observation_ids.index(obs1)
+    idx_multi = oof.observation_ids.index(obs2)
+
+    assert oof.y_std is not None
+    # For k=1, dispersion cannot be estimated: must be None, NOT 0.0
+    assert oof.y_std[idx_single] is None
+    # For k=2, dispersion is sample standard deviation with ddof=1: std([22, 24]) = sqrt(2) ≈ 1.41421356
+    assert pytest.approx(oof.y_std[idx_multi], abs=1e-6) == 1.41421356
+
+
+def test_ach_m5_01_multi_pred_identical_values_has_zero_dispersion() -> None:
+    """ACH-M5-01: k=2 observation with identical predictions has defined zero sample dispersion."""
+    obs1 = ObservationId("obs_multi")
+    p1 = PredictionRecord(
+        cell_id=CellId("cell_m1__sc1__fold_0"),
+        observation_ids=(obs1,),
+        y_true=(20.0,),
+        y_pred=(25.0,),
+    )
+    p2 = PredictionRecord(
+        cell_id=CellId("cell_m1__sc1__fold_1"),
+        observation_ids=(obs1,),
+        y_true=(20.0,),
+        y_pred=(25.0,),
+    )
+
+    oof = consolidate_oof_predictions(
+        model_id="m1",
+        scenario_id="sc1",
+        task_type=TaskType.REGRESSION,
+        prediction_records=[p1, p2],
+    )
+
+    assert oof.y_std is not None
+    # k=2 with identical predictions -> sample std is valid and equal to 0.0
+    assert oof.y_std[0] == 0.0
+
+
+def test_ach_m5_01_single_pred_preserves_native_uncertainty() -> None:
+    """ACH-M5-01: k=1 observation with model native y_std preserves native uncertainty."""
+    obs1 = ObservationId("obs_native")
+    obs2 = ObservationId("obs_multi")
+
+    p1 = PredictionRecord(
+        cell_id=CellId("cell_m1__sc1__fold_0"),
+        observation_ids=(obs1, obs2),
+        y_true=(10.0, 20.0),
+        y_pred=(12.0, 22.0),
+        y_std=(0.75, 0.1),  # Native uncertainty
+    )
+    p2 = PredictionRecord(
+        cell_id=CellId("cell_m1__sc1__fold_1"),
+        observation_ids=(obs2,),
+        y_true=(20.0,),
+        y_pred=(26.0,),
+        y_std=(0.2,),
+    )
+
+    oof = consolidate_oof_predictions(
+        model_id="m1",
+        scenario_id="sc1",
+        task_type=TaskType.REGRESSION,
+        prediction_records=[p1, p2],
+    )
+
+    idx_native = oof.observation_ids.index(obs1)
+    idx_multi = oof.observation_ids.index(obs2)
+
+    # obs1: k=1, native uncertainty preserved
+    assert oof.y_std[idx_native] == 0.75
+    # obs2: k=2, committee dispersion across predictions [22, 26]: std = sqrt(8) ≈ 2.828427
+    assert pytest.approx(oof.y_std[idx_multi], abs=1e-6) == 2.82842712
+
+
+def test_ach_m5_01_serialization_roundtrip_preserves_none_std() -> None:
+    """ACH-M5-01: Codecs serialize and deserialize None values in y_std without data loss."""
+    from experimental_ml.orchestration.codecs import oof_predictions_from_dict, oof_predictions_to_dict
+
+    obs1 = ObservationId("obs_a")
+    obs2 = ObservationId("obs_b")
+
+    oof = ConsolidatedOofPredictions(
+        model_id=ModelId("m1"),
+        scenario_id=ScenarioId("sc1"),
+        task_type=TaskType.REGRESSION,
+        observation_ids=(obs1, obs2),
+        y_true=(10.0, 20.0),
+        y_pred=(12.0, 22.0),
+        y_std=(None, 1.4142),
+    )
+
+    d = oof_predictions_to_dict(oof)
+    assert d["y_std"] == [None, 1.4142]
+
+    restored = oof_predictions_from_dict(d)
+    assert restored.y_std == (None, 1.4142)
+    assert restored.y_std[0] is None
+    assert pytest.approx(restored.y_std[1], abs=1e-4) == 1.4142
+

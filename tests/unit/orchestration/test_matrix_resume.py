@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 
 from experimental_ml.core.enums import ExecutionStatus, TaskType
-from experimental_ml.core.findings import ConfigurationError
+from experimental_ml.core.findings import ConfigurationError, DataIntegrityError
 from experimental_ml.core.types import (
     ExperimentId,
     ModelId,
@@ -336,3 +336,147 @@ def test_m52_05_05_resume_retries_failed_cells(tmp_path: Path):
 
     assert resumed.completed_cells == 2
     assert resumed.failed_cells == 0
+
+
+def test_ach_m5_02_resume_with_mismatched_dataset_hash_raises(tmp_path: Path):
+    """ACH-M5-02: resume_experiment_matrix raises DataIntegrityError on dataset hash mismatch."""
+    from experimental_ml.data.preparation import SanitizedDatasetView
+
+    view, plan, models, scenarios = _build_test_env()
+    run_dir = tmp_path / "run_dataset_mismatch"
+
+    run_experiment_matrix(
+        model_specs=models,
+        scenarios=scenarios,
+        partition_plan=plan,
+        sanitized_view=view,
+        run_dir=run_dir,
+        metrics=("rmse",),
+    )
+
+    # Modified dataset view with altered dataset_hash
+    view_altered = SanitizedDatasetView(
+        columns=view.columns,
+        schema=view.schema,
+        observation_ids=view.observation_ids,
+        candidate_feature_cols=view.candidate_feature_cols,
+        dropped_observation_ids=view.dropped_observation_ids,
+        target_label_mapping=view.target_label_mapping,
+        deferred_rules=view.deferred_rules,
+        source_dataset_hash=view.source_dataset_hash,
+        source_plan_digest=view.source_plan_digest,
+        dataset_hash="altered_dataset_hash_xyz",
+    )
+
+    with pytest.raises(DataIntegrityError, match="dataset hash mismatch"):
+        resume_experiment_matrix(
+            run_dir=run_dir,
+            model_specs=models,
+            scenarios=scenarios,
+            partition_plan=plan,
+            sanitized_view=view_altered,
+            metrics=("rmse",),
+        )
+
+
+def test_ach_m5_02_resume_with_mismatched_partition_plan_id_raises(tmp_path: Path):
+    """ACH-M5-02: resume_experiment_matrix raises DataIntegrityError on partition_plan_id mismatch."""
+    view, plan, models, scenarios = _build_test_env()
+    run_dir = tmp_path / "run_plan_mismatch"
+
+    run_experiment_matrix(
+        model_specs=models,
+        scenarios=scenarios,
+        partition_plan=plan,
+        sanitized_view=view,
+        run_dir=run_dir,
+        metrics=("rmse",),
+    )
+
+    # Different partition plan
+    plan_altered = PartitionPlan(
+        plan_id=PartitionPlanId("plan_DIFFERENT_123"),
+        source_dataset_hash=view.dataset_hash,
+        regime=plan.regime,
+        strategy=plan.strategy,
+        development_ids=plan.development_ids,
+        holdout_ids=plan.holdout_ids,
+        folds=plan.folds,
+        config=plan.config,
+    )
+
+    with pytest.raises(DataIntegrityError, match="partition plan mismatch"):
+        resume_experiment_matrix(
+            run_dir=run_dir,
+            model_specs=models,
+            scenarios=scenarios,
+            partition_plan=plan_altered,
+            sanitized_view=view,
+            metrics=("rmse",),
+        )
+
+
+def test_ach_m5_02_resume_with_incompatible_cell_artifact_raises_before_execution(tmp_path: Path):
+    """ACH-M5-02: Cell artifact with divergent partition_plan_id rejects resume before executing cells."""
+    import json
+    view, plan, models, scenarios = _build_test_env()
+    run_dir = tmp_path / "run_corrupt_cell_plan"
+
+    run_experiment_matrix(
+        model_specs=models,
+        scenarios=scenarios,
+        partition_plan=plan,
+        sanitized_view=view,
+        run_dir=run_dir,
+        metrics=("rmse",),
+    )
+
+    # Tamper with one cell artifact's partition_plan_id
+    cell_file = run_dir / "cells" / "cell_cell_dummy_mean__sc_f__fold_0.json"
+    data = json.loads(cell_file.read_text(encoding="utf-8"))
+    data["partition_plan_id"] = "forged_plan_id"
+    cell_file.write_text(json.dumps(data), encoding="utf-8")
+
+    with pytest.raises(DataIntegrityError, match="belongs to partition plan 'forged_plan_id'"):
+        resume_experiment_matrix(
+            run_dir=run_dir,
+            model_specs=models,
+            scenarios=scenarios,
+            partition_plan=plan,
+            sanitized_view=view,
+            metrics=("rmse",),
+        )
+
+
+def test_ach_m5_02_legacy_state_without_identity_fields_raises(tmp_path: Path):
+    """ACH-M5-02: Legacy execution_state without identity fields raises DataIntegrityError."""
+    import json
+    view, plan, models, scenarios = _build_test_env()
+    run_dir = tmp_path / "run_legacy_state"
+
+    run_experiment_matrix(
+        model_specs=models,
+        scenarios=scenarios,
+        partition_plan=plan,
+        sanitized_view=view,
+        run_dir=run_dir,
+        metrics=("rmse",),
+    )
+
+    # Remove source_dataset_hash and partition_plan_id from execution_state.json
+    state_file = run_dir / "execution_state.json"
+    data = json.loads(state_file.read_text(encoding="utf-8"))
+    data["source_dataset_hash"] = ""
+    data["partition_plan_id"] = ""
+    state_file.write_text(json.dumps(data), encoding="utf-8")
+
+    with pytest.raises(DataIntegrityError, match="dataset hash mismatch"):
+        resume_experiment_matrix(
+            run_dir=run_dir,
+            model_specs=models,
+            scenarios=scenarios,
+            partition_plan=plan,
+            sanitized_view=view,
+            metrics=("rmse",),
+        )
+

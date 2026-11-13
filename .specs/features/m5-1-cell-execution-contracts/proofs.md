@@ -1,6 +1,6 @@
 # m5-1-cell-execution-contracts proofs
 
-**HEAD**: df82292
+**HEAD**: 7850a10
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 30 pass, 0 fail
@@ -43,36 +43,39 @@
 `Run unit` - exit 0
 
 ```
-tests/unit/orchestration/test_cell_failures.py::test_m51_03_03_error_phase_recorded PASSED [ 60%]
-tests/unit/orchestration/test_cell_failures.py::test_m51_03_04_error_details_recorded PASSED [ 63%]
-tests/unit/orchestration/test_cell_failures.py::test_m51_03_05_no_coercion_to_zero PASSED [ 66%]
-tests/unit/orchestration/test_cell_failures.py::test_m51_03_06_fail_fast_propagates PASSED [ 70%]
-tests/unit/orchestration/test_cell_types.py::test_m51_01_01_execution_status_enum PASSED [ 73%]
-tests/unit/orchestration/test_cell_types.py::test_m51_01_02_error_policy_enum PASSED [ 76%]
-tests/unit/orchestration/test_cell_types.py::test_m51_01_03_cell_phase_enum PASSED [ 80%]
-tests/unit/orchestration/test_cell_types.py::test_m51_01_04_cell_id_validation PASSED [ 83%]
-tests/unit/orchestration/test_cell_types.py::test_m51_01_05_timing_breakdown_fields PASSED [ 86%]
-tests/unit/orchestration/test_cell_types.py::test_m51_01_06_prediction_record_fields PASSED [ 90%]
-tests/unit/orchestration/test_cell_types.py::test_m51_01_07_prediction_record_alignment PASSED [ 93%]
-tests/unit/orchestration/test_cell_types.py::test_m51_01_08_cell_result_record_fields PASSED [ 96%]
-tests/unit/orchestration/test_cell_types.py::test_m51_01_09_immutability PASSED [100%]
+tests/unit/orchestration/test_oof_aggregation.py::test_ach_m5_01_serialization_roundtrip_preserves_none_std PASSED [ 85%]
+tests/unit/orchestration/test_oof_fault_tolerance.py::test_m53_05_01_partial_coverage_on_fold_failure PASSED [ 86%]
+tests/unit/orchestration/test_oof_fault_tolerance.py::test_m53_05_02_missing_observations_warning PASSED [ 87%]
+tests/unit/orchestration/test_oof_fault_tolerance.py::test_m53_05_03_total_failure_raises_integrity_error PASSED [ 89%]
+tests/unit/orchestration/test_oof_metrics.py::test_m53_02_01_pooled_oof_metrics_evaluation PASSED [ 90%]
+tests/unit/orchestration/test_oof_metrics.py::test_m53_02_02_fold_aggregation_statistics PASSED [ 91%]
+tests/unit/orchestration/test_oof_metrics.py::test_m53_02_03_undefined_nan_resilience PASSED [ 92%]
+tests/unit/orchestration/test_oof_metrics.py::test_m53_02_04_metrics_scopes_distinction PASSED [ 93%]
+tests/unit/orchestration/test_oof_storage.py::test_m53_03_01_save_oof_predictions_atomic PASSED [ 95%]
+tests/unit/orchestration/test_oof_storage.py::test_m53_03_02_load_oof_predictions PASSED [ 96%]
+tests/unit/orchestration/test_oof_storage.py::test_m53_03_03_codecs_roundtrip_fidelity PASSED [ 97%]
+tests/unit/orchestration/test_oof_storage.py::test_m53_03_04_save_oof_no_overwrite_protection PASSED [ 98%]
+tests/unit/orchestration/test_oof_storage.py::test_oof_invariants_validation PASSED [100%]
 
-============================== 30 passed in 0.16s ==============================
+============================== 82 passed in 0.32s ==============================
 ```
 
 `Run integration` - exit 0
 
 ```
-============================= test session starts ==============================
-platform linux -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0 -- /home/alexandrerangel/Projetos/iniciacao_cientifica/experimental-ml-framework/.venv/bin/python
-cachedir: .pytest_cache
-rootdir: /home/alexandrerangel/Projetos/iniciacao_cientifica/experimental-ml-framework
 configfile: pyproject.toml
-collecting ... collected 3 items
+collecting ... collected 10 items
 
-tests/integration/orchestration/test_cell_integration.py::test_m51_02_08_end_to_end_cell_lifecycle PASSED [ 33%]
-tests/integration/orchestration/test_cell_integration.py::test_m51_02_09_anti_leakage_adversarial PASSED [ 66%]
-tests/integration/orchestration/test_cell_integration.py::test_orchestration_runtime_purity_xcut_02 PASSED [100%]
+tests/integration/orchestration/test_cell_integration.py::test_m51_02_08_end_to_end_cell_lifecycle PASSED [ 10%]
+tests/integration/orchestration/test_cell_integration.py::test_m51_02_09_anti_leakage_adversarial PASSED [ 20%]
+tests/integration/orchestration/test_cell_integration.py::test_orchestration_runtime_purity_xcut_02 PASSED [ 30%]
+tests/integration/orchestration/test_matrix_integration.py::test_m52_06_01_public_api_exports PASSED [ 40%]
+tests/integration/orchestration/test_matrix_integration.py::test_m52_06_02_end_to_end_matrix_lifecycle PASSED [ 50%]
+tests/integration/orchestration/test_matrix_integration.py::test_m52_06_03_end_to_end_crash_recovery_resume PASSED [ 60%]
+tests/integration/orchestration/test_matrix_integration.py::test_m52_06_04_runtime_purity_xcut_02 PASSED [ 70%]
+tests/integration/orchestration/test_oof_integration.py::test_m53_06_01_public_api_exports PASSED [ 80%]
+tests/integration/orchestration/test_oof_integration.py::test_m53_06_02_end_to_end_matrix_to_oof_gate PASSED [ 90%]
+tests/integration/orchestration/test_oof_integration.py::test_m53_06_03_runtime_purity_xcut_02 PASSED [100%]
 
-============================== 3 passed in 0.30s ===============================
+============================== 10 passed in 0.67s ==============================
 ```
