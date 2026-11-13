@@ -599,7 +599,7 @@ O ciclo de vida do framework segue o processo de aceite estabelecido em [`PROCES
 | **M4** | **Modelos e Hiperparâmetros:** Contratos agnósticos de modelos (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento em 2 camadas, busca aninhada (*Nested CV*), catálogo persistível e CLI de modelos. | **Concluído e Aceito** |
 | **M5** | **Execução Matricial:** Orquestração da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$, paralelismo, tolerância a falhas, checkpoint/resume, consolidação OOF e CLI de execução `expml run`. | **Concluído e Aceito** |
 | **M6** | **Estatística Comparativa:** Teste $t$ de Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm-Bonferroni, Benjamini-Hochberg) e Fronteira de Pareto multi-critério. | **Próximo Marco (Planejado)** |
-| **M7** | **Relatórios e Reprodutibilidade:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas e figuras, manifesto de proveniência (`ArtifactProvenance`) e pacote portável de replicação (validação `CA02` externa). | Planejado |
+| **M7** | **Relatórios, Reprodutibilidade e Guia:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas e figuras, manifesto de proveniência (`ArtifactProvenance`), pacote portável de replicação e Guia do Pesquisador (Quickstart e Cookbook). | Planejado |
 
 ---
 
