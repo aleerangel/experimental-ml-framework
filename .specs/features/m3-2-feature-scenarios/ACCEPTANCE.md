@@ -48,12 +48,12 @@ from experimental_ml.features import FeatureScenario, ScenarioMode
 
 # 1. Instanciação válida com parâmetros imutáveis
 scenario = FeatureScenario(
-    scenario_id="biometric_baseline",
-    name="Biometric Baseline",
-    description="Subconjunto biométrico mínimo de preditores",
-    scientific_justification="Base estabelecida na literatura florestal",
+    scenario_id="baseline_scenario",
+    name="Baseline Scenario",
+    description="Subconjunto referencial mínimo de preditores",
+    scientific_justification="Base estabelecida na literatura científica do domínio",
     mode=ScenarioMode.FIXED,
-    selected_features=("dap", "ht"),
+    selected_features=("feat_a", "feat_b"),
     preprocessing_config={"scale": True},
 )
 

@@ -2,8 +2,7 @@
 
 > **Documento de Registro de Estado da Engenharia**<br/>
 > **Data:** 10 de Novembro de 2026<br/>
-> **Repositório de Origem (Referência Científica):** `prognose_florestal`<br/>
-> **Novo Repositório (Framework Científico Agnóstico):** `experimental-ml-framework`<br/>
+> **Repositório:** `experimental-ml-framework`<br/>
 > **Especificação de Requisitos (SRS v2.1):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
 > **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
@@ -31,7 +30,7 @@ flowchart LR
 ```
 
 ### O que já foi realizado:
-1. **Fase 1 — Auditoria Técnica e Baseline (`prognose_florestal`):**
+1. **Fase 1 — Auditoria Técnica e Baseline:**
    * Mapeamento integral de dados, scripts, algoritmos clássicos, modelos biométricos e resolvedores quânticos (HHL).
    * Catalogação das métricas validadas de referência e identificação de vulnerabilidades metodológicas.
 2. **Fase 2 — Engenharia de Requisitos das 6 Etapas ([`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)):**
@@ -230,4 +229,4 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
    * **M4.4 (Planejado — Persistência, Portão de Validação e CLI de Modelos):** Persistência de `models.json`, portão `verify_models_gate` e subcomandos `expml models`.
 5. **Marco M5 (`orchestration` + CLI `run`):** Funções `run_experiment_matrix` e `resume_experiment_matrix` com máquina de estados, modos `FAULT_TOLERANT` / `FAIL_FAST`, paralelismo em dois níveis, persistência atômica (`save_cell_result`) e retomada verificada (*Checkpoint & Resume*).
 6. **Marco M6 (`statistics` + CLI `stats`):** Funções de consolidação descritiva, adequação metodológica, tratamento de *folds* incompletos, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, tamanho de efeito, relevância prática, Fronteira de Pareto, funções de aquisição e `synthesize_conclusions`.
-7. **Marco M7 (`reporting` + CLI `report` + Verificação `prognose_florestal`):** Funções de geração de relatórios completos (MD/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência (`ArtifactProvenance`), pacote de reprodutibilidade e reprodução agnóstica do experimento de referência `prognose_florestal`.
+7. **Marco M7 (`reporting` + CLI `report` + Pacote de Reprodutibilidade):** Funções de geração de relatórios completos (MD/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência (`ArtifactProvenance`) e pacote portável de reprodutibilidade e auditoria (a validação de referência externa `CA02` será conduzida exclusivamente pelo pesquisador fora do repositório).

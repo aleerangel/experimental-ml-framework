@@ -94,7 +94,7 @@ O `experimental-ml-framework` é uma biblioteca modular e ferramenta de linha de
 ## 3. Requisitos Não Funcionais (RNF)
 
 * **RNF01 (Determinismo e Controle de Sementes):** Propagação explícita e auditável de sementes pseudoaleatórias em todas as operações estocásticas, documentando limitações quando backends externos ou hardware não garantirem determinismo bit a bit.
-* **RNF02 (Independência de Domínio):** Nenhuma coluna, métrica ou regra de negócio específica de um domínio aplicado (ex.: inventário florestal) deve estar codificada de forma fixa no núcleo do framework.
+* **RNF02 (Independência de Domínio):** Nenhuma coluna, métrica ou regra de negócio específica de um domínio aplicado qualquer deve estar codificada no núcleo do framework.
 * **RNF03 (Autossuficiência 100% Offline):** Execução integralmente local, sem dependência obrigatória de serviços em nuvem, servidores externos ou conexão à internet.
 * **RNF04 (Eficiência Computacional e Armazenamento Escalável):** Vetorização numérica via NumPy/SciPy e carregamento sob demanda (*lazy loading*) de predições e artefatos volumosos para não esgotar a memória RAM em matrizes grandes.
 * **RNF05 (Testabilidade e Rigor Matemático):** Cobertura de testes automatizados (`pytest`) validando invariantes de vazamento zero, cálculos de métricas, testes de hipóteses estatísticas, isolamento de falhas e retomada de execução.
@@ -142,5 +142,5 @@ Para priorizar um fluxo científico funcional, coerente e testável antes de exp
 * **`CA-COND-REG-01` / `CA-COND-CLAS-01` (Modalidade de Tarefa):** Valida as métricas e resíduos em regressão (`REGRESSION`) ou a validade de classes, probabilidades em $[0, 1]$ somando $1$ e métricas em classificação (`BINARY_CLASSIFICATION` / `MULTICLASS_CLASSIFICATION`).
 * **`CA-COND-MOD-01` / `CA-COND-MOD-02` (Capacidades de Modelos):** Valida execução *no-op* de ajuste para modelos analíticos (`requires_fit=False`) e passagem sem vazamento de $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ para funções externas de kernel pré-computado (`supports_precomputed_kernel=True` + métrica `KTA`).
 
-### 4.3 Validação Funcional vs. Reprodução Científica de Referência (`CA02`)
-* **`CA02` (Reprodução Científica de Referência — `prognose_florestal`):** Os testes funcionais dos Marcos M1 a M6 utilizam *fixtures* sintéticas leves e autocontidas (`tests/fixtures/`) para verificar determinismo e invariantes de software. A reprodução científica completa dos experimentos de referência de `prognose_florestal` usando exclusivamente as interfaces agnósticas do framework ocorrerá no **Marco M7 (`TA-M7.3`)**, estando os arquivos de dados e vetores validados de referência registrados como **dependência externa pendente para o Marco M7**.
+### 4.3 Validação Funcional vs. Aceitação Externa de Referência (`CA02`)
+* **`CA02` (Validação Científica de Referência Externa):** O framework e o repositório são 100% agnósticos a domínios específicos e utilizam exclusivamente *fixtures* sintéticas autocontidas para seus testes funcionais e de integração. O critério `CA02` permanece como homologação externa a ser conduzida exclusivamente pelo pesquisador fora do repositório, garantindo que o framework não contenha nenhum dado, teste, acoplamento ou código derivado de experimentos de aplicação específica.
