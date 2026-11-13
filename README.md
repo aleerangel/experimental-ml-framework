@@ -599,7 +599,8 @@ O ciclo de vida do framework segue o processo de aceite estabelecido em [`PROCES
 | **M4** | **Modelos e Hiperparâmetros:** Contratos agnósticos de modelos (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento em 2 camadas, busca aninhada (*Nested CV*), catálogo persistível e CLI de modelos. | **Concluído e Aceito** |
 | **M5** | **Execução Matricial:** Orquestração da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$, paralelismo, tolerância a falhas, checkpoint/resume, consolidação OOF e CLI de execução `expml run`. | **Concluído e Aceito** |
 | **M6** | **Estatística Comparativa:** Teste $t$ de Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm-Bonferroni, Benjamini-Hochberg) e Fronteira de Pareto multi-critério. | **Próximo Marco (Planejado)** |
-| **M7** | **Relatórios, Reprodutibilidade e Guia:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas e figuras, manifesto de proveniência (`ArtifactProvenance`), pacote portável de replicação e Guia do Pesquisador (Quickstart e Cookbook). | Planejado |
+| **M7** | **Relatórios e Reprodutibilidade:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas (CSV/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência (`ArtifactProvenance`) e pacote portável de replicação (`expml report verify`). | Planejado |
+| **Pós-MVP** | **Auditoria Geral, Guia do Pesquisador e Homologação:** Mega auditoria independente de todas as 6 etapas, manual didático completo (Quickstart e Cookbook) e validação científica externa (`CA02`). | Planejado |
 
 ---
 

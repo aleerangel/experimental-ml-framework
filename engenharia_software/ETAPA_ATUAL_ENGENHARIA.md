@@ -244,8 +244,15 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
    * **M5.4 (Concluído e Aceito — CLI Run End-to-End e Homologação Transversal):** Subcomandos `expml run start`, `expml run resume`, `expml run status` e `expml run verify`, reconstituição automática de insumos, supressão de tracebacks e hashes (`CLI-06`, `CLI-11`) e pureza de runtime (`CLI-10`, `XCUT-02`).
    * **Auditoria Técnica e Saneamento P1 (`ACH-M5-01` a `ACH-M5-03`):** Correção de dispersão de comitê para $k=1$ (sem zero artificial), validação de integridade tripartite de hashes na retomada (`source_dataset_hash`, `partition_plan_id`) e discriminação formal entre execuções completas e parciais no portão `verify_runs_gate`, totalizando 471 testes automatizados aprovados com 100% de sucesso.
 6. **Marco M6 (`statistics` + CLI `stats` — Próximo Marco / Em Planejamento):** Funções de consolidação descritiva, adequação metodológica, tratamento de *folds* incompletos, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, tamanho de efeito, relevância prática, Fronteira de Pareto, funções de aquisição, `synthesize_conclusions` e subcomando `expml stats`.
-7. **Marco M7 (`reporting` + CLI `report` + Pacote de Reprodutibilidade e Guia do Usuário — Planejado):**
+7. **Marco M7 (`reporting` + CLI `report` + Pacote de Reprodutibilidade — Planejado):**
    * **M7.1 (Geração de Relatórios e Artefatos Modulares):** Funções de geração de relatórios completos (Markdown e HTML autocontido com CSS embutido), 7 famílias de tabelas (CSV, Markdown e LaTeX `booktabs`) e figuras prontas para publicação (PNG 300 DPI, SVG e PDF).
    * **M7.2 (Proveniência, Pacote de Reprodutibilidade e CLI `report`):** Manifesto de linhagem (`ArtifactProvenance`), cálculo determinístico de `checksums.sha256` relativo, empacotamento portável de auditoria (`environment.json`, `seeds.json`, `REPRODUCE.md`) e comando de verificação `expml report verify`.
-   * **M7.3 (Guia do Pesquisador & Cookbook Científico):** Manual pedagógico completo estruturado em quatro níveis: (1) Quickstart ("Seu Experimento em 5 Minutos"); (2) Tutorial Teórico-Prático das 6 Etapas; (3) Cookbook / How-To Guides (modelos analíticos/quânticos, dados agrupados, limites de relevância prática $\Delta_{\text{min}}$, uso em Jupyter Notebooks); e (4) Catálogo de Referência Completo de APIs e Comandos da CLI.
-   * **Validação Externa de Referência (`CA02`):** Homologação empírica conduzida exclusivamente pelo pesquisador fora do repositório sobre estudo de caso real.
+
+---
+
+### Fase Pós-MVP: Mega Auditoria, Guia Definitivo e Homologação Científica
+
+8. **Pós-Marco / Encerramento do MVP (Mega Auditoria, Guia do Pesquisador e Homologação Externa `CA02`):**
+   * **Mega Auditoria Técnica Transversal do MVP:** Auditoria independente abrangente cobrindo os contratos, integridade e invariantes de todas as 6 etapas operacionais implementadas (M1 a M7), validando determinismo, ausência de regressões e conformidade com as ADRs antes do congelamento do código.
+   * **Guia Definitivo do Pesquisador & Cookbook Científico:** Com o código 100% auditado e estável, elaboração do manual pedagógico definitivo em quatro níveis: (1) Quickstart ("Seu Experimento em 5 Minutos"); (2) Tutorial Teórico-Prático das 6 Etapas; (3) Cookbook / How-To Guides (modelos analíticos/quânticos, dados agrupados, limites $\Delta_{\text{min}}$, uso em Jupyter Notebooks); e (4) Catálogo de Referência Completo de APIs e Comandos da CLI.
+   * **Homologação Científica Externa (`CA02`):** Execução do pipeline completo sobre o estudo de caso experimental real pelo pesquisador fora do repositório, atestando a aplicabilidade prática e científica da versão final auditada.
