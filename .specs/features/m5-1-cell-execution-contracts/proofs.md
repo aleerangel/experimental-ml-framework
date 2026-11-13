@@ -1,7 +1,7 @@
 # m5-1-cell-execution-contracts proofs
 
-**HEAD**: 0d46ee0
-**Tree**: dirty - src/experimental_ml/cli/cmd_run.py, src/experimental_ml/orchestration/codecs.py, src/experimental_ml/orchestration/engine.py, src/experimental_ml/orchestration/oof.py, src/experimental_ml/orchestration/state.py
+**HEAD**: 7850a10
+**Tree**: clean
 **Shell**: /bin/sh
 **Result**: 30 pass, 0 fail
 
@@ -57,7 +57,7 @@ tests/unit/orchestration/test_oof_storage.py::test_m53_03_03_codecs_roundtrip_fi
 tests/unit/orchestration/test_oof_storage.py::test_m53_03_04_save_oof_no_overwrite_protection PASSED [ 98%]
 tests/unit/orchestration/test_oof_storage.py::test_oof_invariants_validation PASSED [100%]
 
-============================== 82 passed in 0.35s ==============================
+============================== 82 passed in 0.32s ==============================
 ```
 
 `Run integration` - exit 0
@@ -77,5 +77,5 @@ tests/integration/orchestration/test_oof_integration.py::test_m53_06_01_public_a
 tests/integration/orchestration/test_oof_integration.py::test_m53_06_02_end_to_end_matrix_to_oof_gate PASSED [ 90%]
 tests/integration/orchestration/test_oof_integration.py::test_m53_06_03_runtime_purity_xcut_02 PASSED [100%]
 
-============================== 10 passed in 0.60s ==============================
+============================== 10 passed in 0.67s ==============================
 ```

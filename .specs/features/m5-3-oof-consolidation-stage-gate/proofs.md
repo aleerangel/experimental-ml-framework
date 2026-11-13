@@ -1,7 +1,7 @@
 # m5-3-oof-consolidation-stage-gate proofs
 
-**HEAD**: 0d46ee0
-**Tree**: dirty - src/experimental_ml/cli/cmd_run.py, src/experimental_ml/orchestration/codecs.py, src/experimental_ml/orchestration/engine.py, src/experimental_ml/orchestration/oof.py, src/experimental_ml/orchestration/state.py
+**HEAD**: 7850a10
+**Tree**: clean
 **Shell**: /bin/sh
 **Result**: 25 pass, 0 fail
 
@@ -52,7 +52,7 @@ tests/unit/stages/test_stage_runs_gate.py::test_ach_m5_03_stage_gate_with_failed
 tests/unit/stages/test_stage_runs_gate.py::test_ach_m5_03_stage_gate_with_cancelled_cell_returns_partial_ready PASSED [ 98%]
 tests/unit/stages/test_stage_runs_gate.py::test_ach_m5_03_subsequent_cell_divergent_partition_plan_id_raises PASSED [100%]
 
-============================== 96 passed in 0.42s ==============================
+============================== 96 passed in 0.41s ==============================
 ```
 
 `Run integration` - exit 0
@@ -72,5 +72,5 @@ tests/integration/orchestration/test_oof_integration.py::test_m53_06_01_public_a
 tests/integration/orchestration/test_oof_integration.py::test_m53_06_02_end_to_end_matrix_to_oof_gate PASSED [ 90%]
 tests/integration/orchestration/test_oof_integration.py::test_m53_06_03_runtime_purity_xcut_02 PASSED [100%]
 
-============================== 10 passed in 0.67s ==============================
+============================== 10 passed in 0.55s ==============================
 ```
