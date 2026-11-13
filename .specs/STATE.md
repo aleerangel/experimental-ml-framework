@@ -82,28 +82,37 @@
 - **Date**: 2026-11-12
 - **Status**: active
 
+### AD-011
+- **Decision**: Saneamento pós-auditoria técnica independente do Marco M5 (resolução dos achados P1: ACH-M5-01 com comitês k=1 sem desvio padrão empírico artificialmente zerado, ACH-M5-02 com validação rigorosa de integridade de hashes do dataset e partition_plan na retomada, e ACH-M5-03 distinguindo formalmente execuções completas de execuções parciais tolerantes a falhas no `verify_runs_gate`).
+- **Reason**: Garantir a estrita correção científica, prevenir leakage ou mistura de resultados entre configurações incompatíveis na retomada e assegurar que o portão Stage 4 não mascare execuções incompletas ao liberar a passagem para a Etapa 5.
+- **Trade-off**: Requer representação explícita de ausência de dispersão (`None`/`UNDEFINED_NAN`), inclusão de `source_dataset_hash` e `partition_plan_id` no estado persistido e checagem de completude total versus parcial no portão de estágio.
+- **Scope**: Módulos `experimental_ml.orchestration.oof`, `state`, `engine` e `stages.stage_gates`.
+- **Date**: 2026-11-12
+- **Status**: active
+
+### AD-012
+- **Decision**: Desacoplamento estrito e absoluto do framework de qualquer domínio aplicado e isolamento formal do critério `CA02` como validação externa a ser conduzida exclusivamente pelo pesquisador.
+- **Reason**: Cumprir rigorosamente o princípio RNF02 (Independência de Domínio), assegurando que o repositório, suíte de testes e documentação interna não contenham dependências, termos, dados ou acoplamentos a problemas específicos (como prognose florestal), garantindo a pureza metodológica da biblioteca.
+- **Trade-off**: Testes automatizados do repositório operam exclusivamente com fixtures sintéticas autocontidas em memória ou disco temporário; a validação empírica em bases reais é exercida externamente pelo usuário consumidor.
+- **Scope**: Todo o repositório `experimental-ml-framework`.
+- **Date**: 2026-11-12
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m5-4-cli-run-end-to-end (Sub-marco M5.4 — CLI Run End-to-End & Conclusão Integral do Marco M5)
-- **Phase / Task**: Conclusão formal do Sub-marco M5.4 e encerramento do Marco M5 (Orquestração e Execução Matricial)
+- **Feature**: m5-matrix-execution-and-orchestration (Marco M5 Concluído, Auditado e Integrado na Main)
+- **Phase / Task**: Marco M5 concluído e aceito; preparação e planejamento para o Marco M6 (Consolidação Descritiva e Comparação Estatística Rigorosa).
 - **Completed**:
-  - Implementação completa dos 5 tasks de M5.4:
-    - T1: Registro dos subparsers modulares de `run` em `cli/main.py` com `start`, `resume`, `status` e `verify`.
-    - T2: Subcomando `expml run start` com validação de portões upstream, reconstituição de insumos, execução matricial com controle de workers (`-j`/`--parallel`), política de erro (`--error-policy`), consolidação automática OOF e proteção contra sobrescrita com `--force`.
-    - T3: Subcomandos `expml run resume` (com retomada incremental e `--retry-failed`) e `expml run status` (inspeção puramente somente-leitura e progresso percentual).
-    - T4: Subcomando `expml run verify` integrando `verify_runs_gate`, padronização de códigos de saída (0, 1, 2) e supressão de tracebacks e hashes criptográficos (`CLI-06`, `CLI-11`).
-    - T5: Suíte de integração transversal ponta a ponta (`tests/integration/cli/test_run_e2e.py`) executando o ciclo de vida completo (etapas 1 a 4B), crash recovery e pureza de runtime (`XCUT-02`, `CLI-10`).
-  - 22 critérios de aceitação formalmente comprovados (`check_proofs.py`: 22 pass, 0 fail).
-  - Verificação independente realizada por subagente (`author != verifier`) com veredito `PASS` (0 findings).
-  - Portão `validate_verification.py --strict` aprovado com 0 erros e 0 avisos.
-  - Documentação formal de homologação gerada: `verification.md`, `ACCEPTANCE.md` e `RESULTS.md`.
-  - Suíte total de testes do framework expandida para 460 testes automatizados, 100% aprovados.
-  - Conclusão integral de todos os 4 sub-marcos de M5:
+  - Implementação e homologação integral de todos os 4 sub-marcos de M5:
     - M5.1 (`m5-1-cell-execution-contracts`): Contratos funcionais, máquina de estados de célula e tempos desagregados.
     - M5.2 (`m5-2-matrix-executor-checkpointing`): Grade cartesiana, motor de execução com paralelismo configurável e checkpoint/resume.
     - M5.3 (`m5-3-oof-consolidation-stage-gate`): Consolidação OOF, comitê, métricas pooled vs inter-folds e portão `verify_runs_gate`.
     - M5.4 (`m5-4-cli-run-end-to-end`): Interface de terminal `expml run`, ergonomia CLI e integração ponta a ponta.
-- **In-progress**: Homologação de M5.4 e encerramento do Marco M5.
-- **Next step**: Merge da branch `feat/m5-4-cli-run-end-to-end` na `main` e início do Marco M6 (Consolidação Descritiva e Comparação Estatística — `statistics` e CLI `stats`).
+  - Auditoria técnica independente de M5 realizada com identificação e resolução de 3 achados P1 (`ACH-M5-01`, `ACH-M5-02`, `ACH-M5-03`).
+  - Desacoplamento irrestrito de qualquer domínio aplicado (RNF02) e isolamento formal de `CA02` como validação externa.
+  - Integração e merge da branch `feat/m5-4-cli-run-end-to-end` na branch `main`.
+  - Suíte completa de testes automatizados expandida para **471 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Planejamento e especificação dos requisitos do Marco M6 (`statistics` e CLI `stats`).
+- **Next step**: Especificação e decomposição de tarefas de M6 (Etapa 5 — Consolidação Descritiva, Adequação Metodológica, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, Tamanho de Efeito, Fronteira de Pareto e CLI `stats`).
 - **Blockers**: none
-- **Branch**: feat/m5-4-cli-run-end-to-end
+- **Branch**: main
