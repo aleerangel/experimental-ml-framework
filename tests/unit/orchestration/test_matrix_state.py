@@ -41,6 +41,8 @@ def _create_sample_state() -> MatrixExecutionState:
         master_seed=42,
         total_cells=3,
         cell_statuses=statuses,
+        source_dataset_hash="hash_abc_123",
+        partition_plan_id="plan_xyz_789",
     )
 
 
@@ -58,6 +60,8 @@ def test_m52_02_01_matrix_execution_state_fields():
     assert state.failed_cells == 1
     assert state.cancelled_cells == 0
     assert len(state.cell_statuses) == 3
+    assert state.source_dataset_hash == "hash_abc_123"
+    assert state.partition_plan_id == "plan_xyz_789"
 
     # Immutability
     with pytest.raises(Exception):
@@ -94,6 +98,8 @@ def test_m52_02_03_state_to_dict_json_serializable():
     assert d["completed_cells"] == 1
     assert d["failed_cells"] == 1
     assert d["cell_statuses"]["cell_ridge__sc1__fold_0"] == "COMPLETED"
+    assert d["source_dataset_hash"] == "hash_abc_123"
+    assert d["partition_plan_id"] == "plan_xyz_789"
 
     # Serializes to standard JSON
     json_str = json.dumps(d, allow_nan=False)
@@ -116,6 +122,8 @@ def test_m52_02_04_state_from_dict_roundtrip():
     assert reconstructed.failed_cells == state.failed_cells
     assert reconstructed.cancelled_cells == state.cancelled_cells
     assert reconstructed.cell_statuses == state.cell_statuses
+    assert reconstructed.source_dataset_hash == state.source_dataset_hash
+    assert reconstructed.partition_plan_id == state.partition_plan_id
 
 
 def test_m52_02_05_save_and_load_execution_state(tmp_path: Path):

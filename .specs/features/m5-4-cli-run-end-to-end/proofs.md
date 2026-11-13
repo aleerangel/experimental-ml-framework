@@ -1,7 +1,7 @@
 # m5-4-cli-run-end-to-end proofs
 
-**HEAD**: 58d3406
-**Tree**: clean
+**HEAD**: 0d46ee0
+**Tree**: dirty - src/experimental_ml/cli/cmd_run.py, src/experimental_ml/orchestration/codecs.py, src/experimental_ml/orchestration/engine.py, src/experimental_ml/orchestration/oof.py, src/experimental_ml/orchestration/state.py
 **Shell**: /bin/sh
 **Result**: 22 pass, 0 fail
 
@@ -49,7 +49,7 @@ tests/unit/cli/test_cli_run.py::test_m54_04_02_run_verify_corrupted_gate_returns
 tests/unit/cli/test_cli_run.py::test_m54_04_03_domain_errors_exit_code_2_no_traceback PASSED [ 94%]
 tests/unit/cli/test_cli_run.py::test_m54_04_04_hash_suppression_cli_11 PASSED [100%]
 
-============================== 19 passed in 0.68s ==============================
+============================== 19 passed in 0.58s ==============================
 ```
 
 `Run integration` - exit 0
@@ -66,5 +66,5 @@ tests/integration/cli/test_run_e2e.py::test_m54_05_01_e2e_cli_pipeline_lifecycle
 tests/integration/cli/test_run_e2e.py::test_m54_05_02_e2e_cli_crash_recovery PASSED [ 66%]
 tests/integration/cli/test_run_e2e.py::test_m54_05_03_cli_runtime_purity_xcut_02 PASSED [100%]
 
-============================== 3 passed in 2.68s ===============================
+============================== 3 passed in 2.77s ===============================
 ```

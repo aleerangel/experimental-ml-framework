@@ -344,7 +344,7 @@ def oof_predictions_to_dict(oof: Any) -> dict[str, Any]:
         "observation_ids": [str(oid) for oid in oof.observation_ids],
         "y_true": list(oof.y_true),
         "y_pred": list(oof.y_pred),
-        "y_std": list(oof.y_std) if oof.y_std is not None else None,
+        "y_std": [float(x) if x is not None else None for x in oof.y_std] if oof.y_std is not None else None,
         "y_proba": [list(row) for row in oof.y_proba] if oof.y_proba is not None else None,
         "residuals": list(oof.residuals) if oof.residuals is not None else None,
         "pooled_metrics": {k: metric_value_to_dict(v) for k, v in oof.pooled_metrics.items()},
@@ -362,7 +362,11 @@ def oof_predictions_from_dict(d: dict[str, Any]) -> Any:
     """Reconstruct a ConsolidatedOofPredictions record from a dictionary."""
     from experimental_ml.orchestration.oof import ConsolidatedOofPredictions
 
-    y_std = tuple(float(x) for x in d["y_std"]) if d.get("y_std") is not None else None
+    y_std = (
+        tuple(float(x) if x is not None else None for x in d["y_std"])
+        if d.get("y_std") is not None
+        else None
+    )
     y_proba = (
         tuple(tuple(float(p) for p in row) for row in d["y_proba"])
         if d.get("y_proba") is not None

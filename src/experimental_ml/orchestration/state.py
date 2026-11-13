@@ -33,6 +33,8 @@ class MatrixExecutionState:
     master_seed: int
     total_cells: int
     cell_statuses: Mapping[CellId, ExecutionStatus]
+    source_dataset_hash: str = ""
+    partition_plan_id: str = ""
     completed_cells: int = 0
     failed_cells: int = 0
     cancelled_cells: int = 0
@@ -66,6 +68,8 @@ class MatrixExecutionState:
         object.__setattr__(self, "completed_cells", n_comp)
         object.__setattr__(self, "failed_cells", n_fail)
         object.__setattr__(self, "cancelled_cells", n_canc)
+        object.__setattr__(self, "source_dataset_hash", str(self.source_dataset_hash or "").strip())
+        object.__setattr__(self, "partition_plan_id", str(self.partition_plan_id or "").strip())
 
     def with_cell_update(
         self,
@@ -87,6 +91,8 @@ class MatrixExecutionState:
             master_seed=self.master_seed,
             total_cells=self.total_cells,
             cell_statuses=new_statuses,
+            source_dataset_hash=self.source_dataset_hash,
+            partition_plan_id=self.partition_plan_id,
         )
 
 
@@ -103,6 +109,8 @@ def matrix_execution_state_to_dict(state: MatrixExecutionState) -> dict[str, Any
         "failed_cells": state.failed_cells,
         "cancelled_cells": state.cancelled_cells,
         "cell_statuses": {str(k): v.value for k, v in state.cell_statuses.items()},
+        "source_dataset_hash": state.source_dataset_hash,
+        "partition_plan_id": state.partition_plan_id,
     }
 
 
@@ -121,6 +129,8 @@ def matrix_execution_state_from_dict(d: dict[str, Any]) -> MatrixExecutionState:
         master_seed=int(d["master_seed"]),
         total_cells=int(d["total_cells"]),
         cell_statuses=cell_statuses,
+        source_dataset_hash=str(d.get("source_dataset_hash", "") or ""),
+        partition_plan_id=str(d.get("partition_plan_id", "") or ""),
     )
 
 

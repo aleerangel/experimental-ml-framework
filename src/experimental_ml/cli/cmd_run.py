@@ -297,6 +297,7 @@ def handle_run_verify(args: argparse.Namespace) -> int:
         sys.stdout.write(
             f"Stage 4 execution gate verified successfully:\n"
             f"  - Status: {summary.get('status', 'READY')}\n"
+            f"  - Execution complete: {summary.get('execution_complete', True)}\n"
             f"  - Total cells: {summary.get('total_cells', 0)}\n"
             f"  - Completed cells: {summary.get('completed_cells', 0)}\n"
             f"  - Failed cells: {summary.get('failed_cells', 0)}\n"
