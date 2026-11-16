@@ -133,7 +133,7 @@ T4 --> T5
 
 ### Phase 4: Methodological Suitability and Incompleteness Policy
 
-#### T4: Implement evaluate_method_suitability and check_pairwise_comparison_eligibility
+#### T4: Implement evaluate_method_suitability and check_pairwise_comparison_eligibility [x]
 
 **What**: Create `src/experimental_ml/statistics/suitability.py` implementing `evaluate_method_suitability` and `check_pairwise_comparison_eligibility`. Extract evaluation regime from `PartitionPlan` (`CV_ONLY`, `HOLDOUT_ONLY`, `CV_AND_HOLDOUT`). Determine development partitions count $J = \text{len}(plan.folds)$. For CV regimes, calculate fold-level ratios $r_j = n_{\text{val}, j} / n_{\text{train}, j}$ and mean representative ratio $r = \frac{1}{J} \sum r_j$. Declare corrected Nadeau-Bengio paired $t$-test and paired Wilcoxon test as `APPLICABLE` for CV regimes with $J \ge 2$. Flag uncorrected standard paired $t$-test as `NOT_SUITABLE` for CV designs due to overlapping training sets. For `HOLDOUT_ONLY` ($J=1$), reject partition-level multi-fold tests as `NOT_SUITABLE` due to absence of variance across partitions, and do not recommend pooled OOF. If $J < 6$ (or $J_{\text{pareados}} < 6$) for Wilcoxon, attach a methodological warning of mathematical inability to reach $\alpha = 0.05$ (minimum exact p-value $0.0625$), while noting that $J \ge 6$ does not guarantee adequate power. In `CV_AND_HOLDOUT`, isolate holdout in `plan.holdout_ids` and scope `FINAL_HOLDOUT`. In `check_pairwise_comparison_eligibility`, under `STRICT_COMPLETE_ONLY` reject comparisons with missing folds (`coverage_status != VALID`); under `ALLOW_COMMON_SUBSET` permit comparison if $J_{\text{pareados}} \ge 2$ with mandatory conditional caveat; reject if $J_{\text{pareados}} < 2$. Add unit tests in `tests/unit/statistics/test_suitability.py`.
 **Where**: `src/experimental_ml/statistics/suitability.py`
@@ -253,5 +253,5 @@ Proof: run unit | tests/unit/statistics/test_suitability.py::test_check_pairwise
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T4
-- **Next Task:** T4
+- **Current Task:** T5
+- **Next Task:** T5
