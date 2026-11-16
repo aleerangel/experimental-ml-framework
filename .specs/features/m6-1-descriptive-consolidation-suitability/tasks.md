@@ -119,7 +119,7 @@ T4 --> T5
 
 ### Phase 3: Descriptive Metric & Timing Aggregation
 
-#### T3: Implement consolidate_descriptive function
+#### T3: Implement consolidate_descriptive function [x]
 
 **What**: In `src/experimental_ml/statistics/consolidation.py`, implement `consolidate_descriptive`. Group input `CellResultRecord` instances by `(model_id, scenario_id)`. For each configuration, compute total folds, completed folds, failed folds, cancelled folds, and coverage $C = \text{completed\_folds} / \text{total\_folds}$. Assign `CoverageStatus.VALID` ($C=1.0$), `CoverageStatus.PARTIAL_COVERAGE` ($0.0 < C < 1.0$), or `CoverageStatus.NO_COVERAGE` ($C=0.0$). Populate `completed_fold_ids`, `failed_fold_ids`, and `cancelled_fold_ids`. Compute `AggregatedMetricStats` for each metric: when $n_{\text{valid}} \ge 2$, calculate sample mean, sample std with `ddof=1`, median, IQR ($Q_{75} - Q_{25}$), min, and max using NumPy; when $n_{\text{valid}} = 1$, calculate mean, median, min, max, IQR ($0.0$), but set `std = None`; when $n_{\text{valid}} = 0$, set all summary fields to `None` and `status = MetricStatus.UNDEFINED_NAN`. Aggregate cell sub-phase durations into `AggregatedTimingStats` (or `None` if $C=0$). Compute feature selection stability across folds using `compute_selection_stability` when $J_{\text{completed}} \ge 2$, applying Jaccard empty set conventions (1.0 for both empty, 0.0 for unilateral empty), and returning `None` if $J_{\text{completed}} < 2$. Incorporate `pooled_oof_metrics` when available. Return `DescriptiveConsolidation`. Add unit tests in `tests/unit/statistics/test_consolidation.py`.
 **Where**: `src/experimental_ml/statistics/consolidation.py`
@@ -253,5 +253,5 @@ Proof: run unit | tests/unit/statistics/test_suitability.py::test_check_pairwise
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T3
-- **Next Task:** T3
+- **Current Task:** T4
+- **Next Task:** T4
