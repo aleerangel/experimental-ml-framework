@@ -12,7 +12,7 @@ from types import MappingProxyType
 from typing import Any, Mapping
 
 from experimental_ml.core.enums import MetricStatus
-from experimental_ml.core.findings import ConfigurationError
+from experimental_ml.core.findings import ConfigurationError, ContractViolationError
 from experimental_ml.features.stability import SelectionStabilityReport
 from experimental_ml.metrics.types import MetricDirection, MetricValue
 from experimental_ml.validation.types import EvaluationRegime
@@ -478,3 +478,165 @@ class StatisticalComparisonBundle:
             )
         if not isinstance(self.warnings, tuple):
             object.__setattr__(self, "warnings", tuple(str(w) for w in self.warnings))
+
+
+class ObjectiveSource(StrEnum):
+    """Data source for extracting an objective value from ConfigurationSummary."""
+
+    AGGREGATED_METRIC = "AGGREGATED_METRIC"
+    TIMING_MEAN = "TIMING_MEAN"
+    FEATURE_STABILITY = "FEATURE_STABILITY"
+
+
+class AcquisitionCriterion(StrEnum):
+    """Sequential acquisition function criteria for candidate prioritization (RF5.5, STAT-10)."""
+
+    EXPECTED_IMPROVEMENT = "EXPECTED_IMPROVEMENT"
+    UCB = "UCB"
+    LCB = "LCB"
+    EXPLOITATION = "EXPLOITATION"
+    EXPLORATION = "EXPLORATION"
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveSpec:
+    """Single objective specification for multi-objective Pareto analysis (STAT-09)."""
+
+    name: str
+    direction: MetricDirection
+    source: ObjectiveSource = ObjectiveSource.AGGREGATED_METRIC
+    field_name: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.name or not self.name.strip():
+            raise ConfigurationError("ObjectiveSpec.name must not be empty.")
+        if not isinstance(self.direction, MetricDirection):
+            object.__setattr__(self, "direction", MetricDirection(self.direction))
+        if not isinstance(self.source, ObjectiveSource):
+            object.__setattr__(self, "source", ObjectiveSource(self.source))
+
+
+@dataclass(frozen=True, slots=True)
+class MultiObjectiveSpec:
+    """Specification of objectives for Pareto frontier computation (STAT-09)."""
+
+    objectives: tuple[ObjectiveSpec, ...]
+
+    def __post_init__(self) -> None:
+        objs = tuple(self.objectives)
+        if not objs:
+            raise ConfigurationError("MultiObjectiveSpec.objectives must not be empty.")
+        object.__setattr__(self, "objectives", objs)
+
+
+@dataclass(frozen=True, slots=True)
+class ParetoConfigurationPoint:
+    """Evaluated configuration point in multi-objective space (STAT-09)."""
+
+    config_id: tuple[str, str]
+    objective_values: Mapping[str, float]
+    is_pareto_optimal: bool
+    dominated_by: tuple[tuple[str, str], ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.objective_values, MappingProxyType):
+            object.__setattr__(
+                self,
+                "objective_values",
+                MappingProxyType(dict(self.objective_values)),
+            )
+        if not isinstance(self.dominated_by, tuple):
+            object.__setattr__(self, "dominated_by", tuple(self.dominated_by))
+
+
+@dataclass(frozen=True, slots=True)
+class ExcludedParetoConfiguration:
+    """Audit record for a configuration excluded from Pareto evaluation (STAT-09)."""
+
+    config_id: tuple[str, str]
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class MultiObjectiveSummary:
+    """Complete Pareto frontier and dominance analysis summary (STAT-09)."""
+
+    objectives: tuple[ObjectiveSpec, ...]
+    pareto_frontier: tuple[ParetoConfigurationPoint, ...]
+    dominated_configurations: tuple[ParetoConfigurationPoint, ...]
+    excluded_configurations: tuple[ExcludedParetoConfiguration, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.objectives, tuple):
+            object.__setattr__(self, "objectives", tuple(self.objectives))
+        if not isinstance(self.pareto_frontier, tuple):
+            object.__setattr__(self, "pareto_frontier", tuple(self.pareto_frontier))
+        if not isinstance(self.dominated_configurations, tuple):
+            object.__setattr__(
+                self, "dominated_configurations", tuple(self.dominated_configurations)
+            )
+        if not isinstance(self.excluded_configurations, tuple):
+            object.__setattr__(
+                self, "excluded_configurations", tuple(self.excluded_configurations)
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class CandidatePrediction:
+    """Candidate prediction with predictive mean and standard deviation (STAT-10)."""
+
+    candidate_id: str
+    mean: float
+    std: float
+
+    def __post_init__(self) -> None:
+        if not self.candidate_id or not self.candidate_id.strip():
+            raise ConfigurationError("CandidatePrediction.candidate_id must not be empty.")
+        m = float(self.mean)
+        s = float(self.std)
+        if not (math.isfinite(m) and math.isfinite(s)):
+            raise ContractViolationError(
+                f"CandidatePrediction '{self.candidate_id}' must have finite mean and std."
+            )
+        if s < 0.0:
+            raise ContractViolationError(
+                f"CandidatePrediction '{self.candidate_id}' std must be >= 0; got {s}."
+            )
+        object.__setattr__(self, "mean", m)
+        object.__setattr__(self, "std", s)
+
+
+@dataclass(frozen=True, slots=True)
+class AcquisitionScoreRecord:
+    """Ranked sequential acquisition score for a candidate (STAT-10)."""
+
+    candidate_id: str
+    criterion: AcquisitionCriterion
+    score: float
+    mean: float
+    std: float
+    rank: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.criterion, AcquisitionCriterion):
+            object.__setattr__(self, "criterion", AcquisitionCriterion(self.criterion))
+
+
+@dataclass(frozen=True, slots=True)
+class StructuredConclusion:
+    """Auditable structured conclusion traceable to Stage 5A/5B outputs (RF5.6, STAT-11)."""
+
+    primary_metric: str
+    observed_leader: tuple[str, str] | None
+    statistical_evidence_status: str
+    effect_magnitude_summary: str
+    practical_relevance_status: str
+    cost_tradeoff_summary: str
+    methodological_caveats: tuple[str, ...]
+    narrative_text: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.methodological_caveats, tuple):
+            object.__setattr__(
+                self, "methodological_caveats", tuple(str(c) for c in self.methodological_caveats)
+            )

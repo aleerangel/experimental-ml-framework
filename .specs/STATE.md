@@ -124,18 +124,29 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-015
+- **Decision**: Análise multiobjetivo de Pareto, funções de aquisição sequencial e síntese estruturada de conclusões da Etapa 5B/5C (Sub-marco M6.3) em Python/NumPy puro (`XCUT-02`):
+  1. `compute_pareto_frontier` aceita exclusivamente configurações com `CoverageStatus.VALID` e objetivos finitos (`MetricStatus.VALID`), registrando configurações parciais ou indefinidas em `excluded_configurations` sem coerção para zero (`CA-E5-02`, `ADR-005`).
+  2. `score_candidate_acquisition` implementa `EXPECTED_IMPROVEMENT`, `UCB`, `LCB`, `EXPLOITATION` e `EXPLORATION` com `math.erf` para $\Phi(z)$, tratamento contínuo de $\hat{\sigma}=0$ e desempate determinístico por `candidate_id`.
+  3. `synthesize_conclusions` gera `StructuredConclusion` estritamente vinculada aos valores observados de 5A e 5B, preservando todas as ressalvas metodológicas e proibindo declarar equivalência a partir de $p_{\text{adj}} \ge \alpha$.
+- **Reason**: Atender aos requisitos `RF5.5`, `RF5.6`, `CA-E5-02`, `ADR-005`, `STAT-09`–`STAT-11` e `XCUT-02`.
+- **Trade-off**: Fronteira de Pareto exige cobertura completa (`VALID`) por padrão para impedir dominância espúria por configurações parciais.
+- **Scope**: Módulos `experimental_ml.statistics.multiobjective`, `acquisition`, `synthesis`, `types` e `__init__`.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m6-2-paired-inference-multiplicity (Sub-marco M6.2 Concluído, Verificado e Aprovado na Branch da Feature)
-- **Phase / Task**: Sub-marco M6.2 concluído com sucesso; pronto para merge manual pelo usuário e transição para o Sub-marco M6.3 (Fronteira de Pareto, Critérios de Aquisição e Síntese de Conclusões Estruturadas).
+- **Feature**: m6-3-pareto-acquisition-synthesis (Sub-marco M6.3 Concluído, Verificado e Aprovado na Branch da Feature)
+- **Phase / Task**: Sub-marco M6.3 concluído com sucesso; pronto para merge manual pelo usuário e transição para o Sub-marco M6.4 (Persistência em disco de `statistics/`, `verify_statistics_gate` e CLI `expml stats`).
 - **Completed**:
-  - Especificação auditada (auditoria estatística e técnica de 5 pontos) e aprovada pelo usuário.
-  - Implementação TDD atômica (T1 a T5) em `experimental_ml.statistics` (zero `scipy` em runtime).
-  - Execução de provas automatizadas (`check_proofs.py`): 18 pass, 0 fail.
-  - Auditoria por Verificador Independente TLC com resultado `PASS` (5 sondagens adversariais aprovadas, 0 apontamentos).
+  - Especificação formal, Design e Tasks de M6.3 aprovados pelo usuário.
+  - Implementação TDD atômica (T1 a T5) em `experimental_ml.statistics`.
+  - Provas automatizadas (`check_proofs.py`): 12 pass, 0 fail.
+  - Auditoria por Verificador Independente TLC com resultado `PASS` (3 sondagens adversariais aprovadas, 0 apontamentos).
   - Registros de conformidade completos (`verification.md`, `ACCEPTANCE.md`, `RESULTS.md`) com portão `validate_verification.py` validado com 0 erros.
-  - Suíte completa de testes automatizados expandida para **524 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar M6.3.
-- **Next step**: Sub-marco M6.3 (`m6-3-pareto-acquisition-synthesis` — Fronteira de Pareto, funções de aquisição e `synthesize_conclusions` / `StructuredConclusion`).
+  - Suíte completa de testes automatizados expandida para **536 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar M6.4.
+- **Next step**: Sub-marco M6.4 (`m6-4-statistics-persistence-cli` — Persistência JSON atômica, portão `verify_statistics_gate` e CLI `expml stats`).
 - **Blockers**: none
-- **Branch**: feat/m6-2-paired-inference-multiplicity (não integrada à main conforme instrução do usuário)
+- **Branch**: feat/m6-3-pareto-acquisition-synthesis (não integrada à main conforme instrução do usuário)
