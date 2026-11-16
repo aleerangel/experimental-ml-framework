@@ -90,7 +90,7 @@ T4 --> T5
 
 ### Phase 1: Estruturas Imutáveis de Inferência e Comparação
 
-#### T1: Definir enums e dataclasses congeladas de inferência e comparação [ ]
+#### T1: Definir enums e dataclasses congeladas de inferência e comparação [x]
 
 **What**: Adicionar `ComparisonScope`, `MultiplicityMethod`, `EffectSizeMagnitude` e `PracticalRelevanceStatus` em `src/experimental_ml/statistics/types.py`. Implementar `ComparisonSpec`, `NadeauBengioResult`, `WilcoxonResult`, `EffectSizeResult`, `PairwiseComparisonResult`, `SkippedComparison` e `StatisticalComparisonBundle` com validações estruturais em `__post_init__` e imutabilidade completa (`frozen=True`). Adicionar testes unitários em `tests/unit/statistics/test_inference_types.py`.  
 **Where**: `src/experimental_ml/statistics/types.py`  
