@@ -91,7 +91,7 @@ T4 --> T5
 
 ### Phase 1: Domain Types, Enumerations, and Immutable Structures
 
-#### T1: Define statistics enums and frozen dataclasses
+#### T1: Define statistics enums and frozen dataclasses [x]
 
 **What**: Create `src/experimental_ml/statistics/types.py` defining `CoverageStatus`, `IncompleteComparisonPolicy`, and `ApplicabilityStatus` as closed string enums. Define `AggregatedMetricStats` with `n_valid`, `n_total`, `status`, and nullable float statistics (`mean`, `std`, `median`, `iqr`, `q25`, `q75`, `min_value`, `max_value`). Define `AggregatedTimingStats` with mean and sum durations for all cell phases. Define `ConfigurationSummary` with coverage metrics, fold lists, fold metrics, aggregated metrics, pooled OOF metrics, timing stats, and feature stability. Define `DescriptiveConsolidation` holding the configuration mapping and metadata. Define `ApplicableMethod` and `MethodSuitabilityReport`. Implement immutability checks raising `FrozenInstanceError`. Add unit tests in `tests/unit/statistics/test_types.py`.
 **Where**: `src/experimental_ml/statistics/types.py`
@@ -253,5 +253,5 @@ Proof: run unit | tests/unit/statistics/test_suitability.py::test_check_pairwise
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T1
-- **Next Task:** T1
+- **Current Task:** T2
+- **Next Task:** T2
