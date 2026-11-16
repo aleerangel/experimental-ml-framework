@@ -104,7 +104,7 @@ T4 --> T5
 
 ### Phase 2: Distribuição Student-t Pura e Teste de Nadeau-Bengio
 
-#### T2: Implementar distribuição Student-t pura e paired_nadeau_bengio_test [ ]
+#### T2: Implementar distribuição Student-t pura e paired_nadeau_bengio_test [x]
 
 **What**: Criar `src/experimental_ml/statistics/_distributions.py` com `betainc_reg`, `student_t_sf` e `student_t_ppf` usando fração continuada de Lentz em Python/NumPy puro (`XCUT-02`). Criar `src/experimental_ml/statistics/inference.py` com `paired_nadeau_bengio_test(scores_a, scores_b, train_val_ratios, fold_val_sizes=None, alpha=0.05)` aplicando variância corrigida $(1/J + \bar{r}) S^2_d$, tratamento seguro de $S^2_d = 0$ ($\bar{d}=0$ vs $\bar{d}\ne 0$), alerta para CV $> 20\%$ e rejeição de entradas inválidas. Adicionar testes em `tests/unit/statistics/test_nadeau_bengio.py`.  
 **Where**: `src/experimental_ml/statistics/inference.py`  
