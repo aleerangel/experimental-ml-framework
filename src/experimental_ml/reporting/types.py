@@ -233,3 +233,43 @@ class ResearcherDeclarations:
             object.__setattr__(
                 self, "additional_notes", tuple(str(n) for n in self.additional_notes)
             )
+
+
+class PackageMode(StrEnum):
+    """Export mode for the Stage 6 reproducibility package (RF6.4)."""
+
+    FULL_PACKAGE = "full_package"
+    REDUCED_NO_RAW_DATA = "reduced_no_raw_data"
+
+
+def _validate_relative_posix(path_str: str, field_name: str) -> str:
+    if not path_str or "\\" in path_str:
+        raise ContractViolationError(f"{field_name} must be a relative POSIX path: {path_str!r}")
+    if Path(path_str).is_absolute() or PureWindowsPath(path_str).is_absolute():
+        raise ContractViolationError(f"{field_name} must not be an absolute path: {path_str!r}")
+    if ".." in path_str.split("/"):
+        raise ContractViolationError(f"{field_name} must not contain '..' traversal: {path_str!r}")
+    return path_str
+
+
+@dataclass(frozen=True, slots=True)
+class ReproducibilityPackageManifest:
+    """Immutable manifest describing an exported Stage 6 reproducibility package (RF6.3, RF6.4)."""
+
+    experiment_id: str
+    partition_plan_id: str
+    package_mode: PackageMode
+    reproduction_level: str
+    exported_files: tuple[str, ...]
+    checksums_file: str
+    provenance_file: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.package_mode, PackageMode):
+            object.__setattr__(self, "package_mode", PackageMode(self.package_mode))
+        validated_files = tuple(
+            _validate_relative_posix(str(p), "exported_files") for p in self.exported_files
+        )
+        object.__setattr__(self, "exported_files", validated_files)
+        _validate_relative_posix(self.checksums_file, "checksums_file")
+        _validate_relative_posix(self.provenance_file, "provenance_file")
