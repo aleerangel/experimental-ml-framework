@@ -83,7 +83,7 @@ T3 --> T4
 
 ### Phase 2: Carregamento Somente-Leitura e Seleção
 
-#### T2: Implementar load_experiment_artifacts_readonly e select_report_content [ ]
+#### T2: Implementar load_experiment_artifacts_readonly e select_report_content [x]
 
 **What**: Criar `src/experimental_ml/reporting/loader.py` com `load_experiment_artifacts_readonly` (validando `verify_statistics_gate` e lendo artefatos persistidos sem importar ajuste/predição de modelos — `CA-E6-01`) e `select_report_content` (regras determinísticas para `FULL_LAB`, `ARTICLE_COMPACT` e `CUSTOM`). Adicionar testes em `tests/unit/reporting/test_reporting_loader.py`.  
 **Where**: `src/experimental_ml/reporting/loader.py`  
