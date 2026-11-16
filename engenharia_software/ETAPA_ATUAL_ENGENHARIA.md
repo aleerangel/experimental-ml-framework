@@ -1,10 +1,10 @@
 # Engenharia de Software — `experimental-ml-framework`
 
 > **Documento de Registro de Estado da Engenharia**<br/>
-> **Data:** 12 de Novembro de 2026<br/>
+> **Data:** 16 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
-> **Estado Atual:** Marcos M1 a M5 Concluídos, Auditados e Aceitos (471 testes automatizados)<br/>
-> **Próximo Marco:** Marco M6 — Consolidação e Comparação Estatística Rigorosa (`statistics`, CLI `stats`)<br/>
+> **Estado Atual:** Marcos M1 a M6 Concluídos, Auditados e Aceitos (548 testes automatizados)<br/>
+> **Próximo Marco:** Marco M7 — Relatórios Científicos, Visualizações e Pacote de Reprodutibilidade (`reporting`, CLI `report`)<br/>
 > **Especificação de Requisitos (SRS v2.1):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
 > **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
@@ -15,15 +15,15 @@
 
 O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
 
-As entregas dos **Marcos M1 (`m1-1` a `m1-5`)**, **M2 (`m2-1` a `m2-5` com hardening `REV-M2`)**, **M3 (`m3-1` a `m3-4`)**, **M4 (`m4-1` a `m4-4`)** e **M5 (`m5-1` a `m5-4` com auditoria independente e correção de achados P1 `ACH-M5-01` a `ACH-M5-03`)** foram formalmente aceitas com aprovação em **471 testes automatizados**, verificação independente e homologação manual na branch `main`. 
+As entregas dos **Marcos M1 (`m1-1` a `m1-5`)**, **M2 (`m2-1` a `m2-5` com hardening `REV-M2`)**, **M3 (`m3-1` a `m3-4`)**, **M4 (`m4-1` a `m4-4`)**, **M5 (`m5-1` a `m5-4` com auditoria independente e correção de achados P1 `ACH-M5-01` a `ACH-M5-03`)** e **M6 (`m6-1` a `m6-4` com auditoria estatística/técnica e verificação independente TLC)** foram formalmente aceitas com aprovação em **548 testes automatizados**. 
 
-As Fundações Transversais (M1), o Pipeline de Dados e Diagnóstico (M2), a Engenharia e Cenários de Features (M3), os Contratos de Modelos, Pré-processamento e Tuning Aninhado (M4) e a Execução Matricial com Tolerância a Falhas, Checkpoint e Consolidação OOF (M5) estão integralmente consolidados, determinísticos e integrados. O framework é 100% agnóstico a domínios aplicados (RNF02), tendo o critério `CA02` formalizado como validação externa a ser executada exclusivamente pelo pesquisador. O próximo passo de desenvolvimento é o **Marco M6 (Consolidação Descritiva e Comparação Estatística Rigorosa — `statistics`, `paired_nadeau_bengio_test`, `paired_wilcoxon_test`, correções FWER/FDR, Fronteira de Pareto e subcomando `expml stats`)**.
+As Fundações Transversais (M1), o Pipeline de Dados e Diagnóstico (M2), a Engenharia e Cenários de Features (M3), os Contratos de Modelos, Pré-processamento e Tuning Aninhado (M4), a Execução Matricial com Tolerância a Falhas, Checkpoint e Consolidação OOF (M5) e a Consolidação Descritiva, Inferência Pareada, Fronteira de Pareto e Síntese Estatística (M6) estão integralmente consolidados, determinísticos e integrados em Python/NumPy puro (`XCUT-02`). O framework é 100% agnóstico a domínios aplicados (`RNF02`), tendo o critério `CA02` formalizado como validação externa a ser executada exclusivamente pelo pesquisador. O próximo passo de desenvolvimento é o **Marco M7 (Relatórios Científicos, 7 Famílias de Tabelas e Visualizações, Manifesto `ArtifactProvenance`, Pacote de Reprodutibilidade e CLI `expml report`)**.
 
 ```mermaid
 flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.1)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
-    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(M1 a M5 Homologados — 471 testes)"]
+    Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(M1 a M6 Homologados — 548 testes)"]
     Fase4 --> Fase5["Fase 5: Verificação Experimental<br/>(Pendente)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
@@ -206,11 +206,11 @@ flowchart LR
 | **Camada 1: Definição e Triagem** | Nível 2 | `models` | Etapa 3A | `instantiate_fresh_model`, `fit_model`, `predict_model`, `extract_model_diagnostics`, `fit_two_layer_preprocessing` (incluindo roteamento para kernels externos) $\rightarrow$ `ModelSpec`, `ModelDiagnostics` |
 | **Camada 1: Definição e Triagem** | Nível 3 | `tuning` | Etapa 3B | `run_nested_tuning` (`fixed`, `grid_search`, `random_search`) $\rightarrow$ `HyperparameterSearchSpec`, histórico de tentativas |
 | **Camada 2: Validação e Execução Matricial** | Nível 2 | `validation` | Etapa 4A | `build_partition_plan`, `validate_partition_plan`, `write_splits_csv_gz` $\rightarrow$ `PartitionPlan`, matriz `splits.csv.gz` |
-| **Camada de Portões de Etapa** | Nível 3 | `stages` | Portões 1, 2, 3 e 4 | `verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `verify_models_gate`, `verify_runs_gate`, layout canônico de diretórios |
+| **Camada de Portões de Etapa** | Nível 3 | `stages` | Portões 1 a 5 | `verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `verify_models_gate`, `verify_runs_gate`, `verify_statistics_gate`, layout canônico de diretórios |
 | **Camada 2: Validação e Execução Matricial** | Nível 4 | `orchestration` | Etapa 4B | `run_experiment_matrix`, `resume_experiment_matrix`, `execute_cell`, `consolidate_oof_predictions`, `save_cell_result` $\rightarrow$ `CellResultRecord`, `PredictionRecord` (com `y_std` e comitê $\hat{\mu}_i, \hat{\sigma}_i$), `TimingBreakdown`, `ConsolidatedOofPredictions` |
-| **Camada 3: Comparação Estatística e Publicação** | Nível 5 | `statistics` | Etapa 5 | `consolidate_descriptive`, `evaluate_method_suitability`, `run_statistical_comparisons`, `compute_pareto_frontier`, `score_candidate_acquisition`, `synthesize_conclusions` $\rightarrow$ `StatisticalComparisonReport`, `StructuredConclusion` *(Planejado — Marco M6)* |
+| **Camada 3: Comparação Estatística e Publicação** | Nível 5 | `statistics` | Etapa 5 | `validate_stage5_entry`, `consolidate_descriptive`, `evaluate_method_suitability`, `paired_nadeau_bengio_test`, `paired_wilcoxon_test`, `compute_paired_cohens_d`, `adjust_pvalues_holm`, `adjust_pvalues_bh`, `run_statistical_comparisons`, `compute_pareto_frontier`, `score_candidate_acquisition`, `synthesize_conclusions`, `save_statistics_artifacts` $\rightarrow$ `StatisticalComparisonBundle`, `MultiObjectiveSummary`, `StructuredConclusion` |
 | **Camada 3: Comparação Estatística e Publicação** | Nível 6 | `reporting` | Etapa 6 | `select_report_content`, `build_table_model`, `build_figure_spec`, `render_full_report`, `build_reproducibility_package` $\rightarrow$ `TableModel`, `PlotSpecification`, `ArtifactProvenance` *(Planejado — Marco M7)* |
-| **Interface de Terminal** | Nível 7 | `cli` | Subcomandos por Etapa | CLI modularizada (`expml data`, `features`, `models`, `partition`, `run` implementados; `stats`, `report` planejados) com pura delegação funcional (`CLI-10`) |
+| **Interface de Terminal** | Nível 7 | `cli` | Subcomandos por Etapa | CLI modularizada (`expml data`, `features`, `models`, `partition`, `run`, `stats` implementados; `report` planejado) com pura delegação funcional (`CLI-10`) |
 
 ---
 
@@ -243,8 +243,12 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
    * **M5.3 (Concluído e Aceito — Consolidação OOF e Portão Stage 4):** `consolidate_oof_predictions` com ordenação canônica por `ObservationId`, estatísticas de comitê ($\hat{\mu}_i, \hat{\sigma}_i$), separação estrita de escopos de métricas (`POOLED_OOF` vs `FOLD_AGGREGATION`), persistência atômica de artefatos OOF e portão `verify_runs_gate`.
    * **M5.4 (Concluído e Aceito — CLI Run End-to-End e Homologação Transversal):** Subcomandos `expml run start`, `expml run resume`, `expml run status` e `expml run verify`, reconstituição automática de insumos, supressão de tracebacks e hashes (`CLI-06`, `CLI-11`) e pureza de runtime (`CLI-10`, `XCUT-02`).
    * **Auditoria Técnica e Saneamento P1 (`ACH-M5-01` a `ACH-M5-03`):** Correção de dispersão de comitê para $k=1$ (sem zero artificial), validação de integridade tripartite de hashes na retomada (`source_dataset_hash`, `partition_plan_id`) e discriminação formal entre execuções completas e parciais no portão `verify_runs_gate`, totalizando 471 testes automatizados aprovados com 100% de sucesso.
-6. **Marco M6 (`statistics` + CLI `stats` — Próximo Marco / Em Planejamento):** Funções de consolidação descritiva, adequação metodológica, tratamento de *folds* incompletos, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, tamanho de efeito, relevância prática, Fronteira de Pareto, funções de aquisição, `synthesize_conclusions` e subcomando `expml stats`.
-7. **Marco M7 (`reporting` + CLI `report` + Pacote de Reprodutibilidade — Planejado):**
+6. **Marco M6 (`statistics` + CLI `stats` — Concluído, Verificado e Aceito):**
+   * **M6.1 (Concluído e Aceito — Consolidação Descritiva e Adequação Metodológica):** Portão `validate_stage5_entry` (reconhecendo `CANCELLED` como estado terminal sem resultado utilizável), consolidador `consolidate_descriptive` com cobertura tripartite (`VALID`, `PARTIAL_COVERAGE`, `NO_COVERAGE`), estatísticas amostrais sem coerção para zero (`std=None` para $n_{\text{valid}} \le 1$) e avaliador `evaluate_method_suitability` / `check_pairwise_comparison_eligibility` com isolamento de `FINAL_HOLDOUT`.
+   * **M6.2 (Concluído e Aceito — Inferência Pareada, Tamanho de Efeito e Multiplicidade):** Distribuição Student-$t$ pura em NumPy/Python (`_distributions.py` via fração continuada de Lentz, zero `scipy` — `XCUT-02`), `paired_nadeau_bengio_test` (com variância corrigida, tratamento seguro de $S^2_d=0$ e alerta de CV $> 20\%$), `paired_wilcoxon_test` (DP exata para $n_{\text{eff}} \le 20$, `"wilcox"` e `"pratt"` exato, aproximação normal e alerta $J < 6$), `compute_paired_cohens_d`, ajustes `adjust_pvalues_holm` / `adjust_pvalues_bh` e orquestrador `run_statistical_comparisons` com filtragem de `UNDEFINED_NAN` e proteção estrita em `HOLDOUT_ONLY`.
+   * **M6.3 (Concluído e Aceito — Fronteira de Pareto, Aquisição e Síntese):** `compute_pareto_frontier` (apenas configurações `VALID` e finitas), `score_candidate_acquisition` (`EXPECTED_IMPROVEMENT`, `UCB`, `LCB`, `EXPLOITATION`, `EXPLORATION` em NumPy puro) e `synthesize_conclusions` gerando `StructuredConclusion` rastreável aos números sem declarar equivalência por $p_{\text{adj}} \ge \alpha$.
+   * **M6.4 (Concluído e Aceito — Persistência Atômica, Portão Stage 5 e CLI `expml stats`):** `save_statistics_artifacts` / `load_statistics_artifacts` com marcadores RFC 8259 para não-finitos, portão `verify_statistics_gate` em `stages` e subcomandos `expml stats run`, `status` e `verify` com `CLI-10` e `CLI-11`, totalizando **548 testes automatizados** aprovados.
+7. **Marco M7 (`reporting` + CLI `report` + Pacote de Reprodutibilidade — Próximo Marco / Planejado):**
    * **M7.1 (Geração de Relatórios e Artefatos Modulares):** Funções de geração de relatórios completos (Markdown e HTML autocontido com CSS embutido), 7 famílias de tabelas (CSV, Markdown e LaTeX `booktabs`) e figuras prontas para publicação (PNG 300 DPI, SVG e PDF).
    * **M7.2 (Proveniência, Pacote de Reprodutibilidade e CLI `report`):** Manifesto de linhagem (`ArtifactProvenance`), cálculo determinístico de `checksums.sha256` relativo, empacotamento portável de auditoria (`environment.json`, `seeds.json`, `REPRODUCE.md`) e comando de verificação `expml report verify`.
 

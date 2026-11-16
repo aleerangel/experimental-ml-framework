@@ -13,8 +13,8 @@ O projeto prioriza a integridade metodológica, a prevenção estrutural de vaza
 | **Versão** | `0.1.0.dev0` (Hatchling / PEP 517 / PEP 621) |
 | **Compatibilidade** | Python `>= 3.10` (testado e homologado em Python 3.12) |
 | **Dependência Única de Runtime** | `numpy >= 1.24.0` |
-| **Estado Atual** | **Fase 4: Implementação TDD do MVP** (Marcos M1 a M5 concluídos, auditados e aceitos) |
-| **Garantia de Qualidade** | **471 testes automatizados** com 100% de aprovação via `pytest` |
+| **Estado Atual** | **Fase 4: Implementação TDD do MVP** (Marcos M1 a M6 concluídos, auditados e aceitos) |
+| **Garantia de Qualidade** | **548 testes automatizados** com 100% de aprovação via `pytest` |
 | **Governança Técnica** | TLC Spec-Driven Development (`spec.md`, `design.md`, `tasks.md`, `proofs.md`, `verification.md`) |
 
 ---
@@ -508,13 +508,13 @@ O framework organiza-se em camadas modulares com níveis estritos de dependênci
 | **Métricas e Avaliação** | Nível 1 | `experimental_ml.metrics` | Catálogo canônico de 15 métricas (`METRICS_CATALOG`), implementações puras em `float64` (regressão, classificação, alinhamento KTA), tratamento formal `UNDEFINED_NAN` (`ADR-005`), agregação inter-dobras e ranqueamento lexicográfico. |
 | **Cenários de Features** | Nível 2 | `experimental_ml.features` | Análise exploratória univariada/redundâncias (`explore_features`) com rotulagem `EXPLORATORY_FULL_DATA`, modelagem de cenários fixos e dinâmicos (`FeatureScenario`), validação contra visão saneada, seleção intra-fold (`select_features_in_fold`) e estabilidade inter-dobras (Jaccard e Kuncheva). |
 | **Particionamento** | Nível 2 | `experimental_ml.validation` | Estratégias de particionamento (K-Fold, Stratified, Group, Bootstrap, Temporal, Holdout), geração determinística do `PartitionPlan`, validação matemática de invariantes e disjunção de folds, e matriz `splits.csv.gz` compactada com `mtime=0.0`. |
-| **Portões de Validação** | Nível 3 | `experimental_ml.stages` | Portões de integridade entre etapas (`verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `verify_models_gate`, `verify_runs_gate`) com checagem de hashes e layout canônico. |
+| **Portões de Validação** | Nível 3 | `experimental_ml.stages` | Portões de integridade entre etapas (`verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `verify_models_gate`, `verify_runs_gate`, `verify_statistics_gate`) com checagem de hashes e layout canônico. |
 | **Modelos e Pré-processamento** | Nível 4 | `experimental_ml.models` | Contratos agnósticos de modelo (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), isolamento estrito de instâncias (`_ActiveInstancesRegistry`), baselines canônicos, pré-processamento em 2 camadas (scalers e kernels pré-computados) e catálogo auditado. |
 | **Tuning e Otimização Aninhada** | Nível 4 | `experimental_ml.tuning` | Particionamento interno puro em NumPy, geração determinística de candidatos (`Grid`, `Random`, `Fixed`), validação declarativa de espaços e busca aninhada (*Nested CV*) com isolamento estrito anti-leakage e desqualificação por `UNDEFINED_NAN`. |
 | **Execução Matricial** | Nível 5 | `experimental_ml.orchestration` | Orquestração matricial (Modelos × Cenários × Partições), máquina de estados de célula (`CellResultRecord`), tempos desagregados (`TimingBreakdown`), paralelismo controlado (`outer_n_jobs`), tolerância a falhas (`FAULT_TOLERANT` / `FAIL_FAST`), checkpointing incremental e consolidação out-of-fold com estatísticas de comitê (`ConsolidatedOofPredictions`). |
-| **Estatística Comparativa** | Nível 5 | `experimental_ml.statistics` | *(Planejado — Marco M6)* Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm/BH), Fronteira de Pareto e síntese estruturada de conclusões. |
+| **Estatística Comparativa** | Nível 5 | `experimental_ml.statistics` | Consolidação descritiva e cobertura (`VALID`, `PARTIAL_COVERAGE`, `NO_COVERAGE`), adequação metodológica (`evaluate_method_suitability`), Nadeau-Bengio (2003), Wilcoxon pareado (DP exata e Pratt/Wilcox), Cohen's $d_z$, controle FWER/FDR (Holm/BH), Fronteira de Pareto, aquisição sequencial (`EI`, `UCB`, `LCB`) e síntese estruturada (`StructuredConclusion`) em NumPy puro (`XCUT-02`). |
 | **Relatórios e Pacote** | Nível 6 | `experimental_ml.reporting` | *(Planejado — Marco M7)* Relatórios completos (Markdown/HTML), tabelas (CSV/LaTeX `booktabs`), figuras e pacote de reprodutibilidade com manifesto `ArtifactProvenance`. |
-| **Interface de Linha de Comando** | Nível 7 | `experimental_ml.cli` | Ponto de entrada modularizado `expml` (`data`, `features`, `models`, `partition`, `run` implementados; `stats`, `report` planejados), com pura delegação funcional, códigos de saída padronizados e sem dependências pesadas no topo (`CLI-10`). |
+| **Interface de Linha de Comando** | Nível 7 | `experimental_ml.cli` | Ponto de entrada modularizado `expml` (`data`, `features`, `models`, `partition`, `run`, `stats` implementados; `report` planejado), com pura delegação funcional, códigos de saída padronizados e sem dependências pesadas no topo (`CLI-10`). |
 
 ---
 
@@ -540,9 +540,10 @@ experimental-ml-framework/
 │       ├── models/                  # Contratos de modelos, pré-processamento em 2 camadas e catálogo (Nível 4)
 │       ├── orchestration/           # Execução matricial, checkpoint e consolidação OOF (Nível 5)
 │       ├── stages/                  # Portões de validação e integridade de etapas (Nível 3)
+│       ├── statistics/              # Consolidação, inferência pareada, Pareto e síntese (Nível 5)
 │       ├── tuning/                  # Particionamento interno e otimização aninhada - Nested CV (Nível 4)
 │       └── validation/              # Particionamento compartilhado e validação matemática (Nível 2)
-├── tests/                           # Suíte de testes automatizados (471 verificações)
+├── tests/                           # Suíte de testes automatizados (548 verificações)
 │   ├── integration/                 # Testes de integração transversal e subprocessos
 │   ├── test_smoke.py                # Testes de fumaça da CLI e metadados de empacotamento
 │   └── unit/                        # Testes unitários modulares
@@ -560,7 +561,7 @@ A integridade do framework é assegurada de forma contínua pelo **Pytest**.
 ### Execução da Suíte
 
 ```bash
-# Executar a suíte completa de testes (471 verificações automatizadas)
+# Executar a suíte completa de testes (548 verificações automatizadas)
 pytest tests/ -v
 
 # Executar suítes específicas
@@ -582,8 +583,9 @@ pytest tests/test_smoke.py -v
 - **Execução Matricial e Célula Unitária (38 testes):** Contratos de célula, ciclo completo de ajuste/predição intra-fold, isolamento estrito de instâncias e registro de tempos desagregados.
 - **Orquestração, Paralelismo e Checkpointing (42 testes):** Grade cartesiana, modos `FAULT_TOLERANT` e `FAIL_FAST`, isolamento de falhas, escritas atômicas e retomada verificada por integridade de hashes do dataset e partition plan.
 - **Consolidação Out-of-Fold e Portão Stage 4 (25 testes):** Ordenação lexicográfica canônica por `ObservationId`, estatísticas de comitê sem dispersão artificial ($k=1$), métricas pooled vs inter-folds e portão de passagem `verify_runs_gate`.
-- **Hardening de Auditoria e Portões de Etapa (38 testes):** Regressões dedicadas dos achados das auditorias M2, M4 e M5 (`REV-M2`, `AUD-M4`, `ACH-M5-01` a `ACH-M5-03`), validação nos portões de etapa (`verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `verify_models_gate`, `verify_runs_gate`) e isolamento de runtime.
-- **CLI e Integração Ponta a Ponta (43 testes):** Subcomandos `data`, `features`, `partition`, `models` e `run` com pureza arquitetural CLI-10 (sem dependências pesadas no topo), verificação de contratos via subprocessos, crash recovery e validação de blocos de documentação.
+- **Hardening de Auditoria e Portões de Etapa (41 testes):** Regressões dedicadas dos achados das auditorias M2, M4 e M5 (`REV-M2`, `AUD-M4`, `ACH-M5-01` a `ACH-M5-03`), validação nos portões de etapa (`verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `verify_models_gate`, `verify_runs_gate`, `verify_statistics_gate`) e isolamento de runtime.
+- **Estatística Comparativa, Pareto, Aquisição e Síntese (77 testes):** Consolidação descritiva e cobertura, adequação metodológica, Nadeau-Bengio, Wilcoxon (DP exata e Pratt/Wilcox), Cohen's $d_z$, Holm-Bonferroni, Benjamini-Hochberg, Fronteira de Pareto, funções de aquisição, `StructuredConclusion`, persistência atômica e CLI `expml stats` (`run`, `status`, `verify`) 100% sem `scipy` (`XCUT-02`).
+- **CLI e Integração Ponta a Ponta (47 testes):** Subcomandos `data`, `features`, `partition`, `models`, `run` e `stats` com pureza arquitetural CLI-10 (sem dependências pesadas no topo), verificação de contratos via subprocessos, crash recovery e validação de blocos de documentação.
 
 ---
 
@@ -598,8 +600,8 @@ O ciclo de vida do framework segue o processo de aceite estabelecido em [`PROCES
 | **M3** | **Cenários e Seleção de Features:** Análise exploratória univariada/redundâncias, modelagem declarativa de cenários fixos/dinâmicos, seleção intra-fold anti-leakage, estabilidade inter-dobras (Jaccard e Kuncheva) e CLI de features. | **Concluído e Aceito** |
 | **M4** | **Modelos e Hiperparâmetros:** Contratos agnósticos de modelos (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento em 2 camadas, busca aninhada (*Nested CV*), catálogo persistível e CLI de modelos. | **Concluído e Aceito** |
 | **M5** | **Execução Matricial:** Orquestração da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$, paralelismo, tolerância a falhas, checkpoint/resume, consolidação OOF e CLI de execução `expml run`. | **Concluído e Aceito** |
-| **M6** | **Estatística Comparativa:** Teste $t$ de Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm-Bonferroni, Benjamini-Hochberg) e Fronteira de Pareto multi-critério. | **Próximo Marco (Planejado)** |
-| **M7** | **Relatórios e Reprodutibilidade:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas (CSV/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência (`ArtifactProvenance`) e pacote portável de replicação (`expml report verify`). | Planejado |
+| **M6** | **Estatística Comparativa:** Consolidação descritiva, adequação metodológica, teste $t$ de Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm-Bonferroni, Benjamini-Hochberg), Fronteira de Pareto, aquisição sequencial, síntese rastreável e CLI `expml stats`. | **Concluído e Aceito** |
+| **M7** | **Relatórios e Reprodutibilidade:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas (CSV/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência (`ArtifactProvenance`) e pacote portável de replicação (`expml report verify`). | **Próximo Marco (Planejado)** |
 | **Pós-MVP** | **Auditoria Geral, Guia do Pesquisador e Homologação:** Mega auditoria independente de todas as 6 etapas, manual didático completo (Quickstart e Cookbook) e validação científica externa (`CA02`). | Planejado |
 
 ---
