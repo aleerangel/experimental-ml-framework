@@ -121,7 +121,7 @@ T4 --> T5
 
 ### Phase 4: Síntese de Conclusões Estruturadas
 
-#### T4: Implementar synthesize_conclusions [ ]
+#### T4: Implementar synthesize_conclusions [x]
 
 **What**: Criar `src/experimental_ml/statistics/synthesis.py` com `synthesize_conclusions` consumindo 5A (`DescriptiveConsolidation`), adequação (`MethodSuitabilityReport`), 5B (`StatisticalComparisonBundle`) e `MultiObjectiveSummary` opcional, produzindo `StructuredConclusion` com referências numéricas exatas na narrativa, preservação de ressalvas metodológicas e proibição de declarar equivalência a partir de $p_{\text{adj}} \ge \alpha$. Adicionar testes em `tests/unit/statistics/test_synthesis.py`.  
 **Where**: `src/experimental_ml/statistics/synthesis.py`  
