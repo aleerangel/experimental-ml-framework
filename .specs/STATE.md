@@ -98,21 +98,35 @@
 - **Date**: 2026-11-12
 - **Status**: active
 
+### AD-013
+- **Decision**: Consolidação descritiva e adequação metodológica da Etapa 5 (Sub-marco M6.1) com:
+  1. Portão de entrada Stage 4B $\rightarrow$ 5 (`validate_stage5_entry`) que reconhece `CANCELLED` como estado terminal de processo sem resultados utilizáveis (distinguindo-o de execuções ativas `PENDING`/`RUNNING`), exigindo conclusão ou cancelamento para prosseguir.
+  2. Rastreamento tripartite de cobertura por configuração (`VALID` com $C=1.0$, `PARTIAL_COVERAGE` com $0 < C < 1.0$, e `NO_COVERAGE` com $C=0.0$) registrando separadamente `completed_fold_ids`, `failed_fold_ids` e `cancelled_fold_ids`.
+  3. Estatísticas descritivas amostrais sem coerção artificial para zero: quando $n_{\text{valid}} = 0$, todos os campos numéricos são `None` e o status é `UNDEFINED_NAN`; quando $n_{\text{valid}} = 1$, `std = None` (sem variância amostral artificialmente zerada); e quando $n_{\text{valid}} \ge 2$, calcula desvio padrão amostral com `ddof=1`.
+  4. Preservação de estabilidade por Jaccard $J(S_a, S_b)$ onde $S_a = S_b = \emptyset \implies 1.0$, e interseção vazia com pelo menos um não vazio $\implies 0.0$.
+  5. Avaliação de adequação metodológica (`evaluate_method_suitability`) distinguindo estritamente $J = \text{len}(\text{folds})$ como número de partições de desenvolvimento (isolando completamente holdout final sob `CV_AND_HOLDOUT`), calculando razão de sobreposição de treino per-fold $r_j = n_{\text{val}, j} / n_{\text{train}, j}$ e média $\bar{r}$, diagnosticando $J < 6$ para Wilcoxon sem prometer poder estatístico para $J \ge 6$, e avaliando elegibilidade pareada sob políticas configuráveis (`REQUIRE_COMPLETE_PAIRS` vs `USE_COMMON_FOLDS`).
+- **Reason**: Atender aos requisitos `RF5.1`, `RF5.2`, `RF5.3`, `CA-E5-01`, `CA-E5-02`, `STAT-01` a `STAT-07`, `RNF02` e `XCUT-02`, estabelecendo a base analítica descritiva e diagnóstica rigorosa antes da inferência estatística (M6.2), impedindo que falhas parciais ou cancelamentos corrompam inferências estatísticas e garantindo fidelidade metodológica estrita.
+- **Trade-off**: Requer representação explícita de ausência de dispersão (`None`), controle detalhado de folds comuns entre pares de modelos e nulabilidade controlada em `AggregatedMetricStats`.
+- **Scope**: Módulos `experimental_ml.statistics.types`, `consolidation`, `suitability` e portões de estágio.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m5-matrix-execution-and-orchestration (Marco M5 Concluído, Auditado e Integrado na Main)
-- **Phase / Task**: Marco M5 concluído e aceito; preparação e planejamento para o Marco M6 (Consolidação Descritiva e Comparação Estatística Rigorosa).
+- **Feature**: m6-1-descriptive-consolidation-suitability (Sub-marco M6.1 Concluído, Verificado e Aprovado)
+- **Phase / Task**: Sub-marco M6.1 concluído com sucesso; transição para o Sub-marco M6.2 (Inferência Estatística Pareada, Tamanho de Efeito e Ajuste de Multiplicidade).
 - **Completed**:
-  - Implementação e homologação integral de todos os 4 sub-marcos de M5:
-    - M5.1 (`m5-1-cell-execution-contracts`): Contratos funcionais, máquina de estados de célula e tempos desagregados.
-    - M5.2 (`m5-2-matrix-executor-checkpointing`): Grade cartesiana, motor de execução com paralelismo configurável e checkpoint/resume.
-    - M5.3 (`m5-3-oof-consolidation-stage-gate`): Consolidação OOF, comitê, métricas pooled vs inter-folds e portão `verify_runs_gate`.
-    - M5.4 (`m5-4-cli-run-end-to-end`): Interface de terminal `expml run`, ergonomia CLI e integração ponta a ponta.
-  - Auditoria técnica independente de M5 realizada com identificação e resolução de 3 achados P1 (`ACH-M5-01`, `ACH-M5-02`, `ACH-M5-03`).
-  - Desacoplamento irrestrito de qualquer domínio aplicado (RNF02) e isolamento formal de `CA02` como validação externa.
-  - Integração e merge da branch `feat/m5-4-cli-run-end-to-end` na branch `main`.
-  - Suíte completa de testes automatizados expandida para **471 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Planejamento e especificação dos requisitos do Marco M6 (`statistics` e CLI `stats`).
-- **Next step**: Especificação e decomposição de tarefas de M6 (Etapa 5 — Consolidação Descritiva, Adequação Metodológica, Nadeau-Bengio, Wilcoxon, Holm-Bonferroni, Benjamini-Hochberg, Tamanho de Efeito, Fronteira de Pareto e CLI `stats`).
+  - Especificação formal de M6.1 com 29 critérios EARS auditados e aprovados pelo usuário.
+  - Implementação TDD atômica (T1 a T5) do módulo `experimental_ml.statistics`:
+    - `types.py`: Dataclasses congeladas imutáveis (`ConfigurationSummary`, `AggregatedMetricStats`, `MethodSuitabilityReport`, `PairwiseEligibilityReport`) e enums (`IncompleteComparisonPolicy`, `CoverageStatus`).
+    - `consolidation.py`: `validate_stage5_entry` e `consolidate_descriptive`.
+    - `suitability.py`: `evaluate_method_suitability` e `check_pairwise_comparison_eligibility`.
+    - `__init__.py`: Exportações canônicas públicas.
+  - Execução de provas automatizadas (`check_proofs.py`): 29 pass, 0 fail.
+  - Auditoria por Verificador Independente TLC com resultado `PASS` (0 apontamentos).
+  - Registros de conformidade completos (`verification.md`, `ACCEPTANCE.md`, `RESULTS.md`) com portão `validate_verification.py` validado com 0 erros.
+  - Suíte completa de testes automatizados expandida para **505 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Início do Sub-marco M6.2 (`m6-2-paired-inference-multiplicity`).
+- **Next step**: Especificação e decomposição de tarefas de M6.2 (Submódulo 5B — Teste t pareado corrigido de Nadeau-Bengio, Teste dos postos com sinais de Wilcoxon, $d$ de Cohen pareado, ajustes de Holm-Bonferroni e Benjamini-Hochberg).
 - **Blockers**: none
-- **Branch**: main
+- **Branch**: feat/m6-1-descriptive-consolidation-suitability (pronta para merge na main)
