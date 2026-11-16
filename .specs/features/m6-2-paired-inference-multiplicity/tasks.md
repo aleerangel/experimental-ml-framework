@@ -118,7 +118,7 @@ T4 --> T5
 
 ### Phase 3: Teste Pareado de Wilcoxon e Tamanho de Efeito
 
-#### T3: Implementar paired_wilcoxon_test e compute_paired_cohens_d [ ]
+#### T3: Implementar paired_wilcoxon_test e compute_paired_cohens_d [x]
 
 **What**: Implementar `paired_wilcoxon_test` em `src/experimental_ml/statistics/inference.py` com `zero_method` (`"wilcox"` e `"pratt"` com média/variância exatas de Pratt), DP exata sobre postos dobrados para $n_{\text{eff}} \le 20$ e $J \le 25$, aproximação normal com continuidade e empates para amostras maiores, $W=0.0, p=1.0$ quando $n_{\text{eff}} = 0$ e aviso para $J < 6$ ou $n_{\text{eff}} < 6$. Implementar `compute_paired_cohens_d` com $d_z = \bar{d}/s_d$ (`ddof=1`), IC analítico com quantil $t_{\alpha/2, J-1}$ e ressalva de CV, classificação qualitativa e tratamento seguro de $s_d = 0$. Adicionar testes em `tests/unit/statistics/test_wilcoxon_cohen.py`.  
 **Where**: `src/experimental_ml/statistics/inference.py`  
