@@ -132,7 +132,7 @@ T4 --> T5
 
 ### Phase 4: Multiplicidade e Orquestração de Comparações
 
-#### T4: Implementar ajuste de multiplicidade e orquestrador run_statistical_comparisons [ ]
+#### T4: Implementar ajuste de multiplicidade e orquestrador run_statistical_comparisons [x]
 
 **What**: Criar `src/experimental_ml/statistics/multiplicity.py` com `adjust_pvalues_holm` e `adjust_pvalues_bh`, preservando ordem, garantindo monotonicidade com empates e rejeitando valores fora de $[0, 1]$ ou não finitos. Criar `src/experimental_ml/statistics/comparisons.py` com `run_statistical_comparisons`, suportando os 6 escopos de `ComparisonScope`, integrando `check_pairwise_comparison_eligibility` e filtragem per-metric de `MetricStatus.VALID`, alinhando razões/tamanhos aos folds compartilhados, bloqueando `HOLDOUT_ONLY`, isolando `FINAL_HOLDOUT`, avaliando $\Delta_{\text{min}}$ e ajustando `nadeau_bengio` e `wilcoxon` por família. Adicionar testes em `tests/unit/statistics/test_multiplicity_comparisons.py`.  
 **Where**: `src/experimental_ml/statistics/comparisons.py`  
