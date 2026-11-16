@@ -144,5 +144,5 @@ def test_audit_report_zero_open_p0_p1() -> None:
     """C3: Verify AUDIT_REPORT.md exists and records 0 open P0 and 0 open P1 findings."""
     assert AUDIT_REPORT_PATH.is_file(), f"Missing audit report: {AUDIT_REPORT_PATH}"
     content = AUDIT_REPORT_PATH.read_text(encoding="utf-8")
-    assert "Open P0 Findings: 0" in content
-    assert "Open P1 Findings: 0" in content
+    assert re.search(r"Open P0 Findings:\**\s*0\b", content)
+    assert re.search(r"Open P1 Findings:\**\s*0\b", content)
