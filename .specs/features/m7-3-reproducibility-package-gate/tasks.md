@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/m7-3-reproducibility-package-gate/design.md`  
-**Status**: In Progress  
+**Status**: Completed  
 **Approved**: 2026-11-16 - user: "aprovado"  
 **Build**: none - Python interpreted package without ahead-of-time build step; quality verified via pytest gates  
 **Run unit**: .venv/bin/pytest tests/unit/reporting/ tests/unit/stages/test_stage_report_gate.py tests/integration/reporting/ -v  
@@ -90,7 +90,7 @@ T2 --> T3
 
 ### Phase 3: API Pública e Integração
 
-#### T3: Expor API pública de M7.3 e validar integração e pureza XCUT-02 [ ]
+#### T3: Expor API pública de M7.3 e validar integração e pureza XCUT-02 [x]
 
 **What**: Atualizar `src/experimental_ml/reporting/__init__.py` exportando `PackageMode`, `ReproducibilityPackageManifest` e `build_reproducibility_package`. Criar `tests/integration/reporting/test_m73_integration.py` validando fluxo completo de empacotamento, portabilidade após mover diretório raiz, `verify_report_gate` e pureza runtime `XCUT-02`.  
 **Where**: `src/experimental_ml/reporting/__init__.py`  
