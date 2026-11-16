@@ -177,18 +177,26 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-020
+- **Decision**: Interface CLI `expml report` (`generate`, `export`, `verify`) e validação ponta a ponta Estágio 1 → Estágio 6 (Sub-marco M7.4):
+  1. `cmd_report.py` e `cli/main.py` expõem `expml report generate`, `export` e `verify` com imports lazy (`CLI-10`), saída JSON sem hashes/digests brutos (`CLI-11`), proteção `--force` (`STORE-05`) e códigos de saída padronizados (`0` sucesso, `2` violação/integridade).
+  2. Fluxo E2E completo validado desde `data profile` (Estágio 1) até `report verify` após movimentação do diretório do pacote (Estágio 6), mantendo `XCUT-02` (apenas stdlib + `numpy`).
+- **Reason**: Atender aos requisitos `REP-08`, `REP-09`, `CLI-10`, `CLI-11`, `CA-E6-01`, `CA-E6-02` e `XCUT-02`.
+- **Trade-off**: `partition_plan_id` (64-hex) é omitido do resumo JSON impresso no `stdout` do CLI para cumprimento estrito da regra `CLI-11`, permanecendo registrado nos artefatos persistidos e no retorno Python de `verify_report_gate`.
+- **Scope**: Módulos `experimental_ml.cli.cmd_report` e `experimental_ml.cli.main`.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m7-3-reproducibility-package-gate (Sub-marco M7.3 Concluído, Verificado e Aprovado na Branch da Feature)
-- **Phase / Task**: Sub-marco M7.3 concluído com sucesso; pronto para transição para o Sub-marco M7.4 (`expml report` CLI e integração ponta a ponta).
+- **Feature**: m7-4-cli-report-end-to-end (Marco M7 — Etapa 6 Concluído na Branch da Feature)
+- **Phase / Task**: Marco M7 (M7.1–M7.4) 100% concluído e verificado; pronto para abertura/merge dos PRs em sequência pelo usuário (`m7-2` → `m7-3` → `m7-4`).
 - **Completed**:
-  - Especificação formal, Design e Tasks de M7.3 aprovados pelo usuário.
-  - Implementação TDD atômica (T1 a T3) em `experimental_ml.reporting.packaging` e `experimental_ml.stages.stage_gates`.
-  - Provas automatizadas (`check_proofs.py`): 8 pass, 0 fail.
-  - Verificação Independente TLC (`PASS`).
+  - Sub-marcos M7.1, M7.2, M7.3 e M7.4 implementados em TDD estrito e verificados independentemente (`PASS`).
+  - `check_proofs.py m7-4-cli-report-end-to-end`: 6 pass, 0 fail.
   - Registros `verification.md`, `ACCEPTANCE.md`, `RESULTS.md` validados (`validate_verification.py`: 0 erros).
-  - Suíte completa de testes automatizados expandida para **575 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Preparação da especificação M7.4 (`m7-4-cli-report-end-to-end`).
-- **Next step**: Sub-marco M7.4 (`m7-4-cli-report-end-to-end` — subcomandos CLI `expml report generate`, `export`, `verify` e testes E2E).
+  - Suíte completa de testes automatizados expandida para **581 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Aguardando merge manual dos PRs na `main` pelo usuário (`m7-2` → `m7-3` → `m7-4`).
+- **Next step**: Consolidação dos PRs de M7.2, M7.3 e M7.4 na `main` e eventual Marco M8 / validação `CA02` externa.
 - **Blockers**: none
-- **Branch**: feat/m7-3-reproducibility-package-gate (não integrada à main conforme instrução do usuário)
+- **Branch**: feat/m7-4-cli-report-end-to-end (não integrada à main conforme instrução do usuário)
