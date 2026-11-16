@@ -121,7 +121,7 @@ A Mega Auditoria Transversal (`TA-POS.1`) inspecionou diretamente todos os módu
 
 ### `ACH-POS1-P1-13`: `README.md` com `report planejado` na Seção 4, Pacote `reporting/` Ausente da Árvore, Flags Incorretas em `expml run` e Soma de Testes por Domínio Defasada
 - **Onde:** `README.md:138-151, 512-517, 534-545, 575-588`
-- **Evidência:** Linha 138 usa `--error-policy FAULT_TOLERANT` (o parser exige `fault_tolerant`); linhas 141–151 usam `--experiment-dir` em `run resume|status|verify` (o parser exige `--run-dir`); faltam exemplos CLI de `expml stats` e `expml report`; linha 517 diz `report planejado`; árvore na Seção 5 omite `reporting/`; tabela da Seção 6 não inclui a linha do domínio de Relatórios e Reprodutibilidade (M7).
+- **Evidência:** Linha 138 usa `--error-policy FAULT_TOLERANT` (o parser exige `fault_tolerant`); linhas 141–151 usam `--experiment-dir` em `run resume|status|verify` (o parser exige `--run-dir`); linha 517 diz `report planejado`; árvore na Seção 5 omite `reporting/`; tabela da Seção 6 não inclui a linha do domínio de Relatórios e Reprodutibilidade (M7). *(Nota: em T3 serão corrigidas apenas as divergências factuais no `README.md`, sem adicionar novos blocos longos de exemplos, pois na etapa seguinte `TA-POS.2` o `README.md` será enxugado e apontará para o Guia do Usuário, `engenharia_software/` e `REFERENCIAS_E_FUNDAMENTACAO.md`).*
 
 ### `ACH-POS1-P1-14`: `REFERENCIAS_E_FUNDAMENTACAO.md` — Subcasos $s^2_d = 0$ no Nadeau-Bengio, Typo `CA-E5-03`, Nota `.tla` e Referências Kuncheva/KTA/Lentz
 - **Onde:** `REFERENCIAS_E_FUNDAMENTACAO.md:4-5, 25-44, 133, 174, 253, 278, 284` (e `ARQUITETURA_E_CONTRATOS.md:192, 865`)
