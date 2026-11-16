@@ -170,6 +170,34 @@ def build_parser() -> argparse.ArgumentParser:
     stats_verify_p = stats_subparsers.add_parser("verify", help="Verify Stage 5 statistics gate.")
     stats_verify_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
 
+    # --- report command ---
+    report_parser = subparsers.add_parser("report", help="Stage 6 scientific reporting, packaging, and gate verification.")
+    report_subparsers = report_parser.add_subparsers(dest="subcommand", metavar="<subcommand>")
+
+    # report generate
+    report_gen_p = report_subparsers.add_parser("generate", help="Generate scientific report (Markdown/HTML) read-only.")
+    report_gen_p.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", required=True, help="Path to experiment directory.")
+    report_gen_p.add_argument("--output-dir", default=None, help="Output directory for generated reports (default: <exp-dir>/reports).")
+    report_gen_p.add_argument("--format", choices=["markdown", "html", "both"], default="both", help="Report output format.")
+    report_gen_p.add_argument("--audience", choices=["FULL_LAB", "ARTICLE_COMPACT", "CUSTOM"], default="FULL_LAB", help="Report audience selection.")
+    report_gen_p.add_argument("--families", default=None, help="Comma-separated ReportFamily values (required for CUSTOM audience).")
+    report_gen_p.add_argument("--objective", default="", help="Optional researcher scientific objective declaration.")
+    report_gen_p.add_argument("--force", action="store_true", help="Overwrite existing report files.")
+
+    # report export
+    report_exp_p = report_subparsers.add_parser("export", help="Export full reproducibility package with relative SHA-256 checksums.")
+    report_exp_p.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", required=True, help="Path to experiment directory.")
+    report_exp_p.add_argument("--output-dir", default=None, help="Output package directory (default: <exp-dir>).")
+    report_exp_p.add_argument("--mode", choices=["full_package", "reduced_no_raw_data"], default="full_package", help="Reproducibility package mode.")
+    report_exp_p.add_argument("--audience", choices=["FULL_LAB", "ARTICLE_COMPACT", "CUSTOM"], default="FULL_LAB", help="Report audience selection.")
+    report_exp_p.add_argument("--families", default=None, help="Comma-separated ReportFamily values (required for CUSTOM audience).")
+    report_exp_p.add_argument("--objective", default="", help="Optional researcher scientific objective declaration.")
+    report_exp_p.add_argument("--force", action="store_true", help="Overwrite existing package files.")
+
+    # report verify
+    report_ver_p = report_subparsers.add_parser("verify", help="Verify Stage 6 report integrity gate.")
+    report_ver_p.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", required=True, help="Path to package or experiment directory.")
+
     return parser
 
 
@@ -275,6 +303,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return handle_stats_status(args)
             if args.subcommand == "verify":
                 return handle_stats_verify(args)
+        elif args.command == "report":
+            from experimental_ml.cli.cmd_report import (
+                handle_report_export,
+                handle_report_generate,
+                handle_report_verify,
+            )
+
+            if args.subcommand == "generate":
+                return handle_report_generate(args)
+            if args.subcommand == "export":
+                return handle_report_export(args)
+            if args.subcommand == "verify":
+                return handle_report_verify(args)
     except ExperimentalMLError as exc:
         sys.stderr.write(f"Error: {exc}\n")
         return 2
