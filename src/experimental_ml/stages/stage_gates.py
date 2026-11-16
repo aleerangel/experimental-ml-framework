@@ -5,7 +5,9 @@ Complies with STORE-03, STORE-05, STORE-06, and CA-GER-01.
 
 from __future__ import annotations
 
-from pathlib import Path
+import hashlib
+from pathlib import Path, PureWindowsPath
+from typing import Any
 
 from experimental_ml.core.findings import ContractViolationError, DataIntegrityError
 from experimental_ml.core.storage import read_json
@@ -559,6 +561,108 @@ def verify_statistics_gate(target: Path | str) -> dict[str, Any]:
             if loaded.conclusion.observed_leader is not None
             else None
         ),
+    }
+
+
+def _assert_safe_relative_posix_path(rel_path: str, source_name: str) -> str:
+    if not isinstance(rel_path, str) or not rel_path.strip() or "\\" in rel_path:
+        raise DataIntegrityError(f"Invalid relative POSIX path in {source_name}: {rel_path!r}")
+    if Path(rel_path).is_absolute() or PureWindowsPath(rel_path).is_absolute():
+        raise DataIntegrityError(f"Absolute path rejected in {source_name}: {rel_path!r}")
+    if ".." in rel_path.split("/"):
+        raise DataIntegrityError(f"Parent traversal '..' rejected in {source_name}: {rel_path!r}")
+    return rel_path
+
+
+def verify_report_gate(package_dir: Path | str) -> dict[str, Any]:
+    """Stage 6 integrity gate: validates upstream Stage 5, provenance coverage, relative paths, and SHA-256."""
+    pkg_root = Path(package_dir)
+    if not pkg_root.is_dir():
+        raise DataIntegrityError(f"Stage 6 package directory does not exist: '{pkg_root}'.")
+
+    if (pkg_root / "statistics").is_dir():
+        verify_statistics_gate(pkg_root)
+
+    repro_dir = pkg_root / "reproducibility"
+    prov_file = repro_dir / "artifact_provenance.json"
+    checksums_file = repro_dir / "checksums.sha256"
+
+    if not prov_file.is_file():
+        raise DataIntegrityError(f"Missing provenance manifest: '{prov_file}'.")
+    if not checksums_file.is_file():
+        raise DataIntegrityError(f"Missing checksums manifest: '{checksums_file}'.")
+
+    try:
+        prov_doc = read_json(prov_file)
+    except Exception as exc:
+        raise DataIntegrityError(f"Failed to parse '{prov_file}': {exc}") from exc
+
+    artifacts = prov_doc.get("artifacts")
+    if not isinstance(artifacts, list) or not artifacts:
+        raise DataIntegrityError("artifact_provenance.json must contain a non-empty 'artifacts' list.")
+
+    provenance_paths: set[str] = set()
+    for entry in artifacts:
+        if not isinstance(entry, dict):
+            raise DataIntegrityError("Invalid artifact entry in artifact_provenance.json.")
+        rel_out = _assert_safe_relative_posix_path(entry.get("output_relative_path", ""), "artifact_provenance.json")
+        provenance_paths.add(rel_out)
+        prov_meta = entry.get("provenance")
+        if isinstance(prov_meta, dict):
+            for src_rel in prov_meta.get("source_relative_paths", ()):
+                _assert_safe_relative_posix_path(src_rel, "artifact_provenance.json:source_relative_paths")
+
+    checksum_lines = [
+        ln for ln in checksums_file.read_text(encoding="utf-8").splitlines() if ln.strip()
+    ]
+    if not checksum_lines:
+        raise DataIntegrityError("checksums.sha256 is empty.")
+
+    checksum_entries: dict[str, str] = {}
+    resolved_root = pkg_root.resolve()
+    for ln in checksum_lines:
+        if "  " not in ln:
+            raise DataIntegrityError(f"Malformed line in checksums.sha256: {ln!r}")
+        expected_digest, rel_path = ln.split("  ", 1)
+        if len(expected_digest) != 64 or any(c not in "0123456789abcdef" for c in expected_digest.lower()):
+            raise DataIntegrityError(f"Invalid SHA-256 digest in checksums.sha256: {expected_digest!r}")
+        _assert_safe_relative_posix_path(rel_path, "checksums.sha256")
+        target_path = (pkg_root / rel_path).resolve()
+        try:
+            target_path.relative_to(resolved_root)
+        except ValueError as exc:
+            raise DataIntegrityError(f"Path escapes package root in checksums.sha256: {rel_path!r}") from exc
+        if not target_path.is_file():
+            raise DataIntegrityError(f"Missing file referenced in checksums.sha256: '{rel_path}'.")
+        actual_digest = hashlib.sha256(target_path.read_bytes()).hexdigest()
+        if actual_digest != expected_digest.lower():
+            raise DataIntegrityError(
+                f"SHA-256 mismatch for '{rel_path}': expected {expected_digest}, got {actual_digest}."
+            )
+        checksum_entries[rel_path] = actual_digest
+
+    missing_from_checksums = provenance_paths - set(checksum_entries.keys())
+    if missing_from_checksums:
+        raise DataIntegrityError(
+            f"Artifacts in artifact_provenance.json missing from checksums.sha256: {sorted(missing_from_checksums)}"
+        )
+
+    for required_meta in (
+        "reproducibility/artifact_provenance.json",
+        "reproducibility/environment.json",
+        "reproducibility/seeds.json",
+        "reproducibility/REPRODUCE.md",
+    ):
+        if required_meta not in checksum_entries:
+            raise DataIntegrityError(f"Required reproducibility file missing from checksums.sha256: {required_meta}")
+
+    return {
+        "status": "VERIFIED",
+        "experiment_id": prov_doc.get("experiment_id"),
+        "partition_plan_id": prov_doc.get("partition_plan_id"),
+        "package_mode": prov_doc.get("package_mode"),
+        "reproduction_level": prov_doc.get("reproduction_level"),
+        "verified_files_count": len(checksum_entries),
     }
 
 

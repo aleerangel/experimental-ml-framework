@@ -76,7 +76,7 @@ T2 --> T3
 
 ### Phase 2: Portão de Estágio Stage 6
 
-#### T2: Implementar verify_report_gate em stage_gates.py [ ]
+#### T2: Implementar verify_report_gate em stage_gates.py [x]
 
 **What**: Implementar `verify_report_gate` em `src/experimental_ml/stages/stage_gates.py`, validando upstream Stage 5 (`verify_statistics_gate`) quando `statistics/` estiver presente em `exp_dir`, checando ausência de caminhos absolutos ou `..` traversal em `artifact_provenance.json` e `checksums.sha256`, garantindo cobertura de 100% dos artefatos de `artifact_provenance.json` e recalculando SHA-256 byte-a-byte (lançando `DataIntegrityError` em qualquer divergência ou ausência). Adicionar testes em `tests/unit/stages/test_stage_report_gate.py`.  
 **Where**: `src/experimental_ml/stages/stage_gates.py`  
