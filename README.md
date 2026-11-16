@@ -13,8 +13,8 @@ O projeto prioriza a integridade metodológica, a prevenção estrutural de vaza
 | **Versão** | `0.1.0.dev0` (Hatchling / PEP 517 / PEP 621) |
 | **Compatibilidade** | Python `>= 3.10` (testado e homologado em Python 3.12) |
 | **Dependência Única de Runtime** | `numpy >= 1.24.0` |
-| **Estado Atual** | **Fase 4: Implementação TDD do MVP** (Marcos M1 a M6 concluídos, auditados e aceitos) |
-| **Garantia de Qualidade** | **548 testes automatizados** com 100% de aprovação via `pytest` |
+| **Estado Atual** | **Fase 4: Implementação TDD do MVP** (Marcos M1 a M7 concluídos, verificados e aceitos — Etapa 1 a 6 completas) |
+| **Garantia de Qualidade** | **581 testes automatizados** com 100% de aprovação via `pytest` |
 | **Governança Técnica** | TLC Spec-Driven Development (`spec.md`, `design.md`, `tasks.md`, `proofs.md`, `verification.md`) |
 
 ---
@@ -513,7 +513,7 @@ O framework organiza-se em camadas modulares com níveis estritos de dependênci
 | **Tuning e Otimização Aninhada** | Nível 4 | `experimental_ml.tuning` | Particionamento interno puro em NumPy, geração determinística de candidatos (`Grid`, `Random`, `Fixed`), validação declarativa de espaços e busca aninhada (*Nested CV*) com isolamento estrito anti-leakage e desqualificação por `UNDEFINED_NAN`. |
 | **Execução Matricial** | Nível 5 | `experimental_ml.orchestration` | Orquestração matricial (Modelos × Cenários × Partições), máquina de estados de célula (`CellResultRecord`), tempos desagregados (`TimingBreakdown`), paralelismo controlado (`outer_n_jobs`), tolerância a falhas (`FAULT_TOLERANT` / `FAIL_FAST`), checkpointing incremental e consolidação out-of-fold com estatísticas de comitê (`ConsolidatedOofPredictions`). |
 | **Estatística Comparativa** | Nível 5 | `experimental_ml.statistics` | Consolidação descritiva e cobertura (`VALID`, `PARTIAL_COVERAGE`, `NO_COVERAGE`), adequação metodológica (`evaluate_method_suitability`), Nadeau-Bengio (2003), Wilcoxon pareado (DP exata e Pratt/Wilcox), Cohen's $d_z$, controle FWER/FDR (Holm/BH), Fronteira de Pareto, aquisição sequencial (`EI`, `UCB`, `LCB`) e síntese estruturada (`StructuredConclusion`) em NumPy puro (`XCUT-02`). |
-| **Relatórios e Pacote** | Nível 6 | `experimental_ml.reporting` | *(Planejado — Marco M7)* Relatórios completos (Markdown/HTML), tabelas (CSV/LaTeX `booktabs`), figuras e pacote de reprodutibilidade com manifesto `ArtifactProvenance`. |
+| **Relatórios e Pacote** | Nível 6 | `experimental_ml.reporting` | Relatórios completos (Markdown/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`), figuras (SVG/PNG 300 DPI/PDF) em Python/NumPy puro e pacote de reprodutibilidade com `checksums.sha256` relativo e `verify_report_gate`. |
 | **Interface de Linha de Comando** | Nível 7 | `experimental_ml.cli` | Ponto de entrada modularizado `expml` (`data`, `features`, `models`, `partition`, `run`, `stats` implementados; `report` planejado), com pura delegação funcional, códigos de saída padronizados e sem dependências pesadas no topo (`CLI-10`). |
 
 ---
@@ -543,7 +543,7 @@ experimental-ml-framework/
 │       ├── statistics/              # Consolidação, inferência pareada, Pareto e síntese (Nível 5)
 │       ├── tuning/                  # Particionamento interno e otimização aninhada - Nested CV (Nível 4)
 │       └── validation/              # Particionamento compartilhado e validação matemática (Nível 2)
-├── tests/                           # Suíte de testes automatizados (548 verificações)
+├── tests/                           # Suíte de testes automatizados (581 verificações)
 │   ├── integration/                 # Testes de integração transversal e subprocessos
 │   ├── test_smoke.py                # Testes de fumaça da CLI e metadados de empacotamento
 │   └── unit/                        # Testes unitários modulares
@@ -561,7 +561,7 @@ A integridade do framework é assegurada de forma contínua pelo **Pytest**.
 ### Execução da Suíte
 
 ```bash
-# Executar a suíte completa de testes (548 verificações automatizadas)
+# Executar a suíte completa de testes (581 verificações automatizadas)
 pytest tests/ -v
 
 # Executar suítes específicas
@@ -601,7 +601,7 @@ O ciclo de vida do framework segue o processo de aceite estabelecido em [`PROCES
 | **M4** | **Modelos e Hiperparâmetros:** Contratos agnósticos de modelos (`ModelSpec`, `ModelCapabilities`), ciclo funcional (`instantiate_fresh_model`, `fit_model`, `predict_model`), pré-processamento em 2 camadas, busca aninhada (*Nested CV*), catálogo persistível e CLI de modelos. | **Concluído e Aceito** |
 | **M5** | **Execução Matricial:** Orquestração da matriz $(\text{Modelos} \times \text{Cenários} \times \text{Partições})$, paralelismo, tolerância a falhas, checkpoint/resume, consolidação OOF e CLI de execução `expml run`. | **Concluído e Aceito** |
 | **M6** | **Estatística Comparativa:** Consolidação descritiva, adequação metodológica, teste $t$ de Nadeau-Bengio, Wilcoxon pareado, controle FWER/FDR (Holm-Bonferroni, Benjamini-Hochberg), Fronteira de Pareto, aquisição sequencial, síntese rastreável e CLI `expml stats`. | **Concluído e Aceito** |
-| **M7** | **Relatórios e Reprodutibilidade:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas (CSV/LaTeX `booktabs`) e figuras (PNG/SVG/PDF), manifesto de proveniência (`ArtifactProvenance`) e pacote portável de replicação (`expml report verify`). | **Próximo Marco (Planejado)** |
+| **M7** | **Relatórios e Reprodutibilidade:** Relatórios completos (Markdown/HTML), 7 famílias de tabelas (CSV/MD/LaTeX `booktabs`) e figuras (SVG/PNG 300 DPI/PDF) em Python/NumPy puro, manifesto de proveniência (`ArtifactProvenance`), pacote portável (`FULL_PACKAGE`/`REDUCED_NO_RAW_DATA`), portão `verify_report_gate` e CLI `expml report {generate, export, verify}`. | **Concluído e Aceito** |
 | **Pós-MVP** | **Auditoria Geral, Guia do Pesquisador e Homologação:** Mega auditoria independente de todas as 6 etapas, manual didático completo (Quickstart e Cookbook) e validação científica externa (`CA02`). | Planejado |
 
 ---
