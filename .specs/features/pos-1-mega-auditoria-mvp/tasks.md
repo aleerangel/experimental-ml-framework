@@ -75,7 +75,7 @@ T2 --> T3
 
 ### Phase 2: Auditoria Cruzada Independente
 
-#### T2: Executar auditoria cruzada independente (Código ↔ Docs de Engenharia ↔ `README.md` ↔ `REFERENCIAS_E_FUNDAMENTACAO.md`) [ ]
+#### T2: Executar auditoria cruzada independente (Código ↔ Docs de Engenharia ↔ `README.md` ↔ `REFERENCIAS_E_FUNDAMENTACAO.md`) [x]
 
 **What**: Inspecionar diretamente o código das Etapas 1–6, suíte de testes, `pyproject.toml`, `engenharia_software/*.md`, `README.md`, `REFERENCIAS_E_FUNDAMENTACAO.md` e `.specs/STATE.md`, registrando todos os achados classificados por severidade (`P0`/`P1`/`P2`) em `.specs/features/pos-1-mega-auditoria-mvp/AUDIT_REPORT.md`.  
 **Where**: `.specs/features/pos-1-mega-auditoria-mvp/AUDIT_REPORT.md`  
