@@ -105,7 +105,7 @@ T4 --> T5
 
 ### Phase 2: Stage 4B to Stage 5 Transition Gate Validation
 
-#### T2: Implement validate_stage5_entry gate check
+#### T2: Implement validate_stage5_entry gate check [x]
 
 **What**: Create `src/experimental_ml/statistics/consolidation.py` with `validate_stage5_entry`. Accept `MatrixExecutionState`, a run directory path, or an execution state dictionary. Verify that `execution_state.json` exists and can be parsed, raising `ContractViolationError` if missing or corrupted. Verify that no cell has active non-terminal status (`PENDING` or `RUNNING`), raising `ContractViolationError` with resume guidance. Verify that `completed_cells >= 1`, raising `ContractViolationError` if all cells failed or were cancelled. Allow proceeding when all cells are in terminal states (`COMPLETED`, `FAILED`, `CANCELLED`) with `completed_cells >= 1`. Add unit tests in `tests/unit/statistics/test_stage5_entry.py`.
 **Where**: `src/experimental_ml/statistics/consolidation.py`
@@ -253,5 +253,5 @@ Proof: run unit | tests/unit/statistics/test_suitability.py::test_check_pairwise
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T2
-- **Next Task:** T2
+- **Current Task:** T3
+- **Next Task:** T3
