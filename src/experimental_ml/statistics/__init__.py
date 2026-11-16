@@ -22,6 +22,11 @@ from experimental_ml.statistics.multiplicity import (
     adjust_pvalues_bh,
     adjust_pvalues_holm,
 )
+from experimental_ml.statistics.storage import (
+    LoadedStatisticsArtifacts,
+    load_statistics_artifacts,
+    save_statistics_artifacts,
+)
 from experimental_ml.statistics.suitability import (
     check_pairwise_comparison_eligibility,
     evaluate_method_suitability,
@@ -104,4 +109,7 @@ __all__ = [
     "compute_pareto_frontier",
     "score_candidate_acquisition",
     "synthesize_conclusions",
+    "LoadedStatisticsArtifacts",
+    "save_statistics_artifacts",
+    "load_statistics_artifacts",
 ]

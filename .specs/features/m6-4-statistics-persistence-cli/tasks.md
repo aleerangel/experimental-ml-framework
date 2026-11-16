@@ -111,7 +111,7 @@ T3 --> T4
 
 ### Phase 4: API Pública e Integração Ponta a Ponta
 
-#### T4: Expor persistência em __init__.py e validar integração ponta a ponta [ ]
+#### T4: Expor persistência em __init__.py e validar integração ponta a ponta [x]
 
 **What**: Exportar `LoadedStatisticsArtifacts`, `save_statistics_artifacts` e `load_statistics_artifacts` em `src/experimental_ml/statistics/__init__.py`. Criar `tests/integration/statistics/test_m64_integration.py` validando fluxo CLI completo Stage 4 -> `expml stats run` -> `expml stats verify` e pureza de runtime `XCUT-02`.  
 **Where**: `src/experimental_ml/statistics/__init__.py`  
