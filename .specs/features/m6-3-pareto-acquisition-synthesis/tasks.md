@@ -93,7 +93,7 @@ T4 --> T5
 
 ### Phase 2: Fronteira de Pareto
 
-#### T2: Implementar compute_pareto_frontier [ ]
+#### T2: Implementar compute_pareto_frontier [x]
 
 **What**: Criar `src/experimental_ml/statistics/multiobjective.py` com `compute_pareto_frontier(consolidation, spec)` filtrando estritamente configurações `CoverageStatus.VALID` com objetivos `MetricStatus.VALID` e finitos, registrando excluídas em `excluded_configurations` e identificando exatamente `pareto_frontier` e `dominated_configurations` com `dominated_by`. Adicionar testes em `tests/unit/statistics/test_pareto.py`.  
 **Where**: `src/experimental_ml/statistics/multiobjective.py`  
