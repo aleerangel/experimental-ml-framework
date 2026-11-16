@@ -97,7 +97,7 @@ T3 --> T4
 
 ### Phase 3: Tabelas das 7 Famílias e Renderizadores
 
-#### T3: Implementar build_table_model (A–G) e renderizadores CSV/Markdown/LaTeX [ ]
+#### T3: Implementar build_table_model (A–G) e renderizadores CSV/Markdown/LaTeX [x]
 
 **What**: Criar `src/experimental_ml/reporting/tables.py` com `build_table_model` para as 7 famílias (`A` a `G`), preservando valores numéricos brutos de `statistics/*.json` em `TableModel.rows`, distinguindo `None` (`"N/A"`), `UNDEFINED_NAN` (`"UNDEFINED_NAN"`) e `±Inf` (`"Inf"`/`"-Inf"`), excluindo campos `*_hash`/`*_digest`/`sha256`/`checksum`, e renderizadores `render_table_csv`, `render_table_markdown` e `render_table_latex` (`booktabs`). Adicionar testes em `tests/unit/reporting/test_reporting_tables.py`.  
 **Where**: `src/experimental_ml/reporting/tables.py`  
