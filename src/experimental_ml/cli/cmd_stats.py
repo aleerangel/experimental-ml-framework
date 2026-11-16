@@ -100,6 +100,12 @@ def handle_stats_run(args: argparse.Namespace) -> int:
             cfg.get("incompleteness_policy", IncompleteComparisonPolicy.STRICT_COMPLETE_ONLY.value)
         )
     else:
+        if not all_metrics:
+            from experimental_ml.core.findings import DataIntegrityError
+
+            raise DataIntegrityError(
+                "No evaluated metrics found in Stage 4 cells; cannot run Stage 5 statistics without metrics."
+            )
         metrics = tuple(sorted(all_metrics))
         dirs = {m: metric_dirs[m] for m in metrics}
         scope = ComparisonScope.ALL_PAIRWISE

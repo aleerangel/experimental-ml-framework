@@ -60,10 +60,14 @@ def _dominates(
     objectives: tuple[ObjectiveSpec, ...],
 ) -> bool:
     """Return True iff A Pareto-dominates B under all ObjectiveSpec directions."""
+    from experimental_ml.metrics.catalog import METRICS_CATALOG
+
     strictly_better = False
     for obj in objectives:
-        a = vals_a[obj.name]
-        b = vals_b[obj.name]
+        m_spec = METRICS_CATALOG.get(obj.name.lower())
+        by_abs = bool(m_spec.compare_by_abs) if m_spec is not None else False
+        a = abs(vals_a[obj.name]) if by_abs else vals_a[obj.name]
+        b = abs(vals_b[obj.name]) if by_abs else vals_b[obj.name]
         if obj.direction == MetricDirection.MINIMIZE:
             if a > b:
                 return False

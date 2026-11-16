@@ -3,7 +3,7 @@
 > **Documento de Registro de Estado da Engenharia**<br/>
 > **Data:** 16 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
-> **Estado Atual:** Marcos M1 a M7 Concluídos, Verificados e Aceitos (581 testes automatizados)<br/>
+> **Estado Atual:** Marcos M1 a M7 Concluídos, Auditados (`TA-POS.1`) e Aceitos (591 testes automatizados)<br/>
 > **Próximo Marco:** Pós-MVP — Auditoria Transversal, Guia Definitivo do Pesquisador e Homologação Externa (`CA02`)<br/>
 > **Especificação de Requisitos (SRS v2.1):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
@@ -260,5 +260,5 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
 
 8. **Pós-Marco / Encerramento do MVP (Auditoria, Guia do Pesquisador e Homologação Externa `CA02`):**
    * **Auditoria Técnica Transversal do MVP (`TA-POS.1`):** Auditoria independente abrangente cobrindo os contratos, integridade e invariantes de todas as 6 etapas operacionais implementadas (M1 a M7), bem como a consistência integral de todos os documentos de `engenharia_software/`, do `README.md`, do `REFERENCIAS_E_FUNDAMENTACAO.md` e do `.specs/STATE.md` antes do congelamento do código.
-   * **Guia Definitivo do Pesquisador & Cookbook Científico:** Com o código 100% auditado e estável, elaboração do manual pedagógico definitivo em quatro níveis: (1) Quickstart ("Seu Experimento em 5 Minutos"); (2) Tutorial Teórico-Prático das 6 Etapas; (3) Cookbook / How-To Guides (modelos analíticos/quânticos, dados agrupados, limites $\Delta_{\text{min}}$, uso em Jupyter Notebooks); e (4) Catálogo de Referência Completo de APIs e Comandos da CLI.
+   * **Guia Definitivo do Pesquisador, Cookbook Científico e Limpeza do `README.md` (`TA-POS.2`):** Com o código 100% auditado e estável, elaboração do manual pedagógico definitivo em quatro níveis: (1) Quickstart ("Seu Experimento em 5 Minutos"); (2) Tutorial Teórico-Prático das 6 Etapas; (3) Cookbook / How-To Guides (modelos analíticos/quânticos, dados agrupados, limites $\Delta_{\text{min}}$, uso em Jupyter Notebooks); e (4) Catálogo de Referência Completo de APIs e Comandos da CLI. Como ação final de `TA-POS.2`, realizar a **limpeza e enxugamento do `README.md`**, removendo exemplos extensos de código/CLI e aprofundamentos de engenharia/requisitos, mantendo-o enxuto e focado na visão geral, instalação rápida e links diretos para o Guia do Usuário, Documentos de Engenharia (`engenharia_software/`) e Referências (`REFERENCIAS_E_FUNDAMENTACAO.md`).
    * **Homologação Científica Externa (`CA02`):** Execução do pipeline completo sobre o estudo de caso experimental real pelo pesquisador fora do repositório, atestando a aplicabilidade prática e científica da versão final auditada.

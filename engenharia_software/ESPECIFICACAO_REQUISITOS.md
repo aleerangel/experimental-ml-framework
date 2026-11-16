@@ -1,9 +1,9 @@
 # Especificação de Requisitos de Software (SRS) — `experimental-ml-framework`
 
 > **Documento:** Especificação Completa de Requisitos de Software (Fases 1 a 6 do Ciclo Experimental)<br/>
-> **Versão:** 2.1.0<br/>
-> **Data:** 10 de Novembro de 2026<br/>
-> **Status:** Consolidado e Aprovado (Fases 1 a 3 concluídas; Fase 4 em andamento com Marcos M1, M2 e M3 integralmente concluídos, auditados e aceitos com 236 testes automatizados; Marco M4 em andamento com especificação M4.1)<br/>
+> **Versão:** 2.2.0<br/>
+> **Data:** 16 de Novembro de 2026<br/>
+> **Status:** Consolidado e Aprovado — MVP (Onda 1) 100% Implementado, Auditado e Aceito (Marcos M1 a M7 com 591 testes automatizados; Mega Auditoria `TA-POS.1` em fechamento)<br/>
 > **Documentos Relacionados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md) | [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
 ---
@@ -133,9 +133,14 @@ Para priorizar um fluxo científico funcional, coerente e testável antes de exp
 * **Etapa 5 — Consolidação e Comparação Estatística (`CA-E5`):**
   * **`CA-E5-01` (Regra de Passagem 4B $\rightarrow$ 5, Adequação Metodológica e *Folds* Incompletos):** Bloqueia a Etapa 5 se `execution_state.json` tiver células não-terminais ativas (`PENDING`, `RUNNING`) ou zero células `COMPLETED`; células `CANCELLED` são reconhecidas como estado terminal de processo interrompido sem resultado utilizável; o Submódulo 5A consolida configurações registrando `VALID`, `PARTIAL_COVERAGE` ou `NO_COVERAGE` e mantendo células `FAILED` e `CANCELLED` explícitas; o Submódulo 5B exige $\ge 2$ configurações comparáveis e $J_{\text{pareados}} \ge 2$ *folds* válidos em comum para testes em validação cruzada, bloqueando testes multi-fold em `HOLDOUT_ONLY` ($J=1$) e emitindo alerta para $J < 6$ no Wilcoxon. *(Integralmente implementado, auditado e aceito no Marco M6 — Sub-marcos M6.1 e M6.2)*.
   * **`CA-E5-02` (Exatidão dos Testes Estatísticos, Pareto e Rastreabilidade de `StructuredConclusion`):** Nadeau-Bengio (incluindo tratamento exato de variância nula das diferenças $s^2_d = 0$), Wilcoxon, Holm-Bonferroni e Benjamini-Hochberg atendem às tolerâncias numéricas justificadas por família em `float64`; `compute_pareto_frontier` retorna o conjunto exato de configurações não-dominadas `VALID`; e `synthesize_conclusions` referencia os campos numéricos sem declarar equivalência a partir de $p \ge \alpha$. *(Integralmente implementado, auditado e aceito no Marco M6 — Sub-marcos M6.2, M6.3 e M6.4)*.
+* **Etapa 3 (`models` & `tuning`):** `RF3.1` a `RF3.6` implementados integralmente no Marco M4 (Sub-marcos M4.1 a M4.4), garantindo isolamento por instância, pré-processamento em 2 camadas, Nested CV e extração de diagnósticos.
+* **Etapa 4B (`orchestration`):** `RF4.3` a `RF4.7` implementados integralmente no Marco M5 (Sub-marcos M5.1 a M5.4 e saneamento P1), garantindo execução matricial, `FAULT_TOLERANT`/`FAIL_FAST`, paralelismo, checkpoint/resume e consolidação OOF.
+* **Etapa 5 (`statistics`):** `RF5.1` a `RF5.6` implementados integralmente no Marco M6 (Sub-marcos M6.1 a M6.4) em Python/NumPy puro (`XCUT-02`).
+* **Etapa 6 (`reporting`):** `RF6.1` a `RF6.4` implementados integralmente no Marco M7 (Sub-marcos M7.1 a M7.4), incluindo 7 famílias de tabelas, figuras SVG/PNG/PDF, relatório MD/HTML, pacote `FULL_PACKAGE`/`REDUCED_NO_RAW_DATA`, `verify_report_gate` e CLI `expml report`.
+
 * **Etapa 6 — Relatórios Científicos e Pacote de Reprodutibilidade (`CA-E6`):**
-  * **`CA-E6-01` (Operação Somente-Leitura e Paridade com `statistics/`):** Gera relatórios, tabelas e figuras lendo apenas os artefatos persistidos nas Etapas 1–5 sem invocar funções de ajuste/predição de modelos, mantendo paridade numérica com os arquivos JSON de `statistics/`.
-  * **`CA-E6-02` (Proveniência `ArtifactProvenance`, Ocultação de Hashes nas Tabelas e Verificação de Pacote):** Registra 100% dos artefatos exportados em `artifact_provenance.json` e `checksums.sha256` com caminhos exclusivamente relativos, mantém hashes `SHA-256` ocultos nas tabelas e relatórios principais e detecta qualquer alteração de arquivo via `expml report verify`.
+  * **`CA-E6-01` (Operação Somente-Leitura e Paridade com `statistics/`):** Gera relatórios, tabelas e figuras lendo apenas os artefatos persistidos nas Etapas 1–5 sem invocar funções de ajuste/predição de modelos, mantendo paridade numérica com os arquivos JSON de `statistics/`. *(Integralmente implementado, auditado e aceito no Marco M7 — Sub-marcos M7.1 e M7.2)*.
+  * **`CA-E6-02` (Proveniência `ArtifactProvenance`, Ocultação de Hashes nas Tabelas e Verificação de Pacote):** Registra 100% dos artefatos exportados em `artifact_provenance.json` e `checksums.sha256` com caminhos exclusivamente relativos, mantém hashes `SHA-256` ocultos nas tabelas e relatórios principais e detecta qualquer alteração de arquivo via `expml report verify`. *(Integralmente implementado, auditado e aceito no Marco M7 — Sub-marcos M7.3 e M7.4)*.
 
 ### 4.2 Critérios Condicionais (Ativados conforme a Configuração do Experimento)
 * **`CA-COND-PART-01` (Particionamento Agrupado — `group_col`):** Exige $G \ge K$ grupos distintos e comprova $\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$ e $\text{Grupos}(\text{Dev}) \cap \text{Grupos}(\text{Holdout}) = \emptyset$.

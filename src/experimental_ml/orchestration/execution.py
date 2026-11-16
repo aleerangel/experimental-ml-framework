@@ -200,13 +200,26 @@ def execute_single_cell(
         current_phase = CellPhase.METRIC_COMPUTATION
         t_phase_start = time.perf_counter()
 
+        from experimental_ml.metrics.catalog import get_metric_spec
+
         y_pred = np.asarray(pred_outputs["y_pred"])
+        y_proba_raw = pred_outputs.get("y_proba")
         computed_metrics: dict[str, MetricValue] = {}
         for metric_name in metrics:
+            m_spec = get_metric_spec(metric_name)
+            if m_spec.requires_probabilities:
+                if y_proba_raw is None:
+                    raise ConfigurationError(
+                        f"Metric '{metric_name}' requires predicted probabilities ('y_proba'), "
+                        f"but model '{effective_spec.model_id}' did not return them."
+                    )
+                eval_pred = np.asarray(y_proba_raw)
+            else:
+                eval_pred = y_pred
             m_val = compute_metric(
                 metric_name,
                 y_val,
-                y_pred,
+                eval_pred,
                 scope=MetricEvaluationScope.PER_FOLD,
             )
             computed_metrics[metric_name] = m_val

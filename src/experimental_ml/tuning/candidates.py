@@ -15,6 +15,7 @@ __all__ = ["generate_candidates"]
 
 def generate_candidates(
     spec: HyperparameterSearchSpec,
+    seed: int | None = None,
 ) -> tuple[MappingProxyType[str, Any], ...]:
     """Generate deterministic hyperparameter candidates based on the search strategy.
 
@@ -55,7 +56,8 @@ def generate_candidates(
             return (MappingProxyType({}),)
 
         n_iter = spec.n_iter if spec.n_iter is not None else 1
-        rng = np.random.default_rng(spec.seed)
+        effective_seed = seed if seed is not None else spec.seed
+        rng = np.random.default_rng(effective_seed)
 
         # Generate Cartesian product to determine if total pool is small
         value_lists = [param_grid[k] for k in param_names]

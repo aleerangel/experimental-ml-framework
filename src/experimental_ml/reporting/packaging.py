@@ -287,7 +287,12 @@ def build_reproducibility_package(
 
     # Pre-flight STORE-05 overwrite protection before any disk mutation
     if not force:
+        same_data_targets = {
+            rel for src_f, rel in data_copies if src_f.resolve() == (out_root / rel).resolve()
+        }
         for rel_path in all_target_rel_paths:
+            if rel_path in same_data_targets:
+                continue
             candidate = out_root / rel_path
             if candidate.exists():
                 raise ContractViolationError(
@@ -303,9 +308,10 @@ def build_reproducibility_package(
     for src_file, rel_path in data_copies:
         dst_file = out_root / rel_path
         dst_file.parent.mkdir(parents=True, exist_ok=True)
-        if dst_file.exists() and not force:
-            raise ContractViolationError(f"Destination artifact already exists (force=False): {dst_file}")
-        shutil.copy2(src_file, dst_file)
+        if src_file.resolve() != dst_file.resolve():
+            if dst_file.exists() and not force:
+                raise ContractViolationError(f"Destination artifact already exists (force=False): {dst_file}")
+            shutil.copy2(src_file, dst_file)
         staged_files[rel_path] = dst_file.read_bytes()
 
     # Write reproducibility JSON/MD files

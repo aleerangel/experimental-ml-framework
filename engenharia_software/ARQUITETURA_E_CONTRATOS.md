@@ -1,9 +1,9 @@
 # Especificação Arquitetural, Contratos Conceituais e Modelo de Dados — `experimental-ml-framework`
 
 > **Documento:** Arquitetura de Software, Contratos de Módulos, Modelo de Dados e Recorte de MVP<br/>
-> **Versão:** 1.2.0<br/>
-> **Data:** 10 de Novembro de 2026<br/>
-> **Status:** Consolidado e Aprovado (Marcos M1, M2 e M3 integralmente implementados, auditados e aceitos com 236 testes automatizados; Marco M4 em andamento com especificação M4.1)<br/>
+> **Versão:** 1.3.0<br/>
+> **Data:** 16 de Novembro de 2026<br/>
+> **Status:** Consolidado e Aprovado — MVP (Onda 1) 100% Implementado, Auditado e Aceito (Marcos M1 a M7 com 591 testes automatizados; Mega Auditoria `TA-POS.1` em fechamento)<br/>
 > **Documentos Relacionados:** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md) | [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
 ---
@@ -166,9 +166,9 @@ src/experimental_ml/cli/
 ├── cmd_features.py      # Etapa 2: `expml features explore`, `expml features scenarios`, `expml features verify`
 ├── cmd_models.py        # Etapa 3: `expml models validate`, `expml models verify`
 ├── cmd_partition.py     # Etapa 4A: `expml partition build`, `expml partition verify`
-├── cmd_run.py           # Etapa 4B: `expml run start`, `expml run resume`, `expml run status`
-├── cmd_stats.py         # Etapa 5: `expml stats compare`, `expml stats pareto`, `expml stats acquire`
-└── cmd_report.py        # Etapa 6: `expml report generate`, `expml report package`, `expml report verify`
+├── cmd_run.py           # Etapa 4B: `expml run start`, `expml run resume`, `expml run status`, `expml run verify`
+├── cmd_stats.py         # Etapa 5: `expml stats run`, `expml stats status`, `expml stats verify`
+└── cmd_report.py        # Etapa 6: `expml report generate`, `expml report export`, `expml report verify`
 ```
 
 * **Regras Arquiteturais da CLI e Bloqueio de Transição entre Etapas:**
@@ -617,26 +617,31 @@ experiments/run_<experiment_id>/
 │   ├── preparation_plan.json     # Regras explícitas de pré-processamento geral
 │   ├── scenarios.json            # Cenários fixos e regras de cenários dinâmicos + justificativas científicas
 │   ├── models.json               # Modelos registrados, famílias, capacidades, pré-processamento específico e espaços de busca
-│   └── exploratory_features.json # Relatório exploratório da Etapa 2 (marcado como exploratório)
 ├── partitions/
 │   ├── partition_plan.json       # Estratégia, parâmetros, semente e validação de integridade das partições
-│   └── splits.parquet            # Mapeamento observation_id -> fold_id / train / val / holdout
+│   ├── splits.csv.gz             # Mapeamento determinístico observation_id -> fold_id / train / val / holdout
+│   └── splits.schema.json        # Metadados de esquema da matriz de splits
 ├── runs/
 │   ├── execution_state.json      # Estado global da matriz (COMPLETED, FAILED, PENDING, CANCELLED) para checkpoint/resume
-│   └── cells/
-│       └── cell_<m>_<c>_<f>.json # CellResultRecord: features selecionadas no fold, hiperparâmetros, métricas, tempos, erros
-├── predictions/
-│   └── pred_<m>_<c>_<f>.parquet  # Predições individuais por observation_id, valores reais, resíduos e probabilidades
-├── artifacts/
-│   └── model_<m>_<c>_<f>/        # Diagnósticos e artefatos específicos exportados pelo adaptador (quântico, biométrico, neural)
+│   ├── cells/
+│   │   └── cell_<m>__<c>__<f>.json # CellResultRecord: features selecionadas no fold, hiperparâmetros, métricas, tempos, erros
+│   ├── predictions/
+│   │   └── pred_<m>__<c>__<f>.json # Predições individuais por observation_id, valores reais, resíduos e probabilidades
+│   └── oof/
+│       └── oof_<m>__<c>.json     # Predições consolidadas out-of-fold e estatísticas de comitê
+├── reports/
+│   ├── exploratory_features.json # Relatório exploratório da Etapa 2 (marcado como EXPLORATORY_FULL_DATA)
+│   ├── report.md                 # Relatório científico completo (Markdown)
+│   └── report.html               # Relatório científico completo autocontido (HTML + CSS inline)
 ├── statistics/
-│   ├── descriptive_summary.json  # Consolidações por fold, agregadas e pooled OOF + cobertura
-│   ├── comparisons.json          # Resultados dos testes estatísticos, tamanhos de efeito, incerteza e relevância prática
-│   ├── multi_objective.json      # Análise de custo vs desempenho e Fronteira de Pareto
-│   └── conclusions.json          # Objetos StructuredConclusion auditáveis
+│   ├── descriptive_consolidation.json # Consolidações por fold, agregadas e pooled OOF + cobertura
+│   ├── method_suitability.json        # Adequação metodológica para o regime e partições
+│   ├── statistical_comparisons.json   # Testes pareados, tamanhos de efeito e p-valores ajustados
+│   ├── pareto_summary.json            # Análise multiobjetivo e Fronteira de Pareto
+│   ├── structured_conclusion.json     # Objeto StructuredConclusion rastreável
+│   └── statistics_manifest.json       # Manifesto e integridade da Etapa 5
 ├── tables/                       # Tabelas exportadas (.csv, .md, .tex)
-├── figures/                      # Figuras exportadas (.png, .svg, .pdf) + configurações de geração
-├── reports/                      # Relatórios científicos consolidados (report.md, report.html)
+├── figures/                      # Figuras exportadas (.png, .svg, .pdf)
 └── reproducibility/
     ├── environment.json          # Versão do Python, SO, CPU/GPU, versões exatas das bibliotecas e backends
     ├── seeds.json                # Registro hierárquico de todas as sementes aleatórias utilizadas
@@ -693,9 +698,9 @@ A ordem de implementação respeita as dependências entre os módulos de `src/e
 | **M3 — Exploração e Cenários de Features sem Vazamento** *(Concluído e Aceito)* | `features`, `stages`, `cli` (`features`) | • Seleção de atributos contaminada por dados de validação/teste;<br/>• Inclusão de colunas proibidas nos preditores;<br/>• Instabilidade na seleção inter-dobras. | • **TA-M3.1 (`CA-E2-01` — Concluído):** Relatório `explore_features` com rotulagem compulsória `scope = EXPLORATORY_FULL_DATA`, correlações univariadas (Pearson, Spearman com postos médios, $\eta$, Cramér's V), matriz de redundância e 3 avisos metodológicos.<br/>• **TA-M3.2 (`CA-E2-02` — Concluído):** Modelos `FeatureScenario` (`FIXED` e `DYNAMIC`), validação `validate_scenarios` com bloqueio de atributos pré-calculados em dinâmicos, persistência atômica (`save_scenarios`, `load_scenarios`) e portão `verify_scenarios_gate`.<br/>• **TA-M3.3 (`CA-E4B-01` parcial — Concluído):** Seleção intra-fold livre de data leakage (`select_features_in_fold` com `VARIANCE_THRESHOLD` e `TOP_K_RELEVANCE`), projeção em avaliação (`apply_feature_selection`) e cálculo de estabilidade inter-dobras (`compute_selection_stability` via Jaccard e Kuncheva corrigido).<br/>• **TA-M3.4 & Hardening (`ACH-M3-01` a `ACH-M3-03` — Concluído):** Subcomandos `expml features explore`, `scenarios` e `verify`, conformidade `CLI-10`, saneamento do alias não implementado `MUTUAL_INFO_TOP_K` e homologação ponta a ponta integrada (236 testes). |
 | **M4 — Funções de Modelos, Pré-processamento em 2 Camadas e Nested Tuning** *(Concluído e Aceito)* | `models`, `tuning`, `stages`, `cli` (`models`) | • Contaminação de pesos/estado entre *folds*;<br/>• Transformação estatística ajustada fora do treino;<br/>• Duplicação acidental de escalonamento;<br/>• Vazamento da validação externa na escolha de hiperparâmetros. | • **TA-M4.1 (`CA-E3-01` — Concluído):** Ajustar um modelo com estado mutável em um *fold*, instanciar um novo para o próximo *fold* via `instantiate_fresh_model` e comprovar que nenhum peso/atributo ajustado anterior persiste.<br/>• **TA-M4.2 (`CA-COND-MOD-01` & `CA-COND-MOD-02` — Concluído):** Executar função analítica com `requires_fit=False` sem ajuste artificial e verificar a passagem de $(\mathbf{X}_{\text{train}}, \mathbf{X}_{\text{train}})$ e $(\mathbf{X}_{\text{eval}}, \mathbf{X}_{\text{train}})$ para funções externas de kernel pré-computado.<br/>• **TA-M4.3 (`CA-E3-02` & `CA-E4B-01` parcial — Concluído):** Comprovar que parâmetros de `fit_two_layer_preprocessing` dependem apenas de `X_train` e que configurar padronização idêntica nas duas camadas dispara bloqueio em `validate_two_layer_preprocessing`.<br/>• **TA-M4.4 (`CA-E3-02` & `CA-E4B-01` parcial — Concluído):** Comprovar que `validate_search_spec` exige métrica/direção explícitas e que `run_nested_tuning` (`grid_search` e `random_search`) subdivide apenas `X_train, y_train`, produzindo o mesmo $\theta^*$ quando `X_val, y_val` são alterados (348 testes). |
 | **M5 — Execução Matricial, Tolerância a Falhas e Checkpoint/Resume** *(Concluído, Auditado e Aceito)* | `orchestration`, `cli` (`run`) | • Aborto completo de experimento longo por falha em uma célula;<br/>• Conversão silenciosa de falha em métrica zero;<br/>• Retomada inconsistente após alteração de dados/configuração. | • **TA-M5.1 (`CA-E4B-01` — Concluído):** Comprovar que todas as células $(m, c, f)$ executadas referenciam o mesmo `partition_plan_id` e avaliam exatamente os mesmos `observation_id` em cada *fold* $f$.<br/>• **TA-M5.2 (`CA-E4B-02` parcial — Concluído):** Injetar um modelo que lança exceção no *fold* 2; verificar que em modo `FAULT_TOLERANT` a célula $(m, c, 2)$ fica com estado `FAILED` e metadados do erro, sem valor numérico zero nas métricas, enquanto as demais células concluem com `COMPLETED`.<br/>• **TA-M5.3 (`CA-E4B-02` parcial — Concluído):** Interromper uma matriz com 50% das células concluídas, retomar via `resume_experiment_matrix` e comprovar que apenas os 50% restantes são executados, preservando predições e métricas das células já concluídas; tentar retomar após alterar `dataset_hash` ou `PartitionPlan` e verificar bloqueio (`exit code 2`); resolução integral dos achados P1 de auditoria ACH-M5-01 a ACH-M5-03 (471 testes). |
-| **M6 — Consolidação e Comparação Estatística Rigorosa** *(Próximo Marco — Planejado)* | `statistics`, `cli` (`stats`) | • Consolidação sobre matriz com células pendentes;<br/>• Subestimação de variância em validação cruzada;<br/>• Descarte silencioso de *folds* falhos;<br/>• Confusão entre $p \ge \alpha$ e equivalência. | • **TA-M6.1 (`CA-E5-01` — Regra de Passagem 4B $\rightarrow$ 5 e Incompletude):** Verificar bloqueio da Etapa 5 quando há células não-terminais ou `0` concluídas; validar que 5A consolida cobertura parcial com `PARTIAL_COVERAGE` sem converter `FAILED` em zero, e que 5B exige $\ge 2$ configurações e $J_{\text{pareados}} \ge 2$ *folds* válidos em CV (bloqueando testes multi-fold em `HOLDOUT_ONLY` e emitindo alerta para $J < 6$ no Wilcoxon).<br/>• **TA-M6.2 (`CA-E5-02` parcial — Exatidão Estatística por Família):** Validar `paired_nadeau_bengio_test` (incluindo $s^2_d = 0$), `paired_wilcoxon_test`, `holm_bonferroni` e `benjamini_hochberg` contra `scipy.stats` e vetores analíticos em `float64` respeitando as tolerâncias justificadas por família (Seção 7.2).<br/>• **TA-M6.3 (`CA-E5-02` parcial — Pareto e Conclusões Rastreáveis):** Validar a igualdade exata do conjunto não-dominado em `compute_pareto_frontier` (excluindo `UNRANKABLE`) e verificar que `StructuredConclusion` referencia campos numéricos existentes sem declarar equivalência a partir de $p \ge 0.05$. |
-| **M7 — Relatórios Científicos, Proveniência e Pacote de Reprodutibilidade** *(Planejado)* | `reporting`, `cli` (`report`), integração das Etapas 1 a 6 | • Recálculo oculto na camada de visualização;<br/>• Exposição indevida de hashes em tabelas científicas;<br/>• Caminhos absolutos quebrando portabilidade. | • **TA-M7.1 (`CA-E6-01` — Somente-Leitura e Paridade):** Gerar relatórios (Markdown/HTML), tabelas (CSV/MD/LaTeX `booktabs`) e figuras (PNG/SVG/PDF) a partir de um diretório persistido sem invocar funções de ajuste/predição de modelos e comprovando paridade numérica com `statistics/*.json`.<br/>• **TA-M7.2 (`CA-E6-02` — Linhagem, Ocultação de Hashes e Portabilidade):** Verificar que 100% dos artefatos constam em `artifact_provenance.json` e `checksums.sha256` com caminhos relativos, que zero strings `SHA-256` aparecem nos relatórios/tabelas de usuário e que `expml report verify` aprova após mover o diretório (`exit 0`) e falha ao alterar 1 byte (`exit 2`). |
-| **Pós-MVP — Mega Auditoria Geral, Guia do Pesquisador e Homologação CA02** | `audit`, documentação `docs/`, validação externa | • Inconsistências transversais entre etapas;<br/>• Divergências entre código, docs de engenharia, `README.md` e `REFERENCIAS_E_FUNDAMENTACAO.md`;<br/>• Barreiras de usabilidade/adoção por pesquisadores;<br/>• Desvios metodológicos em casos reais. | • **TA-POS.1 (Mega Auditoria Geral do MVP):** Revisão independente cobrindo contratos e integrações de todas as 6 etapas (M1 a M7), além de todos os documentos de `engenharia_software/`, `README.md`, `REFERENCIAS_E_FUNDAMENTACAO.md` e `.specs/STATE.md`.<br/>• **TA-POS.2 (Guia Definitivo do Pesquisador & Cookbook Científico):** Elaboração do manual pedagógico definitivo em 4 níveis (Quickstart, Tutorial Teórico-Prático das 6 Etapas, How-To Guides e Referência Completa de APIs/CLI) com código 100% congelado e estável.<br/>• **TA-POS.3 (`CA02` — Validação Externa de Aplicação do Usuário):** Homologação empírica conduzida exclusivamente pelo pesquisador fora do repositório sobre estudo de caso experimental real. |
+| **M6 — Consolidação e Comparação Estatística Rigorosa** *(Concluído e Aceito — 548 testes)* | `statistics`, `stages`, `cli` (`stats`) | • Consolidação sobre matriz com células pendentes;<br/>• Subestimação de variância em validação cruzada;<br/>• Descarte silencioso de *folds* falhos;<br/>• Confusão entre $p \ge \alpha$ e equivalência. | • **TA-M6.1 (`CA-E5-01` — Concluído):** Portão `validate_stage5_entry` bloqueando apenas `PENDING`/`RUNNING`, consolidando cobertura (`VALID`, `PARTIAL_COVERAGE`, `NO_COVERAGE`) sem coerção para zero e bloqueando testes multi-fold em `HOLDOUT_ONLY`.<br/>• **TA-M6.2 (`CA-E5-02` — Concluído):** `paired_nadeau_bengio_test`, `paired_wilcoxon_test`, `adjust_pvalues_holm` e `adjust_pvalues_bh` em Python/NumPy puro (`XCUT-02`).<br/>• **TA-M6.3 (`CA-E5-02` — Concluído):** `compute_pareto_frontier`, `score_candidate_acquisition` e `synthesize_conclusions` com `StructuredConclusion` rastreável e CLI `expml stats {run, status, verify}`. |
+| **M7 — Relatórios Científicos, Proveniência e Pacote de Reprodutibilidade** *(Concluído e Aceito — 581 testes)* | `reporting`, `stages`, `cli` (`report`), integração das Etapas 1 a 6 | • Recálculo oculto na camada de visualização;<br/>• Exposição indevida de hashes em tabelas científicas;<br/>• Caminhos absolutos quebrando portabilidade. | • **TA-M7.1 (`CA-E6-01` — Concluído):** Relatórios completos (`Markdown`/`HTML` offline), 7 famílias de tabelas (`CSV`/`MD`/`LaTeX booktabs`) e figuras determinísticas (`SVG`/`PNG 300 DPI`/`PDF`) em Python/NumPy puro (`XCUT-02`), em modo somente-leitura e com paridade numérica.<br/>• **TA-M7.2 (`CA-E6-02` — Concluído):** `build_reproducibility_package` (`FULL_PACKAGE`/`REDUCED_NO_RAW_DATA`), `artifact_provenance.json`, `checksums.sha256` relativo, `verify_report_gate` e CLI `expml report {generate, export, verify}`. |
+| **Pós-MVP — Mega Auditoria Geral, Guia do Pesquisador e Homologação CA02** | `audit`, documentação `docs/`, validação externa | • Inconsistências transversais entre etapas;<br/>• Divergências entre código, docs de engenharia, `README.md` e `REFERENCIAS_E_FUNDAMENTACAO.md`;<br/>• Barreiras de usabilidade/adoção por pesquisadores;<br/>• Desvios metodológicos em casos reais. | • **TA-POS.1 (Mega Auditoria Geral do MVP):** Revisão independente cobrindo contratos e integrações de todas as 6 etapas (M1 a M7), além de todos os documentos de `engenharia_software/`, `README.md`, `REFERENCIAS_E_FUNDAMENTACAO.md` e `.specs/STATE.md`.<br/>• **TA-POS.2 (Guia Definitivo do Pesquisador, Cookbook Científico e Limpeza do `README.md`):** Elaboração do manual pedagógico definitivo em 4 níveis (Quickstart, Tutorial Teórico-Prático das 6 Etapas, How-To Guides e Referência Completa de APIs/CLI) seguida do enxugamento do `README.md` (removendo exemplos de código e detalhamentos de engenharia/requisitos, mantendo apenas visão geral, instalação e ponteiros para o Guia do Usuário, `engenharia_software/` e `REFERENCIAS_E_FUNDAMENTACAO.md`).<br/>• **TA-POS.3 (`CA02` — Validação Externa de Aplicação do Usuário):** Homologação empírica conduzida exclusivamente pelo pesquisador fora do repositório sobre estudo de caso experimental real. |
 
 ---
 
@@ -836,7 +841,7 @@ python3 -m venv .venv
 # 2. Verificação empírica das versões instaladas no ambiente
 .venv/bin/python -c "import sys, numpy, pytest; print(sys.version); print('numpy:', numpy.__version__, 'pytest:', pytest.__version__)"
 
-# 3. Execução da suíte completa de testes (236 verificações automatizadas com 100% de sucesso)
+# 3. Execução da suíte completa de testes (591 verificações automatizadas com 100% de sucesso)
 .venv/bin/pytest tests/ -v --tb=short
 
 # 4. Execução de suítes modulares por domínio
@@ -844,15 +849,15 @@ python3 -m venv .venv
 .venv/bin/pytest tests/unit/test_core.py -v
 .venv/bin/pytest tests/unit/test_metrics.py -v
 .venv/bin/pytest tests/unit/test_data_schemas.py -v
-.venv/bin/pytest tests/unit/data/test_profiling.py -v
-.venv/bin/pytest tests/unit/data/test_preparation.py -v
+.venv/bin/pytest tests/unit/data/ -v
 .venv/bin/pytest tests/unit/validation/ -v
 .venv/bin/pytest tests/unit/features/ -v
-.venv/bin/pytest tests/unit/cli/ -v
-.venv/bin/pytest tests/unit/test_m2_hardening_regression.py -v
+.venv/bin/pytest tests/unit/models/ tests/unit/tuning/ -v
+.venv/bin/pytest tests/unit/orchestration/ tests/unit/statistics/ tests/unit/reporting/ -v
+.venv/bin/pytest tests/unit/cli/ tests/unit/stages/ -v
 .venv/bin/pytest tests/integration/ -v
 ```
-*(Nota: Os Marcos M1, M2 e M3 encontram-se 100% concluídos, auditados e aceitos na branch `main`. O desenvolvimento atual concentra-se no Marco M4 — Modelos, Hiperparâmetros e Tuning).*
+*(Nota: Os Marcos M1 a M7 — Onda 1 completa do MVP — encontram-se 100% concluídos, auditados na Mega Auditoria `TA-POS.1` e prontos para `TA-POS.2` e `CA02`).*
 
 ---
 
@@ -862,10 +867,10 @@ Em ponto flutuante IEEE 754 `float64` ($\varepsilon_{\text{mach}} \approx 2.22 \
 
 | Família de Método (`experimental_ml.statistics`) | Grandeza Verificada | Tolerância Relativa (`rtol`) | Tolerância Absoluta (`atol`) | Fundamentação Numérica e Casos de Contorno |
 | :--- | :--- | :---: | :---: | :--- |
-| **Teste $t$ Corrigido de Nadeau-Bengio (Estatística e IC)** | Diferença média ($\bar{d}$), variância ($s^2_d$), estatística $t$ e limites do IC | `1e-12` | `1e-12` | Operações algébricas diretas ($\bar{d}, s^2_d, \sqrt{\cdot}$) sobre $J$ diferenças ($J \le 100$). **Caso de contorno $s^2_d = 0$ (ADR-004):** igualdade exata $\bar{d} = 0.0$, $t = 0.0$ e $p = 1.0$, sem divisão por zero. |
-| **Teste $t$ Corrigido de Nadeau-Bengio ($p$-valor)** | $p$-valor bicaudal / unicaudal | `1e-10` | `1e-12` | Avaliação da função beta incompleta regularizada (`scipy.special.stdtr`), cuja aproximação contínua possui precisão relativa documentada de $10^{-11}$ a $10^{-10}$. |
+| **Teste $t$ Corrigido de Nadeau-Bengio (Estatística e IC)** | Diferença média ($\bar{d}$), variância ($s^2_d$), estatística $t$ e limites do IC | `1e-12` | `1e-12` | Operações algébricas diretas ($\bar{d}, s^2_d, \sqrt{\cdot}$) sobre $J$ diferenças ($J \le 100$). **Caso de contorno $s^2_d = 0$ (ADR-004):** se $\bar{d} = 0.0$, retorna $t = 0.0, p = 1.0$; se $\bar{d} \ne 0.0$, retorna $t = \pm\infty, p = 0.0$, sem divisão por zero. |
+| **Teste $t$ Corrigido de Nadeau-Bengio ($p$-valor)** | $p$-valor bicaudal / unicaudal | `1e-10` | `1e-12` | Avaliação da distribuição Student-$t$ em Python/NumPy puro (fração continuada de Lentz, `XCUT-02`), verificada contra `scipy.stats` com precisão relativa de $10^{-11}$ a $10^{-10}$. |
 | **Teste Pareado de Wilcoxon** | Estatística $W$ (soma de postos) e $p$-valor | $W$: `1e-14`<br/>$p$: `1e-12` | $W$: `1e-14`<br/>$p$: `1e-12` | Postos inteiros ou semi-inteiros ($0.5$) têm representação binária exata em `float64`; o $p$-valor (exato ou normal assintótico) é verificado contra `scipy.stats.wilcoxon`. |
-| **Correções de Multiplicidade (`holm_bonferroni`, `benjamini_hochberg`)** | Vetor de $p$-valores ajustados ($\tilde{p}_1, \dots, \tilde{p}_m$) | `1e-14` | `1e-15` | Ordenação, 1 multiplicação/divisão escalar por índice, `cummax`/`cummin` e truncamento em $[0, 1]$, além dos invariantes exatos $\tilde{p}_i \in [p_i, 1.0]$ e preservação da monotonicidade. |
+| **Correções de Multiplicidade (`adjust_pvalues_holm`, `adjust_pvalues_bh`)** | Vetor de $p$-valores ajustados ($\tilde{p}_1, \dots, \tilde{p}_m$) | `1e-14` | `1e-15` | Ordenação, 1 multiplicação/divisão escalar por índice, `cummax`/`cummin` e truncamento em $[0, 1]$, além dos invariantes exatos $\tilde{p}_i \in [p_i, 1.0]$ e preservação da monotonicidade. |
 | **Fronteira de Pareto (`compute_pareto_frontier`)** | Conjunto de configurações não-dominadas `(model_id, scenario_id)` | **Exato** | **Exato** | Relação discreta de dominância parcial sobre candidatos distintos com status `VALID` (excluindo configurações `UNRANKABLE` / `UNDEFINED_NAN`). |
 
 ---

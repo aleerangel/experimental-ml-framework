@@ -103,6 +103,20 @@ def instantiate_fresh_model(model_spec: ModelSpec, seed: int | None = None) -> A
             f"estimator_factory for model '{model_spec.model_id}' returned None"
         )
 
+    if model_spec.parameters:
+        params_dict = dict(model_spec.parameters)
+        try:
+            if hasattr(instance, "set_params") and callable(instance.set_params):
+                instance.set_params(**params_dict)
+            else:
+                for p_key, p_val in params_dict.items():
+                    if hasattr(instance, p_key):
+                        setattr(instance, p_key, p_val)
+        except Exception as exc:
+            raise ConfigurationError(
+                f"Failed to apply parameters {params_dict} to model '{model_spec.model_id}': {exc}"
+            ) from exc
+
     # Detect singleton or reused memory instance by identity (AUD-M4-02)
     _ACTIVE_INSTANCES.register_or_check(instance, model_spec.model_id)
 

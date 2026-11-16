@@ -78,6 +78,13 @@ def handle_run_start(args: argparse.Namespace) -> int:
 
         auto_consolidate = not bool(getattr(args, "no_oof", False))
         master_seed = getattr(partition_plan.config, "master_seed", 42)
+        from experimental_ml.core.enums import TaskType
+
+        default_metrics = (
+            ("rmse", "mae", "r2")
+            if sanitized_view.schema.task_type == TaskType.REGRESSION
+            else ("accuracy", "balanced_accuracy", "f1")
+        )
 
         # 4. Dispatch matrix execution
         try:
@@ -87,6 +94,7 @@ def handle_run_start(args: argparse.Namespace) -> int:
                 partition_plan=partition_plan,
                 sanitized_view=sanitized_view,
                 run_dir=run_dir,
+                metrics=default_metrics,
                 master_seed=master_seed,
                 error_policy=error_policy,
                 outer_n_jobs=n_workers,

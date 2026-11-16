@@ -122,7 +122,7 @@ def build_table_model(
             for sc in loaded_data.scenarios_catalog.get("scenarios", ()):
                 sc_id = str(sc.get("scenario_id", ""))
                 if not sel.scenario_ids or sc_id in sel.scenario_ids:
-                    feats = sc.get("features", sc.get("candidate_features", ()))
+                    feats = sc.get("selected_features", sc.get("features", sc.get("candidate_features", ())))
                     rows.append(_sanitize_row_dict({"scenario_id": sc_id, "mode": sc.get("mode", "N/A"), "n_features": len(feats)}))
         prov = _make_provenance("tbl_family_b", family, loaded_data, sel, ("configuration/scenarios.json",))
         return TableModel("tbl_family_b", family, "Feature Scenarios", "Declared feature scenarios", cols, tuple(rows), (), prov)

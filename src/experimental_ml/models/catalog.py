@@ -169,8 +169,11 @@ def _capabilities_to_dict(caps: ModelCapabilities) -> dict[str, Any]:
         "requires_fit": caps.requires_fit,
         "supports_uncertainty": caps.supports_uncertainty,
         "supports_predict_proba": caps.supports_predict_proba,
+        "supports_decision_function": caps.supports_decision_function,
         "supports_sample_weight": caps.supports_sample_weight,
         "supports_precomputed_kernel": caps.supports_precomputed_kernel,
+        "supports_internal_parallelism_control": caps.supports_internal_parallelism_control,
+        "expected_input_types": list(caps.expected_input_types),
     }
 
 
@@ -180,8 +183,11 @@ def _capabilities_from_dict(data: Mapping[str, Any]) -> ModelCapabilities:
         requires_fit=bool(data.get("requires_fit", True)),
         supports_uncertainty=bool(data.get("supports_uncertainty", False)),
         supports_predict_proba=bool(data.get("supports_predict_proba", False)),
+        supports_decision_function=bool(data.get("supports_decision_function", False)),
         supports_sample_weight=bool(data.get("supports_sample_weight", False)),
         supports_precomputed_kernel=bool(data.get("supports_precomputed_kernel", False)),
+        supports_internal_parallelism_control=bool(data.get("supports_internal_parallelism_control", False)),
+        expected_input_types=tuple(data.get("expected_input_types", ("numeric",))),
     )
 
 

@@ -187,16 +187,27 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-021
+- **Decision**: Mega Auditoria Técnica Transversal do MVP (`TA-POS.1` / `pos-1-mega-auditoria-mvp`) concluída com saneamento integral de 6 achados `P0`, 16 `P1` e 6 `P2` (`0` achados `P0`/`P1` em aberto):
+  1. Invariantes transversais automatizados em `tests/integration/test_mvp_audit_invariants.py` (pureza AST `XCUT-02` estática/dinâmica, 7 portões de estágio, `CLI-10` e `RNF02`) e regressões dedicadas em `tests/integration/test_mvp_audit_regressions.py`.
+  2. Saneamento de isolamento de grupos/temporal em `CV_AND_HOLDOUT`/`HOLDOUT_ONLY`, aplicação de `ModelSpec.parameters` em `instantiate_fresh_model`, exclusão de `UNDEFINED_NAN` em `TOP_K_RELEVANCE`, `requires_probabilities`/`requires_kernel_matrix` em `METRICS_CATALOG`, precedência `ADR-005` + `compare_by_abs` em `mbe`, semente em `RANDOM_SEARCH`, `CLI-11` em `cmd_models.py`, round-trip `Finding` e sincronização integral dos documentos de `engenharia_software/`, `README.md`, `REFERENCIAS_E_FUNDAMENTACAO.md` e `pyproject.toml`.
+- **Reason**: Garantir base científica, contratual e documental 100% consistente e congelável antes do Guia Definitivo do Pesquisador (`TA-POS.2`) e da validação externa `CA02` (`TA-POS.3`).
+- **Trade-off**: `README.md` teve apenas divergências factuais corrigidas nesta etapa, reservando seu enxugamento completo (remoção de blocos longos de código e aprofundamentos de engenharia) para `TA-POS.2`.
+- **Scope**: Todo o pacote `src/experimental_ml/`, suíte `tests/`, `engenharia_software/*.md`, `README.md`, `REFERENCIAS_E_FUNDAMENTACAO.md` e `pyproject.toml`.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m7-4-cli-report-end-to-end (Marco M7 — Etapa 6 Concluído na Branch da Feature)
-- **Phase / Task**: Marco M7 (M7.1–M7.4) 100% concluído e verificado; pronto para abertura/merge dos PRs em sequência pelo usuário (`m7-2` → `m7-3` → `m7-4`).
+- **Feature**: pos-1-mega-auditoria-mvp (`TA-POS.1` Concluída e Aceita na Branch da Feature)
+- **Phase / Task**: `TA-POS.1` concluída com 0 achados `P0`/`P1` abertos; pronta para integração e transição para `TA-POS.2` (Guia Definitivo do Pesquisador, Cookbook Científico e limpeza do `README.md`).
 - **Completed**:
-  - Sub-marcos M7.1, M7.2, M7.3 e M7.4 implementados em TDD estrito e verificados independentemente (`PASS`).
-  - `check_proofs.py m7-4-cli-report-end-to-end`: 6 pass, 0 fail.
-  - Registros `verification.md`, `ACCEPTANCE.md`, `RESULTS.md` validados (`validate_verification.py`: 0 erros).
-  - Suíte completa de testes automatizados expandida para **581 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Aguardando merge manual dos PRs na `main` pelo usuário (`m7-2` → `m7-3` → `m7-4`).
-- **Next step**: Consolidação dos PRs de M7.2, M7.3 e M7.4 na `main` e eventual Marco M8 / validação `CA02` externa.
+  - Auditoria independente transversal de código (Etapas 1–6) e documentação/referências (`AUDIT_REPORT.md`).
+  - Saneamento TDD de 100% dos achados `P0`, `P1` e `P2`.
+  - `check_proofs.py pos-1-mega-auditoria-mvp`: 3 pass, 0 fail.
+  - Verificação Independente TLC (`PASS`, `HEAD 65cb86c`).
+  - Suíte completa de testes automatizados expandida para **591 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Aguardando revisão/merge do PR de `feat/pos-1-mega-auditoria-mvp` e autorização para iniciar `TA-POS.2`.
+- **Next step**: Sub-marco `TA-POS.2` (Guia Definitivo do Pesquisador em 4 níveis + limpeza e enxugamento do `README.md`).
 - **Blockers**: none
-- **Branch**: feat/m7-4-cli-report-end-to-end (não integrada à main conforme instrução do usuário)
+- **Branch**: feat/pos-1-mega-auditoria-mvp

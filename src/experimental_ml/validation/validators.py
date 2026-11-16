@@ -165,6 +165,23 @@ def validate_partition_plan(
 
         val_sets_union.update(val_s)
 
+    # 5b. Cross-regime Group & Temporal isolation between development_ids and holdout_ids
+    if plan.holdout_ids:
+        if plan.strategy == PartitionStrategy.GROUP_KFOLD and group_map is not None:
+            dev_groups = {group_map[oid] for oid in plan.development_ids}
+            hold_groups = {group_map[oid] for oid in plan.holdout_ids}
+            if not dev_groups.isdisjoint(hold_groups):
+                raise DataIntegrityError(
+                    f"Holdout violates group isolation with development set: overlapping groups {dev_groups & hold_groups}"
+                )
+        if plan.strategy == PartitionStrategy.TEMPORAL and time_map is not None:
+            dev_times = [time_map[oid] for oid in plan.development_ids]
+            hold_times = [time_map[oid] for oid in plan.holdout_ids]
+            if dev_times and hold_times and max(dev_times) > min(hold_times):
+                raise DataIntegrityError(
+                    f"Holdout violates temporal monotonicity with development set: max dev ({max(dev_times)}) > min holdout ({min(hold_times)})"
+                )
+
     # 6. Standard K-Fold / Stratified complete coverage
     if plan.strategy in (PartitionStrategy.KFOLD, PartitionStrategy.STRATIFIED_KFOLD):
         if plan.regime in (EvaluationRegime.CV_ONLY, EvaluationRegime.CV_AND_HOLDOUT):

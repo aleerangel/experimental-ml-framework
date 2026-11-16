@@ -12,11 +12,12 @@ import numpy as np
 
 from experimental_ml.core.enums import (
     AggregationScope,
+    FindingSeverity,
     MetricDirection,
     MetricStatus,
     TaskType,
 )
-from experimental_ml.core.findings import ConfigurationError, Finding
+from experimental_ml.core.findings import ConfigurationError, Finding, make_warning
 from experimental_ml.core.types import (
     ExperimentId,
     ModelId,
@@ -47,12 +48,21 @@ def metric_value_to_dict(mv: MetricValue) -> dict[str, Any]:
 
     warnings_list = []
     for w in mv.warnings:
-        if hasattr(w, "to_dict"):
+        if isinstance(w, Finding):
+            warnings_list.append({
+                "severity": w.severity.value,
+                "code": w.code,
+                "message": w.message,
+                "context": dict(w.context),
+            })
+        elif hasattr(w, "to_dict"):
             warnings_list.append(w.to_dict())
         else:
             warnings_list.append({
-                "category": getattr(w, "category", "WARNING"),
+                "severity": FindingSeverity.HEURISTIC_WARNING.value,
+                "code": "W_GENERIC",
                 "message": getattr(w, "message", str(w)),
+                "context": {},
             })
 
     return {
@@ -81,16 +91,13 @@ def metric_value_from_dict(d: dict[str, Any]) -> MetricValue:
     warnings_list = []
     for w in d.get("warnings", []):
         if isinstance(w, dict):
-            warnings_list.append(
-                Finding(
-                    category=w.get("category", "WARNING"),
-                    message=w.get("message", ""),
-                    source_column=w.get("source_column"),
-                    details=w.get("details", {}),
-                )
-            )
+            sev = FindingSeverity(w["severity"]) if "severity" in w else FindingSeverity.HEURISTIC_WARNING
+            code = str(w.get("code") or w.get("category") or "W_GENERIC")
+            msg = str(w.get("message", ""))
+            ctx = w.get("context") if isinstance(w.get("context"), dict) else (w.get("details") if isinstance(w.get("details"), dict) else {})
+            warnings_list.append(Finding(severity=sev, code=code, message=msg, context=ctx))
         else:
-            warnings_list.append(Finding(category="WARNING", message=str(w)))
+            warnings_list.append(make_warning("W_GENERIC", str(w)))
 
     return MetricValue(
         metric_id=d["metric_id"],
@@ -254,12 +261,21 @@ def aggregated_metric_value_to_dict(amv: AggregatedMetricValue) -> dict[str, Any
     """Serialize an AggregatedMetricValue to a JSON-compatible dictionary."""
     warnings_list = []
     for w in amv.warnings:
-        if hasattr(w, "to_dict"):
+        if isinstance(w, Finding):
+            warnings_list.append({
+                "severity": w.severity.value,
+                "code": w.code,
+                "message": w.message,
+                "context": dict(w.context),
+            })
+        elif hasattr(w, "to_dict"):
             warnings_list.append(w.to_dict())
         else:
             warnings_list.append({
-                "category": getattr(w, "category", "WARNING"),
+                "severity": FindingSeverity.HEURISTIC_WARNING.value,
+                "code": "W_GENERIC",
                 "message": getattr(w, "message", str(w)),
+                "context": {},
             })
 
     fold_values_list = [metric_value_to_dict(fv) for fv in amv.fold_values]
@@ -307,16 +323,13 @@ def aggregated_metric_value_from_dict(d: dict[str, Any]) -> AggregatedMetricValu
     warnings_list = []
     for w in d.get("warnings", []):
         if isinstance(w, dict):
-            warnings_list.append(
-                Finding(
-                    category=w.get("category", "WARNING"),
-                    message=w.get("message", ""),
-                    source_column=w.get("source_column"),
-                    details=w.get("details", {}),
-                )
-            )
+            sev = FindingSeverity(w["severity"]) if "severity" in w else FindingSeverity.HEURISTIC_WARNING
+            code = str(w.get("code") or w.get("category") or "W_GENERIC")
+            msg = str(w.get("message", ""))
+            ctx = w.get("context") if isinstance(w.get("context"), dict) else (w.get("details") if isinstance(w.get("details"), dict) else {})
+            warnings_list.append(Finding(severity=sev, code=code, message=msg, context=ctx))
         else:
-            warnings_list.append(Finding(category="WARNING", message=str(w)))
+            warnings_list.append(make_warning("W_GENERIC", str(w)))
 
     return AggregatedMetricValue(
         metric_id=d["metric_id"],
