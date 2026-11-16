@@ -62,7 +62,7 @@ T2 --> T3
 
 ### Phase 1: Figuras Determinísticas em Python/NumPy Puro
 
-#### T1: Implementar build_figure_spec e render_figure (SVG, PNG 300 DPI, PDF) [ ]
+#### T1: Implementar build_figure_spec e render_figure (SVG, PNG 300 DPI, PDF) [x]
 
 **What**: Criar `src/experimental_ml/reporting/figures.py` com `build_figure_spec` (construindo `PlotSpecification` com `ArtifactProvenance` relativa e excluindo valores `UNDEFINED_NAN`/não-finitos com nota explícita) e `render_figure` gerando bytes determinísticos em `"svg"`, `"png"` (chunk `pHYs` 300 DPI) e `"pdf"` (PDF 1.4 válido), lançando `ConfigurationError` para formatos não suportados. Adicionar testes em `tests/unit/reporting/test_reporting_figures.py`.  
 **Where**: `src/experimental_ml/reporting/figures.py`  
