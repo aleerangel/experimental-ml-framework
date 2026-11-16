@@ -488,4 +488,79 @@ def verify_runs_gate(target: Path | str) -> dict[str, Any]:
     }
 
 
+def verify_statistics_gate(target: Path | str) -> dict[str, Any]:
+    """Verify Stage 5 statistical consolidation artifacts and upstream lineage (STAT-13, CA-GER-01).
+
+    Args:
+        target: Root experiment directory, OR statistics directory itself.
+
+    Returns:
+        Structured verification summary dictionary.
+
+    Raises:
+        DataIntegrityError: If Stage 5 artifacts are missing, corrupted, or misaligned
+            with upstream PartitionPlan / Stage 4 execution state.
+        ContractViolationError: If upstream Stage 4 has non-terminal cells.
+    """
+    from experimental_ml.core.storage import read_json
+    from experimental_ml.statistics.storage import load_statistics_artifacts
+
+    target_path = Path(target).resolve()
+    if (target_path / "statistics_manifest.json").is_file():
+        stats_dir = target_path
+        exp_dir = target_path.parent if target_path.name == "statistics" else target_path
+    else:
+        stats_dir = target_path / "statistics"
+        exp_dir = target_path
+
+    # 1. Upstream runs gate if runs/execution_state.json is present
+    if (exp_dir / EXECUTION_STATE_REL_PATH).exists():
+        verify_runs_gate(exp_dir)
+
+    # 2. Load and validate all Stage 5 artifacts
+    loaded = load_statistics_artifacts(stats_dir)
+
+    # 3. Cross-check partition_plan_id consistency across Stage 5 artifacts
+    pp_id = loaded.consolidation.partition_plan_id
+    if loaded.comparisons.partition_plan_id != pp_id:
+        raise DataIntegrityError(
+            f"Stage 5 partition_plan_id mismatch: consolidation='{pp_id}' vs "
+            f"comparisons='{loaded.comparisons.partition_plan_id}'."
+        )
+    if loaded.manifest.get("partition_plan_id") != pp_id:
+        raise DataIntegrityError(
+            f"Stage 5 manifest partition_plan_id mismatch: consolidation='{pp_id}' vs "
+            f"manifest='{loaded.manifest.get('partition_plan_id')}'."
+        )
+
+    # 4. Cross-check against upstream partition_plan.json if present
+    pp_file = exp_dir / PARTITION_PLAN_REL_PATH
+    if pp_file.is_file():
+        try:
+            pp_data = read_json(pp_file)
+            upstream_pp_id = pp_data.get("plan_id")
+        except Exception as exc:
+            raise DataIntegrityError(f"Failed to read upstream partition plan at '{pp_file}': {exc}") from exc
+        if upstream_pp_id != pp_id:
+            raise DataIntegrityError(
+                f"Stage 5 partition_plan_id '{pp_id}' diverges from upstream '{upstream_pp_id}'."
+            )
+
+    return {
+        "status": "VERIFIED",
+        "experiment_id": loaded.consolidation.experiment_id,
+        "partition_plan_id": pp_id,
+        "total_configurations": loaded.consolidation.total_configurations,
+        "total_comparisons": len(loaded.comparisons.comparisons),
+        "skipped_comparisons": len(loaded.comparisons.skipped_comparisons),
+        "has_pareto_summary": loaded.pareto is not None,
+        "observed_leader": (
+            list(loaded.conclusion.observed_leader)
+            if loaded.conclusion.observed_leader is not None
+            else None
+        ),
+    }
+
+
+
 

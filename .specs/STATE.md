@@ -135,18 +135,29 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-016
+- **Decision**: Persistência JSON atômica, portão de estágio da Etapa 5 (`verify_statistics_gate`) e CLI `expml stats` (Sub-marco M6.4, encerrando o Marco M6):
+  1. Persistência sob `{experiment_dir}/statistics/` (`descriptive_consolidation.json`, `method_suitability.json`, `statistical_comparisons.json`, `structured_conclusion.json`, `statistics_manifest.json` e `pareto_summary.json` opcional) com `write_json_atomic`, proteção `force=False` (`STORE-05`) e codificação explícita de não-finitos (`{"__nonfinite__": "NaN"|"Inf"|"-Inf"}`) em conformidade RFC 8259 (`ADR-005`).
+  2. `verify_statistics_gate` valida o portão upstream Stage 4 (`verify_runs_gate`), a integridade estrutural dos artefatos de `statistics/` e o alinhamento estrito de `partition_plan_id` (`CA-GER-01`).
+  3. CLI `expml stats` (`run`, `status`, `verify`) em `cli/cmd_stats.py` e `cli/main.py` com isolamento estrito de imports pesados (`CLI-10`), supressão de hashes brutos na saída (`CLI-11`) e códigos de saída padronizados `0`/`2`/`1` (`CLI-06`).
+- **Reason**: Atender aos requisitos `STAT-12`–`STAT-14`, `STORE-03`, `STORE-05`, `CA-GER-01`, `CLI-06`–`CLI-11` e `XCUT-02`, entregando a Etapa 5 completa para consumo somente-leitura pela Etapa 6 (M7).
+- **Trade-off**: Marcadores JSON explícitos para `NaN`/`Inf` exigem leitura via `load_statistics_artifacts` (ou decodificação consciente) em consumidores externos.
+- **Scope**: Módulos `experimental_ml.statistics.storage`, `stages.stage_gates`, `cli.cmd_stats`, `cli.main` e `statistics.__init__`.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m6-3-pareto-acquisition-synthesis (Sub-marco M6.3 Concluído, Verificado e Aprovado na Branch da Feature)
-- **Phase / Task**: Sub-marco M6.3 concluído com sucesso; pronto para merge manual pelo usuário e transição para o Sub-marco M6.4 (Persistência em disco de `statistics/`, `verify_statistics_gate` e CLI `expml stats`).
+- **Feature**: m6-statistics-stage5 (Marco M6 Completo: M6.1, M6.2, M6.3 e M6.4 Concluídos e Verificados)
+- **Phase / Task**: Marco M6 integralmente concluído na branch `feat/m6-4-statistics-persistence-cli`; pronto para merge manual pelo usuário e início do Marco M7 (Relatórios Científicos, Visualizações e Pacote de Reprodutibilidade — Etapa 6).
 - **Completed**:
-  - Especificação formal, Design e Tasks de M6.3 aprovados pelo usuário.
-  - Implementação TDD atômica (T1 a T5) em `experimental_ml.statistics`.
-  - Provas automatizadas (`check_proofs.py`): 12 pass, 0 fail.
-  - Auditoria por Verificador Independente TLC com resultado `PASS` (3 sondagens adversariais aprovadas, 0 apontamentos).
-  - Registros de conformidade completos (`verification.md`, `ACCEPTANCE.md`, `RESULTS.md`) com portão `validate_verification.py` validado com 0 erros.
-  - Suíte completa de testes automatizados expandida para **536 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar M6.4.
-- **Next step**: Sub-marco M6.4 (`m6-4-statistics-persistence-cli` — Persistência JSON atômica, portão `verify_statistics_gate` e CLI `expml stats`).
+  - Sub-marco M6.1 (`m6-1-descriptive-consolidation-suitability`): Consolidação descritiva 5A e adequação metodológica.
+  - Sub-marco M6.2 (`m6-2-paired-inference-multiplicity`): Inferência pareada (Nadeau-Bengio, Wilcoxon DP/Pratt, Cohen's $d_z$) e multiplicidade (Holm-Bonferroni, Benjamini-Hochberg) 100% em Python/NumPy puro.
+  - Sub-marco M6.3 (`m6-3-pareto-acquisition-synthesis`): Fronteira de Pareto, funções de aquisição sequencial e síntese estruturada (`StructuredConclusion`).
+  - Sub-marco M6.4 (`m6-4-statistics-persistence-cli`): Persistência atômica `statistics/`, portão `verify_statistics_gate` e CLI `expml stats` (`run`, `status`, `verify`).
+  - Verificação Independente TLC aprovada (`PASS`, 0 findings) em todos os sub-marcos M6.1–M6.4.
+  - Suíte completa de testes automatizados expandida para **548 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar o Marco M7.
+- **Next step**: Marco M7 (`experimental_ml.reporting` & `packaging` — Etapa 6: tabelas CSV/MD/LaTeX, figuras, relatório científico completo, `ArtifactProvenance`, pacote de reprodutibilidade e CLI `expml report`).
 - **Blockers**: none
-- **Branch**: feat/m6-3-pareto-acquisition-synthesis (não integrada à main conforme instrução do usuário)
+- **Branch**: feat/m6-4-statistics-persistence-cli (não integrada à main conforme instrução do usuário)
