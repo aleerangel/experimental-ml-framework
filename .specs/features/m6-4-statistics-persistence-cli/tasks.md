@@ -97,7 +97,7 @@ T3 --> T4
 
 ### Phase 3: CLI `expml stats`
 
-#### T3: Implementar cmd_stats e registrar subcomandos em cli/main.py [ ]
+#### T3: Implementar cmd_stats e registrar subcomandos em cli/main.py [x]
 
 **What**: Criar `src/experimental_ml/cli/cmd_stats.py` e registrar `expml stats run`, `status` e `verify` em `src/experimental_ml/cli/main.py` com lazy imports (`CLI-10`), códigos de saída `0`/`2` (`CLI-06`) e supressão de hashes brutos na saída (`CLI-11`). Adicionar testes em `tests/unit/cli/test_cli_stats.py`.  
 **Where**: `src/experimental_ml/cli/cmd_stats.py`  

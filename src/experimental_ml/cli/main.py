@@ -152,6 +152,24 @@ def build_parser() -> argparse.ArgumentParser:
     run_verify_p = run_subparsers.add_parser("verify", help="Verify stage 4 execution and OOF gates.")
     run_verify_p.add_argument("--run-dir", required=True, help="Path to run directory containing execution_state.json.")
 
+    # --- stats command ---
+    stats_parser = subparsers.add_parser("stats", help="Stage 5 statistical consolidation and inference.")
+    stats_subparsers = stats_parser.add_subparsers(dest="subcommand", metavar="<subcommand>")
+
+    # stats run
+    stats_run_p = stats_subparsers.add_parser("run", help="Run Stage 5 descriptive consolidation and comparisons.")
+    stats_run_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
+    stats_run_p.add_argument("--config", default=None, help="Optional path to comparison config JSON.")
+    stats_run_p.add_argument("--force", action="store_true", help="Overwrite existing statistics artifacts.")
+
+    # stats status
+    stats_status_p = stats_subparsers.add_parser("status", help="Inspect Stage 5 statistics summary.")
+    stats_status_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
+
+    # stats verify
+    stats_verify_p = stats_subparsers.add_parser("verify", help="Verify Stage 5 statistics gate.")
+    stats_verify_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
+
     return parser
 
 
@@ -244,6 +262,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return handle_run_status(args)
             if args.subcommand == "verify":
                 return handle_run_verify(args)
+        elif args.command == "stats":
+            from experimental_ml.cli.cmd_stats import (
+                handle_stats_run,
+                handle_stats_status,
+                handle_stats_verify,
+            )
+
+            if args.subcommand == "run":
+                return handle_stats_run(args)
+            if args.subcommand == "status":
+                return handle_stats_status(args)
+            if args.subcommand == "verify":
+                return handle_stats_verify(args)
     except ExperimentalMLError as exc:
         sys.stderr.write(f"Error: {exc}\n")
         return 2
