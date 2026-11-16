@@ -69,7 +69,7 @@ T3 --> T4
 
 ### Phase 1: Persistência Atômica
 
-#### T1: Implementar save_statistics_artifacts e load_statistics_artifacts [ ]
+#### T1: Implementar save_statistics_artifacts e load_statistics_artifacts [x]
 
 **What**: Criar `src/experimental_ml/statistics/storage.py` com codecs JSON tipados (preservando `NaN`/`Inf`/`-Inf` via marcadores RFC 8259, enums, chaves compostas e dataclasses congeladas), escrita atômica (`write_json_atomic`) e proteção `force=False`. Adicionar testes em `tests/unit/statistics/test_statistics_storage.py`.  
 **Where**: `src/experimental_ml/statistics/storage.py`  
