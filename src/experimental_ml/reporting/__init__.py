@@ -1,0 +1,49 @@
+"""Experimental reporting and reproducibility package (Marco M7 — Etapa 6).
+
+Provides immutable publication contracts, read-only Stage 1-5 loaders,
+7-family scientific table builders, and deterministic CSV/Markdown/LaTeX renderers.
+"""
+
+from experimental_ml.reporting.loader import (
+    load_experiment_artifacts_readonly,
+    select_report_content,
+)
+from experimental_ml.reporting.tables import (
+    build_table_model,
+    render_table_csv,
+    render_table_latex,
+    render_table_markdown,
+)
+from experimental_ml.reporting.types import (
+    ArtifactProvenance,
+    ColumnAlignment,
+    LoadedExperimentData,
+    PlotSeries,
+    PlotSpecification,
+    PlotType,
+    ReportAudience,
+    ReportContentSelection,
+    ReportFamily,
+    TableColumn,
+    TableModel,
+)
+
+__all__ = [
+    "ReportFamily",
+    "ReportAudience",
+    "PlotType",
+    "ColumnAlignment",
+    "ArtifactProvenance",
+    "ReportContentSelection",
+    "TableColumn",
+    "TableModel",
+    "PlotSeries",
+    "PlotSpecification",
+    "LoadedExperimentData",
+    "load_experiment_artifacts_readonly",
+    "select_report_content",
+    "build_table_model",
+    "render_table_csv",
+    "render_table_markdown",
+    "render_table_latex",
+]

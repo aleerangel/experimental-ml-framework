@@ -146,18 +146,29 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-017
+- **Decision**: Contratos de publicação, carregamento somente-leitura e construtores/renderizadores das 7 famílias de tabelas da Etapa 6 (Sub-marco M7.1) em Python/NumPy puro (`XCUT-02`):
+  1. `ArtifactProvenance` exige caminhos exclusivamente relativos (`source_relative_paths`) para portabilidade (`CA-E6-02`).
+  2. `load_experiment_artifacts_readonly` valida `verify_statistics_gate` e lê exclusivamente JSONs persistidos sem invocar ajuste/predição/tuning de modelos (`CA-E6-01`), enquanto `select_report_content` aplica filtragem determinística para `FULL_LAB` (A–G), `ARTICLE_COMPACT` (D, E, F) e `CUSTOM`.
+  3. `build_table_model` cobre as 7 famílias (A–G), armazena valores numéricos exatos de `statistics/*.json` em `TableModel.rows` (sem arredondamento; formatação visual aplicada apenas nos renderizadores de texto), distingue `None` (`"N/A"`), `UNDEFINED_NAN` e `±Inf`, e exclui estruturalmente campos `*_hash`/`*_digest`/`sha256`/`checksum` sem afetar IDs legítimos do usuário.
+- **Reason**: Atender aos requisitos `RF6.1`, `RF6.2`, `RF6.3`, `CA-E6-01`, `CA-E6-02`, `REP-01`–`REP-03` e `XCUT-02`.
+- **Trade-off**: Formatação visual e precisão numérica integral (CSV) são desacopladas por coluna (`TableColumn.numeric_format`).
+- **Scope**: Módulos `experimental_ml.reporting.types`, `loader`, `tables` e `__init__`.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m6-statistics-stage5 (Marco M6 Completo: M6.1, M6.2, M6.3 e M6.4 Concluídos e Verificados)
-- **Phase / Task**: Marco M6 integralmente concluído na branch `feat/m6-4-statistics-persistence-cli`; pronto para merge manual pelo usuário e início do Marco M7 (Relatórios Científicos, Visualizações e Pacote de Reprodutibilidade — Etapa 6).
+- **Feature**: m7-1-reporting-contracts-tables (Sub-marco M7.1 Concluído, Verificado e Aprovado na Branch da Feature)
+- **Phase / Task**: Sub-marco M7.1 concluído com sucesso; pronto para merge manual pelo usuário e transição para o Sub-marco M7.2 (Figuras SVG/PNG/PDF puras e Relatório Científico Completo Markdown/HTML).
 - **Completed**:
-  - Sub-marco M6.1 (`m6-1-descriptive-consolidation-suitability`): Consolidação descritiva 5A e adequação metodológica.
-  - Sub-marco M6.2 (`m6-2-paired-inference-multiplicity`): Inferência pareada (Nadeau-Bengio, Wilcoxon DP/Pratt, Cohen's $d_z$) e multiplicidade (Holm-Bonferroni, Benjamini-Hochberg) 100% em Python/NumPy puro.
-  - Sub-marco M6.3 (`m6-3-pareto-acquisition-synthesis`): Fronteira de Pareto, funções de aquisição sequencial e síntese estruturada (`StructuredConclusion`).
-  - Sub-marco M6.4 (`m6-4-statistics-persistence-cli`): Persistência atômica `statistics/`, portão `verify_statistics_gate` e CLI `expml stats` (`run`, `status`, `verify`).
-  - Verificação Independente TLC aprovada (`PASS`, 0 findings) em todos os sub-marcos M6.1–M6.4.
-  - Suíte completa de testes automatizados expandida para **548 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar o Marco M7.
-- **Next step**: Marco M7 (`experimental_ml.reporting` & `packaging` — Etapa 6: tabelas CSV/MD/LaTeX, figuras, relatório científico completo, `ArtifactProvenance`, pacote de reprodutibilidade e CLI `expml report`).
+  - Especificação revisada e aprovada pelo usuário.
+  - Implementação TDD atômica (T1 a T4) em `experimental_ml.reporting`.
+  - Provas automatizadas (`check_proofs.py`): 11 pass, 0 fail.
+  - Verificação Independente TLC (`PASS`, 4 sondagens adversariais aprovadas, 0 apontamentos).
+  - Registros `verification.md`, `ACCEPTANCE.md`, `RESULTS.md` validados (`validate_verification.py`: 0 erros).
+  - Suíte completa de testes automatizados expandida para **559 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar M7.2.
+- **Next step**: Sub-marco M7.2 (`m7-2-figures-full-report` — Figuras determinísticas SVG/PNG 300 DPI/PDF em Python/NumPy puro e `render_full_report` em Markdown e HTML autocontido).
 - **Blockers**: none
-- **Branch**: feat/m6-4-statistics-persistence-cli (não integrada à main conforme instrução do usuário)
+- **Branch**: feat/m7-1-reporting-contracts-tables (não integrada à main conforme instrução do usuário)
