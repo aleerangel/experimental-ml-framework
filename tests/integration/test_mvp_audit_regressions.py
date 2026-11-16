@@ -6,7 +6,7 @@ import math
 
 import numpy as np
 
-from experimental_ml.core.enums import MetricStatus, TaskType
+from experimental_ml.core.enums import AggregationScope, MetricStatus, TaskType
 from experimental_ml.core.findings import make_warning
 from experimental_ml.core.types import ObservationId, ScenarioId
 from experimental_ml.data.loader import load_dataset
@@ -256,6 +256,19 @@ def test_p1_02_finding_roundtrip_in_orchestration_codecs() -> None:
     mv2 = metric_value_from_dict(metric_value_to_dict(mv))
     assert mv2.warnings[0].code == "W_TEST"
 
-    amv = AggregatedMetricValue("rmse", None, None, None, None, None, None, 0, 5, MetricStatus.UNDEFINED_NAN, warnings=(warn,))
+    amv = AggregatedMetricValue(
+        metric_id="rmse",
+        mean=float("nan"),
+        std=float("nan"),
+        median=float("nan"),
+        iqr=float("nan"),
+        status=MetricStatus.UNDEFINED_NAN,
+        direction=MetricDirection.MINIMIZE,
+        scope=AggregationScope.FOLD_AGGREGATION,
+        valid_folds=0,
+        total_folds=5,
+        coverage=0.0,
+        warnings=(warn,),
+    )
     amv2 = aggregated_metric_value_from_dict(aggregated_metric_value_to_dict(amv))
     assert amv2.warnings[0].code == "W_TEST"

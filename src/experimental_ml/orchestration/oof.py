@@ -560,7 +560,7 @@ def consolidate_matrix_oof(
 
     for cid in exec_state.cell_statuses.keys():
         cid_str = str(cid)
-        parts = cid_str.replace("cell_", "").split("__")
+        parts = cid_str.removeprefix("cell_").split("__")
         if len(parts) >= 3:
             m_id, sc_id = parts[0], parts[1]
         else:

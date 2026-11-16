@@ -8,6 +8,7 @@ ADR-008 and RNF07.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Mapping
 
 from experimental_ml.core.enums import FindingSeverity
@@ -37,6 +38,10 @@ class Finding:
     code: str
     message: str
     context: Mapping[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        if self.context is not None and not isinstance(self.context, MappingProxyType):
+            object.__setattr__(self, "context", MappingProxyType(dict(self.context)))
 
 
 def make_finding(

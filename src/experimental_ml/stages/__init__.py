@@ -24,8 +24,10 @@ from experimental_ml.stages.stage_gates import (
     verify_models_gate,
     verify_partition_gate,
     verify_preparation_gate,
+    verify_report_gate,
     verify_runs_gate,
     verify_scenarios_gate,
+    verify_statistics_gate,
 )
 
 __all__ = [
@@ -48,5 +50,7 @@ __all__ = [
     "verify_scenarios_gate",
     "verify_models_gate",
     "verify_runs_gate",
+    "verify_statistics_gate",
+    "verify_report_gate",
     "reconstruct_sanitized_view",
 ]

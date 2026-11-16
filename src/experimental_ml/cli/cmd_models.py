@@ -56,7 +56,6 @@ def handle_models_validate(args: argparse.Namespace) -> int:
         sys.stdout.write(
             f"Models catalog validated and saved successfully:\n"
             f"  - Models count: {len(catalog.models)}\n"
-            f"  - Catalog hash: {catalog.catalog_hash}\n"
             f"  - Destination: {dest_path.relative_to(experiment_dir)}\n"
         )
         return 0
@@ -90,7 +89,6 @@ def handle_models_verify(args: argparse.Namespace) -> int:
         sys.stdout.write(
             f"Models gate verified successfully:\n"
             f"  - Models count: {len(catalog.models)}\n"
-            f"  - Catalog hash: {catalog.catalog_hash}\n"
             f"  - Catalog file: {MODELS_CATALOG_REL_PATH}\n"
         )
         return 0

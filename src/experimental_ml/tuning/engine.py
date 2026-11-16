@@ -211,8 +211,6 @@ def run_nested_tuning(
         )
 
     # Deterministic selection based on optimization direction (and compare_by_abs for mbe)
-    from experimental_ml.metrics.catalog import METRICS_CATALOG
-
     m_spec = METRICS_CATALOG.get(spec.optimization_metric.lower())
     by_abs = bool(m_spec.compare_by_abs) if m_spec is not None else False
     if spec.direction == MetricDirection.MAXIMIZE:

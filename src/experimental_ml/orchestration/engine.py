@@ -219,7 +219,7 @@ def run_experiment_matrix(
             consolidate_matrix_oof(
                 dest_run_dir,
                 task_type=sanitized_view.schema.task_type,
-                target_observation_ids=tuple(sanitized_view.observation_ids),
+                target_observation_ids=tuple(partition_plan.development_ids),
                 overwrite=True,
             )
         except Exception:
@@ -440,7 +440,7 @@ def resume_experiment_matrix(
             consolidate_matrix_oof(
                 dest_run_dir,
                 task_type=sanitized_view.schema.task_type,
-                target_observation_ids=tuple(sanitized_view.observation_ids),
+                target_observation_ids=tuple(partition_plan.development_ids),
                 overwrite=True,
             )
         except Exception:
