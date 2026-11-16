@@ -22,7 +22,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 | Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
 | :--- | :--- | :--- | :--- | :--- |
-| Statistics Types & Enums (`src/experimental_ml/statistics/types.py`) | unit | 1:1 AC mapping: CoverageStatus, IncompleteComparisonPolicy, ApplicabilityStatus, AggregatedMetricStats, AggregatedTimingStats, ConfigurationSummary, DescriptiveConsolidation, MethodSuitabilityReport | `tests/unit/statistics/test_types.py` | `.venv/bin/pytest tests/unit/statistics/test_types.py -v` |
+| Statistics Types & Enums (`src/experimental_ml/statistics/types.py`) | unit | 1:1 AC mapping: CoverageStatus, IncompleteComparisonPolicy, ApplicabilityStatus, AggregatedMetricStats, AggregatedTimingStats, ConfigurationSummary, DescriptiveConsolidation, MethodSuitabilityReport | `tests/unit/statistics/test_statistics_types.py` | `.venv/bin/pytest tests/unit/statistics/test_statistics_types.py -v` |
 | Stage 5 Entry Gate (`src/experimental_ml/statistics/consolidation.py`) | unit | 1:1 AC mapping: validate_stage5_entry, rejection of PENDING/RUNNING, rejection of completed_cells == 0, acceptance of COMPLETED/FAILED/CANCELLED with completed >= 1 | `tests/unit/statistics/test_stage5_entry.py` | `.venv/bin/pytest tests/unit/statistics/test_stage5_entry.py -v` |
 | Descriptive Consolidation Engine (`src/experimental_ml/statistics/consolidation.py`) | unit | 1:1 AC mapping: consolidate_descriptive, coverage calculation, missing folds tracking, sample std with ddof=1, median, IQR, n_valid handling (0, 1, >=2), timing aggregation, feature stability | `tests/unit/statistics/test_consolidation.py` | `.venv/bin/pytest tests/unit/statistics/test_consolidation.py -v` |
 | Methodological Suitability & Incompleteness (`src/experimental_ml/statistics/suitability.py`) | unit | 1:1 AC mapping: evaluate_method_suitability, check_pairwise_comparison_eligibility, CV overlap ratios r, Nadeau-Bengio applicability, Wilcoxon J < 6 warning, holdout único multi-fold rejection, standard t rejection | `tests/unit/statistics/test_suitability.py` | `.venv/bin/pytest tests/unit/statistics/test_suitability.py -v` |
@@ -98,8 +98,8 @@ T4 --> T5
 **Depends on**: None
 **Reuses**: `src/experimental_ml/core/enums.py`, `src/experimental_ml/metrics/types.py`, `src/experimental_ml/features/stability.py`, `src/experimental_ml/validation/types.py`
 **Requirement**: STAT-01
-**Tests**: `tests/unit/statistics/test_types.py`
-**Gate**: `.venv/bin/pytest tests/unit/statistics/test_types.py -v`
+**Tests**: `tests/unit/statistics/test_statistics_types.py`
+**Gate**: `.venv/bin/pytest tests/unit/statistics/test_statistics_types.py -v`
 
 ---
 
@@ -147,7 +147,7 @@ T4 --> T5
 
 ### Phase 5: Public API Exposure and Integration Suite
 
-#### T5: Expose public statistics API and implement end-to-end integration tests
+#### T5: Expose public statistics API and implement end-to-end integration tests [x]
 
 **What**: In `src/experimental_ml/statistics/__init__.py`, export `CoverageStatus`, `IncompleteComparisonPolicy`, `ApplicabilityStatus`, `AggregatedMetricStats`, `AggregatedTimingStats`, `ConfigurationSummary`, `DescriptiveConsolidation`, `ApplicableMethod`, `MethodSuitabilityReport`, `validate_stage5_entry`, `consolidate_descriptive`, `evaluate_method_suitability`, and `check_pairwise_comparison_eligibility`. Create `tests/integration/statistics/test_statistics_integration.py` exercising the full lifecycle: reading synthetic Stage 4 cell artifacts, passing gate validation, producing descriptive consolidations with partial and complete coverage, and evaluating methodological suitability across all regimes (`CV_ONLY`, `HOLDOUT_ONLY`, `CV_AND_HOLDOUT`). Verify runtime purity (`XCUT-02`), ensuring zero external imports beyond `numpy>=1.24.0` and stdlib, and zero domain coupling (`RNF02`).
 **Where**: `src/experimental_ml/statistics/__init__.py`
@@ -162,25 +162,25 @@ T4 --> T5
 ## Checks
 
 **C1** - CoverageStatus enum has VALID, PARTIAL_COVERAGE, and NO_COVERAGE (STAT-01, AC-M61-01-01)  
-Proof: run unit | tests/unit/statistics/test_types.py::test_coverage_status_enum PASSED
+Proof: run unit | tests/unit/statistics/test_statistics_types.py::test_coverage_status_enum PASSED
 
 **C2** - IncompleteComparisonPolicy enum has STRICT_COMPLETE_ONLY and ALLOW_COMMON_SUBSET (STAT-01, AC-M61-01-02)  
-Proof: run unit | tests/unit/statistics/test_types.py::test_incomplete_comparison_policy_enum PASSED
+Proof: run unit | tests/unit/statistics/test_statistics_types.py::test_incomplete_comparison_policy_enum PASSED
 
 **C3** - AggregatedMetricStats contains n_valid, n_total, status, and nullable float summary fields (STAT-01, AC-M61-01-03)  
-Proof: run unit | tests/unit/statistics/test_types.py::test_aggregated_metric_stats_fields PASSED
+Proof: run unit | tests/unit/statistics/test_statistics_types.py::test_aggregated_metric_stats_fields PASSED
 
 **C4** - AggregatedTimingStats contains mean and total durations in seconds for all cell sub-phases (STAT-01, AC-M61-01-04)  
-Proof: run unit | tests/unit/statistics/test_types.py::test_aggregated_timing_stats_fields PASSED
+Proof: run unit | tests/unit/statistics/test_statistics_types.py::test_aggregated_timing_stats_fields PASSED
 
 **C5** - ConfigurationSummary contains model_id, scenario_id, fold counters, coverage status, fold id tuples, and metric/timing summaries (STAT-01, AC-M61-01-05)  
-Proof: run unit | tests/unit/statistics/test_types.py::test_configuration_summary_fields PASSED
+Proof: run unit | tests/unit/statistics/test_statistics_types.py::test_configuration_summary_fields PASSED
 
 **C6** - DescriptiveConsolidation contains experiment_id, partition_plan_id, total_configurations, configurations mapping, and timestamp (STAT-01, AC-M61-01-06)  
-Proof: run unit | tests/unit/statistics/test_types.py::test_descriptive_consolidation_fields PASSED
+Proof: run unit | tests/unit/statistics/test_statistics_types.py::test_descriptive_consolidation_fields PASSED
 
 **C7** - Modifying any attribute of statistics dataclasses raises FrozenInstanceError (STAT-01, AC-M61-01-07)  
-Proof: run unit | tests/unit/statistics/test_types.py::test_statistics_dataclasses_frozen_immutability PASSED
+Proof: run unit | tests/unit/statistics/test_statistics_types.py::test_statistics_dataclasses_frozen_immutability PASSED
 
 **C8** - Missing or corrupted execution_state.json raises ContractViolationError (STAT-02, AC-M61-02-01)  
 Proof: run unit | tests/unit/statistics/test_stage5_entry.py::test_validate_stage5_entry_missing_or_corrupt_state PASSED
@@ -254,4 +254,4 @@ Proof: run unit | tests/unit/statistics/test_suitability.py::test_check_pairwise
 
 - **Dispatched:** none
 - **Current Task:** T5
-- **Next Task:** T5
+- **Next Task:** none
