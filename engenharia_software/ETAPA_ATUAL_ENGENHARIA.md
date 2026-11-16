@@ -250,9 +250,9 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
 
 ---
 
-### Fase Pós-MVP: Mega Auditoria, Guia Definitivo e Homologação Científica
+### Fase Pós-MVP: Auditoria, Guia Definitivo e Homologação Científica
 
-8. **Pós-Marco / Encerramento do MVP (Mega Auditoria, Guia do Pesquisador e Homologação Externa `CA02`):**
-   * **Mega Auditoria Técnica Transversal do MVP:** Auditoria independente abrangente cobrindo os contratos, integridade e invariantes de todas as 6 etapas operacionais implementadas (M1 a M7), validando determinismo, ausência de regressões e conformidade com as ADRs antes do congelamento do código.
+8. **Pós-Marco / Encerramento do MVP (Auditoria, Guia do Pesquisador e Homologação Externa `CA02`):**
+   * **Auditoria Técnica Transversal do MVP:** Auditoria independente abrangente cobrindo os contratos, integridade e invariantes de todas as 6 etapas operacionais implementadas (M1 a M7), validando determinismo, ausência de regressões e conformidade com as ADRs antes do congelamento do código.
    * **Guia Definitivo do Pesquisador & Cookbook Científico:** Com o código 100% auditado e estável, elaboração do manual pedagógico definitivo em quatro níveis: (1) Quickstart ("Seu Experimento em 5 Minutos"); (2) Tutorial Teórico-Prático das 6 Etapas; (3) Cookbook / How-To Guides (modelos analíticos/quânticos, dados agrupados, limites $\Delta_{\text{min}}$, uso em Jupyter Notebooks); e (4) Catálogo de Referência Completo de APIs e Comandos da CLI.
    * **Homologação Científica Externa (`CA02`):** Execução do pipeline completo sobre o estudo de caso experimental real pelo pesquisador fora do repositório, atestando a aplicabilidade prática e científica da versão final auditada.
