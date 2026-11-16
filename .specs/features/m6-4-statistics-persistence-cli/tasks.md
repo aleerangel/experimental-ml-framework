@@ -83,7 +83,7 @@ T3 --> T4
 
 ### Phase 2: Portão de Estágio Stage 5
 
-#### T2: Implementar verify_statistics_gate [ ]
+#### T2: Implementar verify_statistics_gate [x]
 
 **What**: Adicionar `verify_statistics_gate` em `src/experimental_ml/stages/stage_gates.py`, verificando portão upstream (`verify_runs_gate` quando `runs/` existe), existência/parseabilidade dos arquivos obrigatórios em `statistics/` e consistência de `partition_plan_id`. Adicionar testes em `tests/unit/stages/test_stage_statistics_gate.py`.  
 **Where**: `src/experimental_ml/stages/stage_gates.py`  
