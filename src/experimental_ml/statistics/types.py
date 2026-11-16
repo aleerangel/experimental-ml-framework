@@ -7,13 +7,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+import math
 from types import MappingProxyType
 from typing import Any, Mapping
 
 from experimental_ml.core.enums import MetricStatus
 from experimental_ml.core.findings import ConfigurationError
 from experimental_ml.features.stability import SelectionStabilityReport
-from experimental_ml.metrics.types import MetricValue
+from experimental_ml.metrics.types import MetricDirection, MetricValue
 from experimental_ml.validation.types import EvaluationRegime
 
 
@@ -205,6 +206,275 @@ class MethodSuitabilityReport:
                 self,
                 "applicable_methods",
                 MappingProxyType(dict(self.applicable_methods)),
+            )
+        if not isinstance(self.warnings, tuple):
+            object.__setattr__(self, "warnings", tuple(str(w) for w in self.warnings))
+
+
+class ComparisonScope(StrEnum):
+    """Comparison scope governing candidate pair generation (RF5.1, STAT-05)."""
+
+    MODELS_WITHIN_SCENARIO = "MODELS_WITHIN_SCENARIO"
+    SCENARIOS_WITHIN_MODEL = "SCENARIOS_WITHIN_MODEL"
+    FULL_CONFIGURATIONS = "FULL_CONFIGURATIONS"
+    AGAINST_BASELINE = "AGAINST_BASELINE"
+    ALL_PAIRWISE = "ALL_PAIRWISE"
+    PLANNED_HYPOTHESES = "PLANNED_HYPOTHESES"
+
+
+class MultiplicityMethod(StrEnum):
+    """Multiple hypothesis testing correction method (STAT-05, STAT-08)."""
+
+    NONE = "NONE"
+    HOLM_BONFERRONI = "HOLM_BONFERRONI"
+    BENJAMINI_HOCHBERG = "BENJAMINI_HOCHBERG"
+
+
+class EffectSizeMagnitude(StrEnum):
+    """Qualitative effect size magnitude classification for paired Cohen's d_z."""
+
+    NEGLIGIBLE = "NEGLIGIBLE"
+    SMALL = "SMALL"
+    MEDIUM = "MEDIUM"
+    LARGE = "LARGE"
+
+
+class PracticalRelevanceStatus(StrEnum):
+    """Practical relevance classification relative to configured Delta_min thresholds."""
+
+    NOT_CONFIGURED = "NOT_CONFIGURED"
+    STATISTICALLY_SIGNIFICANT_AND_PRACTICAL = "STATISTICALLY_SIGNIFICANT_AND_PRACTICAL"
+    STATISTICALLY_SIGNIFICANT_NOT_PRACTICAL = "STATISTICALLY_SIGNIFICANT_NOT_PRACTICAL"
+    PRACTICAL_NOT_STATISTICALLY_SIGNIFICANT = "PRACTICAL_NOT_STATISTICALLY_SIGNIFICANT"
+    INCONCLUSIVE = "INCONCLUSIVE"
+    EVIDENCE_OF_EQUIVALENCE = "EVIDENCE_OF_EQUIVALENCE"
+
+
+@dataclass(frozen=True, slots=True)
+class ComparisonSpec:
+    """Researcher-defined specification for statistical comparisons (STAT-05)."""
+
+    metrics_of_interest: tuple[str, ...]
+    metric_directions: Mapping[str, MetricDirection]
+    comparison_scope: ComparisonScope
+    baseline_config: tuple[str, str] | None = None
+    planned_pairs: tuple[tuple[tuple[str, str], tuple[str, str]], ...] = field(default_factory=tuple)
+    alpha: float = 0.05
+    multiplicity_method: MultiplicityMethod = MultiplicityMethod.HOLM_BONFERRONI
+    hypothesis_family_spec: Mapping[tuple[tuple[str, str], tuple[str, str], str], str] | None = None
+    practical_relevance_thresholds: Mapping[str, float] | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.comparison_scope, ComparisonScope):
+            object.__setattr__(self, "comparison_scope", ComparisonScope(self.comparison_scope))
+        if not isinstance(self.multiplicity_method, MultiplicityMethod):
+            object.__setattr__(self, "multiplicity_method", MultiplicityMethod(self.multiplicity_method))
+
+        metrics = tuple(str(m) for m in self.metrics_of_interest)
+        if not metrics:
+            raise ConfigurationError("ComparisonSpec.metrics_of_interest must not be empty.")
+        object.__setattr__(self, "metrics_of_interest", metrics)
+
+        directions = {
+            str(k): (v if isinstance(v, MetricDirection) else MetricDirection(v))
+            for k, v in self.metric_directions.items()
+        }
+        missing_dirs = [m for m in metrics if m not in directions]
+        if missing_dirs:
+            raise ConfigurationError(
+                f"ComparisonSpec.metric_directions missing entries for metrics: {missing_dirs}"
+            )
+        object.__setattr__(self, "metric_directions", MappingProxyType(directions))
+
+        if not math.isfinite(self.alpha) or not (0.0 < self.alpha < 1.0):
+            raise ConfigurationError(f"ComparisonSpec.alpha must be in (0.0, 1.0); got {self.alpha}")
+
+        if self.comparison_scope == ComparisonScope.AGAINST_BASELINE:
+            if self.baseline_config is None or len(self.baseline_config) != 2:
+                raise ConfigurationError(
+                    "ComparisonSpec.baseline_config (model_id, scenario_id) is required for AGAINST_BASELINE."
+                )
+        if self.baseline_config is not None:
+            object.__setattr__(
+                self,
+                "baseline_config",
+                (str(self.baseline_config[0]), str(self.baseline_config[1])),
+            )
+
+        pairs = tuple(
+            ((str(a[0]), str(a[1])), (str(b[0]), str(b[1])))
+            for a, b in self.planned_pairs
+        )
+        if self.comparison_scope == ComparisonScope.PLANNED_HYPOTHESES and not pairs:
+            raise ConfigurationError(
+                "ComparisonSpec.planned_pairs must not be empty for PLANNED_HYPOTHESES."
+            )
+        object.__setattr__(self, "planned_pairs", pairs)
+
+        if self.hypothesis_family_spec is not None:
+            fam_map = {
+                (
+                    (str(k[0][0]), str(k[0][1])),
+                    (str(k[1][0]), str(k[1][1])),
+                    str(k[2]),
+                ): str(v)
+                for k, v in self.hypothesis_family_spec.items()
+            }
+            object.__setattr__(self, "hypothesis_family_spec", MappingProxyType(fam_map))
+
+        if self.practical_relevance_thresholds is not None:
+            thresh: dict[str, float] = {}
+            for k, v in self.practical_relevance_thresholds.items():
+                val = float(v)
+                if not math.isfinite(val) or val < 0.0:
+                    raise ConfigurationError(
+                        f"Practical relevance threshold for '{k}' must be finite and >= 0; got {val}"
+                    )
+                thresh[str(k)] = val
+            object.__setattr__(self, "practical_relevance_thresholds", MappingProxyType(thresh))
+
+
+@dataclass(frozen=True, slots=True)
+class NadeauBengioResult:
+    """Result of the Nadeau-Bengio (2003) corrected paired t-test (STAT-06)."""
+
+    mean_difference: float
+    std_difference: float
+    corrected_variance: float
+    corrected_se: float
+    t_statistic: float
+    degrees_of_freedom: int
+    p_value: float
+    confidence_interval: tuple[float, float]
+    alpha: float
+    mean_train_val_ratio: float
+    fold_size_cv: float | None
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.confidence_interval, tuple):
+            object.__setattr__(
+                self,
+                "confidence_interval",
+                (float(self.confidence_interval[0]), float(self.confidence_interval[1])),
+            )
+        if not isinstance(self.warnings, tuple):
+            object.__setattr__(self, "warnings", tuple(str(w) for w in self.warnings))
+
+
+@dataclass(frozen=True, slots=True)
+class WilcoxonResult:
+    """Result of the paired Wilcoxon signed-rank test (STAT-07)."""
+
+    statistic: float
+    w_plus: float
+    w_minus: float
+    n_total: int
+    n_effective: int
+    zero_method: str
+    p_value: float
+    is_exact: bool
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.warnings, tuple):
+            object.__setattr__(self, "warnings", tuple(str(w) for w in self.warnings))
+
+
+@dataclass(frozen=True, slots=True)
+class EffectSizeResult:
+    """Paired Cohen's d_z effect size result with approximate analytical CI (STAT-07)."""
+
+    cohens_d: float
+    magnitude: EffectSizeMagnitude
+    confidence_interval: tuple[float | None, float | None]
+    alpha: float
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.magnitude, EffectSizeMagnitude):
+            object.__setattr__(self, "magnitude", EffectSizeMagnitude(self.magnitude))
+        if not isinstance(self.confidence_interval, tuple):
+            object.__setattr__(
+                self,
+                "confidence_interval",
+                (self.confidence_interval[0], self.confidence_interval[1]),
+            )
+        if not isinstance(self.warnings, tuple):
+            object.__setattr__(self, "warnings", tuple(str(w) for w in self.warnings))
+
+
+@dataclass(frozen=True, slots=True)
+class PairwiseComparisonResult:
+    """Complete inferential result for a pair of configurations on a single metric (STAT-08)."""
+
+    comparison_id: str
+    family_id: str
+    metric_name: str
+    direction: MetricDirection
+    config_a: tuple[str, str]
+    config_b: tuple[str, str]
+    shared_fold_ids: tuple[str, ...]
+    observed_mean_a: float
+    observed_mean_b: float
+    observed_difference: float
+    observed_better: tuple[str, str] | None
+    nadeau_bengio: NadeauBengioResult
+    wilcoxon: WilcoxonResult
+    effect_size: EffectSizeResult
+    nadeau_bengio_adjusted_p: float
+    wilcoxon_adjusted_p: float
+    practical_relevance: PracticalRelevanceStatus
+    is_conditional: bool
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.direction, MetricDirection):
+            object.__setattr__(self, "direction", MetricDirection(self.direction))
+        if not isinstance(self.practical_relevance, PracticalRelevanceStatus):
+            object.__setattr__(
+                self,
+                "practical_relevance",
+                PracticalRelevanceStatus(self.practical_relevance),
+            )
+        if not isinstance(self.shared_fold_ids, tuple):
+            object.__setattr__(self, "shared_fold_ids", tuple(str(f) for f in self.shared_fold_ids))
+        if not isinstance(self.warnings, tuple):
+            object.__setattr__(self, "warnings", tuple(str(w) for w in self.warnings))
+
+
+@dataclass(frozen=True, slots=True)
+class SkippedComparison:
+    """Audit record for a requested comparison that could not be executed (STAT-08)."""
+
+    config_a: tuple[str, str]
+    config_b: tuple[str, str]
+    metric_name: str
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class StatisticalComparisonBundle:
+    """Immutable container for all inferential comparisons and audit records (STAT-08)."""
+
+    experiment_id: str
+    partition_plan_id: str
+    comparison_spec: ComparisonSpec
+    comparisons: tuple[PairwiseComparisonResult, ...]
+    skipped_comparisons: tuple[SkippedComparison, ...] = field(default_factory=tuple)
+    non_applicable_reasons: tuple[str, ...] = field(default_factory=tuple)
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.comparisons, tuple):
+            object.__setattr__(self, "comparisons", tuple(self.comparisons))
+        if not isinstance(self.skipped_comparisons, tuple):
+            object.__setattr__(self, "skipped_comparisons", tuple(self.skipped_comparisons))
+        if not isinstance(self.non_applicable_reasons, tuple):
+            object.__setattr__(
+                self,
+                "non_applicable_reasons",
+                tuple(str(r) for r in self.non_applicable_reasons),
             )
         if not isinstance(self.warnings, tuple):
             object.__setattr__(self, "warnings", tuple(str(w) for w in self.warnings))

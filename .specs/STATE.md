@@ -111,22 +111,31 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-014
+- **Decision**: Núcleo de inferência estatística pareada, tamanho de efeito e ajuste de multiplicidade da Etapa 5B (Sub-marco M6.2) 100% em Python/NumPy puro (`XCUT-02`, zero `scipy` em runtime):
+  1. Distribuição Student-$t$ exata (`_distributions.py`) via função Beta incompleta regularizada $I_x(a, b)$ por fração continuada modificada de Lentz e bisseção de quantis.
+  2. Teste $t$ pareado corrigido de Nadeau-Bengio (`paired_nadeau_bengio_test`) com variância corrigida $(1/J + \bar{r}) S^2_d$, $\nu = J-1$, tratamento seguro para $S^2_d = 0$ ($\bar{d}=0$ vs $\bar{d}\ne 0$) e alerta para coeficiente de variação de tamanho dos *folds* $> 20\%$.
+  3. Teste de Wilcoxon pareado (`paired_wilcoxon_test`) com suporte a `"wilcox"` e `"pratt"` (média e variância exatas de Pratt 1959), programação dinâmica exata sobre postos dobrados para $n_{\text{eff}} \le 20$ e $J \le 25$, aproximação normal com continuidade e empates para amostras maiores, e alerta para $J < 6$ ou $n_{\text{eff}} < 6$.
+  4. Tamanho de efeito $d_z = \bar{d}/s_d$ (`compute_paired_cohens_d`) com intervalo analítico aproximado ($t_{\alpha/2, J-1}\sqrt{1/J + d_z^2/(2J)}$) e ressalva explícita de não-correção por sobreposição de CV.
+  5. Ajustes de multiplicidade (`adjust_pvalues_holm`, `adjust_pvalues_bh`) aplicados independentemente aos $p$-valores de Nadeau-Bengio e Wilcoxon por família de hipóteses, e orquestrador `run_statistical_comparisons` com filtragem de `UNDEFINED_NAN` em células `COMPLETED`, bloqueio estrito em `HOLDOUT_ONLY` ($J=1$) e isolamento de `FINAL_HOLDOUT`.
+- **Reason**: Atender aos requisitos `RF5.1`–`RF5.4`, `CA-E5-01`, `CA-E5-02`, `ADR-004`, `ADR-005`, `STAT-05`–`STAT-08` e `XCUT-02` sem introduzir dependências pesadas de runtime.
+- **Trade-off**: Requer manutenção própria da função Beta incompleta regularizada e da DP combinatória de Wilcoxon.
+- **Scope**: Módulos `experimental_ml.statistics._distributions`, `inference`, `multiplicity`, `comparisons`, `types` e `__init__`.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m6-1-descriptive-consolidation-suitability (Sub-marco M6.1 Concluído, Verificado e Aprovado)
-- **Phase / Task**: Sub-marco M6.1 concluído com sucesso; transição para o Sub-marco M6.2 (Inferência Estatística Pareada, Tamanho de Efeito e Ajuste de Multiplicidade).
+- **Feature**: m6-2-paired-inference-multiplicity (Sub-marco M6.2 Concluído, Verificado e Aprovado na Branch da Feature)
+- **Phase / Task**: Sub-marco M6.2 concluído com sucesso; pronto para merge manual pelo usuário e transição para o Sub-marco M6.3 (Fronteira de Pareto, Critérios de Aquisição e Síntese de Conclusões Estruturadas).
 - **Completed**:
-  - Especificação formal de M6.1 com 29 critérios EARS auditados e aprovados pelo usuário.
-  - Implementação TDD atômica (T1 a T5) do módulo `experimental_ml.statistics`:
-    - `types.py`: Dataclasses congeladas imutáveis (`ConfigurationSummary`, `AggregatedMetricStats`, `MethodSuitabilityReport`, `PairwiseEligibilityReport`) e enums (`IncompleteComparisonPolicy`, `CoverageStatus`).
-    - `consolidation.py`: `validate_stage5_entry` e `consolidate_descriptive`.
-    - `suitability.py`: `evaluate_method_suitability` e `check_pairwise_comparison_eligibility`.
-    - `__init__.py`: Exportações canônicas públicas.
-  - Execução de provas automatizadas (`check_proofs.py`): 29 pass, 0 fail.
-  - Auditoria por Verificador Independente TLC com resultado `PASS` (0 apontamentos).
+  - Especificação auditada (auditoria estatística e técnica de 5 pontos) e aprovada pelo usuário.
+  - Implementação TDD atômica (T1 a T5) em `experimental_ml.statistics` (zero `scipy` em runtime).
+  - Execução de provas automatizadas (`check_proofs.py`): 18 pass, 0 fail.
+  - Auditoria por Verificador Independente TLC com resultado `PASS` (5 sondagens adversariais aprovadas, 0 apontamentos).
   - Registros de conformidade completos (`verification.md`, `ACCEPTANCE.md`, `RESULTS.md`) com portão `validate_verification.py` validado com 0 erros.
-  - Suíte completa de testes automatizados expandida para **505 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Início do Sub-marco M6.2 (`m6-2-paired-inference-multiplicity`).
-- **Next step**: Especificação e decomposição de tarefas de M6.2 (Submódulo 5B — Teste t pareado corrigido de Nadeau-Bengio, Teste dos postos com sinais de Wilcoxon, $d$ de Cohen pareado, ajustes de Holm-Bonferroni e Benjamini-Hochberg).
+  - Suíte completa de testes automatizados expandida para **524 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar M6.3.
+- **Next step**: Sub-marco M6.3 (`m6-3-pareto-acquisition-synthesis` — Fronteira de Pareto, funções de aquisição e `synthesize_conclusions` / `StructuredConclusion`).
 - **Blockers**: none
-- **Branch**: feat/m6-1-descriptive-consolidation-suitability (pronta para merge na main)
+- **Branch**: feat/m6-2-paired-inference-multiplicity (não integrada à main conforme instrução do usuário)
