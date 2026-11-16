@@ -12,6 +12,7 @@ from experimental_ml.reporting.loader import (
     load_experiment_artifacts_readonly,
     select_report_content,
 )
+from experimental_ml.reporting.packaging import build_reproducibility_package
 from experimental_ml.reporting.report import render_full_report
 from experimental_ml.reporting.tables import (
     build_table_model,
@@ -23,12 +24,14 @@ from experimental_ml.reporting.types import (
     ArtifactProvenance,
     ColumnAlignment,
     LoadedExperimentData,
+    PackageMode,
     PlotSeries,
     PlotSpecification,
     PlotType,
     ReportAudience,
     ReportContentSelection,
     ReportFamily,
+    ReproducibilityPackageManifest,
     ResearcherDeclarations,
     TableColumn,
     TableModel,
@@ -39,9 +42,11 @@ __all__ = [
     "ReportAudience",
     "PlotType",
     "ColumnAlignment",
+    "PackageMode",
     "ArtifactProvenance",
     "ReportContentSelection",
     "ResearcherDeclarations",
+    "ReproducibilityPackageManifest",
     "TableColumn",
     "TableModel",
     "PlotSeries",
@@ -56,4 +61,5 @@ __all__ = [
     "build_figure_spec",
     "render_figure",
     "render_full_report",
+    "build_reproducibility_package",
 ]

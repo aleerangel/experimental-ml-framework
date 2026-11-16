@@ -167,18 +167,28 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-019
+- **Decision**: Empacotamento de reprodutibilidade portátil e portão de integridade Stage 6 (Sub-marco M7.3) com caminhos 100% relativos POSIX e verificação SHA-256 byte-a-byte (`RF6.3`, `RF6.4`, `CA-E6-02`, `STORE-05`):
+  1. `build_reproducibility_package` (`packaging.py`) exporta `tables/`, `figures/`, `reports/` e `reproducibility/` (`artifact_provenance.json`, `checksums.sha256`, `environment.json`, `seeds.json`, `REPRODUCE.md`) suportando `FULL_PACKAGE` e `REDUCED_NO_RAW_DATA`, com proteção pré-escrita `force=False` (`ContractViolationError`).
+  2. `verify_report_gate` (`stage_gates.py`) valida upstream Stage 5 (`verify_statistics_gate` quando `statistics/` está presente), rejeita caminhos absolutos ou `..` traversal, garante cobertura de 100% em `artifact_provenance.json` e recalcula SHA-256 byte-a-byte, falhando com `DataIntegrityError` em qualquer divergência ou ausência.
+- **Reason**: Atender aos requisitos `RF6.3`, `RF6.4`, `CA-E6-02`, `CA-GER-01`, `STORE-05`, `REP-06` e `REP-07`.
+- **Trade-off**: `checksums.sha256` exclui a si mesmo da lista de digests e cobre 100% dos artefatos exportados e metadados de reprodutibilidade para compatibilidade direta com `sha256sum -c`.
+- **Scope**: Módulos `experimental_ml.reporting.packaging`, `types`, `__init__` e `experimental_ml.stages.stage_gates`.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m7-2-figures-full-report (Sub-marco M7.2 Concluído, Verificado e Aprovado na Branch da Feature)
-- **Phase / Task**: Sub-marco M7.2 concluído com sucesso; pronto para merge manual pelo usuário e transição para o Sub-marco M7.3 (Pacote de Reprodutibilidade, `checksums.sha256` e `verify_report_gate`).
+- **Feature**: m7-3-reproducibility-package-gate (Sub-marco M7.3 Concluído, Verificado e Aprovado na Branch da Feature)
+- **Phase / Task**: Sub-marco M7.3 concluído com sucesso; pronto para transição para o Sub-marco M7.4 (`expml report` CLI e integração ponta a ponta).
 - **Completed**:
-  - Especificação formal, Design e Tasks de M7.2 aprovados pelo usuário.
-  - Implementação TDD atômica (T1 a T3) em `experimental_ml.reporting`.
+  - Especificação formal, Design e Tasks de M7.3 aprovados pelo usuário.
+  - Implementação TDD atômica (T1 a T3) em `experimental_ml.reporting.packaging` e `experimental_ml.stages.stage_gates`.
   - Provas automatizadas (`check_proofs.py`): 8 pass, 0 fail.
-  - Verificação Independente TLC (`PASS`, 3 sondagens adversariais aprovadas, 0 apontamentos).
+  - Verificação Independente TLC (`PASS`).
   - Registros `verification.md`, `ACCEPTANCE.md`, `RESULTS.md` validados (`validate_verification.py`: 0 erros).
-  - Suíte completa de testes automatizados expandida para **567 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar M7.3.
-- **Next step**: Sub-marco M7.3 (`m7-3-reproducibility-package-gate` — `build_reproducibility_package`, `artifact_provenance.json`, `checksums.sha256` relativo, `REPRODUCE.md` e `verify_report_gate`).
+  - Suíte completa de testes automatizados expandida para **575 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Preparação da especificação M7.4 (`m7-4-cli-report-end-to-end`).
+- **Next step**: Sub-marco M7.4 (`m7-4-cli-report-end-to-end` — subcomandos CLI `expml report generate`, `export`, `verify` e testes E2E).
 - **Blockers**: none
-- **Branch**: feat/m7-2-figures-full-report (não integrada à main conforme instrução do usuário)
+- **Branch**: feat/m7-3-reproducibility-package-gate (não integrada à main conforme instrução do usuário)
