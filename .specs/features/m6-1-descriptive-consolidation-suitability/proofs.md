@@ -1,6 +1,6 @@
 # m6-1-descriptive-consolidation-suitability proofs
 
-**HEAD**: ea3fc38
+**HEAD**: bc4b804
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 29 pass, 0 fail
@@ -56,5 +56,5 @@ tests/integration/statistics/test_statistics_integration.py::test_statistics_pub
 tests/integration/statistics/test_statistics_integration.py::test_statistics_end_to_end_lifecycle PASSED [ 97%]
 tests/integration/statistics/test_statistics_integration.py::test_statistics_runtime_purity_xcut02 PASSED [100%]
 
-============================== 34 passed in 0.38s ==============================
+============================== 34 passed in 0.33s ==============================
 ```
