@@ -107,7 +107,7 @@ T4 --> T5
 
 ### Phase 3: Funções de Aquisição
 
-#### T3: Implementar score_candidate_acquisition [ ]
+#### T3: Implementar score_candidate_acquisition [x]
 
 **What**: Criar `src/experimental_ml/statistics/acquisition.py` com `score_candidate_acquisition` suportando `EXPECTED_IMPROVEMENT`, `UCB`, `LCB`, `EXPLOITATION` e `EXPLORATION` usando `math.erf` para $\Phi(z)$ em Python/NumPy puro (`XCUT-02`), tratando $\hat{\sigma}=0$ com segurança e ordenando deterministicamente com desempate por `candidate_id`. Adicionar testes em `tests/unit/statistics/test_acquisition.py`.  
 **Where**: `src/experimental_ml/statistics/acquisition.py`  
