@@ -76,7 +76,7 @@ T2 --> T3
 
 ### Phase 2: Relatório Científico Completo
 
-#### T2: Implementar ResearcherDeclarations e render_full_report (Markdown e HTML) [ ]
+#### T2: Implementar ResearcherDeclarations e render_full_report (Markdown e HTML) [x]
 
 **What**: Adicionar `ResearcherDeclarations` em `src/experimental_ml/reporting/types.py` e criar `src/experimental_ml/reporting/report.py` com `render_full_report` gerando Markdown e HTML autocontido (CSS inline, zero links externos), separado explicitamente em Declarações do Pesquisador, Fatos Computacionais Registrados e Interpretações Derivadas, com paridade numérica e exclusão de `*_hash`. Adicionar testes em `tests/unit/reporting/test_reporting_report.py`.  
 **Where**: `src/experimental_ml/reporting/report.py`  

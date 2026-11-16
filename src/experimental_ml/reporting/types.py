@@ -217,3 +217,19 @@ class LoadedExperimentData:
             val = getattr(self, attr)
             if val is not None and not isinstance(val, MappingProxyType):
                 object.__setattr__(self, attr, MappingProxyType(dict(val)))
+
+
+@dataclass(frozen=True, slots=True)
+class ResearcherDeclarations:
+    """Explicitly declared scientific provenance provided by the researcher (ARQUITETURA §3.6)."""
+
+    scientific_objective: str = ""
+    data_origin_note: str = ""
+    metric_rationale: str = ""
+    additional_notes: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.additional_notes, tuple):
+            object.__setattr__(
+                self, "additional_notes", tuple(str(n) for n in self.additional_notes)
+            )
