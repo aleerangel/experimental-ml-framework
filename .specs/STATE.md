@@ -157,18 +157,28 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-018
+- **Decision**: Renderização determinística de figuras (SVG, PNG 300 DPI, PDF 1.4) e composição do Relatório Científico Completo (Markdown e HTML autocontido) da Etapa 6 (Sub-marco M7.2) em Python/NumPy puro (`XCUT-02`, `RNF03`):
+  1. `build_figure_spec` e `render_figure` (`figures.py`) operam 100% sem `matplotlib`/`pillow`/`scipy`, filtrando pontos não-finitos/`UNDEFINED_NAN` com registro em `notes` e produzindo bytes idênticos bit a bit (chunk PNG `pHYs = 11811` px/m para 300 DPI e PDF 1.4 com tabela `xref` exata).
+  2. `render_full_report` (`report.py`) separa explicitamente *1. Declarações do Pesquisador*, *2. Fatos Computacionais Registrados* e *3. Interpretações Derivadas e Condicionadas*, mantendo paridade numérica (`CA-E6-01`), exclusão de campos `*_hash` (`CA-E6-02`), escape HTML seguro e CSS inline sem URLs externas (`RNF03`).
+- **Reason**: Atender aos requisitos `RF6.1`, `RF6.2`, `RNF03`, `CA-E6-01`, `CA-E6-02`, `REP-04`, `REP-05` e `XCUT-02`.
+- **Trade-off**: Renderização PNG/PDF implementada diretamente em NumPy + `zlib` + PDF 1.4 para eliminar dependências externas de runtime.
+- **Scope**: Módulos `experimental_ml.reporting.figures`, `report`, `types` e `__init__`.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: m7-1-reporting-contracts-tables (Sub-marco M7.1 Concluído, Verificado e Aprovado na Branch da Feature)
-- **Phase / Task**: Sub-marco M7.1 concluído com sucesso; pronto para merge manual pelo usuário e transição para o Sub-marco M7.2 (Figuras SVG/PNG/PDF puras e Relatório Científico Completo Markdown/HTML).
+- **Feature**: m7-2-figures-full-report (Sub-marco M7.2 Concluído, Verificado e Aprovado na Branch da Feature)
+- **Phase / Task**: Sub-marco M7.2 concluído com sucesso; pronto para merge manual pelo usuário e transição para o Sub-marco M7.3 (Pacote de Reprodutibilidade, `checksums.sha256` e `verify_report_gate`).
 - **Completed**:
-  - Especificação revisada e aprovada pelo usuário.
-  - Implementação TDD atômica (T1 a T4) em `experimental_ml.reporting`.
-  - Provas automatizadas (`check_proofs.py`): 11 pass, 0 fail.
-  - Verificação Independente TLC (`PASS`, 4 sondagens adversariais aprovadas, 0 apontamentos).
+  - Especificação formal, Design e Tasks de M7.2 aprovados pelo usuário.
+  - Implementação TDD atômica (T1 a T3) em `experimental_ml.reporting`.
+  - Provas automatizadas (`check_proofs.py`): 8 pass, 0 fail.
+  - Verificação Independente TLC (`PASS`, 3 sondagens adversariais aprovadas, 0 apontamentos).
   - Registros `verification.md`, `ACCEPTANCE.md`, `RESULTS.md` validados (`validate_verification.py`: 0 erros).
-  - Suíte completa de testes automatizados expandida para **559 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar M7.2.
-- **Next step**: Sub-marco M7.2 (`m7-2-figures-full-report` — Figuras determinísticas SVG/PNG 300 DPI/PDF em Python/NumPy puro e `render_full_report` em Markdown e HTML autocontido).
+  - Suíte completa de testes automatizados expandida para **567 testes**, 100% aprovados via `pytest`.
+- **In-progress**: Aguardando merge manual na `main` pelo usuário e autorização para iniciar M7.3.
+- **Next step**: Sub-marco M7.3 (`m7-3-reproducibility-package-gate` — `build_reproducibility_package`, `artifact_provenance.json`, `checksums.sha256` relativo, `REPRODUCE.md` e `verify_report_gate`).
 - **Blockers**: none
-- **Branch**: feat/m7-1-reporting-contracts-tables (não integrada à main conforme instrução do usuário)
+- **Branch**: feat/m7-2-figures-full-report (não integrada à main conforme instrução do usuário)
