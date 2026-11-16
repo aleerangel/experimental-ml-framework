@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/m7-4-cli-report-end-to-end/design.md`  
-**Status**: In Progress  
+**Status**: Completed  
 **Approved**: 2026-11-16 - user: "aprovado"  
 **Build**: none - Python interpreted package without ahead-of-time build step; quality verified via pytest gates  
 **Run unit**: .venv/bin/pytest tests/unit/cli/test_cli_report.py tests/integration/reporting/test_m74_e2e.py -v  
@@ -69,7 +69,7 @@ T1 --> T2
 
 ### Phase 2: Integração Ponta a Ponta Estágio 1–6
 
-#### T2: Validar fluxo completo Estágio 1 -> Estágio 6 e pureza XCUT-02 [ ]
+#### T2: Validar fluxo completo Estágio 1 -> Estágio 6 e pureza XCUT-02 [x]
 
 **What**: Criar `tests/integration/reporting/test_m74_e2e.py` executando um experimento sintético completo desde a Etapa 1 (dados) até a Etapa 6 (`expml report export`, movimentação do diretório do pacote, `expml report verify` e detecção de adulteração de 1 byte), validando conformidade `XCUT-02` e `CA-E6-01`/`CA-E6-02`.  
 **Where**: `tests/integration/reporting/test_m74_e2e.py`  

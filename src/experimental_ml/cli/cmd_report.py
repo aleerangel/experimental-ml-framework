@@ -84,7 +84,6 @@ def handle_report_generate(args: argparse.Namespace) -> int:
             {
                 "status": "GENERATED",
                 "experiment_id": loaded.experiment_id,
-                "partition_plan_id": loaded.partition_plan_id,
                 "audience": sel.audience.value,
                 "files": written,
             },
@@ -129,7 +128,6 @@ def handle_report_export(args: argparse.Namespace) -> int:
             {
                 "status": "EXPORTED",
                 "experiment_id": manifest.experiment_id,
-                "partition_plan_id": manifest.partition_plan_id,
                 "package_mode": manifest.package_mode.value,
                 "reproduction_level": manifest.reproduction_level,
                 "exported_files_count": len(manifest.exported_files),
@@ -149,5 +147,6 @@ def handle_report_verify(args: argparse.Namespace) -> int:
 
     pkg_dir = Path(args.experiment_dir).resolve()
     summary = verify_report_gate(pkg_dir)
-    sys.stdout.write(json.dumps(summary, indent=2) + "\n")
+    cli_summary = {k: v for k, v in summary.items() if k != "partition_plan_id"}
+    sys.stdout.write(json.dumps(cli_summary, indent=2) + "\n")
     return 0
