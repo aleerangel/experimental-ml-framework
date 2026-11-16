@@ -106,7 +106,7 @@ def run_nested_tuning(
         raise ContractViolationError("y_train contains NaN or Inf values")
 
     effective_seed = seed if seed is not None else spec.seed
-    candidates = generate_candidates(spec)
+    candidates = generate_candidates(spec, seed=effective_seed)
     inner_splits = split_inner_folds(
         n_samples=n_samples_x,
         n_folds=spec.inner_cv_folds,
@@ -210,17 +210,20 @@ def run_nested_tuning(
             f"Candidate trial summary: {'; '.join(errors)}"
         )
 
-    # Deterministic selection based on optimization direction
-    # Primary sort: score according to direction. Secondary sort: lowest trial_index
+    # Deterministic selection based on optimization direction (and compare_by_abs for mbe)
+    from experimental_ml.metrics.catalog import METRICS_CATALOG
+
+    m_spec = METRICS_CATALOG.get(spec.optimization_metric.lower())
+    by_abs = bool(m_spec.compare_by_abs) if m_spec is not None else False
     if spec.direction == MetricDirection.MAXIMIZE:
         best_trial = max(
             valid_trials,
-            key=lambda t: (t.mean_score, -t.trial_index),
+            key=lambda t: (abs(t.mean_score) if by_abs else t.mean_score, -t.trial_index),
         )
     else:
         best_trial = min(
             valid_trials,
-            key=lambda t: (t.mean_score, t.trial_index),
+            key=lambda t: (abs(t.mean_score) if by_abs else t.mean_score, t.trial_index),
         )
 
     return TuningResult(

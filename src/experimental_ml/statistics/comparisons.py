@@ -328,15 +328,21 @@ def run_statistical_comparisons(
                 alpha=comparison_spec.alpha,
             )
 
+            from experimental_ml.metrics.catalog import METRICS_CATALOG
+
             mean_a = float(np.mean(scores_a))
             mean_b = float(np.mean(scores_b))
             obs_diff = nb_res.mean_difference
-            if mean_a == mean_b:
+            m_spec = METRICS_CATALOG.get(metric_name.lower())
+            by_abs = bool(m_spec.compare_by_abs) if m_spec is not None else False
+            cmp_a = abs(mean_a) if by_abs else mean_a
+            cmp_b = abs(mean_b) if by_abs else mean_b
+            if cmp_a == cmp_b:
                 better: tuple[str, str] | None = None
             elif direction == MetricDirection.MINIMIZE:
-                better = cfg_a if mean_a < mean_b else cfg_b
+                better = cfg_a if cmp_a < cmp_b else cfg_b
             else:
-                better = cfg_a if mean_a > mean_b else cfg_b
+                better = cfg_a if cmp_a > cmp_b else cfg_b
 
             family_id = metric_name
             if comparison_spec.hypothesis_family_spec is not None:

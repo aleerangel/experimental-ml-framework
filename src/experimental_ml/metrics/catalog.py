@@ -120,6 +120,7 @@ _SPECS: dict[str, MetricSpec] = {
         func=kta,
         rtol=1e-10,
         atol=1e-12,
+        requires_kernel_matrix=True,
     ),
     "accuracy": MetricSpec(
         metric_id="accuracy",
@@ -204,6 +205,7 @@ _SPECS: dict[str, MetricSpec] = {
         func=roc_auc,
         rtol=1e-9,
         atol=1e-11,
+        requires_probabilities=True,
     ),
     "log_loss": MetricSpec(
         metric_id="log_loss",
@@ -218,6 +220,7 @@ _SPECS: dict[str, MetricSpec] = {
         func=log_loss,
         rtol=1e-9,
         atol=1e-11,
+        requires_probabilities=True,
     ),
 }
 

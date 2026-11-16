@@ -16,13 +16,23 @@ from experimental_ml.statistics.types import (
 )
 
 
+def _is_compare_by_abs(metric_name: str) -> bool:
+    from experimental_ml.metrics.catalog import METRICS_CATALOG
+
+    spec = METRICS_CATALOG.get(metric_name.lower())
+    return bool(spec.compare_by_abs) if spec is not None else False
+
+
 def _select_observed_leader(
     consolidation: DescriptiveConsolidation,
     primary_metric: str,
     direction: MetricDirection,
 ) -> tuple[tuple[str, str] | None, float | None]:
-    """Identify the observed leader among configurations with VALID metric mean."""
-    candidates: list[tuple[float, tuple[str, str]]] = []
+    """Identify the observed leader among configurations with VALID coverage precedence (ADR-005)."""
+    valid_candidates: list[tuple[float, float, tuple[str, str]]] = []
+    partial_candidates: list[tuple[float, float, tuple[str, str]]] = []
+    by_abs = _is_compare_by_abs(primary_metric)
+
     for cfg_id in sorted(consolidation.configurations.keys()):
         summary = consolidation.configurations[cfg_id]
         agg = summary.aggregated_metrics.get(primary_metric)
@@ -32,16 +42,22 @@ def _select_observed_leader(
             and agg.mean is not None
             and math.isfinite(agg.mean)
         ):
-            candidates.append((agg.mean, cfg_id))
+            cmp_val = abs(agg.mean) if by_abs else agg.mean
+            entry = (cmp_val, agg.mean, cfg_id)
+            if agg.status == MetricStatus.VALID:
+                valid_candidates.append(entry)
+            else:
+                partial_candidates.append(entry)
 
-    if not candidates:
+    pool = valid_candidates if valid_candidates else partial_candidates
+    if not pool:
         return None, None
 
     if direction == MetricDirection.MINIMIZE:
-        best_val, best_cfg = min(candidates, key=lambda x: (x[0], x[1]))
+        _, best_raw, best_cfg = min(pool, key=lambda x: (x[0], x[2]))
     else:
-        best_val, best_cfg = max(candidates, key=lambda x: (x[0], x[1]))
-    return best_cfg, best_val
+        _, best_raw, best_cfg = max(pool, key=lambda x: (x[0], x[2]))
+    return best_cfg, best_raw
 
 
 def synthesize_conclusions(

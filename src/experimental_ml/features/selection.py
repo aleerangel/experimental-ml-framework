@@ -13,6 +13,7 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from experimental_ml.core.enums import MetricStatus
 from experimental_ml.core.findings import (
     ConfigurationError,
     ContractViolationError,
@@ -178,11 +179,14 @@ def select_features_in_fold(
                 else:
                     val, stat = compute_correlation_ratio(categories=arr, continuous=y_train)
 
-            abs_val = abs(val) if not math.isnan(val) else 0.0
-            scores[feat_name] = float(abs_val)
+            if stat == MetricStatus.UNDEFINED_NAN or math.isnan(val):
+                scores[feat_name] = float("nan")
+            else:
+                scores[feat_name] = float(abs(val))
 
-        # Rank all features by descending score
-        ranked_features = sorted(X_train.keys(), key=lambda f: (-scores[f], f))
+        # Rank eligible (finite) features by descending score; exclude UNDEFINED_NAN/NaN from top-K
+        eligible_features = [f for f in sorted(X_train.keys()) if not math.isnan(scores[f])]
+        ranked_features = sorted(eligible_features, key=lambda f: (-scores[f], f))
         top_k = ranked_features[:k]
 
         if not top_k:

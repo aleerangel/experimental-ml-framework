@@ -140,13 +140,40 @@ def build_partition_plan(
         dev_times = times
     elif config.regime in (EvaluationRegime.HOLDOUT_ONLY, EvaluationRegime.CV_AND_HOLDOUT):
         assert config.holdout_fraction is not None
-        development_ids, holdout_ids = holdout_split(
-            observation_ids=obs_ids,
-            holdout_fraction=config.holdout_fraction,
-            stratify=config.stratify,
-            target=target,
-            seed=config.master_seed,
-        )
+        if config.strategy == PartitionStrategy.GROUP_KFOLD and groups is not None:
+            unique_groups = sorted(set(groups.tolist()), key=lambda g: str(g))
+            n_groups = len(unique_groups)
+            n_holdout_groups = max(1, int(round(n_groups * config.holdout_fraction)))
+            min_dev_groups = config.n_splits if config.regime == EvaluationRegime.CV_AND_HOLDOUT else 1
+            if n_groups - n_holdout_groups < min_dev_groups:
+                n_holdout_groups = max(1, n_groups - min_dev_groups)
+            if n_groups - n_holdout_groups < min_dev_groups:
+                raise ConfigurationError(
+                    f"Insufficient distinct groups ({n_groups}) for regime '{config.regime.value}' and n_splits={config.n_splits}"
+                )
+            rng = np.random.default_rng(config.master_seed)
+            perm = rng.permutation(n_groups)
+            holdout_group_set = {unique_groups[i] for i in perm[:n_holdout_groups]}
+            development_ids = tuple(oid for i, oid in enumerate(obs_ids) if groups[i] not in holdout_group_set)
+            holdout_ids = tuple(oid for i, oid in enumerate(obs_ids) if groups[i] in holdout_group_set)
+        elif config.strategy == PartitionStrategy.TEMPORAL and times is not None:
+            order = np.argsort(times, kind="mergesort")
+            n_obs = len(obs_ids)
+            n_holdout = max(1, int(round(n_obs * config.holdout_fraction)))
+            if n_obs - n_holdout < 1:
+                raise ConfigurationError("Insufficient observations for temporal holdout separation")
+            dev_idx = order[: n_obs - n_holdout]
+            hold_idx = order[n_obs - n_holdout :]
+            development_ids = tuple(obs_ids[i] for i in dev_idx)
+            holdout_ids = tuple(obs_ids[i] for i in hold_idx)
+        else:
+            development_ids, holdout_ids = holdout_split(
+                observation_ids=obs_ids,
+                holdout_fraction=config.holdout_fraction,
+                stratify=config.stratify,
+                target=target,
+                seed=config.master_seed,
+            )
         dev_indices = [obs_to_idx[oid] for oid in development_ids]
         dev_target = target[dev_indices] if target is not None else None
         dev_groups = groups[dev_indices] if groups is not None else None
