@@ -79,7 +79,7 @@ T4 --> T5
 
 ### Phase 1: Estruturas Imutáveis de Pareto, Aquisição e Síntese
 
-#### T1: Definir tipos e enums de multiobjetivo, aquisição e StructuredConclusion [ ]
+#### T1: Definir tipos e enums de multiobjetivo, aquisição e StructuredConclusion [x]
 
 **What**: Adicionar `ObjectiveSource`, `AcquisitionCriterion`, `ObjectiveSpec`, `MultiObjectiveSpec`, `ParetoConfigurationPoint`, `ExcludedParetoConfiguration`, `MultiObjectiveSummary`, `CandidatePrediction`, `AcquisitionScoreRecord` e `StructuredConclusion` em `src/experimental_ml/statistics/types.py`, com validações estruturais e imutabilidade (`frozen=True`). Adicionar testes em `tests/unit/statistics/test_m63_types.py`.  
 **Where**: `src/experimental_ml/statistics/types.py`  
