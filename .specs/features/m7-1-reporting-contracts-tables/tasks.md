@@ -69,7 +69,7 @@ T3 --> T4
 
 ### Phase 1: Contratos Imutáveis de Publicação
 
-#### T1: Definir enums e dataclasses congeladas de reporting e ArtifactProvenance [ ]
+#### T1: Definir enums e dataclasses congeladas de reporting e ArtifactProvenance [x]
 
 **What**: Criar `src/experimental_ml/reporting/types.py` definindo `ReportFamily`, `ReportAudience`, `PlotType`, `ColumnAlignment`, `ArtifactProvenance` (rejeitando caminhos absolutos), `ReportContentSelection`, `TableColumn`, `TableModel`, `PlotSeries`, `PlotSpecification` e `LoadedExperimentData` com imutabilidade (`frozen=True`). Adicionar testes em `tests/unit/reporting/test_reporting_types.py`.  
 **Where**: `src/experimental_ml/reporting/types.py`  
