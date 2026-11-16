@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/pos-1-mega-auditoria-mvp/design.md`  
-**Status**: In Progress  
+**Status**: Completed  
 **Approved**: 2026-11-16 - user: "aprovado"  
 **Build**: none - Python interpreted package without ahead-of-time build step; quality verified via pytest gates  
 **Run unit**: .venv/bin/pytest tests/integration/test_mvp_audit_invariants.py -v  
@@ -89,7 +89,7 @@ T2 --> T3
 
 ### Phase 3: Saneamento TDD de Achados P0/P1
 
-#### T3: Sanear 100% dos achados `P0`/`P1` e validar fechamento congelável do MVP [ ]
+#### T3: Sanear 100% dos achados `P0`/`P1` e validar fechamento congelável do MVP [x]
 
 **What**: Corrigir todos os achados `P0` e `P1` registrados em `AUDIT_REPORT.md` (código, testes de regressão e/ou documentação), atualizar `AUDIT_REPORT.md` comprovando `0` achados `P0`/`P1` abertos e rodar a suíte completa de testes (`pytest tests/ -q`).  
 **Where**: `.specs/features/pos-1-mega-auditoria-mvp/AUDIT_REPORT.md`  

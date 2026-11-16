@@ -3,7 +3,7 @@
 > **Documento de Registro de Estado da Engenharia**<br/>
 > **Data:** 16 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
-> **Estado Atual:** Marcos M1 a M7 Concluídos, Verificados e Aceitos (581 testes automatizados)<br/>
+> **Estado Atual:** Marcos M1 a M7 Concluídos, Auditados (`TA-POS.1`) e Aceitos (591 testes automatizados)<br/>
 > **Próximo Marco:** Pós-MVP — Auditoria Transversal, Guia Definitivo do Pesquisador e Homologação Externa (`CA02`)<br/>
 > **Especificação de Requisitos (SRS v2.1):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>

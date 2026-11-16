@@ -102,8 +102,12 @@ O processo de aceite integra-se às fases do TLC:
 
 | Marco | Identificador TLC | Implementação | Testes Automatizados | Verificação TLC | Validação de Aceitação | Decisão de Aceite |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **M1.1** | `m1-1-setup-cli-smoke` | Concluída (`0840603`) | 12/12 Aprovados | Aprovado | Executada e aprovada conforme roteiro | **Aprovado** |
-| **M1.2** | `m1-2-core` | Concluída (`479ee8d`) | 18/18 Aprovados (30/30 total) | Aprovado (`PASS`) | Executada e aprovada conforme roteiro | **Aprovado** |
-| **M1.3** | `m1-3-metrics` | Não iniciada | Pendente | Pendente | Pendente | **Não Iniciado** |
-| **M2 a M7**| — | Planejados | Pendente | Pendente | Pendente | **Planejado** |
+| **M1 (M1.1–M1.5)** | `m1-1` a `m1-5` | Concluída | 96/96 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **M2 (M2.1–M2.5 + `REV-M2`)** | `m2-1` a `m2-5` | Concluída | 193/193 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **M3 (M3.1–M3.4)** | `m3-1` a `m3-4` | Concluída | 236/236 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **M4 (M4.1–M4.4)** | `m4-1` a `m4-4` | Concluída | 348/348 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **M5 (M5.1–M5.4 + `ACH-M5`)** | `m5-1` a `m5-4` | Concluída | 471/471 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **M6 (M6.1–M6.4)** | `m6-1` a `m6-4` | Concluída | 548/548 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **M7 (M7.1–M7.4)** | `m7-1` a `m7-4` | Concluída | 581/581 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **Pós-MVP (`TA-POS.1`)** | `pos-1-mega-auditoria-mvp` | Em fechamento | 591/591 Aprovados | Em verificação | Executada | **Em Fechamento** |
 
