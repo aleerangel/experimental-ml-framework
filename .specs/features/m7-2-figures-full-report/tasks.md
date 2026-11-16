@@ -90,7 +90,7 @@ T2 --> T3
 
 ### Phase 3: API Pública e Integração
 
-#### T3: Expor API pública de M7.2 e validar integração e pureza XCUT-02 [ ]
+#### T3: Expor API pública de M7.2 e validar integração e pureza XCUT-02 [x]
 
 **What**: Atualizar `src/experimental_ml/reporting/__init__.py` exportando `ResearcherDeclarations`, `build_figure_spec`, `render_figure` e `render_full_report`. Criar `tests/integration/reporting/test_m72_integration.py` validando geração de figuras + relatório Markdown/HTML e pureza runtime sem `matplotlib`/`pillow` (`XCUT-02`).  
 **Where**: `src/experimental_ml/reporting/__init__.py`  
