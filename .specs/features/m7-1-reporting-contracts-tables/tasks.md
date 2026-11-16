@@ -111,7 +111,7 @@ T3 --> T4
 
 ### Phase 4: API Pública e Integração Ponta a Ponta
 
-#### T4: Expor API pública de M7.1 e validar integração somente-leitura [ ]
+#### T4: Expor API pública de M7.1 e validar integração somente-leitura [x]
 
 **What**: Criar `src/experimental_ml/reporting/__init__.py` exportando todos os símbolos públicos de M7.1. Criar `tests/integration/reporting/test_m71_integration.py` validando fluxo ponta a ponta Stage 1–5 -> Tabelas A–G e pureza runtime `XCUT-02` + ausência de import de `fit_model`/`predict_model`.  
 **Where**: `src/experimental_ml/reporting/__init__.py`  
