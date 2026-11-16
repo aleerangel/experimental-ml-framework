@@ -146,7 +146,7 @@ T4 --> T5
 
 ### Phase 5: API Pública e Integração Ponta a Ponta
 
-#### T5: Expor API pública de M6.2 e validar integração e pureza XCUT-02 [ ]
+#### T5: Expor API pública de M6.2 e validar integração e pureza XCUT-02 [x]
 
 **What**: Atualizar `__all__` e exportações em `src/experimental_ml/statistics/__init__.py` com todos os tipos, enums e funções do M6.2. Criar testes de integração ponta a ponta M6.1 -> M6.2 e verificação de pureza runtime `XCUT-02` (bloqueando `scipy` em `sys.modules` via subprocesso isolado) em `tests/integration/statistics/test_m62_integration.py`.  
 **Where**: `src/experimental_ml/statistics/__init__.py`  
