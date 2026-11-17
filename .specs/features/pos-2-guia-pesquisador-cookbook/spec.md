@@ -111,9 +111,9 @@ So that the published documentation remains in strict sync with codebase reality
 
 | Requirement ID | Acceptance Criteria | Target Component | Status |
 | --- | --- | --- | --- |
-| DOC-01 | AC-POS2-01-01, AC-POS2-01-02 | `docs/README.md` | pending |
-| DOC-02 | AC-POS2-02-01, AC-POS2-02-02 | `docs/guia/01_inicio_rapido.md`, `docs/guia/02_tutorial_6_etapas.md` | pending |
-| DOC-03 | AC-POS2-03-01, AC-POS2-03-02, AC-POS2-03-03, AC-POS2-03-04, AC-POS2-03-05 | `docs/cookbook/*.md` | pending |
-| DOC-04 | AC-POS2-04-01, AC-POS2-04-02 | `docs/referencia/api_python.md`, `docs/referencia/cli_catalogo.md` | pending |
-| DOC-05 | AC-POS2-05-01, AC-POS2-05-02 | `README.md` | pending |
-| DOC-06 | AC-POS2-06-01, AC-POS2-06-02 | `tests/unit/test_documentation_integrity.py` | pending |
+| DOC-01 | AC-POS2-01-01, AC-POS2-01-02 | `docs/README.md` | verified |
+| DOC-02 | AC-POS2-02-01, AC-POS2-02-02 | `docs/guia/01_inicio_rapido.md`, `docs/guia/02_tutorial_6_etapas.md` | verified |
+| DOC-03 | AC-POS2-03-01, AC-POS2-03-02, AC-POS2-03-03, AC-POS2-03-04, AC-POS2-03-05 | `docs/cookbook/*.md` | verified |
+| DOC-04 | AC-POS2-04-01, AC-POS2-04-02 | `docs/referencia/api_python.md`, `docs/referencia/cli_catalogo.md` | verified |
+| DOC-05 | AC-POS2-05-01, AC-POS2-05-02 | `README.md` | verified |
+| DOC-06 | AC-POS2-06-01, AC-POS2-06-02 | `tests/unit/test_documentation_integrity.py` | verified |
