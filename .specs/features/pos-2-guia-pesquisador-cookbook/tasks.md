@@ -83,7 +83,7 @@ T4 --> T5
 
 ### Phase 2: Índice Central e Guia do Pesquisador
 
-#### T2: Elaborar `docs/README.md`, Início Rápido em 5 passos e Tutorial das 6 Etapas [ ]
+#### T2: Elaborar `docs/README.md`, Início Rápido em 5 passos e Tutorial das 6 Etapas [x]
 
 **What**: Criar `docs/README.md` (hub unificador em português com mapa pedagógico), `docs/guia/01_inicio_rapido.md` (5 passos com CLI conciso e script smoke-test executável) e `docs/guia/02_tutorial_6_etapas.md` (cobrindo rigorosamente as 6 etapas oficiais da Seção 3 de `ARQUITETURA_E_CONTRATOS.md`, incluindo 4A/4B na Etapa 4, invariantes anti-leakage e formulações matemáticas).  
 **Where**: `docs/guia/`  
@@ -154,5 +154,5 @@ Proof: run unit | tests/unit/test_documentation_integrity.py::test_readme_lean_s
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T2
-- **Next Task:** T3
+- **Current Task:** T3
+- **Next Task:** T4
