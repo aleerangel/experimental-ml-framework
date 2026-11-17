@@ -44,9 +44,13 @@ def _load_schema_spec(schema_path: Path | str) -> DatasetSchemaSpec:
         raise ConfigurationError(f"Schema file not found at '{p}'")
     d = read_json(p)
 
-    task_type = None
-    if d.get("task_type"):
-        task_type = TaskType(d["task_type"])
+    if not d.get("target_col") or not d.get("task_type"):
+        raise ConfigurationError(
+            "Schema JSON must define 'target_col' and 'task_type'. "
+            'Example: {"target_col": "alvo", "task_type": "REGRESSION"}'
+        )
+
+    task_type = TaskType(d["task_type"])
 
     semantic_types = None
     if d.get("column_semantic_types"):
@@ -116,10 +120,7 @@ def handle_data_profile(args: argparse.Namespace) -> int:
 def handle_data_sanitize(args: argparse.Namespace) -> int:
     """Handle 'expml data sanitize'."""
     exp_dir = Path(args.experiment_dir).resolve()
-    rules_path = Path(args.rules).resolve()
-
-    if not rules_path.exists():
-        raise ConfigurationError(f"Rules file not found at '{rules_path}'")
+    raw_rules_arg = getattr(args, "rules", None)
 
     desc_file = exp_dir / DATASET_DESCRIPTOR_REL_PATH
     prof_file = exp_dir / DATASET_PROFILE_REL_PATH
@@ -132,19 +133,26 @@ def handle_data_sanitize(args: argparse.Namespace) -> int:
     desc = dataset_descriptor_from_dict(read_json(desc_file))
     profile = dataset_profile_from_dict(read_json(prof_file))
 
-    rules_raw = read_json(rules_path)
-    if not isinstance(rules_raw, list):
-        raise ConfigurationError("Rules file must contain a JSON list of rule objects")
-
-    rules = [
-        PreparationRule(
-            finding_code=r["finding_code"],
-            column=r.get("column"),
-            kind=r["kind"],
-            parameters=r.get("parameters", {}),
-        )
-        for r in rules_raw
-    ]
+    if raw_rules_arg is None:
+        rules = []
+    else:
+        rules_path = Path(raw_rules_arg).resolve()
+        if not rules_path.exists():
+            raise ConfigurationError(f"Rules file not found at '{rules_path}'")
+        rules_raw = read_json(rules_path)
+        if not isinstance(rules_raw, list):
+            raise ConfigurationError(
+                'Rules file must contain a JSON list of rule objects (e.g. [] or [{"finding_code": "...", "kind": "..."}]).'
+            )
+        rules = [
+            PreparationRule(
+                finding_code=r["finding_code"],
+                column=r.get("column"),
+                kind=r["kind"],
+                parameters=r.get("parameters", {}),
+            )
+            for r in rules_raw
+        ]
 
     plan = create_preparation_plan(profile, rules)
 
