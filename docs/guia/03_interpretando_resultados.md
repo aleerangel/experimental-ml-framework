@@ -43,6 +43,7 @@ Sempre utilize o **$p$-valor ajustado** (`adjusted_p_value`), nunca o $p$-valor 
 **Não.** Um $p \ge \alpha$ indica apenas **ausência de evidência estatística para rejeitar a hipótese nula** (muitas vezes por baixo número de dobras $J$), e **nunca** prova equivalência prática entre os modelos. Reporte sempre o **tamanho de efeito** ($d$ de Cohen pareado, $d_z = \bar{d}/s_d$) junto ao $p$-valor.
 
 ### 4. "Como avaliar kernels pré-computados, estabilidade de atributos e múltiplos objetivos?"
+*(Para ver um exemplo completo com tabelas, gráficos SVG e código LaTeX gerados, consulte o [Notebook 03 — Vitrine Avançada: Variantes do LS-SVM em Prognose Florestal](../../notebooks/03_avancado_variantes_lssvm_prognose_florestal.ipynb).)*
 - **Alinhamento de Kernel (`kta`):** Mede a similaridade entre a matriz de Gram do kernel e a matriz alvo ideal (**Cristianini et al., 2001**).
 - **Estabilidade de Seleção (`mean_kuncheva`):** Mede a consistência dos atributos escolhidos entre dobras corrigindo a sobreposição esperada por acaso (**Kuncheva, 2007**).
 - **Fronteira de Pareto:** Identifica configurações **não dominadas** onde nenhum outro modelo é simultaneamente melhor ou igual em todos os objetivos (ex.: menor `rmse` e menor latência `predict_mean_s`).

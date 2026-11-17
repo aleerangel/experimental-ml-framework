@@ -19,7 +19,7 @@ expml quickrun --experiment-dir exp_demo
 ```
 
 ### Por Python (Chamada Única)
-Para um experimento padrão com 3 modelos, semente determinística e métricas personalizadas, basta passar um dicionário de modelos para `run_experiment` (veja os detalhes passo a passo em [Começando do Zero](00_comecando_do_zero.md)).
+Para um experimento padrão com 3 modelos, semente determinística e métricas personalizadas, basta passar um dicionário de modelos para `run_experiment` (veja os detalhes passo a passo em [Começando do Zero](00_comecando_do_zero.md) ou execute diretamente no [Notebook 01](../../notebooks/01_primeiro_experimento_do_zero.ipynb)).
 
 ---
 

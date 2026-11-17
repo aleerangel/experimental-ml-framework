@@ -173,6 +173,9 @@ Depois de testar com o exemplo, substitua `dados_exemplo.csv` pelo seu CSV e alt
 
 ## O Que Você Pode Fazer Depois *(Nível Avançado)*
 
+> [!TIP]
+> **Prefere acompanhar no navegador/notebook passo a passo?** Abra o [Notebook 01 — Primeiro Experimento do Zero](../../notebooks/01_primeiro_experimento_do_zero.ipynb) (regressão) ou o [Notebook 02 — Classificação e Grupos na Prática](../../notebooks/02_classificacao_e_grupos_na_pratica.ipynb).
+
 Quando seu experimento exigir maior controle metodológico, o framework oferece recursos avançados sem que você precise reescrever tudo do zero:
 - **Dados com múltiplos exames do mesmo paciente ou parcelas florestais:** passe `group_col="paciente_id"` no `run_experiment` ou configure `GroupKFold` com holdout isolado ([Guia Prático 3](../guias_praticos/03_validacao_cruzada_agrupada_holdout.md));
 - **Modelos analíticos sem treino (`requires_fit=False`) ou kernels quânticos:** use `ModelSpec` ([Guia Prático 1](../guias_praticos/01_modelos_analiticos_vs_treinados.md) e [Guia Prático 2](../guias_praticos/02_metricas_quanticas_e_probabilisticas.md));

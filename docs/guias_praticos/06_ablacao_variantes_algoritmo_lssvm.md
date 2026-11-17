@@ -1,8 +1,11 @@
-# Guia Prático 6: Variações do Mesmo Algoritmo — Ablação de LS-SVM em Prognose Florestal
+# Guia Prático 6: Variações do Mesmo Algoritmo — LS-SVM em Prognose Florestal
+
+> [!TIP]
+> Este estudo completo — incluindo geração de relatórios, tabelas LaTeX e gráficos SVG — está disponível pronto para executar no [Notebook 03 — Variantes do LS-SVM em Prognose Florestal](../../notebooks/03_avancado_variantes_lssvm_prognose_florestal.ipynb).
 
 ## Contexto Científico
 
-Em estudos de ablação e computação científica (como na **prognose florestal** para predição de volume de madeira a partir de variáveis dendrométricas — DAP, altura e idade), frequentemente comparamos **variações arquiteturais de um mesmo algoritmo** sob condições estritamente idênticas:
+Em estudos comparativos e computação científica (como na **prognose florestal** para predição de volume de madeira a partir de variáveis dendrométricas — DAP, altura e idade), frequentemente comparamos **variações arquiteturais de um mesmo algoritmo** sob condições estritamente idênticas:
 1. **LS-SVM Clássico com Kernel RBF** (`ModelFamily.CLASSICAL_ML`);
 2. **LS-SVM com Kernel Quântico** (`ModelFamily.QUANTUM_KERNEL` + `supports_precomputed_kernel=True`);
 3. **LS-SVM com Resolvedor de Sistema Linear Quântico** (`ModelFamily.QUANTUM_SOLVER`).

@@ -1,6 +1,6 @@
 # pos-3-usabilidade-acessibilidade-pesquisador proofs
 
-**HEAD**: c32004c
+**HEAD**: d33923d
 **Tree**: clean
 **Shell**: /bin/sh
 **Result**: 3 pass, 0 fail
@@ -30,5 +30,5 @@ tests/unit/test_documentation_integrity.py::test_python_snippets_ast_and_public_
 tests/unit/test_documentation_integrity.py::test_cli_blocks_and_quickstart_smoke_execution PASSED [ 83%]
 tests/unit/test_documentation_integrity.py::test_readme_lean_structure_and_pointers PASSED [100%]
 
-============================== 6 passed in 0.57s ===============================
+============================== 6 passed in 0.46s ===============================
 ```

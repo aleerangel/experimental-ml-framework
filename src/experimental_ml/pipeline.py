@@ -152,7 +152,10 @@ def _coerce_model_specs(
                     cls = type(_inst)
                     mod = getattr(cls, "__module__", "")
                     qn = getattr(cls, "__qualname__", "")
-                    _factory._factory_ref = f"{mod}:{qn}" if mod and qn and "<locals>" not in qn else f"inline:{_mid}"  # type: ignore[attr-defined]
+                    if mod and qn and mod != "__main__" and "<locals>" not in qn:
+                        _factory._factory_ref = f"{mod}:{qn}"  # type: ignore[attr-defined]
+                    else:
+                        _factory._factory_ref = f"inline:{_mid}"  # type: ignore[attr-defined]
                     return _factory
                 factory = _make_inst_factory(item, model_id)
                 has_fit = hasattr(item, "fit")
@@ -338,11 +341,16 @@ def run_experiment(
     write_json_atomic(exp_dir / PREPARATION_PLAN_REL_PATH, preparation_plan_to_dict(prep_plan), overwrite=force)
     write_json_atomic(exp_dir / DATASET_DESCRIPTOR_REL_PATH, {"dataset_hash": bundle.dataset_hash}, overwrite=force)
     save_scenarios(scenarios_cat, exp_dir / SCENARIOS_CATALOG_REL_PATH, overwrite=force)
-    write_json_atomic(
-        exp_dir / MODELS_CATALOG_REL_PATH,
-        models_catalog_to_dict(ModelsCatalog(models=tuple(model_specs))),
-        overwrite=force,
+    all_importable = all(
+        not getattr(m.estimator_factory, "_factory_ref", "").startswith(("inline:", "__main__:"))
+        for m in model_specs
     )
+    if all_importable:
+        write_json_atomic(
+            exp_dir / MODELS_CATALOG_REL_PATH,
+            models_catalog_to_dict(ModelsCatalog(models=tuple(model_specs))),
+            overwrite=force,
+        )
     write_json_atomic(exp_dir / PARTITION_PLAN_REL_PATH, partition_plan_to_dict(part_plan), overwrite=force)
     save_statistics_artifacts(exp_dir / "statistics", cons, suit, comp, conc, force=force)
 
