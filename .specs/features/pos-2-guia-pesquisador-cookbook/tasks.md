@@ -109,7 +109,7 @@ T4 --> T5
 
 ---
 
-#### T4: Elaborar os catálogos completos de API Python e CLI `expml` em `docs/referencia/` [ ]
+#### T4: Elaborar os catálogos completos de API Python e CLI `expml` em `docs/referencia/` [x]
 
 **What**: Criar `docs/referencia/api_python.md` catalogando as APIs públicas exportadas nos `__init__.py`/`__all__` dos 11 pacotes (`core`, `data`, `metrics`, `features`, `models`, `tuning`, `validation`, `orchestration`, `statistics`, `reporting`, `stages`), e `docs/referencia/cli_catalogo.md` catalogando todos os comandos, subcomandos, opções, artefatos e códigos de saída reais (`0`, `1`, `2`) do `expml`.  
 **Where**: `docs/referencia/`  
@@ -154,5 +154,5 @@ Proof: run unit | tests/unit/test_documentation_integrity.py::test_readme_lean_s
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T4
-- **Next Task:** T5
+- **Current Task:** T5
+- **Next Task:** Done
