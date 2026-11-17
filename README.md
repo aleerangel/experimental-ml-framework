@@ -61,7 +61,10 @@ expml report export --experiment-dir exp_dir --mode full_package --output-dir pa
   - [Fluxo Desacoplado para Jupyter Notebooks e Relatórios sem Retreino](docs/guias_praticos/08_fluxo_desacoplado_jupyter_relatorios.md)
   - [Inferência Estatística na Prática e Controle de Multiplicidade](docs/guias_praticos/09_inferencia_estatistica_na_pratica.md)
 - **Notebooks Interativos (`notebooks/`):**
-  - [Tour das 6 Etapas](notebooks/01_tour_6_etapas.ipynb) | [Ablação LS-SVM (Prognose Florestal)](notebooks/02_ablacao_lssvm_prognose_florestal.ipynb) | [GroupKFold e Bloqueios](notebooks/03_validacao_agrupada_e_prevencao_leakage.ipynb) | [Pós-Experimento LaTeX/SVG](notebooks/04_pos_experimento_relatorios_artigo.ipynb)
+  - [Tour das 6 Etapas](notebooks/01_tour_6_etapas.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/01_tour_6_etapas.ipynb)
+  - [Ablação LS-SVM (Prognose Florestal)](notebooks/02_ablacao_lssvm_prognose_florestal.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/02_ablacao_lssvm_prognose_florestal.ipynb)
+  - [GroupKFold e Bloqueios](notebooks/03_validacao_agrupada_e_prevencao_leakage.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/03_validacao_agrupada_e_prevencao_leakage.ipynb)
+  - [Pós-Experimento LaTeX/SVG](notebooks/04_pos_experimento_relatorios_artigo.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/04_pos_experimento_relatorios_artigo.ipynb)
 
 ### Referência Técnica
 - **[Catálogo da API Python Pública](docs/referencia/api_python.md):** Assinaturas e contratos dos 11 pacotes públicos exportados.
