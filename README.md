@@ -43,6 +43,14 @@ pip install -e .
 Execute todo o pipeline científico das **6 etapas** diretamente pelo terminal:
 
 ```bash
+# Modo rápido em 2 comandos (cria exemplo pronto e executa as 6 etapas)
+expml init --output-dir exp_dir --task regression
+expml quickrun --experiment-dir exp_dir
+```
+
+Ou execute etapa por etapa com controle granular:
+
+```bash
 expml data profile --data dados.csv --schema schema.json --output-dir exp_dir
 expml data sanitize --experiment-dir exp_dir --rules regras.json
 expml features scenarios --experiment-dir exp_dir --scenarios cenarios.json
@@ -58,9 +66,11 @@ expml report export --experiment-dir exp_dir --mode full_package --output-dir pa
 ## Mapa de Documentação
 
 ### Para Pesquisadores (Uso Prático e Metodologia)
-- **[Portal do Pesquisador](docs/README.md):** Visão geral e trilha pedagógica completa em 4 níveis.
+- **[Portal do Pesquisador](docs/README.md):** Navegação organizada pelas 5 Jornadas de Utilização.
+- **[Começando do Zero](docs/guia/00_comecando_do_zero.md):** Exemplo de 10 linhas em Python (`run_experiment`) ou 2 comandos CLI, sem pré-requisitos de JSON/frameworks.
 - **[Início Rápido (5 Passos)](docs/guia/01_inicio_rapido.md):** Instalação, fluxo CLI mínimo e exemplo Python executável.
 - **[Tutorial das 6 Etapas](docs/guia/02_tutorial_6_etapas.md):** Guia passo a passo da preparação ao empacotamento, com portões de estágio e garantias anti-leakage.
+- **[Interpretando Resultados Científicos](docs/guia/03_interpretando_resultados.md):** Guia prático de métricas, cobertura, testes pareados, Pareto e não-equivalência.
 - **Guias Práticos (Cenários Avançados):**
   - [Modelos Analíticos (`requires_fit=False`) vs. Treinados](docs/guias_praticos/01_modelos_analiticos_vs_treinados.md)
   - [Métricas Quânticas (`KTA`) e Probabilísticas (`ROC-AUC`, `Log-Loss`)](docs/guias_praticos/02_metricas_quanticas_e_probabilisticas.md)
@@ -78,6 +88,7 @@ expml report export --experiment-dir exp_dir --mode full_package --output-dir pa
   - [Pós-Experimento LaTeX/SVG](notebooks/04_pos_experimento_relatorios_artigo.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/04_pos_experimento_relatorios_artigo.ipynb)
 
 ### Referência Técnica
+- **[Schemas JSON da CLI `expml`](docs/referencia/cli_schemas_json.md):** Modelos exatos de `schema.json`, `rules.json`, `scenarios.json`, `models.json` e `partition.json`.
 - **[Catálogo da API Python Pública](docs/referencia/api_python.md):** Assinaturas e contratos dos 11 pacotes públicos exportados.
 - **[Catálogo Completo da CLI `expml`](docs/referencia/cli_catalogo.md):** Comandos, subcomandos e convenção oficial de códigos de saída (`0`, `1`, `2`).
 

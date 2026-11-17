@@ -7,7 +7,7 @@ Implement these tasks with the `tlc-spec-driven` skill.
 ---
 
 **Design**: `.specs/features/pos-3-usabilidade-acessibilidade-pesquisador/design.md`  
-**Status**: In Progress  
+**Status**: Completed  
 **Approved**: 2026-11-17 - user: "Gostei da interface python de 10 linhas, mas nao vamos remover o que ja temos, somente flexbilizar"  
 **Build**: none - Python interpreted package (`XCUT-02`: stdlib + numpy only)  
 **Run unit**: .venv/bin/pytest tests/unit/test_usability_cli_and_facade.py tests/unit/test_documentation_integrity.py -v  
@@ -74,7 +74,7 @@ T1 --> T3 --> T4
 
 ### Phase 3: Documentação por Jornadas, Schemas JSON e Guia de Interpretação (`USAB-03`)
 
-#### T3: Criar `cli_schemas_json.md`, `03_interpretando_resultados.md` e reorganizar `docs/README.md` pelas 5 Jornadas [ ]
+#### T3: Criar `cli_schemas_json.md`, `03_interpretando_resultados.md` e reorganizar `docs/README.md` pelas 5 Jornadas [x]
 
 **What**: Documentar todos os schemas JSON da CLI e aliases de `resolve_estimator_factory` em `docs/referencia/cli_schemas_json.md`, criar o guia prático `docs/guia/03_interpretando_resultados.md`, atualizar `docs/referencia/cli_catalogo.md` com `expml init` e as novas flags, e reorganizar `docs/README.md` pelas 5 Jornadas.  
 **Where**: `docs/`  
@@ -88,7 +88,7 @@ T1 --> T3 --> T4
 
 ### Phase 4: Verificação Ponta a Ponta e Suíte Completa
 
-#### T4: Validar fluxo real completo (CLI + Python), pureza `XCUT-02` e suíte global [ ]
+#### T4: Validar fluxo real completo (CLI + Python), pureza `XCUT-02` e suíte global [x]
 
 **What**: Executar teste ponta a ponta simulando pesquisador iniciante (`expml init` -> `report generate` sem editar código interno) e rodar toda a suíte `pytest tests/ -q`.  
 **Where**: `tests/unit/test_usability_cli_and_facade.py`  
@@ -116,5 +116,5 @@ Proof: run unit | tests/unit/test_documentation_integrity.py::test_markdown_link
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T3
-- **Next Task:** T4
+- **Current Task:** Completed
+- **Next Task:** Independent Verification

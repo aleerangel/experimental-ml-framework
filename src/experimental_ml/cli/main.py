@@ -13,9 +13,20 @@ from experimental_ml import __version__
 from experimental_ml.core.findings import ExperimentalMLError
 
 
+class _ExpMLParser(argparse.ArgumentParser):
+    """ArgumentParser enforcing at least one of --run-dir or --experiment-dir when configured."""
+
+    def parse_known_args(self, args=None, namespace=None):  # type: ignore[override]
+        ns, rest = super().parse_known_args(args, namespace)
+        if getattr(self, "_require_run_or_exp", False):
+            if not getattr(ns, "run_dir", None) and not getattr(ns, "experiment_dir", None):
+                self.error("one of the arguments --run-dir or --experiment-dir is required")
+        return ns, rest
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the hierarchical command-line argument parser."""
-    parser = argparse.ArgumentParser(
+    parser = _ExpMLParser(
         prog="expml",
         description="Experimental ML Framework - CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -148,6 +159,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # run resume
     run_resume_p = run_subparsers.add_parser("resume", help="Resume an interrupted experiment execution.")
+    run_resume_p._require_run_or_exp = True  # type: ignore[attr-defined]
     run_resume_p.add_argument("--run-dir", default=None, help="Path to run directory containing execution_state.json.")
     run_resume_p.add_argument(
         "--experiment-dir", "--exp-dir",
@@ -171,13 +183,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     # run status
     run_status_p = run_subparsers.add_parser("status", help="Inspect current progress of an experiment execution.")
-    run_status_p.add_argument("--run-dir", default=None, help="Path to run directory containing execution_state.json.")
-    run_status_p.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", default=None, help="Path to experiment directory (infers <experiment-dir>/runs).")
+    status_grp = run_status_p.add_mutually_exclusive_group(required=True)
+    status_grp.add_argument("--run-dir", default=None, help="Path to run directory containing execution_state.json.")
+    status_grp.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", default=None, help="Path to experiment directory (infers <experiment-dir>/runs).")
 
     # run verify
     run_verify_p = run_subparsers.add_parser("verify", help="Verify stage 4 execution and OOF gates.")
-    run_verify_p.add_argument("--run-dir", default=None, help="Path to run directory containing execution_state.json.")
-    run_verify_p.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", default=None, help="Path to experiment directory (infers <experiment-dir>/runs).")
+    verify_grp = run_verify_p.add_mutually_exclusive_group(required=True)
+    verify_grp.add_argument("--run-dir", default=None, help="Path to run directory containing execution_state.json.")
+    verify_grp.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", default=None, help="Path to experiment directory (infers <experiment-dir>/runs).")
 
     # --- stats command ---
     stats_parser = subparsers.add_parser("stats", help="Stage 5 statistical consolidation and inference.")

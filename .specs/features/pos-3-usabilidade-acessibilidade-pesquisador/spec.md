@@ -69,6 +69,6 @@ So that I can configure experiments and interpret statistical reports accurately
 
 | Requirement ID | Acceptance Criteria | Target Component | Status |
 | --- | --- | --- | --- |
-| USAB-01 | AC-POS3-01-01, AC-POS3-01-02, AC-POS3-01-03, AC-POS3-01-04 | `src/experimental_ml/cli/` | pending |
-| USAB-02 | AC-POS3-02-01, AC-POS3-02-02 | `src/experimental_ml/__init__.py` | pending |
-| USAB-03 | AC-POS3-03-01, AC-POS3-03-02 | `docs/`, `tests/` | pending |
+| USAB-01 | AC-POS3-01-01, AC-POS3-01-02, AC-POS3-01-03, AC-POS3-01-04 | `src/experimental_ml/cli/` | verified |
+| USAB-02 | AC-POS3-02-01, AC-POS3-02-02 | `src/experimental_ml/__init__.py` | verified |
+| USAB-03 | AC-POS3-03-01, AC-POS3-03-02 | `docs/`, `tests/` | verified |

@@ -4,10 +4,12 @@ A interface de linha de comando `expml` implementa *lazy imports* (`CLI-10`) par
 
 ---
 
-## Opções Globais
+## Opções Globais e Atalhos de Entrada Rápida
 
 - `expml -h` / `expml --help`: Exibe a ajuda geral e lista os grupos de comandos.
 - `expml --version`: Exibe a versão instalada do pacote (`0.1.0.dev0`) e encerra com código `0`.
+- `expml init --output-dir DIR [--task {regression,binary_classification,multiclass_classification}] [--force]`: Cria um projeto inicial pronto com `dados_exemplo.csv` e todos os arquivos JSON válidos (`schema.json`, `rules.json`, `scenarios.json`, `models.json`, `partition.json`, `stats_config.json`).
+- `expml quickrun --experiment-dir DIR [--data CSV] [--metrics M1 M2 ...] [--force]`: Executa sequencialmente todas as 6 etapas a partir de uma pasta inicializada.
 
 ---
 
@@ -41,7 +43,7 @@ Aplica regras determinísticas pré-partição e materializa a visão saneada (`
 | Argumento / Opção | Obrigatório | Descrição e Variações |
 | :--- | :---: | :--- |
 | `--experiment-dir EXPERIMENT_DIR` | Sim | Caminho do diretório do experimento criado em `data profile`. |
-| `--rules RULES` | Sim | Caminho para o arquivo JSON com a lista de regras de preparação (`PreparationRule`). |
+| `--rules RULES` | Não | Caminho para o arquivo JSON com a lista de regras (`PreparationRule`). Se omitido e não houver achados confirmados, usa `[]`. |
 | `--force` | Não | Sobrescreve o plano e a visão saneada caso já existam. |
 
 ---
@@ -127,6 +129,7 @@ Executa a matriz completa `(modelo × cenário × dobra)` com checkpointing atô
 | `-j`, `--jobs`, `--parallel PARALLEL` | Não | Número de trabalhadores paralelos externos (padrão: `1`, sequencial). |
 | `--error-policy` | Não | Política de tratamento de erro por célula: `fault_tolerant` (padrão — isola células falhas como `FAILED` sem interromper as demais) ou `fail_fast` (aborta na primeira falha). |
 | `--no-oof` | Não | Desativa a consolidação automática de predições *out-of-fold* (OOF) ao final. |
+| `--metrics M1 [M2 ...]` | Não | Lista opcional de métricas de `METRICS_CATALOG` (se omitida, usa padrões seguros por tarefa). |
 | `--force` | Não | Sobrescreve o diretório de execução caso já exista. |
 
 ### `expml run resume`
@@ -145,14 +148,16 @@ Exibe o progresso atual das células (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED
 
 | Argumento / Opção | Obrigatório | Descrição e Variações |
 | :--- | :---: | :--- |
-| `--run-dir RUN_DIR` | Sim | Diretório da execução contendo `execution_state.json`. |
+| `--run-dir RUN_DIR` | Condicional | Diretório da execução contendo `execution_state.json` (opcional se `--experiment-dir` for informado). |
+| `--experiment-dir`, `--exp-dir` | Condicional | Diretório do experimento (infere `<experiment-dir>/runs`). |
 
 ### `expml run verify`
 Verifica o portão da Etapa 4B e integridade dos artefatos OOF (`verify_runs_gate`).
 
 | Argumento / Opção | Obrigatório | Descrição e Variações |
 | :--- | :---: | :--- |
-| `--run-dir RUN_DIR` | Sim | Diretório da execução a auditar. |
+| `--run-dir RUN_DIR` | Condicional | Diretório da execução a auditar (opcional se `--experiment-dir` for informado). |
+| `--experiment-dir`, `--exp-dir` | Condicional | Diretório do experimento (infere `<experiment-dir>/runs`). |
 
 ---
 
