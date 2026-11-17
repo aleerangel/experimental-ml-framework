@@ -1,6 +1,8 @@
-# Tutorial Metodológico das 6 Etapas
+# Tutorial Metodológico das 6 Etapas *(Nível 2)*
 
-O `experimental-ml` estrutura todo experimento científico em **6 etapas metodológicas oficiais**, separadas por **portões de estágio (*stage gates*)** e contratos imutáveis que garantem isolamento estrito contra *data leakage* (vazamento de dados) e reprodutibilidade determinística.
+O `experimental-ml` organiza todo experimento científico em **6 etapas metodológicas oficiais**.  
+- No **Modo Básico** (`run_experiment(...)` em Python ou `expml quickrun` na CLI), o framework executa todas as 6 etapas automaticamente com configurações seguras.  
+- No **Modo Avançado** (APIs modulares ou subcomandos individuais da CLI), você pode customizar cada etapa detalhadamente.
 
 ```mermaid
 flowchart LR
@@ -15,42 +17,42 @@ flowchart LR
 
 ## Etapa 1: Entrada, Triagem e Diagnóstico Estrutural
 
-**Módulos:** `experimental_ml.data`, `experimental_ml.stages`  
-**Portão:** `verify_preparation_gate`
+**Por que esta etapa existe?** Antes de treinar qualquer modelo, é preciso garantir que os dados brutos não sejam alterados silenciosamente e que problemas estruturais (como coluna alvo ausente ou colunas inválidas) sejam detectados com registro auditável.
 
-A primeira etapa protege a integridade da base bruta antes de qualquer divisão ou modelagem:
-- **Imutabilidade e Hashes Tripartites:** `load_dataset` ingere o conjunto tabular em um `DatasetBundle` imutável, gerando identificadores estáveis (`ObservationId`) e hashes SHA-256 independentes para fonte bruta (`raw_source_hash`), esquema (`schema_hash`) e dados (`dataset_hash`).
-- **Diagnóstico Estrutural:** `profile_dataset` audita tipos semânticos, valores ausentes, colunas constantes e inconsistências de alvo.
-- **Saneamento Pré-Partição:** Regras determinísticas independentes da distribuição (como remoção de linhas com alvo ausente) são declaradas em um `PreparationPlan` e materializadas em uma `SanitizedDatasetView` via `sanitize_dataset`, sem jamais alterar os dados brutos.
+| Nível | O Que Você Faz |
+| :--- | :--- |
+| **Mínimo Obrigatório (Básico)** | Informar `data`, `target` e `task` no `run_experiment` (ou gerar `schema.json` com `expml init`). Se não houver achados críticos, `rules` fica vazio automaticamente. |
+| **O Que Você Pode Customizar (Avançado)** | Ignorar colunas (`ignore_cols`), declarar coluna de grupo (`group_col`) ou tempo (`time_col`), e definir regras determinísticas explícitas de saneamento em `PreparationRule` / `rules.json`. |
 
-**Comandos e variações disponíveis na Etapa 1:**
-- `expml data profile --data dados.csv --schema schema.json --output-dir exp_dir [--force]`: Ingere a base tabular, valida o esquema (`DatasetSchemaSpec`) e grava o perfil estrutural. `--force` permite sobrescrever artefatos existentes.
-- `expml data sanitize --experiment-dir exp_dir --rules regras.json [--force]`: Aplica as regras declaradas em `regras.json` (`PreparationRule`) sobre os dados perfilados. `--force` sobrescreve o plano anterior.
+**Módulos:** `experimental_ml.data`, `experimental_ml.stages` (`verify_preparation_gate`)
+- `load_dataset` ingere a base em um `DatasetBundle` imutável com hashes SHA-256 tripartites (`raw_source_hash`, `schema_hash`, `dataset_hash`).
+- `profile_dataset` audita tipos semânticos, nulos e inconsistências; `create_preparation_plan` e `sanitize_dataset` aplicam regras determinísticas pré-partição gerando uma `SanitizedDatasetView`.
 
+**Comandos CLI (Etapa 1):**
 ```bash
 expml data profile --data dados.csv --schema schema.json --output-dir exp_dir --force
-expml data sanitize --experiment-dir exp_dir --rules regras.json --force
+expml data sanitize --experiment-dir exp_dir --force
 ```
 
 ---
 
 ## Etapa 2: Exploração de Relações e Cenários de Features
 
-**Módulos:** `experimental_ml.features`, `experimental_ml.stages`  
-**Portão:** `verify_scenarios_gate`
+**Por que esta etapa existe?** Escolher variáveis olhando para todo o conjunto de dados antes de dividir treino e teste causa *data leakage* e infla artificialmente os resultados. Esta etapa separa análise exploratória de seleção dentro de cada dobra.
 
-Para evitar que a escolha de atributos vaze informações da validação:
-- **Rotulagem Exploratória Obrigatória:** `explore_features` calcula correlações univariadas (Pearson, Spearman, $\eta$ e V de Cramér) e matriz de redundância sob o rótulo explícito `EXPLORATORY_FULL_DATA`, acompanhado de alertas metodológicos sobre o risco de usar essa análise para seleção definitiva.
-- **Cenários Fixos vs. Dinâmicos:** `FeatureScenario` distingue conjuntos previamente justificados na literatura (`ScenarioMode.FIXED`) de estratégias de seleção executadas estritamente dentro de cada dobra de treino (`ScenarioMode.DYNAMIC`, ex.: `VARIANCE_THRESHOLD`, `TOP_K_RELEVANCE`), avaliando sua estabilidade inter-dobras pelos índices de Jaccard e Kuncheva corrigido (`compute_selection_stability`).
+| Nível | O Que Você Faz |
+| :--- | :--- |
+| **Mínimo Obrigatório (Básico)** | Nada extra: o modo básico usa automaticamente todas as colunas preditoras válidas (`todas_features` em modo `FIXED`). |
+| **O Que Você Pode Customizar (Avançado)** | Comparar múltiplos `FeatureScenario` (`FIXED` vs. `DYNAMIC` com `TOP_K_RELEVANCE` ou `VARIANCE_THRESHOLD` ajustados estritamente dentro do treino) e medir estabilidade inter-dobras (`Jaccard` e `Kuncheva`). |
 
-**Comandos e variações disponíveis na Etapa 2:**
-- `expml features explore --experiment-dir exp_dir [--force]`: Executa a análise exploratória rotulada em todo o conjunto (`EXPLORATORY_FULL_DATA`).
-- `expml features scenarios --experiment-dir exp_dir --scenarios cenarios.json [--force]`: Valida e salva os cenários `FIXED` e `DYNAMIC` definidos no arquivo JSON.
-- `expml features verify --experiment-dir exp_dir`: Executa o portão `verify_scenarios_gate` garantindo conformidade antes da Etapa 3.
+**Módulos:** `experimental_ml.features`, `experimental_ml.stages` (`verify_scenarios_gate`)
+- `explore_features` rotula obrigatoriamente a análise exploratória global como `EXPLORATORY_FULL_DATA`.
+- `validate_scenarios` impede que atributos pré-calculados entrem em cenários dinâmicos.
 
+**Comandos CLI (Etapa 2):**
 ```bash
 expml features explore --experiment-dir exp_dir
-expml features scenarios --experiment-dir exp_dir --scenarios cenarios.json
+expml features scenarios --experiment-dir exp_dir --scenarios scenarios.json
 expml features verify --experiment-dir exp_dir
 ```
 
@@ -58,20 +60,18 @@ expml features verify --experiment-dir exp_dir
 
 ## Etapa 3: Registro de Modelos, Pré-processamento em 2 Camadas e Nested Tuning
 
-**Módulos:** `experimental_ml.models`, `experimental_ml.tuning`, `experimental_ml.stages`  
-**Portão:** `verify_models_gate`
+**Por que esta etapa existe?** Reutilizar o mesmo objeto de modelo entre dobras vaza pesos aprendidos, e ajustar hiperparâmetros olhando para a dobra de validação externa gera otimismo falso.
 
-Esta etapa formaliza os modelos candidatos e suas restrições operacionais antes da execução:
-- **Capacidades Declarativas:** `ModelSpec` e `ModelCapabilities` explicitam se o modelo requer ajuste (`requires_fit`), suporta probabilidades (`supports_predict_proba`), pesos amostrais (`supports_sample_weight`) ou kernels pré-computados (`supports_precomputed_kernel`).
-- **Pré-processamento em 2 Camadas sem Duplicação:** A camada de cenário (Etapa 2) e a camada do modelo (Etapa 3) são validadas em conjunto por `validate_two_layer_preprocessing` para impedir transformações redundantes (como padronização dupla) e ajustadas estritamente no treino de cada dobra.
-- **Nested Tuning (Busca Aninhada):** `HyperparameterSearchSpec` e `run_nested_tuning` (`grid_search` ou `random_search`) subdividem exclusivamente $(X_{\text{train}}, y_{\text{train}})$ da dobra externa, garantindo que o conjunto de validação externo nunca influencie a escolha de hiperparâmetros $\theta^*$.
+| Nível | O Que Você Faz |
+| :--- | :--- |
+| **Mínimo Obrigatório (Básico)** | Passar seus modelos em um dicionário `models={"Nome": modelo}` no `run_experiment` (ou escolher baselines no `models.json` do `expml init`). |
+| **O Que Você Pode Customizar (Avançado)** | Declarar `ModelSpec` e `ModelCapabilities` (`requires_fit=False` para modelos analíticos, `supports_precomputed_kernel=True`), configurar pré-processamento em 2 camadas sem duplicação (`validate_two_layer_preprocessing`) e busca aninhada *Nested CV* (`HyperparameterSearchSpec` com `grid_search` ou `random_search`). |
 
-**Comandos e variações disponíveis na Etapa 3:**
-- `expml models validate --experiment-dir exp_dir --models modelos.json [--force]`: Valida capacidades, pré-processamento e espaços de busca, persistindo `models.json`.
-- `expml models verify --experiment-dir exp_dir`: Audita o portão `verify_models_gate`.
+**Módulos:** `experimental_ml.models`, `experimental_ml.tuning`, `experimental_ml.stages` (`verify_models_gate`)
 
+**Comandos CLI (Etapa 3):**
 ```bash
-expml models validate --experiment-dir exp_dir --models modelos.json
+expml models validate --experiment-dir exp_dir --models models.json
 expml models verify --experiment-dir exp_dir
 ```
 
@@ -79,64 +79,52 @@ expml models verify --experiment-dir exp_dir
 
 ## Etapa 4: Particionamento Compartilhado (4A) e Execução Matricial (4B)
 
-**Módulos:** `experimental_ml.validation`, `experimental_ml.orchestration`, `experimental_ml.stages`  
-**Portões:** `verify_partition_gate`, `verify_runs_gate`
+**Por que esta etapa existe?** Para comparar modelos com justiça, todos devem ser avaliados exatamente nas mesmas divisões de dados (`PartitionPlan`). Além disso, experimentos longos não podem perder tudo se uma célula falhar ou for interrompida.
 
-A Etapa 4 é composta por dois subestágios acoplados por contrato:
+| Nível | O Que Você Faz |
+| :--- | :--- |
+| **Mínimo Obrigatório (Básico)** | Informar `cv_folds=5` (ou `group_col` se houver amostras do mesmo sujeito/parcela) no `run_experiment`. |
+| **O Que Você Pode Customizar (Avançado)** | Escolher regime (`CV_ONLY`, `HOLDOUT_ONLY`, `CV_AND_HOLDOUT`), paralelismo (`-j`), política de falhas (`fault_tolerant` vs. `fail_fast`), seleção de métricas (`--metrics`) e retomada por checkpoint (`expml run resume --retry-failed`). |
 
-### Subetapa 4A — Particionamento Compartilhado (`validation`)
-Todos os modelos e cenários competem sobre **exatamente os mesmos subconjuntos de observações** definidos em um único `PartitionPlan` (`build_partition_plan`, `validate_partition_plan`). O framework suporta:
-- Regimes `CV_ONLY`, `HOLDOUT_ONLY` e `CV_AND_HOLDOUT`;
-- Estratégias `KFOLD`, `STRATIFIED_KFOLD`, `GROUP_KFOLD` (isolamento estrito de grupos entre dobras e entre desenvolvimento e holdout) e `TEMPORAL`.
+### Guia Rápido de Escolha da Validação (Subetapa 4A)
 
-### Subetapa 4B — Execução Matricial Tolerante a Falhas (`orchestration`)
-Para cada célula $(m, c, f)$ da matriz `(modelo × cenário × dobra)`:
-1. `instantiate_fresh_model` cria uma instância virgem com os parâmetros declarados (ou $\theta^*$ do *nested tuning*);
-2. Seleção dinâmica, pré-processamento e ajuste ocorrem **unicamente** em $X_{\text{train}}$;
-3. Em modo `FAULT_TOLERANT`, falhas pontuais registram a célula como `FAILED` preservando o estado das demais; métricas indefinidas recebem `MetricStatus.UNDEFINED_NAN` e **nunca** são convertidas silenciosamente para zero;
-4. O progresso é salvo atomicamente em disco, permitindo retomada via `resume_experiment_matrix` com verificação de compatibilidade de `dataset_hash` e `partition_plan_id`.
+| Tipo de Dados do Seu Estudo | Estratégia Recomendada | Por Quê? |
+| :--- | :--- | :--- |
+| Amostras independentes (regressão) | `KFOLD` | Divide aleatoriamente em $K$ dobras iguais. |
+| Classes desbalanceadas (classificação) | `STRATIFIED_KFOLD` | Preserva a proporção de cada classe em todas as dobras. |
+| Várias medições do mesmo paciente, árvore ou parcela | `GROUP_KFOLD` (`group_col=...`) | Impede que observações do mesmo grupo apareçam no treino e na validação/holdout. |
+| Série temporal / ordem cronológica | `TEMPORAL` (`time_col=...`) | Garante que o modelo nunca treine no futuro para prever o passado. |
 
-**Comandos e variações disponíveis na Etapa 4 (4A e 4B):**
-- **4A — Particionamento:**
-  - `expml partition build --experiment-dir exp_dir --config particao.json [--seed SEED] [--force]`: Gera e valida o `PartitionPlan`; `--seed` sobrescreve opcionalmente a semente mestre do JSON.
-  - `expml partition verify --experiment-dir exp_dir`: Executa o portão `verify_partition_gate`.
-- **4B — Execução Matricial:**
-  - `expml run start --experiment-dir exp_dir [--run-dir DIR] [-j N] [--error-policy {fault_tolerant,fail_fast}] [--no-oof] [--force]`: Inicia a execução matricial; `-j/--jobs/--parallel` define trabalhadores paralelos; `--error-policy` alterna entre `fault_tolerant` (padrão) e `fail_fast`; `--no-oof` desativa a consolidação OOF automática.
-  - `expml run resume --run-dir exp_dir/runs [--experiment-dir exp_dir] [-j N] [--retry-failed] [--no-oof]`: Retoma execução interrompida; `--retry-failed` reexecuta células anteriormente falhas.
-  - `expml run status --run-dir exp_dir/runs`: Inspeciona a contagem de células por estado (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED`).
-  - `expml run verify --run-dir exp_dir/runs`: Audita o portão `verify_runs_gate`.
+**Módulos:** `experimental_ml.validation`, `experimental_ml.orchestration`, `experimental_ml.stages` (`verify_partition_gate`, `verify_runs_gate`)
+- Em modo `FAULT_TOLERANT`, falhas isoladas marcam a célula como `FAILED` sem converter métricas indefinidas para zero (`MetricStatus.UNDEFINED_NAN`).
 
+**Comandos CLI (Etapa 4):**
 ```bash
-expml partition build --experiment-dir exp_dir --config particao.json --seed 42
+expml partition build --experiment-dir exp_dir --config partition.json --seed 42
 expml partition verify --experiment-dir exp_dir
-expml run start --experiment-dir exp_dir -j 4 --error-policy fault_tolerant
-expml run status --run-dir exp_dir/runs
-expml run verify --run-dir exp_dir/runs
+expml run start --experiment-dir exp_dir -j 4 --error-policy fault_tolerant --metrics rmse r2
+expml run status --experiment-dir exp_dir
+expml run verify --experiment-dir exp_dir
 ```
 
 ---
 
 ## Etapa 5: Consolidação e Comparação Estatística Rigorosa
 
-**Módulos:** `experimental_ml.statistics`, `experimental_ml.stages`  
-**Portão:** `verify_statistics_gate`
+**Por que esta etapa existe?** Olhar apenas a média entre dobras engana quando há variância alta, dobras falhas ou múltiplas comparações simultâneas.
 
-A análise estatística consome os registros de `runs/` e `predictions/` de forma desacoplada:
-- **Consolidação Descritiva e Cobertura:** `consolidate_descriptive` calcula médias, desvios, medianas e intervalos interquartis apenas sobre dobras válidas, classificando cada configuração em `VALID`, `PARTIAL_COVERAGE` ou `NO_COVERAGE`. Líderes `VALID` têm precedência sobre configurações com cobertura parcial (`ADR-005`).
-- **Inferência Pareada com Correção de Variância:** Em validação cruzada com $K$ dobras, as partições de treino se sobrepõem, violando a independência do teste *t* clássico. O framework implementa o teste corrigido de **Nadeau-Bengio**:
+| Nível | O Que Você Faz |
+| :--- | :--- |
+| **Mínimo Obrigatório (Básico)** | Ler o resumo `resultado.summary()` ou `reports/report.md`, que já exibem médias, desvios-padrão, cobertura e líder observado. |
+| **O Que Você Pode Customizar (Avançado)** | Configurar `ComparisonSpec` (`alpha`, pares planejados, `Holm-Bonferroni` vs. `Benjamini-Hochberg`), analisar `paired_nadeau_bengio_test` / `paired_wilcoxon_test`, tamanho de efeito ($d$ de Cohen) e otimização multiobjetivo na Fronteira de Pareto (`compute_pareto_frontier`). |
+
+**Módulos:** `experimental_ml.statistics`, `experimental_ml.stages` (`verify_statistics_gate`)
 
 $$
 t_{\text{NB}} = \frac{\bar{d}}{\sqrt{\left(\frac{1}{K} + \frac{n_{\text{test}}}{n_{\text{train}}}\right) s_d^2}}
 $$
 
-- **Alternativa Não-Paramétrica e Multiplicidade:** Oferece `paired_wilcoxon_test`, tamanho de efeito ($d$ de Cohen pareado) e correções para múltiplas comparações via Holm-Bonferroni (`adjust_pvalues_holm`) e Benjamini-Hochberg (`adjust_pvalues_bh`).
-- **Análise Multiobjetivo e Síntese:** `compute_pareto_frontier` identifica configurações não dominadas combinando métricas preditivas, tempo de inferência e estabilidade de seleção, enquanto `synthesize_conclusions` gera conclusões estruturadas evitando confundir $p \ge \alpha$ com equivalência.
-
-**Comandos e variações disponíveis na Etapa 5:**
-- `expml stats run --experiment-dir exp_dir [--config stats_config.json] [--force]`: Executa consolidação, inferência e fronteira de Pareto; `--config` permite especificar `ComparisonSpec`, `MultiObjectiveSpec` e `alpha`.
-- `expml stats status --experiment-dir exp_dir`: Exibe o resumo de cobertura e métricas consolidadas.
-- `expml stats verify --experiment-dir exp_dir`: Audita o portão `verify_statistics_gate`.
-
+**Comandos CLI (Etapa 5):**
 ```bash
 expml stats run --experiment-dir exp_dir --config stats_config.json
 expml stats status --experiment-dir exp_dir
@@ -147,19 +135,16 @@ expml stats verify --experiment-dir exp_dir
 
 ## Etapa 6: Relatórios Científicos, Figuras e Pacote de Reprodutibilidade
 
-**Módulos:** `experimental_ml.reporting`, `experimental_ml.stages`  
-**Portão:** `verify_report_gate`
+**Por que esta etapa existe?** Separar a execução pesada da geração de relatórios permite ajustar tabelas, gráficos e formatos de artigo em segundos sem retreinar nenhum modelo.
 
-A última etapa opera em modo estritamente somente-leitura sobre os artefatos persistidos (sem retreinar ou recalcular métricas ocultamente):
-- **Relatórios e Tabelas:** Gera relatórios offline completos em Markdown e HTML (`render_full_report`) e 7 famílias de tabelas científicas exportáveis em `CSV`, `Markdown` e `LaTeX booktabs` (`build_table_model`).
-- **Figuras Determinísticas:** Renderiza gráficos vetoriais e matriciais (`SVG`, `PNG` 300 DPI, `PDF`) em Python/NumPy puro.
-- **Pacote Portátil de Reprodutibilidade:** `build_reproducibility_package` empacota artefatos, linhagem (`artifact_provenance.json`), ambiente (`environment.json`), sementes (`seeds.json`) e hashes relativos POSIX em `reproducibility/checksums.sha256`, nos modos `FULL_PACKAGE` (com dados) ou `REDUCED_NO_RAW_DATA` (sem dados brutos para revisão cega ou restrições de privacidade).
+| Nível | O Que Você Faz |
+| :--- | :--- |
+| **Mínimo Obrigatório (Básico)** | Abrir `reports/report.md` ou `reports/report.html` gerados automaticamente ao fim do `run_experiment` / `expml quickrun`. |
+| **O Que Você Pode Customizar (Avançado)** | Filtrar conteúdo (`ARTICLE_COMPACT` vs. `FULL_LAB` vs. `CUSTOM`), exportar 7 famílias de tabelas (`CSV`, `Markdown`, `LaTeX booktabs`), renderizar figuras (`SVG`, `PNG` 300 DPI, `PDF`) e empacotar para conferências (`full_package` ou `reduced_no_raw_data`) com `checksums.sha256`. |
 
-**Comandos e variações disponíveis na Etapa 6:**
-- `expml report generate --experiment-dir exp_dir [--output-dir DIR] [--format {markdown,html,both}] [--audience {FULL_LAB,ARTICLE_COMPACT,CUSTOM}] [--families FAMILIES] [--objective TEXTO] [--force]`: Gera relatórios e figuras em modo somente-leitura (`--families` é obrigatório quando `--audience CUSTOM`).
-- `expml report export --experiment-dir exp_dir [--output-dir DIR] [--mode {full_package,reduced_no_raw_data}] [--audience {FULL_LAB,ARTICLE_COMPACT,CUSTOM}] [--families FAMILIES] [--objective TEXTO] [--force]`: Exporta pacote de reprodutibilidade com `checksums.sha256`.
-- `expml report verify --experiment-dir pacote_submissao`: Verifica o portão `verify_report_gate` e integridade do pacote.
+**Módulos:** `experimental_ml.reporting`, `experimental_ml.stages` (`verify_report_gate`)
 
+**Comandos CLI (Etapa 6):**
 ```bash
 expml report generate --experiment-dir exp_dir --format both --audience FULL_LAB
 expml report export --experiment-dir exp_dir --mode reduced_no_raw_data --output-dir pacote_submissao
