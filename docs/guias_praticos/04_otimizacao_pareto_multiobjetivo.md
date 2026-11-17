@@ -8,7 +8,7 @@ A função `compute_pareto_frontier` (Etapa 5 — `experimental_ml.statistics`) 
 - **Elegibilidade Estrita (`CoverageStatus.VALID`):** Configurações com falhas de execução (`PARTIAL_COVERAGE`, `NO_COVERAGE`) ou com métrica `UNDEFINED_NAN` são excluídas da fronteira e listadas explicitamente em `excluded` com o motivo detalhado;
 - **Três Fontes Nativas de Objetivos (`ObjectiveSource`):**
   1. `AGGREGATED_METRIC`: qualquer métrica agregada consolidada (ex.: `accuracy`, `f1`, `rmse`);
-  2. `TIMING_MEAN`: tempos médios registrados no `TimingBreakdown` (ex.: `predict_time_s`, `fit_time_s`, `total_time_s`);
+  2. `TIMING_MEAN`: tempos médios registrados no `AggregatedTimingStats` (ex.: `predict_mean_s`, `fit_mean_s`, `total_cell_mean_s`);
   3. `FEATURE_STABILITY`: estabilidade inter-dobras de seleção de atributos (`mean_jaccard`).
 
 ---
@@ -39,7 +39,7 @@ spec = MultiObjectiveSpec(
             name="latencia_inferencia",
             source=ObjectiveSource.TIMING_MEAN,
             direction=MetricDirection.MINIMIZE,
-            field_name="predict_time_s",
+            field_name="predict_mean_s",
         ),
         ObjectiveSpec(
             name="estabilidade_features",
@@ -53,8 +53,8 @@ spec = MultiObjectiveSpec(
 pareto_summary = compute_pareto_frontier(consolidation, spec)
 
 # Pontos ótimos (não dominados) e pontos excluídos por cobertura/NaN
-otimos = [pt.config_id for pt in pareto_summary.frontier]
-excluidos = [(ex.config_id, ex.reason) for ex in pareto_summary.excluded]
+otimos = [pt.config_id for pt in pareto_summary.pareto_frontier]
+excluidos = [(ex.config_id, ex.reason) for ex in pareto_summary.excluded_configurations]
 ```
 
 ---

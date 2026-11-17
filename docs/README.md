@@ -26,6 +26,11 @@ A documentação foi organizada progressivamente do uso imediato até a referên
 4. **Nível 4 — Catálogos de Referência Técnica**:
    - [Referência da API Python Pública](referencia/api_python.md) (11 pacotes públicos)
    - [Catálogo Completo da CLI `expml`](referencia/cli_catalogo.md) (comandos, opções e códigos de saída)
+5. **Notebooks Interativos (`notebooks/`)**:
+   - [01 — Tour pelas 6 Etapas](../notebooks/01_tour_6_etapas.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/01_tour_6_etapas.ipynb)
+   - [02 — Ablação LS-SVM em Prognose Florestal](../notebooks/02_ablacao_lssvm_prognose_florestal.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/02_ablacao_lssvm_prognose_florestal.ipynb)
+   - [03 — Validação Agrupada e Bloqueios Anti-Vazamento](../notebooks/03_validacao_agrupada_e_prevencao_leakage.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/03_validacao_agrupada_e_prevencao_leakage.ipynb)
+   - [04 — Pós-Experimento Somente-Leitura (LaTeX, SVG e Pacote)](../notebooks/04_pos_experimento_relatorios_artigo.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/04_pos_experimento_relatorios_artigo.ipynb)
 
 ---
 
