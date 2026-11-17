@@ -23,6 +23,17 @@ A pesquisa experimental em ML frequentemente padece de vulnerabilidades metodol�
 
 ---
 
+## As 6 Etapas de Utilização
+
+1. **Etapa 1 — Entrada, Triagem e Saneamento (`expml data`):** Ingestão imutável da base tabular, diagnóstico estrutural e aplicação de regras determinísticas pré-partição.
+2. **Etapa 2 — Exploração e Cenários de Features (`expml features`):** Análise exploratória rotulada e definição de cenários fixos ou dinâmicos executados estritamente dentro de cada dobra.
+3. **Etapa 3 — Modelos, Pré-processamento e Tuning (`expml models`):** Registro declarativo de modelos heterogêneos, pré-processamento em 2 camadas sem duplicação e *Nested CV*.
+4. **Etapa 4 — Particionamento (4A) e Execução Matricial (4B) (`expml partition`, `expml run`):** Divisão compartilhada determinística e execução tolerante a falhas com checkpoint/retomada.
+5. **Etapa 5 — Consolidação e Estatística (`expml stats`):** Agregação descritiva sem coerção silenciosa para zero, testes pareados, multiplicidade e fronteira de Pareto.
+6. **Etapa 6 — Relatórios e Reprodutibilidade (`expml report`):** Geração somente-leitura de tabelas (`CSV`/`Markdown`/`LaTeX`), gráficos e pacote portátil com checksums SHA-256.
+
+---
+
 ## Instalação e Fluxo Básico (`expml`)
 
 ```bash
