@@ -72,7 +72,7 @@ T1 --> T3 --> T4
 
 ### Phase 3: Notebooks 03 e 04
 
-#### T3: Criar `03_validacao_agrupada_e_prevencao_leakage.ipynb` e `04_pos_experimento_relatorios_artigo.ipynb` [ ]
+#### T3: Criar `03_validacao_agrupada_e_prevencao_leakage.ipynb` e `04_pos_experimento_relatorios_artigo.ipynb` [x]
 
 **What**: Gerar os notebooks de validação agrupada + bloqueios ao vivo de portões e de pós-experimento somente-leitura com exportação LaTeX/SVG e pacote reduzido.  
 **Where**: `notebooks/`  
@@ -111,5 +111,5 @@ Proof: run unit | tests/unit/test_documentation_integrity.py::test_markdown_link
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T3
-- **Next Task:** T4
+- **Current Task:** T4
+- **Next Task:** Done
