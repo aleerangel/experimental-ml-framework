@@ -1,4 +1,4 @@
-# Receita 5: Pacotes de Reprodutibilidade e Auditoria SHA-256 para Conferências
+# Guia Prático 5: Pacotes de Reprodutibilidade e Auditoria SHA-256 para Conferências
 
 ## Contexto Científico
 

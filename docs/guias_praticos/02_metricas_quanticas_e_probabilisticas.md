@@ -1,4 +1,4 @@
-# Receita 2: Métricas Quânticas (`KTA`) e Métricas Probabilísticas (`ROC-AUC`, `Log-Loss`)
+# Guia Prático 2: Métricas Quânticas (`KTA`) e Métricas Probabilísticas (`ROC-AUC`, `Log-Loss`)
 
 ## Contexto Científico
 

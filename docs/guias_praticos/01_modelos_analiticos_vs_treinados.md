@@ -1,4 +1,4 @@
-# Receita 1: Modelos Analíticos/Biométricos (`requires_fit=False`) vs. Modelos Treinados
+# Guia Prático 1: Modelos Analíticos/Biométricos (`requires_fit=False`) vs. Modelos Treinados
 
 ## Contexto Científico
 

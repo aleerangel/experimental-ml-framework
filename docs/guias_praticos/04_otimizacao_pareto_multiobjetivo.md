@@ -1,4 +1,4 @@
-# Receita 4: Otimização Multiobjetivo na Fronteira de Pareto
+# Guia Prático 4: Otimização Multiobjetivo na Fronteira de Pareto
 
 ## Contexto Científico
 

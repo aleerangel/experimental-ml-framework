@@ -167,4 +167,4 @@ assert len(consolidation.configurations) == 1
 ## Próximos Passos
 
 - Para dominar os fundamentos teóricos, portões de estágio e prevenção de *data leakage*, siga para o [Tutorial Passo a Passo das 6 Etapas](02_tutorial_6_etapas.md).
-- Para cenários avançados, consulte o [Scientific Cookbook](../cookbook/01_modelos_analiticos_vs_treinados.md).
+- Para cenários avançados, consulte os [Guias Práticos](../guias_praticos/01_modelos_analiticos_vs_treinados.md).

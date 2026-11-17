@@ -50,12 +50,12 @@ expml report export --exp-dir exp_dir --mode FULL_PACKAGE --output-dir pacote_fi
 - **[Portal do Pesquisador](docs/README.md):** Visão geral e trilha pedagógica completa em 4 níveis.
 - **[Início Rápido (5 Passos)](docs/guia/01_inicio_rapido.md):** Instalação, fluxo CLI mínimo e exemplo Python executável.
 - **[Tutorial das 6 Etapas](docs/guia/02_tutorial_6_etapas.md):** Guia passo a passo da preparação ao empacotamento, com portões de estágio e garantias anti-leakage.
-- **Scientific Cookbook (Receitas Avançadas):**
-  - [Modelos Analíticos (`requires_fit=False`) vs. Treinados](docs/cookbook/01_modelos_analiticos_vs_treinados.md)
-  - [Métricas Quânticas (`KTA`) e Probabilísticas (`ROC-AUC`, `Log-Loss`)](docs/cookbook/02_metricas_quanticas_e_probabilisticas.md)
-  - [Validação Cruzada Agrupada (`GroupKFold`) com Holdout Isolado](docs/cookbook/03_validacao_cruzada_agrupada_holdout.md)
-  - [Otimização Multiobjetivo na Fronteira de Pareto](docs/cookbook/04_otimizacao_pareto_multiobjetivo.md)
-  - [Pacotes Herméticos e Auditoria SHA-256 para Conferências](docs/cookbook/05_pacotes_reprodutibilidade_conferencias.md)
+- **Guias Práticos (Cenários Avançados):**
+  - [Modelos Analíticos (`requires_fit=False`) vs. Treinados](docs/guias_praticos/01_modelos_analiticos_vs_treinados.md)
+  - [Métricas Quânticas (`KTA`) e Probabilísticas (`ROC-AUC`, `Log-Loss`)](docs/guias_praticos/02_metricas_quanticas_e_probabilisticas.md)
+  - [Validação Cruzada Agrupada (`GroupKFold`) com Holdout Isolado](docs/guias_praticos/03_validacao_cruzada_agrupada_holdout.md)
+  - [Otimização Multiobjetivo na Fronteira de Pareto](docs/guias_praticos/04_otimizacao_pareto_multiobjetivo.md)
+  - [Pacotes Herméticos e Auditoria SHA-256 para Conferências](docs/guias_praticos/05_pacotes_reprodutibilidade_conferencias.md)
 
 ### Referência Técnica
 - **[Catálogo da API Python Pública](docs/referencia/api_python.md):** Assinaturas e contratos dos 11 pacotes públicos exportados.
@@ -77,10 +77,10 @@ experimental-ml-framework/
 ├── .specs/                              # Governança TLC Spec-Driven
 │   ├── STATE.md                         # Decisões arquiteturais ativas e registro de handoff
 │   └── features/                        # Especificações, tarefas, provas e verificações por submarco
-├── docs/                                # Documentação do Pesquisador, Cookbook e Referências
+├── docs/                                # Documentação do Pesquisador, Guias Práticos e Referências
 │   ├── README.md                        # Índice central e trilha pedagógica
 │   ├── guia/                            # Início rápido e tutorial das 6 etapas
-│   ├── cookbook/                        # Receitas científicas avançadas
+│   ├── guias_praticos/                  # Guias práticos para cenários avançados
 │   └── referencia/                      # Catálogos de API Python e CLI expml
 ├── engenharia_software/                 # Documentação de Engenharia de Software
 │   ├── ESPECIFICACAO_REQUISITOS.md      # Especificação formal de requisitos (SRS)

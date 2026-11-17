@@ -1,4 +1,4 @@
-# Receita 3: Validação Cruzada Agrupada (`GroupKFold`) com Isolamento Estrito de Holdout
+# Guia Prático 3: Validação Cruzada Agrupada (`GroupKFold`) com Isolamento Estrito de Holdout
 
 ## Contexto Científico
 
