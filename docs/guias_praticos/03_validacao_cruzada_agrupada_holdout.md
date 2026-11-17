@@ -70,8 +70,8 @@ assert set(partition_plan.development_ids).isdisjoint(set(partition_plan.holdout
 ## Fluxo Equivalente via CLI
 
 ```bash
-expml data profile --input clinico.csv --target diagnostico --group-col paciente_id --task binary_classification --output-dir exp_clinico
-expml data sanitize --exp-dir exp_clinico --allow-unresolved
-expml partition build --exp-dir exp_clinico --strategy group_kfold --regime cv_and_holdout --group-col paciente_id --n-splits 3 --holdout-fraction 0.33 --seed 42
-expml partition verify --exp-dir exp_clinico
+expml data profile --data clinico.csv --schema schema_agrupado.json --output-dir exp_clinico
+expml data sanitize --experiment-dir exp_clinico --rules regras.json
+expml partition build --experiment-dir exp_clinico --config particao_group_kfold.json --seed 42
+expml partition verify --experiment-dir exp_clinico
 ```

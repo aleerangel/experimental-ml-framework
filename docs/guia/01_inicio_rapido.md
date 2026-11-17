@@ -17,11 +17,11 @@ expml --version
 
 ## Passo 2: Preparação e Diagnóstico dos Dados (Etapa 1)
 
-Gere o diagnóstico estrutural da base (`profile`) e aplique um plano de saneamento (`sanitize`) preservando os dados originais imutáveis:
+Gere o diagnóstico estrutural da base (`profile`) e aplique um plano de saneamento (`sanitize`) a partir dos arquivos JSON declarativos de esquema e regras:
 
 ```bash
-expml data profile --input dados.csv --target alvo --task binary_classification --output-dir exp_demo
-expml data sanitize --exp-dir exp_demo --allow-unresolved
+expml data profile --data dados.csv --schema schema.json --output-dir exp_demo
+expml data sanitize --experiment-dir exp_demo --rules regras.json
 ```
 
 ---
@@ -31,9 +31,9 @@ expml data sanitize --exp-dir exp_demo --allow-unresolved
 Defina os cenários de atributos, valide o catálogo de modelos e gere o plano de particionamento compartilhado (com semente determinística):
 
 ```bash
-expml features scenarios --exp-dir exp_demo --scenarios-json cenarios.json
-expml models validate --exp-dir exp_demo --models-json modelos.json
-expml partition build --exp-dir exp_demo --strategy stratified_kfold --n-splits 5 --seed 42
+expml features scenarios --experiment-dir exp_demo --scenarios cenarios.json
+expml models validate --experiment-dir exp_demo --models modelos.json
+expml partition build --experiment-dir exp_demo --config particao.json --seed 42
 ```
 
 ---
@@ -43,20 +43,20 @@ expml partition build --exp-dir exp_demo --strategy stratified_kfold --n-splits 
 Execute toda a matriz `(modelo x cenário x fold)` em modo tolerante a falhas e rode a consolidação descritiva e inferência estatística:
 
 ```bash
-expml run start --exp-dir exp_demo --metrics accuracy f1
-expml stats run --exp-dir exp_demo --primary-metric accuracy
+expml run start --experiment-dir exp_demo --error-policy fault_tolerant
+expml stats run --experiment-dir exp_demo
 ```
 
 ---
 
 ## Passo 5: Relatório Científico e Pacote de Reprodutibilidade (Etapa 6)
 
-Gere o relatório offline (`Markdown`/`HTML`), tabelas (`CSV`/`LaTeX`) e o pacote portátil auditável por checksums SHA-256:
+Gere o relatório offline (`markdown`/`html`/`both`), tabelas (`CSV`/`LaTeX`) e o pacote portátil auditável por checksums SHA-256:
 
 ```bash
-expml report generate --exp-dir exp_demo --format both
-expml report export --exp-dir exp_demo --mode FULL_PACKAGE --output-dir pacote_final
-expml report verify --exp-dir exp_demo
+expml report generate --experiment-dir exp_demo --format both --audience FULL_LAB
+expml report export --experiment-dir exp_demo --mode full_package --output-dir pacote_final
+expml report verify --experiment-dir pacote_final
 ```
 
 ---

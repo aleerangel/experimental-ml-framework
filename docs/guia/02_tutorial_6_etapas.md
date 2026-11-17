@@ -23,9 +23,13 @@ A primeira etapa protege a integridade da base bruta antes de qualquer divisão 
 - **Diagnóstico Estrutural:** `profile_dataset` audita tipos semânticos, valores ausentes, colunas constantes e inconsistências de alvo.
 - **Saneamento Pré-Partição:** Regras determinísticas independentes da distribuição (como remoção de linhas com alvo ausente) são declaradas em um `PreparationPlan` e materializadas em uma `SanitizedDatasetView` via `sanitize_dataset`, sem jamais alterar os dados brutos.
 
+**Comandos e variações disponíveis na Etapa 1:**
+- `expml data profile --data dados.csv --schema schema.json --output-dir exp_dir [--force]`: Ingere a base tabular, valida o esquema (`DatasetSchemaSpec`) e grava o perfil estrutural. `--force` permite sobrescrever artefatos existentes.
+- `expml data sanitize --experiment-dir exp_dir --rules regras.json [--force]`: Aplica as regras declaradas em `regras.json` (`PreparationRule`) sobre os dados perfilados. `--force` sobrescreve o plano anterior.
+
 ```bash
-expml data profile --input dados.csv --target alvo --task binary_classification --output-dir exp_dir
-expml data sanitize --exp-dir exp_dir --allow-unresolved
+expml data profile --data dados.csv --schema schema.json --output-dir exp_dir --force
+expml data sanitize --experiment-dir exp_dir --rules regras.json --force
 ```
 
 ---
@@ -39,10 +43,15 @@ Para evitar que a escolha de atributos vaze informações da validação:
 - **Rotulagem Exploratória Obrigatória:** `explore_features` calcula correlações univariadas (Pearson, Spearman, $\eta$ e V de Cramér) e matriz de redundância sob o rótulo explícito `EXPLORATORY_FULL_DATA`, acompanhado de alertas metodológicos sobre o risco de usar essa análise para seleção definitiva.
 - **Cenários Fixos vs. Dinâmicos:** `FeatureScenario` distingue conjuntos previamente justificados na literatura (`ScenarioMode.FIXED`) de estratégias de seleção executadas estritamente dentro de cada dobra de treino (`ScenarioMode.DYNAMIC`, ex.: `VARIANCE_THRESHOLD`, `TOP_K_RELEVANCE`), avaliando sua estabilidade inter-dobras pelos índices de Jaccard e Kuncheva corrigido (`compute_selection_stability`).
 
+**Comandos e variações disponíveis na Etapa 2:**
+- `expml features explore --experiment-dir exp_dir [--force]`: Executa a análise exploratória rotulada em todo o conjunto (`EXPLORATORY_FULL_DATA`).
+- `expml features scenarios --experiment-dir exp_dir --scenarios cenarios.json [--force]`: Valida e salva os cenários `FIXED` e `DYNAMIC` definidos no arquivo JSON.
+- `expml features verify --experiment-dir exp_dir`: Executa o portão `verify_scenarios_gate` garantindo conformidade antes da Etapa 3.
+
 ```bash
-expml features explore --exp-dir exp_dir
-expml features scenarios --exp-dir exp_dir --scenarios-json cenarios.json
-expml features verify --exp-dir exp_dir
+expml features explore --experiment-dir exp_dir
+expml features scenarios --experiment-dir exp_dir --scenarios cenarios.json
+expml features verify --experiment-dir exp_dir
 ```
 
 ---
@@ -57,9 +66,13 @@ Esta etapa formaliza os modelos candidatos e suas restrições operacionais ante
 - **Pré-processamento em 2 Camadas sem Duplicação:** A camada de cenário (Etapa 2) e a camada do modelo (Etapa 3) são validadas em conjunto por `validate_two_layer_preprocessing` para impedir transformações redundantes (como padronização dupla) e ajustadas estritamente no treino de cada dobra.
 - **Nested Tuning (Busca Aninhada):** `HyperparameterSearchSpec` e `run_nested_tuning` (`grid_search` ou `random_search`) subdividem exclusivamente $(X_{\text{train}}, y_{\text{train}})$ da dobra externa, garantindo que o conjunto de validação externo nunca influencie a escolha de hiperparâmetros $\theta^*$.
 
+**Comandos e variações disponíveis na Etapa 3:**
+- `expml models validate --experiment-dir exp_dir --models modelos.json [--force]`: Valida capacidades, pré-processamento e espaços de busca, persistindo `models.json`.
+- `expml models verify --experiment-dir exp_dir`: Audita o portão `verify_models_gate`.
+
 ```bash
-expml models validate --exp-dir exp_dir --models-json modelos.json
-expml models verify --exp-dir exp_dir
+expml models validate --experiment-dir exp_dir --models modelos.json
+expml models verify --experiment-dir exp_dir
 ```
 
 ---
@@ -83,10 +96,22 @@ Para cada célula $(m, c, f)$ da matriz `(modelo × cenário × dobra)`:
 3. Em modo `FAULT_TOLERANT`, falhas pontuais registram a célula como `FAILED` preservando o estado das demais; métricas indefinidas recebem `MetricStatus.UNDEFINED_NAN` e **nunca** são convertidas silenciosamente para zero;
 4. O progresso é salvo atomicamente em disco, permitindo retomada via `resume_experiment_matrix` com verificação de compatibilidade de `dataset_hash` e `partition_plan_id`.
 
+**Comandos e variações disponíveis na Etapa 4 (4A e 4B):**
+- **4A — Particionamento:**
+  - `expml partition build --experiment-dir exp_dir --config particao.json [--seed SEED] [--force]`: Gera e valida o `PartitionPlan`; `--seed` sobrescreve opcionalmente a semente mestre do JSON.
+  - `expml partition verify --experiment-dir exp_dir`: Executa o portão `verify_partition_gate`.
+- **4B — Execução Matricial:**
+  - `expml run start --experiment-dir exp_dir [--run-dir DIR] [-j N] [--error-policy {fault_tolerant,fail_fast}] [--no-oof] [--force]`: Inicia a execução matricial; `-j/--jobs/--parallel` define trabalhadores paralelos; `--error-policy` alterna entre `fault_tolerant` (padrão) e `fail_fast`; `--no-oof` desativa a consolidação OOF automática.
+  - `expml run resume --run-dir exp_dir/runs [--experiment-dir exp_dir] [-j N] [--retry-failed] [--no-oof]`: Retoma execução interrompida; `--retry-failed` reexecuta células anteriormente falhas.
+  - `expml run status --run-dir exp_dir/runs`: Inspeciona a contagem de células por estado (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED`).
+  - `expml run verify --run-dir exp_dir/runs`: Audita o portão `verify_runs_gate`.
+
 ```bash
-expml partition build --exp-dir exp_dir --strategy stratified_kfold --n-splits 5 --seed 42
-expml run start --exp-dir exp_dir --metrics accuracy f1 roc_auc
-expml run verify --exp-dir exp_dir
+expml partition build --experiment-dir exp_dir --config particao.json --seed 42
+expml partition verify --experiment-dir exp_dir
+expml run start --experiment-dir exp_dir -j 4 --error-policy fault_tolerant
+expml run status --run-dir exp_dir/runs
+expml run verify --run-dir exp_dir/runs
 ```
 
 ---
@@ -107,9 +132,15 @@ $$
 - **Alternativa Não-Paramétrica e Multiplicidade:** Oferece `paired_wilcoxon_test`, tamanho de efeito ($d$ de Cohen pareado) e correções para múltiplas comparações via Holm-Bonferroni (`adjust_pvalues_holm`) e Benjamini-Hochberg (`adjust_pvalues_bh`).
 - **Análise Multiobjetivo e Síntese:** `compute_pareto_frontier` identifica configurações não dominadas combinando métricas preditivas, tempo de inferência e estabilidade de seleção, enquanto `synthesize_conclusions` gera conclusões estruturadas evitando confundir $p \ge \alpha$ com equivalência.
 
+**Comandos e variações disponíveis na Etapa 5:**
+- `expml stats run --experiment-dir exp_dir [--config stats_config.json] [--force]`: Executa consolidação, inferência e fronteira de Pareto; `--config` permite especificar `ComparisonSpec`, `MultiObjectiveSpec` e `alpha`.
+- `expml stats status --experiment-dir exp_dir`: Exibe o resumo de cobertura e métricas consolidadas.
+- `expml stats verify --experiment-dir exp_dir`: Audita o portão `verify_statistics_gate`.
+
 ```bash
-expml stats run --exp-dir exp_dir --primary-metric accuracy --alpha 0.05
-expml stats verify --exp-dir exp_dir
+expml stats run --experiment-dir exp_dir --config stats_config.json
+expml stats status --experiment-dir exp_dir
+expml stats verify --experiment-dir exp_dir
 ```
 
 ---
@@ -124,8 +155,13 @@ A última etapa opera em modo estritamente somente-leitura sobre os artefatos pe
 - **Figuras Determinísticas:** Renderiza gráficos vetoriais e matriciais (`SVG`, `PNG` 300 DPI, `PDF`) em Python/NumPy puro.
 - **Pacote Portátil de Reprodutibilidade:** `build_reproducibility_package` empacota artefatos, linhagem (`artifact_provenance.json`), ambiente (`environment.json`), sementes (`seeds.json`) e hashes relativos POSIX em `reproducibility/checksums.sha256`, nos modos `FULL_PACKAGE` (com dados) ou `REDUCED_NO_RAW_DATA` (sem dados brutos para revisão cega ou restrições de privacidade).
 
+**Comandos e variações disponíveis na Etapa 6:**
+- `expml report generate --experiment-dir exp_dir [--output-dir DIR] [--format {markdown,html,both}] [--audience {FULL_LAB,ARTICLE_COMPACT,CUSTOM}] [--families FAMILIES] [--objective TEXTO] [--force]`: Gera relatórios e figuras em modo somente-leitura (`--families` é obrigatório quando `--audience CUSTOM`).
+- `expml report export --experiment-dir exp_dir [--output-dir DIR] [--mode {full_package,reduced_no_raw_data}] [--audience {FULL_LAB,ARTICLE_COMPACT,CUSTOM}] [--families FAMILIES] [--objective TEXTO] [--force]`: Exporta pacote de reprodutibilidade com `checksums.sha256`.
+- `expml report verify --experiment-dir pacote_submissao`: Verifica o portão `verify_report_gate` e integridade do pacote.
+
 ```bash
-expml report generate --exp-dir exp_dir --format both
-expml report export --exp-dir exp_dir --mode REDUCED_NO_RAW_DATA --output-dir pacote_submissao
-expml report verify --exp-dir exp_dir
+expml report generate --experiment-dir exp_dir --format both --audience FULL_LAB
+expml report export --experiment-dir exp_dir --mode reduced_no_raw_data --output-dir pacote_submissao
+expml report verify --experiment-dir pacote_submissao
 ```

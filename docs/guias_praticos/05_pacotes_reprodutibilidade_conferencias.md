@@ -14,10 +14,10 @@ O `experimental-ml` oferece na Etapa 6 (`build_reproducibility_package`) dois mo
 
 ```bash
 # Modo reduzido (sem dados brutos) para submissão de revisão cega
-expml report export --exp-dir exp_dir --mode REDUCED_NO_RAW_DATA --output-dir pacote_conferencia
+expml report export --experiment-dir exp_dir --mode reduced_no_raw_data --output-dir pacote_conferencia
 
 # Verificação de integridade pelo portão do framework
-expml report verify --exp-dir pacote_conferencia
+expml report verify --experiment-dir pacote_conferencia
 ```
 
 Para validar os checksums em qualquer máquina Linux/macOS a partir da raiz do pacote exportado:

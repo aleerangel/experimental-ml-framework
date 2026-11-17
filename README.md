@@ -32,14 +32,14 @@ pip install -e .
 Execute todo o pipeline científico das **6 etapas** diretamente pelo terminal:
 
 ```bash
-expml data profile --input dados.csv --target alvo --task binary_classification --output-dir exp_dir
-expml data sanitize --exp-dir exp_dir --allow-unresolved
-expml features scenarios --exp-dir exp_dir --scenarios-json cenarios.json
-expml models validate --exp-dir exp_dir --models-json modelos.json
-expml partition build --exp-dir exp_dir --strategy stratified_kfold --n-splits 5 --seed 42
-expml run start --exp-dir exp_dir --metrics accuracy f1
-expml stats run --exp-dir exp_dir --primary-metric accuracy
-expml report export --exp-dir exp_dir --mode FULL_PACKAGE --output-dir pacote_final
+expml data profile --data dados.csv --schema schema.json --output-dir exp_dir
+expml data sanitize --experiment-dir exp_dir --rules regras.json
+expml features scenarios --experiment-dir exp_dir --scenarios cenarios.json
+expml models validate --experiment-dir exp_dir --models modelos.json
+expml partition build --experiment-dir exp_dir --config particao.json --seed 42
+expml run start --experiment-dir exp_dir --error-policy fault_tolerant
+expml stats run --experiment-dir exp_dir
+expml report export --experiment-dir exp_dir --mode full_package --output-dir pacote_final
 ```
 
 ---

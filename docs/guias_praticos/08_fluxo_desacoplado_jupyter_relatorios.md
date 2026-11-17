@@ -13,8 +13,8 @@ Graças ao **desacoplamento entre execução e relato**, a camada `experimental_
 ### Fase 1: Execução em Lote no Servidor (CLI)
 
 ```bash
-expml run start --exp-dir exp_servidor --metrics accuracy f1 roc_auc --outer-n-jobs 4
-expml stats run --exp-dir exp_servidor --primary-metric accuracy
+expml run start --experiment-dir exp_servidor -j 4 --error-policy fault_tolerant
+expml stats run --experiment-dir exp_servidor
 ```
 
 ### Fase 2: Exploração Interativa e Exportação em Notebook (Somente-Leitura)

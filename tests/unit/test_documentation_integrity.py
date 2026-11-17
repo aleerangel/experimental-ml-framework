@@ -198,7 +198,10 @@ def test_python_snippets_ast_and_public_imports() -> None:
 
 
 def test_cli_blocks_and_quickstart_smoke_execution(tmp_path: Path) -> None:
-    """Níveis 4 e 5: Validação léxica de CLI `expml` e execução smoke-test do Quickstart."""
+    """Níveis 4 e 5: Validação gramatical real de CLI `expml` via argparse e smoke-test."""
+    from experimental_ml.cli.main import build_parser
+
+    parser = build_parser()
     md_files = _iter_markdown_files()
     cli_errors: list[str] = []
     smoke_blocks: list[tuple[str, str]] = []
@@ -226,17 +229,12 @@ def test_cli_blocks_and_quickstart_smoke_execution(tmp_path: Path) -> None:
                     if tokens[0] == "expml":
                         if len(tokens) < 2 or tokens[1] in {"--help", "-h", "--version"}:
                             continue
-                        cmd = tokens[1]
-                        if cmd not in VALID_EXPML_COMMANDS:
-                            cli_errors.append(
-                                f"{rel_name} bloco {block_idx}: comando desconhecido 'expml {cmd}'"
-                            )
-                            continue
-                        if len(tokens) >= 3 and not tokens[2].startswith("-"):
-                            subcmd = tokens[2]
-                            if subcmd not in VALID_EXPML_COMMANDS[cmd]:
+                        try:
+                            parser.parse_args(tokens[1:])
+                        except SystemExit as exc:
+                            if exc.code != 0:
                                 cli_errors.append(
-                                    f"{rel_name} bloco {block_idx}: subcomando desconhecido 'expml {cmd} {subcmd}'"
+                                    f"{rel_name} bloco {block_idx}: comando CLI inválido '{stripped}'"
                                 )
 
             if lang == "python" and "# executable-smoke-test" in body:
