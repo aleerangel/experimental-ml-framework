@@ -1,15 +1,32 @@
 # Catálogo Completo da CLI `expml`
 
-A interface de linha de comando `expml` implementa *lazy imports* (`CLI-10`) para resposta instantânea e encapsula todas as 6 etapas metodológicas por meio de **7 grupos de comandos** e **19 subcomandos**.
+A interface de linha de comando `expml` implementa *lazy imports* para resposta instantânea e encapsula todas as 6 etapas metodológicas por meio de **2 comandos diretos** (`init`, `quickrun`), **7 grupos de comandos** e **19 subcomandos**.
 
 ---
 
 ## Opções Globais e Atalhos de Entrada Rápida
 
-- `expml -h` / `expml --help`: Exibe a ajuda geral e lista os grupos de comandos.
-- `expml --version`: Exibe a versão instalada do pacote (`0.1.0.dev0`) e encerra com código `0`.
-- `expml init --output-dir DIR [--task {regression,binary_classification,multiclass_classification}] [--force]`: Cria um projeto inicial pronto com `dados_exemplo.csv` e todos os arquivos JSON válidos (`schema.json`, `rules.json`, `scenarios.json`, `models.json`, `partition.json`, `stats_config.json`).
-- `expml quickrun --experiment-dir DIR [--data CSV] [--metrics M1 M2 ...] [--force]`: Executa sequencialmente todas as 6 etapas a partir de uma pasta inicializada.
+- `expml -h` / `expml --help`: Exibe a ajuda geral e lista os comandos e grupos.
+- `expml --version`: Exibe a versão instalada do pacote e encerra com código `0`.
+
+### `expml init`
+Cria um projeto inicial pronto com `dados_exemplo.csv` e todos os arquivos JSON válidos (`schema.json`, `rules.json`, `scenarios.json`, `models.json`, `partition.json`, `stats_config.json`).
+
+| Argumento / Opção | Obrigatório | Descrição e Variações |
+| :--- | :---: | :--- |
+| `--output-dir DIR` | Sim | Diretório de destino para o projeto inicializado. |
+| `--task TASK` | Não | Tipo de tarefa (`regression`, `binary_classification`, `multiclass_classification`; padrão: `regression`). |
+| `--force` | Não | Sobrescreve arquivos existentes no diretório de destino. |
+
+### `expml quickrun`
+Executa sequencialmente todas as 6 etapas a partir de uma pasta inicializada.
+
+| Argumento / Opção | Obrigatório | Descrição e Variações |
+| :--- | :---: | :--- |
+| `--experiment-dir DIR` / `--exp-dir DIR` | Sim | Diretório do experimento inicializado. |
+| `--data CSV` | Não | Caminho alternativo para o arquivo CSV de entrada. |
+| `--metrics M1 [M2 ...]` | Não | Lista explícita de métricas a calcular e consolidar. |
+| `--force` | Não | Sobrescreve artefatos de execuções anteriores (habilitado por padrão: `default=True`). |
 
 ---
 
@@ -104,12 +121,12 @@ Constrói e persiste o `PartitionPlan` (`partition_plan.json` e `splits.csv.gz`)
 | Argumento / Opção | Obrigatório | Descrição e Variações |
 | :--- | :---: | :--- |
 | `--experiment-dir EXPERIMENT_DIR` | Sim | Diretório do experimento. |
-| `--config CONFIG` | Sim | Caminho para o JSON de configuração de partição (`PartitionConfig`: `strategy`, `regime`, `n_splits`, `group_col`, `holdout_fraction`). |
+| `--config CONFIG` | Sim | Caminho para o JSON de configuração de partição (`PartitionConfig`: `strategy`, `regime`, `n_splits`, `group_col`, `time_col`, `holdout_fraction`, `master_seed`). |
 | `--seed SEED` | Não | Sobrescreve a semente mestre (`master_seed`) declarada no JSON de configuração. |
 | `--force` | Não | Sobrescreve um plano de partição existente. |
 
 ### `expml partition verify`
-Verifica os invariantes matemáticos de partição (disjunção, ausência de folds vazios, grupos/ordem temporal) e o portão da Etapa 4A (`verify_partition_gate`).
+Verifica os invariantes matemáticos de partição (disjunção, ausência de dobras vazias, grupos/ordem temporal) e o portão da Etapa 4A (`verify_partition_gate`).
 
 | Argumento / Opção | Obrigatório | Descrição e Variações |
 | :--- | :---: | :--- |

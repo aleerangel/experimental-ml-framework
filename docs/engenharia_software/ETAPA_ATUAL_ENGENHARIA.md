@@ -1,11 +1,11 @@
 # Engenharia de Software — `experimental-ml-framework`
 
 > **Documento de Registro de Estado da Engenharia**<br/>
-> **Data:** 16 de Novembro de 2026<br/>
+> **Data:** 17 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
-> **Estado Atual:** Marcos M1 a M7 Concluídos, Auditados (`TA-POS.1`) e Aceitos (591 testes automatizados)<br/>
-> **Próximo Marco:** Pós-MVP — Auditoria Transversal, Guia Definitivo do Pesquisador e Homologação Externa (`CA02`)<br/>
-> **Especificação de Requisitos (SRS v2.1):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
+> **Estado Atual:** Marcos M1 a M7 e Pós-MVP (`TA-POS.1`, `TA-POS.2`, `pos-2b`, `TA-POS.3`) Concluídos e Aceitos (598 testes automatizados)<br/>
+> **Próximo Marco:** Validação Científica Externa (`TA-POS.4` / `CA02`) em dados reais pelo pesquisador<br/>
+> **Especificação de Requisitos (SRS v2.2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
 > **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
@@ -13,24 +13,24 @@
 
 ## 1. Etapa Atual no Ciclo de Vida da Engenharia
 
-O projeto encontra-se na **Fase 4: Implementação Guiada por Testes (TDD) do MVP**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
+O projeto encontra-se na **Fase 5: Pós-MVP Concluído — Pronto para Homologação Científica Externa (`CA02`)**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
 
-As entregas dos **Marcos M1 (`m1-1` a `m1-5`)**, **M2 (`m2-1` a `m2-5` com hardening `REV-M2`)**, **M3 (`m3-1` a `m3-4`)**, **M4 (`m4-1` a `m4-4`)**, **M5 (`m5-1` a `m5-4` com auditoria independente e correção de achados P1 `ACH-M5-01` a `ACH-M5-03`)**, **M6 (`m6-1` a `m6-4` com auditoria estatística/técnica e verificação independente TLC)** e **M7 (`m7-1` a `m7-4` com verificação independente TLC)** foram formalmente aceitas com aprovação em **581 testes automatizados**. 
+As entregas dos **Marcos M1 (`m1-1` a `m1-5`)**, **M2 (`m2-1` a `m2-5` com hardening `REV-M2`)**, **M3 (`m3-1` a `m3-4`)**, **M4 (`m4-1` a `m4-4`)**, **M5 (`m5-1` a `m5-4` com auditoria independente e correção de achados P1 `ACH-M5-01` a `ACH-M5-03`)**, **M6 (`m6-1` a `m6-4` com auditoria estatística/técnica e verificação independente TLC)** e **M7 (`m7-1` a `m7-4` com verificação independente TLC)** foram formalmente aceitas com aprovação em **581 testes automatizados**, expandidos nas entregas pós-MVP (**`TA-POS.1`**, **`TA-POS.2`**, **`pos-2b`** e **`TA-POS.3`**) para **598 testes automatizados** 100% aprovados.
 
-As Fundações Transversais (M1), o Pipeline de Dados e Diagnóstico (M2), a Engenharia e Cenários de Features (M3), os Contratos de Modelos, Pré-processamento e Tuning Aninhado (M4), a Execução Matricial com Tolerância a Falhas, Checkpoint e Consolidação OOF (M5), a Consolidação Descritiva, Inferência Pareada, Fronteira de Pareto e Síntese Estatística (M6) e os Relatórios Científicos, Visualizações Puras, Pacote de Reprodutibilidade e CLI `expml report` (M7) estão integralmente consolidados, determinísticos e integrados em Python/NumPy puro (`XCUT-02`). O framework é 100% agnóstico a domínios aplicados (`RNF02`), tendo o critério `CA02` formalizado como validação externa a ser executada exclusivamente pelo pesquisador. O próximo passo é a **Fase Pós-MVP (Auditoria Transversal, Guia Definitivo do Pesquisador e Homologação Externa `CA02`)**.
+As Fundações Transversais (M1), o Pipeline de Dados e Diagnóstico (M2), a Engenharia e Cenários de Atributos (M3), os Contratos de Modelos, Pré-processamento e Tuning Aninhado (M4), a Execução Matricial com Tolerância a Falhas, Checkpoint e Consolidação OOF (M5), a Consolidação Descritiva, Inferência Pareada, Fronteira de Pareto e Síntese Estatística (M6), os Relatórios Científicos, Visualizações Puras, Pacote de Reprodutibilidade e CLI `expml report` (M7), e a camada de usabilidade (`run_experiment`, `expml init`, `expml quickrun`, guias e 4 notebooks) estão integralmente consolidados, determinísticos e integrados em Python/NumPy puro (`XCUT-02`). O framework é 100% agnóstico a repositórios externos (`RNF02`), tendo o critério `CA02` formalizado como validação externa a ser executada exclusivamente pelo pesquisador.
 
 ```mermaid
 flowchart LR
-    Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.1)"]
+    Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
     Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(M1 a M7 Homologados — 581 testes)"]
-    Fase4 --> Fase5["Fase 5: Auditoria & Validação Externa<br/>(Próxima Etapa)"]
+    Fase4 --> Fase5["Fase 5: Pós-MVP TA-POS.1 a TA-POS.3<br/>(Concluída — 598 testes | Próximo: CA02)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
     style Fase2 fill:#d4edda,stroke:#28a745
     style Fase3 fill:#d4edda,stroke:#28a745
-    style Fase4 fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style Fase5 fill:#f8f9fa,stroke:#6c757d
+    style Fase4 fill:#d4edda,stroke:#28a745
+    style Fase5 fill:#d4edda,stroke:#28a745,stroke-width:2px
 ```
 
 ### O que já foi realizado:
@@ -187,7 +187,7 @@ flowchart LR
     * **M4.3 (`m4-3-nested-tuning`):** Otimização aninhada de hiperparâmetros (`run_nested_tuning`) com validação cruzada aninhada (*Nested CV* com $K_{\text{inner}} \ge 2$), amostragem determinística (`Grid`, `Random`, `Fixed`), confinamento estrito ao treino da dobra externa e desqualificação de candidatos degenerados com `UNDEFINED_NAN`.
     * **M4.4 (`m4-4-model-persistence-cli`):** Persistência atômica de catálogo (`save_models_catalog`, `load_models_catalog` em `configuration/models.json`), resolução dinâmica segura de fábricas de estimadores (`resolve_estimator_factory`), portão Stage 3 (`verify_models_gate`) e subcomandos `expml models validate` e `expml models verify` com total conformidade a `CLI-10` e 348 testes aprovados.
 21. **Fase 4 — Marco M5 Concluído (`orchestration` e CLI `run`):**
-    * **M5.1 (`m5-1-cell-execution-contracts`):** Contratos de execução de célula unitária (`CellCoordinate`, `CellExecutionSpec`, `execute_cell`), isolamento completo entre células, máquina de estados formal (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED`), tempos desagregados (`TimingBreakdown`) e persistência atômica de predições e métricas por célula.
+    * **M5.1 (`m5-1-cell-execution-contracts`):** Contratos de execução de célula unitária (`CellDescriptor`, `CellId`, `execute_single_cell`), isolamento completo entre células, máquina de estados formal (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED`), tempos desagregados (`TimingBreakdown`) e persistência atômica de predições e métricas por célula (`save_cell_artifacts`, `load_cell_artifacts`).
     * **M5.2 (`m5-2-matrix-executor-checkpointing`):** Grade cartesiana $(\text{Modelos} \times \text{Cenários} \times \text{Folds})$, orquestrador matricial (`run_experiment_matrix`) com paralelismo configurável (`outer_n_jobs`), tratamento de erros (`FAULT_TOLERANT` vs `FAIL_FAST`), checkpoint incremental e retomada verificada (`resume_experiment_matrix`).
     * **M5.3 (`m5-3-oof-consolidation-stage-gate`):** Consolidação de predições out-of-fold (`consolidate_oof_predictions`) com ordenação lexicográfica canônica obrigatória por `ObservationId`, estatísticas de comitê ($\hat{\mu}_i, \hat{\sigma}_i$) em avaliações repetidas, separação de escopos de métricas (`POOLED_OOF` vs `FOLD_AGGREGATION`), persistência de artefatos OOF e portão Stage 4 (`verify_runs_gate`).
     * **M5.4 (`m5-4-cli-run-end-to-end`):** Interface de linha de comando `expml run` (subcomandos `start`, `resume`, `status` e `verify`), reconstituição automática de insumos, supressão de tracebacks e hashes (`CLI-06`, `CLI-11`), pureza de runtime (`CLI-10`) e homologação de ponta a ponta.
@@ -195,22 +195,9 @@ flowchart LR
 
 ---
 
-## 2. Síntese da Arquitetura em Camadas, Pipeline de Etapas e Módulos (`src/experimental_ml/`)
+## 2. Síntese da Arquitetura em Camadas e Módulos (`src/experimental_ml/`)
 
-| Camada Arquitetural | Nível de Dependência | Módulo (`src/experimental_ml/`) | Etapa no Pipeline Operacional | Funções e Estruturas Principais de Saída (Sem OOP) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Fundação Transversal** | Nível 0 | `core` | Transversal (Etapas 1–6) | Tipos de IDs, `derive_seeds` (`SeedSequence`), `config_hash`, `dataset_hash`, `write_json_atomic`, `read_json` e exceções de contrato |
-| **Fundação Transversal** | Nível 1 | `metrics` | Transversal (Etapas 2, 3, 4 e 5) | `METRICS_CATALOG`, `MetricValue`, `AggregatedMetricValue`, `aggregate_fold_metrics`, `is_better` e 15 funções de métricas vetorizadas |
-| **Camada 1: Definição e Triagem** | Nível 1 | `data` | Etapa 1 | `load_dataset`, `profile_dataset`, `create_preparation_plan`, `sanitize_dataset`, `slice_view_by_observation_ids` $\rightarrow$ `DatasetBundle`, `DatasetProfile`, `PreparationPlan`, `SanitizedDatasetView` |
-| **Camada 1: Definição e Triagem** | Nível 2 | `features` | Etapa 2 | `explore_features`, `validate_scenarios`, `select_features_in_fold` (`VARIANCE_THRESHOLD`, `TOP_K_RELEVANCE`), `apply_feature_selection`, `compute_selection_stability` $\rightarrow$ `ExploratoryFeatureReport`, `ScenariosCatalog` (`FIXED`/`DYNAMIC`), `SelectionResult`, `SelectionStabilityReport` |
-| **Camada 1: Definição e Triagem** | Nível 2 | `models` | Etapa 3A | `instantiate_fresh_model`, `fit_model`, `predict_model`, `extract_model_diagnostics`, `fit_two_layer_preprocessing` (incluindo roteamento para kernels externos) $\rightarrow$ `ModelSpec`, `ModelDiagnostics` |
-| **Camada 1: Definição e Triagem** | Nível 3 | `tuning` | Etapa 3B | `run_nested_tuning` (`fixed`, `grid_search`, `random_search`) $\rightarrow$ `HyperparameterSearchSpec`, histórico de tentativas |
-| **Camada 2: Validação e Execução Matricial** | Nível 2 | `validation` | Etapa 4A | `build_partition_plan`, `validate_partition_plan`, `write_splits_csv_gz` $\rightarrow$ `PartitionPlan`, matriz `splits.csv.gz` |
-| **Camada de Portões de Etapa** | Nível 3 | `stages` | Portões 1 a 6 | `verify_preparation_gate`, `verify_partition_gate`, `verify_scenarios_gate`, `verify_models_gate`, `verify_runs_gate`, `verify_statistics_gate`, `verify_report_gate`, layout canônico de diretórios |
-| **Camada 2: Validação e Execução Matricial** | Nível 4 | `orchestration` | Etapa 4B | `run_experiment_matrix`, `resume_experiment_matrix`, `execute_cell`, `consolidate_oof_predictions`, `save_cell_result` $\rightarrow$ `CellResultRecord`, `PredictionRecord` (com `y_std` e comitê $\hat{\mu}_i, \hat{\sigma}_i$), `TimingBreakdown`, `ConsolidatedOofPredictions` |
-| **Camada 3: Comparação Estatística e Publicação** | Nível 5 | `statistics` | Etapa 5 | `validate_stage5_entry`, `consolidate_descriptive`, `evaluate_method_suitability`, `paired_nadeau_bengio_test`, `paired_wilcoxon_test`, `compute_paired_cohens_d`, `adjust_pvalues_holm`, `adjust_pvalues_bh`, `run_statistical_comparisons`, `compute_pareto_frontier`, `score_candidate_acquisition`, `synthesize_conclusions`, `save_statistics_artifacts` $\rightarrow$ `StatisticalComparisonBundle`, `MultiObjectiveSummary`, `StructuredConclusion` |
-| **Camada 3: Comparação Estatística e Publicação** | Nível 6 | `reporting` | Etapa 6 | `load_experiment_artifacts_readonly`, `select_report_content`, `build_table_model`, `build_figure_spec`, `render_figure`, `render_full_report`, `build_reproducibility_package` $\rightarrow$ `TableModel`, `PlotSpecification`, `ArtifactProvenance`, `ReproducibilityPackageManifest` |
-| **Interface de Terminal** | Nível 7 | `cli` | Subcomandos por Etapa | CLI modularizada (`expml data`, `features`, `models`, `partition`, `run`, `stats`, `report`) com pura delegação funcional (`CLI-10`) |
+A especificação completa da arquitetura em camadas, níveis de dependência e funções/estruturas exportadas por cada pacote (`core`, `metrics`, `data`, `features`, `models`, `tuning`, `validation`, `stages`, `orchestration`, `statistics`, `reporting`, além da fachada `pipeline.py` e da `cli/` incluindo `cmd_init.py`) tem como **fonte única de verdade** a [Seção 2.3 e Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md#23-dependências-entre-módulos-e-layout-físico-srcexperimental_ml).
 
 ---
 
@@ -238,7 +225,7 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
    * **M4.3 (Concluído e Aceito — Otimização Aninhada de Hiperparâmetros):** `HyperparameterSearchSpec`, `run_nested_tuning` (*Nested CV* com Grid e Random Search em NumPy puro livres de vazamento e com desqualificação de `UNDEFINED_NAN`).
    * **M4.4 (Concluído e Aceito — Persistência, Portão de Validação e CLI de Modelos):** Persistência atômica de `models.json`, portão `verify_models_gate` em `stages`, subcomandos `expml models validate` e `expml models verify`, totalizando 348 testes automatizados aprovados.
 5. **Marco M5 (`orchestration` + CLI `run` — Concluído, Auditado e Aceito):**
-   * **M5.1 (Concluído e Aceito — Contratos da Célula e Execução Unitária):** `CellCoordinate`, `CellExecutionSpec`, função pura `execute_cell`, máquina de estados de célula (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED`), tempos desagregados (`TimingBreakdown`) e persistência atômica de predições e métricas por célula.
+   * **M5.1 (Concluído e Aceito — Contratos da Célula e Execução Unitária):** `CellDescriptor`, `CellId`, função pura `execute_single_cell`, máquina de estados de célula (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED`), tempos desagregados (`TimingBreakdown`) e persistência atômica (`save_cell_artifacts`, `load_cell_artifacts`).
    * **M5.2 (Concluído e Aceito — Orquestração Matricial e Checkpoint):** Grade cartesiana $(\text{Modelos} \times \text{Cenários} \times \text{Folds})$, motor `run_experiment_matrix` e `resume_experiment_matrix` com controle de workers (`outer_n_jobs`), política de erro (`FAULT_TOLERANT` vs `FAIL_FAST`), checkpoint incremental e retomada verificada.
    * **M5.3 (Concluído e Aceito — Consolidação OOF e Portão Stage 4):** `consolidate_oof_predictions` com ordenação canônica por `ObservationId`, estatísticas de comitê ($\hat{\mu}_i, \hat{\sigma}_i$), separação estrita de escopos de métricas (`POOLED_OOF` vs `FOLD_AGGREGATION`), persistência atômica de artefatos OOF e portão `verify_runs_gate`.
    * **M5.4 (Concluído e Aceito — CLI Run End-to-End e Homologação Transversal):** Subcomandos `expml run start`, `expml run resume`, `expml run status` e `expml run verify`, reconstituição automática de insumos, supressão de tracebacks e hashes (`CLI-06`, `CLI-11`) e pureza de runtime (`CLI-10`, `XCUT-02`).
@@ -258,7 +245,8 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
 
 ### Fase Pós-MVP: Auditoria, Guia Definitivo e Homologação Científica
 
-8. **Pós-Marco / Encerramento do MVP (Auditoria, Guia do Pesquisador e Homologação Externa `CA02`):**
-   * **Auditoria Técnica Transversal do MVP (`TA-POS.1`):** Auditoria independente abrangente cobrindo os contratos, integridade e invariantes de todas as 6 etapas operacionais implementadas (M1 a M7), bem como a consistência integral de todos os documentos de `engenharia_software/`, do `README.md`, do `REFERENCIAS_E_FUNDAMENTACAO.md` e do `.specs/STATE.md` antes do congelamento do código.
-   * **Guia Definitivo do Pesquisador, Cookbook Científico e Limpeza do `README.md` (`TA-POS.2`):** Com o código 100% auditado e estável, elaboração do manual pedagógico definitivo em quatro níveis: (1) Quickstart ("Seu Experimento em 5 Minutos"); (2) Tutorial Teórico-Prático das 6 Etapas; (3) Cookbook / How-To Guides (modelos analíticos/quânticos, dados agrupados, limites $\Delta_{\text{min}}$, uso em Jupyter Notebooks); e (4) Catálogo de Referência Completo de APIs e Comandos da CLI. Como ação final de `TA-POS.2`, realizar a **limpeza e enxugamento do `README.md`**, removendo exemplos extensos de código/CLI e aprofundamentos de engenharia/requisitos, mantendo-o enxuto e focado na visão geral, instalação rápida e links diretos para o Guia do Usuário, Documentos de Engenharia (`engenharia_software/`) e Referências (`REFERENCIAS_E_FUNDAMENTACAO.md`).
-   * **Homologação Científica Externa (`CA02`):** Execução do pipeline completo sobre o estudo de caso experimental real pelo pesquisador fora do repositório, atestando a aplicabilidade prática e científica da versão final auditada.
+8. **Pós-Marco / Encerramento do MVP (`TA-POS.1` a `TA-POS.3` Concluídos; `TA-POS.4 / CA02` Pendente):**
+   * **Auditoria Técnica Transversal do MVP (`TA-POS.1` — Concluída e Aceita):** Auditoria independente abrangente cobrindo invariantes de todas as 6 etapas (M1 a M7), pureza `XCUT-02`, portões de estágio e consistência documental antes do congelamento do núcleo (0 achados P0/P1 em aberto, 591 testes).
+   * **Guia Definitivo do Pesquisador, Guias Práticos, Notebooks e Enxugamento do `README.md` (`TA-POS.2` e `pos-2b` — Concluídos e Aceitos):** Documentação pedagógica completa em `docs/` (`guia/`, `guias_praticos/`, `referencia/`), 4 notebooks pré-executados em `notebooks/` e `README.md` enxuto validados por suíte automatizada.
+   * **Usabilidade e Acessibilidade do Pesquisador (`TA-POS.3` — Concluída e Aceita):** Fachada Python `run_experiment` (`pipeline.py`), comandos `expml init` e `expml quickrun`, flexibilização de flags na CLI e reorganização pedagógica por jornadas, consolidando **598 testes automatizados**.
+   * **Homologação Científica Externa (`TA-POS.4` / `CA02` — Pendente):** Execução do pipeline completo sobre estudo de caso experimental real pelo pesquisador fora do repositório.

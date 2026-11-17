@@ -2,7 +2,7 @@
 
 > **Documento:** Catálogo de Fundamentação Teórica, Metodológica, Estatística e Normativa  
 > **Versão:** 1.2.0  
-> **Data:** 31 de Outubro de 2026  
+> **Data:** 17 de Novembro de 2026  
 > **Natureza:** Documento Técnico de Arquitetura e Fundamentação  
 > **Documentos Relacionados:** [`ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md) | [`ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./engenharia_software/ETAPA_ATUAL_ENGENHARIA.md) | [`README.md`](../README.md)
 
@@ -24,18 +24,17 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 
 ## 2. Escopo do Framework e Estado do Planejamento
 
-* **Onda 1 (MVP Imediato — Contratos e Requisitos Especificados):**
+* **Onda 1 (MVP Implementado — Contratos e Requisitos Concluídos):**
   * **Etapa 1 (Ingestão e Diagnóstico):** Ingestão imutável de dados tabulares (`.csv`, `.txt` com/sem cabeçalho, `DataFrame`) e perfilamento diagnóstico automático (`DatasetProfile`), com separação entre anomalias confirmadas (`CONFIRMED_ISSUE`) e alertas heurísticos (`HEURISTIC_WARNING`).
-  * **Etapa 2 (Cenários de Features):** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários de atributos fixos (`mode="FIXED"`) e cenários dinâmicos (`mode="DYNAMIC"` com filtro de colinearidade, Top-$K$ e ranking multi-critério recalibrados estritamente dentro de cada partição de treino).
-  * **Etapa 3 (Configuração e Registro de Modelos):** Registro agnóstico de modelos externos (Scikit-Learn, XGBoost, modelos analíticos com `requires_fit=False`, funções customizadas e circuitos quânticos via `ModelDiagnostics`), pré-processamento desacoplado em duas camadas (Cenário e Modelo) com bloqueio de duplicação, e busca aninhada de hiperparâmetros (*Nested CV* via Grid e Random Search).
-  * **Etapa 4 (Particionamento e Execução Matricial):** Geração e validação matemática de `PartitionPlan` compartilhado (*K-Fold*, *Stratified K-Fold*, *Group K-Fold* e *Holdout*), orquestração da matriz $M \times C \times F$ com tolerância a falhas, escrita em dois passos (`.tmp` + `os.replace`), rastreabilidade por `observation_id` e retomada verificada (*Checkpoint & Resume*).
-  * **Etapa 5 (Consolidação e Comparação Estatística):** Consolidação descritiva, teste $t$ corrigido de Nadeau-Bengio, teste pareado de Wilcoxon, correções de multiplicidade de Holm-Bonferroni e Benjamini-Hochberg, análise multiobjetivo por Fronteira de Pareto e síntese textual padronizada via `StructuredConclusion`.
-  * **Etapa 6 (Relatórios Científicos Desacoplados):** Exportação modular em Markdown e HTML com 7 famílias de tabelas e figuras científicas, rastreabilidade por artefato (`ArtifactProvenance`) e resumos criptográficos (`SHA-256`) preservados internamente para auditoria.
-* **Onda 2 (Extensões do MVP — Requisitos Estruturados para Detalhamento):**
+  * **Etapa 2 (Cenários de Atributos):** Modo exploratório rotulado (`EXPLORATORY_FULL_DATA`), cenários de atributos fixos (`mode="FIXED"`) e cenários dinâmicos (`mode="DYNAMIC"` com `VARIANCE_THRESHOLD` e `TOP_K_RELEVANCE` recalibrados estritamente dentro de cada dobra de treino).
+  * **Etapa 3 (Configuração e Registro de Modelos):** Registro agnóstico de modelos externos (modelos clássicos, modelos analíticos com `requires_fit=False`, funções customizadas e circuitos quânticos via `ModelDiagnostics`), pré-processamento desacoplado em duas camadas (Cenário e Modelo) com bloqueio de duplicação, e busca aninhada de hiperparâmetros (*Nested CV* via Grid e Random Search).
+  * **Etapa 4 (Particionamento e Execução Matricial):** Geração e validação matemática de `PartitionPlan` compartilhado (*K-Fold*, *Stratified K-Fold*, *Group K-Fold*, *Bootstrap*, *Temporal Split* e *Holdout*), orquestração da matriz $M \times C \times F$ com tolerância a falhas, escrita em dois passos (`.tmp` + `os.replace`), rastreabilidade por `observation_id` e retomada verificada (*Checkpoint & Resume*).
+  * **Etapa 5 (Consolidação e Comparação Estatística):** Consolidação descritiva, teste $t$ corrigido de Nadeau-Bengio, teste pareado de Wilcoxon, correções de multiplicidade de Holm-Bonferroni e Benjamini-Hochberg, análise multiobjetivo por Fronteira de Pareto, critérios de aquisição (`score_candidate_acquisition`) e síntese textual padronizada via `StructuredConclusion`.
+  * **Etapa 6 (Relatórios Científicos Desacoplados):** Exportação modular em Markdown e HTML com 7 famílias de tabelas e figuras científicas (SVG/PNG/PDF), rastreabilidade por artefato (`ArtifactProvenance`) e resumos criptográficos (`SHA-256`) preservados internamente para auditoria.
+* **Onda 2 (Extensões Futuras):**
   * Regressão multialvo (`MULTI_TARGET_REGRESSION`, `target_col: Sequence[str]`).
   * Transformações reversíveis da variável-alvo (`TargetTransformSpec`).
-  * Conjunto de candidatos não rotulados (`unlabeled_pool`) e funções de aquisição sequencial (`EI`, `UCB`/`LCB`, `Exploitation`, `Exploration`).
-  * Reamostragem por *Bootstrap* ($B$ repetições com validação *Out-of-Bag* e incerteza de comitê) e estratégias cronológicas (*Temporal Split*).
+  * Conjunto externo de candidatos não rotulados (`unlabeled_pool`) integrado ao fluxo de execução matricial.
   * Redução de dimensionalidade intra-fold (`PCA` em `select_features_in_fold`).
 * **Evoluções Pós-MVP (Planejamento Futuro — Seção 6.2 de `ARQUITETURA_E_CONTRATOS.md`):**
   * Seletores *wrapper* (RFE), métodos embutidos ($L_1$/Lasso) e importância por permutação.
@@ -49,9 +48,9 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 3.1. Decomposição Modular e Ocultamento de Decisões de Projeto
 
 * **Decisões de Projeto:**
-  * A especificação divide o sistema em **três camadas funcionais unidirecionais** (Camada 1: Definição e Triagem; Camada 2: Validação e Execução Matricial; Camada 3: Comparação Estatística e Publicação), suportadas por dois pacotes fundacionais transversais (`core` e `metrics`) ([Seção 2.1 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L57-L107)).
-  * A estrutura organiza fisicamente os módulos em níveis de dependência (Nível 0 a Nível 7), prevenindo acoplamentos cíclicos ([Seção 2.3 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L138-L154)).
-  * O projeto adota **funções puras e estruturas de dados imutáveis** (dataclasses com `frozen=True`) como diretriz de design, em vez de hierarquias de classes com estado interno mutável (**ADR-008**, [Seção 1 e Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L212-L218)).
+  * A especificação divide o sistema em **três camadas funcionais unidirecionais** (Camada 1: Definição e Triagem; Camada 2: Validação e Execução Matricial; Camada 3: Comparação Estatística e Publicação), suportadas por dois pacotes fundacionais transversais (`core` e `metrics`) ([Seção 2.1 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#21-arquitetura-em-três-camadas)).
+  * A estrutura organiza fisicamente os módulos em níveis de dependência (Nível 0 a Nível 7), prevenindo acoplamentos cíclicos ([Seção 2.3 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#23-dependências-entre-módulos-e-layout-físico-srcexperimental_ml)).
+  * O projeto adota **funções puras e estruturas de dados imutáveis** (dataclasses com `frozen=True`) como diretriz de design, em vez de hierarquias de classes com estado interno mutável (**ADR-008**, [Seção 2.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#25-decisões-arquiteturais-complementares-adrs-002-a-008)).
 * **Justificativa e Fundamentação Teórica:**
   * **Parnas (1972) — *On the Criteria to Be Used in Decomposing Systems into Modules*:** A decomposição modular fundamenta-se no princípio clássico do ocultamento de informação (*information hiding*). Parnas demonstra que a modularização eficaz isola decisões de projeto sujeitas a alteração (estruturas de dados, formatos de persistência, algoritmos específicos) atrás de interfaces bem delimitadas, em oposição a divisões baseadas apenas em fluxo procedural. No framework:
     * O módulo `metrics` opera sem dependência de estimadores ou modelos de aprendizado, concentrando-se no cálculo determinístico a partir dos vetores `y_true`, `y_pred` e `y_score`.
@@ -67,7 +66,7 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 3.2. Separação entre Interface de Linha de Comando (CLI) e Lógica de Domínio
 
 * **Decisões de Projeto:**
-  * A interface de linha de comando é isolada no pacote `src/experimental_ml/cli/`, utilizando a biblioteca padrão `argparse` e organizada em subcomandos (`data`, `features`, `models`, `partition`, `run`, `stats`, `report`) ([Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L156-L179)).
+  * A interface de linha de comando é isolada no pacote `src/experimental_ml/cli/`, utilizando a biblioteca padrão `argparse` e organizada em subcomandos (`data`, `features`, `models`, `partition`, `run`, `stats`, `report`) e atalhos (`init`, `quickrun`) ([Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#24-arquitetura-da-cli-modularizada-srcexperimental_mlcli)).
   * A especificação veda lógica de negócio nos adaptadores de comando (`cmd_*.py`): cada módulo converte argumentos de entrada, invoca as funções públicas da API e retorna códigos de saída padronizados (`0` para sucesso, `1` para falha de execução, `2` para violação de contrato ou validação impeditiva) ([RNF07 de `ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md#L102)).
 * **Justificativa e Fundamentação Técnica:**
   * **Separação de Mecanismo e Política e Padrão *Ports and Adapters*:** O terminal atua como um adaptador periférico de entrega. Toda a lógica de validação, execução e análise reside no núcleo funcional. Isso assegura que execuções via CLI, scripts Python ou pipelines de integração contínua apliquem exatamente os mesmos contratos e verificações metodológicas.
@@ -81,9 +80,9 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 4.1. Taxonomia de Vazamento de Dados e Desenho Metodológico Preventivo
 
 * **Decisões de Projeto:**
-  * Princípio estruturante 3: Qualquer operação que envolva parametrização ou ajuste com base nas observações (imputação de valores ausentes, escalonamento, codificação categórica, seleção dinâmica de atributos e busca de hiperparâmetros) deve ser calibrada exclusivamente no conjunto de treino da partição externa corrente ([Princípio 3 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L40)).
-  * A arquitetura estabelece distinção formal entre saneamento estrutural determinístico pré-partição (remoção de observações com alvo nulo e exclusão de colunas proibidas/constantes) e transformações estatísticas intra-fold (**ADR-002**, [Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L182-L184)).
-  * O contrato define rotulagem mandatória para análises exploratórias (`scope = "EXPLORATORY_FULL_DATA"`), com bloqueio arquitetural que impede a utilização direta do resultado exploratório como conjunto de atributos de treino sem partição (`CA-E2-01`, [Seção 3.2 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L275-L279)).
+  * Princípio estruturante 3: Qualquer operação que envolva parametrização ou ajuste com base nas observações (imputação de valores ausentes, escalonamento, codificação categórica, seleção dinâmica de atributos e busca de hiperparâmetros) deve ser calibrada exclusivamente no conjunto de treino da partição externa corrente ([Seção 1 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#1-visão-geral-da-arquitetura-e-princípios-diretores)).
+  * A arquitetura estabelece distinção formal entre saneamento estrutural determinístico pré-partição (remoção de observações com alvo nulo e exclusão de colunas proibidas/constantes) e transformações estatísticas intra-fold (**ADR-002**, [Seção 2.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#25-decisões-arquiteturais-complementares-adrs-002-a-008)).
+  * O contrato define rotulagem mandatória para análises exploratórias (`scope = "EXPLORATORY_FULL_DATA"`), com bloqueio arquitetural que impede a utilização direta do resultado exploratório como conjunto de atributos de treino sem partição (`CA-E2-01`, [Seção 3.2 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#32-etapa-2-exploração-de-relações-e-cenários-de-features)).
 * **Justificativa e Fundamentação Científica:**
   * **Kapoor & Narayanan (2023) — *Leakage and the Reproducibility Crisis in Machine-Learning-Based Science*:** Revisão sistemática sobre 329 artigos científicos em 17 campos quantitativos, identificando que o vazamento de dados (*data leakage*) constitui uma das causas centrais de falhas de reprodutibilidade em aplicações científicas de Machine Learning. Os autores sistematizam 8 modalidades de vazamento, apontando que o pré-processamento na base completa antes da partição e a seleção prévia de variáveis introduzem estimativas infladas de desempenho.
   * **Heil et al. (2021) — *Reproducibility Standards for Machine Learning in the Life Sciences*:** Diretrizes de reprodutibilidade em ciências da vida que exigem isolamento estrito dos dados de teste em relação a qualquer procedimento de ajuste de hiperparâmetros ou pré-processamento.
@@ -100,8 +99,8 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 5.1. Viés de Seleção e Validação Cruzada Aninhada (*Nested CV*)
 
 * **Decisões de Projeto:**
-  * A especificação restringe a busca de hiperparâmetros (Grid Search e Random Search) ao conjunto de treino da partição externa por meio de validação cruzada aninhada (*Nested Cross-Validation*), com exigência explícita de métrica e direção de otimização (**ADR-003**, [RF3.5 de `ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md#L57); `CA-E3-02`, [Seção 3.3 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L340-L347)).
-  * A ordem de execução intra-célula estabelece que, ao combinar seleção dinâmica de atributos e otimização de hiperparâmetros, o pré-processamento e o ranqueamento sejam recalibrados em cada dobra interna para a seleção de $\theta^*$, e reajustados no treino externo completo antes da avaliação de validação (**ADR-003**, [Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L185-L186)).
+  * A especificação restringe a busca de hiperparâmetros (Grid Search e Random Search) ao conjunto de treino da partição externa por meio de validação cruzada aninhada (*Nested Cross-Validation*), com exigência explícita de métrica e direção de otimização (**ADR-003**, `RF3.5` de [`ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md); `CA-E3-02`, [Seção 3.3 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#33-etapa-3-registro-de-modelos-circuitos-pré-processamento-e-hiperparâmetros)).
+  * A ordem de execução intra-célula estabelece que, ao combinar seleção dinâmica de atributos e otimização de hiperparâmetros, o pré-processamento e o ranqueamento sejam recalibrados em cada dobra interna para a seleção de $\theta^*$, e reajustados no treino externo completo antes da avaliação de validação (**ADR-003**, [Seção 2.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#25-decisões-arquiteturais-complementares-adrs-002-a-008)).
 * **Justificativa e Fundamentação Teórica:**
   * **Cawley & Talbot (2010) — *On Over-fitting in Model Selection and Subsequent Selection Bias in Performance Evaluation*:** Demonstram teórica e experimentalmente que a calibração de hiperparâmetros no mesmo laço de validação usado para reportar o desempenho final gera um viés de seleção otimista (*selection bias*). Os autores concluem que a validação cruzada aninhada (*Nested Cross-Validation*) é necessária para obter estimativas não viesadas do erro de generalização.
   * **Bergstra & Bengio (2012) — *Random Search for Hyper-Parameter Optimization*:** Demonstram que a busca aleatória apresenta eficiência superior à busca em grade em espaços com baixa dimensionalidade efetiva, sustentando a inclusão de ambas as estratégias na especificação do MVP.
@@ -113,7 +112,7 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 5.2. Particionamento Estruturado e Dependência Amostral
 
 * **Decisões de Projeto:**
-  * O particionamento agrupado (`GroupKFold`) é especificado como requisito para dados com dependência estrutural, incluindo verificação formal de disjunção de grupos entre treino e validação ($\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$) e em relação ao *Holdout Final* (`CA-E4A-01` e `CA-COND-PART-01`, [Seção 3.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L369-L373)).
+  * O particionamento agrupado (`GroupKFold`) é especificado como requisito para dados com dependência estrutural, incluindo verificação formal de disjunção de grupos entre treino e validação ($\text{Grupos}(\text{Train}_k) \cap \text{Grupos}(\text{Val}_k) = \emptyset$) e em relação ao *Holdout Final* (`CA-E4A-01` e `CA-COND-PART-01`, [Seção 3.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#34-etapa-4-particionamento-validação-e-execução-matricial)).
 * **Justificativa e Fundamentação Científica:**
   * **Roberts et al. (2017) — *Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure*:** Estudo seminal que examina as limitações da validação cruzada aleatória tradicional (*random k-fold*) na presença de dependência estrutural entre observações (espacial, temporal ou hierárquica). Os autores demonstram que a distribuição aleatória de dados correlacionados entre treino e teste viola a suposição de independência (IID), resultando em subestimação do erro de generalização e incapacidade preditiva em novos grupos. A recomendação formal é o emprego de estratégias de bloqueio (*Grouped Cross-Validation*).
 * **Evidência Específica na Fonte:**
@@ -128,8 +127,8 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 6.1. Não-Independência de Dobras e Correção de Variância de Nadeau-Bengio
 
 * **Decisões de Projeto:**
-  * A especificação veda o tratamento de dobras de validação cruzada como amostras independentes sob testes $t$ clássicos ([Seção 3.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L468)).
-  * O teste $t$ corrigido de Nadeau-Bengio é adotado como método padrão para comparações pareadas de métricas sob validação cruzada (**ADR-004**, [Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L188); `CA-E5-02`).
+  * A especificação veda o tratamento de dobras de validação cruzada como amostras independentes sob testes $t$ clássicos ([Seção 3.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#35-etapa-5-consolidação-dos-resultados-e-comparação-estatística)).
+  * O teste $t$ corrigido de Nadeau-Bengio é adotado como método padrão para comparações pareadas de métricas sob validação cruzada (**ADR-004**, [Seção 2.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#25-decisões-arquiteturais-complementares-adrs-002-a-008); `CA-E5-02`).
   * Para o caso de variância amostral nula ($s^2_d = 0$), o contrato distingue dois subcasos (**ADR-004**, `AD-014`): se $\bar{d} = 0{,}0$, retorna $t = 0{,}0$ e $p = 1{,}0$; se $\bar{d} \ne 0{,}0$ (diferença constante não-nula em todos os *folds*), retorna $t = \pm\infty$ e $p = 0{,}0$, sem divisão por zero.
 * **Justificativa e Fundamentação Teórica:**
   * **Nadeau & Bengio (2003) — *Inference for the Generalization Error*:** Trabalho que formaliza a razão pela qual testes inferenciais convencionais falham na avaliação comparativa de algoritmos de aprendizado. Em validação cruzada com $K$ dobras, os modelos ajustados compartilham $(K-2)/(K-1)$ dos dados de treinamento, introduzindo correlação positiva entre as diferenças de erro em cada partição. O teste $t$ pareado ingênuo desconsidera essa covariância, subestimando a variância real da diferença média e inflando a taxa de erro Tipo I (falsos positivos).
@@ -146,7 +145,7 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 6.2. Cuidados Metodológicos no Teste de Wilcoxon e Limites Amostrais
 
 * **Decisões de Projeto:**
-  * O teste pareado de postos sinalizados de Wilcoxon é previsto como alternativa não-paramétrica para comparação de métricas, com descarte de diferenças nulas ($d_j = 0$) e alerta mandatório de baixo poder amostral para $J < 6$ (**ADR-004**, [Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L189); `CA-E5-01`).
+  * O teste pareado de postos sinalizados de Wilcoxon é previsto como alternativa não-paramétrica para comparação de métricas, com descarte de diferenças nulas ($d_j = 0$) e alerta mandatório de baixo poder amostral para $J < 6$ (**ADR-004**, [Seção 2.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#25-decisões-arquiteturais-complementares-adrs-002-a-008); `CA-E5-01`).
 * **Justificativa e Análise da Literatura:**
   * **Demšar (2006) — *Statistical Comparisons of Classifiers over Multiple Data Sets*:** Referência clássica na literatura de ML que recomenda testes baseados em postos (como Wilcoxon e Friedman) para comparação de classificadores.
   * **Distinção Metodológica Importante:** A recomendação formal de Demšar (2006) direciona-se à comparação de algoritmos avaliados em **múltiplos conjuntos de dados independentes** ($N \ge 10$ a $30$). Quando aplicado sobre dobras de validação cruzada em um *único conjunto de dados*, a premissa de observações independentes também é violada pela sobreposição do treino. A formulação não-paramétrica relaxa a exigência de normalidade das diferenças, mas **não elimina a dependência estatística gerada pela validação cruzada**.
@@ -158,7 +157,7 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 6.3. Controle da Taxa de Falso Positivo em Comparações Múltiplas: FWER vs. FDR
 
 * **Decisões de Projeto:**
-  * A especificação disponibiliza os procedimentos de correção de multiplicidade de **Holm-Bonferroni** e **Benjamini-Hochberg** na Etapa 5B (`CA-E5-02`, [Seção 3.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L482)).
+  * A especificação disponibiliza os procedimentos de correção de multiplicidade de **Holm-Bonferroni** e **Benjamini-Hochberg** na Etapa 5B (`CA-E5-02`, [Seção 3.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#35-etapa-5-consolidação-dos-resultados-e-comparação-estatística)).
   * O contrato `ComparisonSpec` requer a declaração explícita da família de hipóteses e do tipo de controle aplicado (FWER ou FDR).
 * **Justificativa e Fundamentação Teórica:**
   * **Holm (1979) — *A Simple Sequentially Rejective Multiple Test Procedure*:** Propõe o método sequencialmente rejeitador que controla a *Family-Wise Error Rate* (FWER). O procedimento ordena os $p$-valores observados $p_{(1)} \le p_{(2)} \le \dots \le p_{(m)}$ e compara cada termo contra o limiar $\alpha / (m - i + 1)$. O método de Holm domina uniformemente a correção clássica de Bonferroni ($p_i \le \alpha / m$), garantindo maior poder estatístico enquanto mantém o controle estrito da probabilidade de cometer ao menos um erro Tipo I na família de testes.
@@ -171,7 +170,7 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 6.4. Não-Significância Estatística e a Questão da Equivalência
 
 * **Decisões de Projeto:**
-  * A especificação define que valores de $p \ge \alpha$ não autorizam a inferência de equivalência ou igualdade de desempenho. Nessas condições, o componente `StructuredConclusion` emite a classificação `INCONCLUSIVE_NO_SIGNIFICANT_DIFFERENCE` ([Princípio 4 de `ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md#L20); `CA-E5-03`, [Seção 3.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L486-L489)).
+  * A especificação define que valores de $p \ge \alpha$ não autorizam a inferência de equivalência ou igualdade de desempenho. Nessas condições, o componente `StructuredConclusion` emite a classificação `INCONCLUSIVE_NO_SIGNIFICANT_DIFFERENCE` ([Princípio 4 de `ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md#1-visão-geral-propósito-e-diretrizes-científicas); `CA-E5-02`, [Seção 3.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#35-etapa-5-consolidação-dos-resultados-e-comparação-estatística)).
 * **Justificativa Epistemológica e Estatística:**
   * **Distinção conceitual:** A metodologia do framework estabelece separação entre três conceitos:
     1. *Sumarização descritiva:* Apresentação das métricas observadas (médias, medianas e dispersão entre as dobras).
@@ -187,11 +186,11 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 7.1. Reprodutibilidade Científica, Determinismo e Rastreabilidade
 
 * **Decisões de Projeto:**
-  * A especificação estabelece três níveis formais de reprodução ([Seção 5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L611-L615)):
+  * A especificação estabelece três níveis formais de reprodução ([Seção 5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#5-estrutura-do-pacote-de-reprodutibilidade-em-disco)):
     * *Nível 1 (Reprodução de Apresentação):* Reconstrução de figuras e tabelas a partir de artefatos de resultados persistidos em disco, sem reexecução de inferência ou retreinamento.
     * *Nível 2 (Reprodução Analítica):* Reavaliação de hipóteses estatísticas e Fronteira de Pareto a partir de predições individuais salvas, sem retreinar modelos.
     * *Nível 3 (Reexecução Experimental):* Repetição do ciclo completo de treinamento sob o mesmo particionamento e derivação determinística de sementes.
-  * O modelo de dados define o manifesto `ArtifactProvenance`, associando cada artefato gerado aos parâmetros, dados e identificadores de execução ([Seção 4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L557-L565)).
+  * O modelo de dados define o manifesto `ArtifactProvenance`, associando cada artefato gerado aos parâmetros, dados e identificadores de execução ([Seção 4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#4-modelo-de-dados-do-experimento-e-rastreabilidade)).
 * **Justificativa e Fundamentação Científica:**
   * **Heil et al. (2021) — *Reproducibility Standards for Machine Learning in the Life Sciences*:** Trabalho de consenso na *Nature Methods* que formaliza os pilares de reprodutibilidade em ML, preconizando que código, sementes aleatórias, dados particionados e dependências computacionais sejam disponibilizados de forma auditável.
   * **REFORMS (Kapoor et al., 2024) — *Consensus-based Recommendations for Machine-learning-based Science*:** Diretrizes de consenso publicadas na *Science Advances* com 19 autores de referência. O checklist REFORMS prescreve que relatórios científicos distingam dados factuais medidos de alegações subjetivas, princípio adotado no desenho do gerador de relatórios e de `StructuredConclusion`.
@@ -204,7 +203,7 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 7.2. Geração Determinística de Sementes com `SeedSequence`
 
 * **Decisões de Projeto:**
-  * A especificação adota o mecanismo `numpy.random.SeedSequence` para derivar sementes de forma hierárquica e determinística a partir de uma semente mestre para cada dobra, célula $(m, c, f)$ e busca de hiperparâmetros (**ADR-007**, [M1.2 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L679); `CA-GER-02`).
+  * A especificação adota o mecanismo `numpy.random.SeedSequence` para derivar sementes de forma hierárquica e determinística a partir de uma semente mestre para cada dobra, célula $(m, c, f)$ e busca de hiperparâmetros (**ADR-007**, [M1.2 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#entrega-m12--contratos-implementação-e-testes-de-experimental_mlcore-concluída); `CA-GER-02`).
 * **Justificativa Técnica:**
   * **NumPy Documentation — *Parallel and Independent Random Number Generation with SeedSequence*:** A implementação moderna de geradores pseudoaleatórios em NumPy baseia-se em `SeedSequence` para fornecer fluxos estatisticamente independentes sem colisão no espaço de amostragem.
   * Práticas legadas baseadas em adições ad-hoc (como `seed + fold_id`) podem introduzir correlações no espaço de estados dos geradores, comprometendo a independência estocástica em execuções paralelas. O uso de `SeedSequence.spawn` viabiliza derivação de sequências descorrelacionadas mesmo em processamento paralelo.
@@ -216,7 +215,7 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 8.1. Canonicalização de Objetos Heterogêneos em Machine Learning
 
 * **Decisões de Projeto:**
-  * O ADR-007 estabelece um contrato formal de serialização canônica para geração de hashes determinísticos de configurações (`config_hash`) e dados tabulares (`dataset_hash`) (**ADR-007**, [Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L199-L214)).
+  * O ADR-007 estabelece um contrato formal de serialização canônica para geração de hashes determinísticos de configurações (`config_hash`) e dados tabulares (`dataset_hash`) (**ADR-007**, [Seção 2.5 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#25-decisões-arquiteturais-complementares-adrs-002-a-008)).
   * A especificação adota normalização Unicode na forma **NFC** (`unicodedata.normalize("NFC", s)`).
   * O contrato trata explicitamente casos de contorno em ponto flutuante IEEE 754: conversão de zero negativo (`-0.0`) para positivo (`0.0`) e mapeamento determinístico de valores especiais (`NaN`, `+Inf`, `-Inf`) para tokens canônicos.
   * Os resumos criptográficos são mantidos em arquivos internos de auditoria e omitidos das visualizações finais de relatório (`CA-E6-02`).
@@ -235,7 +234,7 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 8.2. Escrita Atômica em Dois Passos e Integridade no Sistema de Arquivos
 
 * **Decisões de Projeto:**
-  * A persistência de artefatos é especificada mediante escrita em dois passos: gravação em arquivo temporário no mesmo diretório (`<nome>.tmp.<pid>`), validação de integridade e substituição atômica via `os.replace` (`CA-GER-01`, [Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L177)).
+  * A persistência de artefatos é especificada mediante escrita em dois passos: gravação em arquivo temporário no mesmo diretório (`<nome>.tmp.<pid>`), validação de integridade e substituição atômica via `os.replace` (`CA-GER-01`, [Seção 2.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#24-arquitetura-da-cli-modularizada-srcexperimental_mlcli)).
 * **Justificativa Técnica e Limitações Físicas:**
   * **POSIX.1-2017 (`rename(2)`) & Python Documentation (`os.replace`):** A chamada de sistema `rename(2)` em plataformas POSIX garante que a atualização da entrada de diretório ocorra de forma atômica. Processos concorrentes não observam arquivos corrompidos ou parcialmente gravados; havendo interrupção antes do término, o arquivo pré-existente permanece intacto.
   * **Limitação de Ponto de Montagem:** A atomicidade de `rename(2)` restringe-se a operações no **mesmo sistema de arquivos e mesmo ponto de montagem**. Por essa razão, a especificação exige a gravação do arquivo temporário no mesmo diretório de destino, prevenindo erros de link cruzado entre dispositivos (`EXDEV`).
@@ -248,8 +247,8 @@ Para garantir rigor técnico e clareza conceitual, este catálogo adota três di
 ### 9.1. Model Checking com TLA+ e TLC na Orquestração da Execução Matricial
 
 * **Decisões de Projeto:**
-  * A orquestração da matriz experimental é modelada como uma **máquina de estados finita por célula** $(m, c, f)$, com transições entre os estados `PENDING`, `RUNNING`, `COMPLETED`, `FAILED` e `CANCELLED` ([Seção 3.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L382-L393)).
-  * O mecanismo de retomada verificada (*Checkpoint & Resume*) prevê a preservação de resultados persistidos e o bloqueio de retomadas inconsistentes sob alteração de dados ou parâmetros (`CA-E4B-02`, [Seção 3.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#L400-L402)).
+  * A orquestração da matriz experimental é modelada como uma **máquina de estados finita por célula** $(m, c, f)$, com transições entre os estados `PENDING`, `RUNNING`, `COMPLETED`, `FAILED` e `CANCELLED` ([Seção 3.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#34-etapa-4-particionamento-validação-e-execução-matricial)).
+  * O mecanismo de retomada verificada (*Checkpoint & Resume*) prevê a preservação de resultados persistidos e o bloqueio de retomadas inconsistentes sob alteração de dados ou parâmetros (`CA-E4B-02`, [Seção 3.4 de `ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md#34-etapa-4-particionamento-validação-e-execução-matricial)).
   * A especificação de segurança e vivacidade da máquina de estados de orquestração (`PENDING` $\rightarrow$ `RUNNING` $\rightarrow$ `COMPLETED`/`FAILED`/`CANCELLED`) foi verificada empiricamente no Marco M5 por testes determinísticos de concorrência, checkpoint/resume e integridade de hashes no fluxo TLC Spec-Driven (sem artefato `.tla` separado em runtime). *(Nota: adicionalmente, as implementações de `experimental_ml.metrics`, `features` e `statistics` incorporam o Kernel Target Alignment — Cristianini et al. (2001), o índice de estabilidade de Kuncheva (2007) e a avaliação da distribuição Student-$t$ via fração continuada de Lentz em NumPy puro conforme `XCUT-02`).*
 * **Justificativa Teórica em Métodos Formais:**
   * **Lamport (2002) — *Specifying Systems: The TLA+ Language and Tools for Hardware and Software Engineers*:** Apresenta a lógica temporal de ações (TLA+) e o verificador explícito de modelos TLC. TLA+ permite descrever formalmente sistemas de transição de estados. O model checker TLC realiza uma busca exaustiva no espaço de estados alcançáveis da especificação matemática, verificando:

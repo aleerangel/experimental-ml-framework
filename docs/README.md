@@ -36,12 +36,12 @@ Bem-vindo ao portal oficial do **Experimental ML Framework (`experimental-ml`)**
 - `[Avançado]` **[Guia Prático 9: Inferência Estatística na Prática](guias_praticos/09_inferencia_estatistica_na_pratica.md)** *(exemplos visuais de saída no [Notebook 04](../notebooks/04_avancado_variantes_lssvm_prognose_florestal.ipynb))*
 
 ### Jornada 4 — Recursos Avançados
-- `[Avançado]` **[Referência da API Python Pública](referencia/api_python.md)** — Os 11 pacotes públicos exportados.
+- `[Avançado]` **[Referência da API Python Pública](referencia/api_python.md)** — Fachada `run_experiment` e os 11 subpacotes públicos exportados.
 - `[Avançado]` **[Guia Prático 1: Modelos Analíticos (`requires_fit=False`) vs. Treinados](guias_praticos/01_modelos_analiticos_vs_treinados.md)**
 - `[Avançado]` **[Guia Prático 2: Métricas Quânticas (`KTA`) e Probabilísticas (`ROC-AUC`, `Log-Loss`)](guias_praticos/02_metricas_quanticas_e_probabilisticas.md)**
 - `[Avançado]` **[Guia Prático 4: Otimização Multiobjetivo na Fronteira de Pareto](guias_praticos/04_otimizacao_pareto_multiobjetivo.md)**
 - `[Avançado]` **[Guia Prático 5: Pacotes Herméticos e Auditoria SHA-256 para Conferências](guias_praticos/05_pacotes_reprodutibilidade_conferencias.md)**
-- `[Avançado]` **[Guia Prático 6: Variações do Mesmo Algoritmo — LS-SVM em Prognose Florestal](guias_praticos/06_ablacao_variantes_algoritmo_lssvm.md)**
+- `[Avançado]` **[Guia Prático 6: Variações do Mesmo Algoritmo — LS-SVM em Prognose Florestal](guias_praticos/06_variantes_algoritmo_lssvm.md)**
 - `[Avançado]` **[Guia Prático 7: Cenários de Features Fixos vs. Dinâmicos e Estabilidade](guias_praticos/07_cenarios_features_estabilidade.md)**
 - `[Avançado]` **[Guia Prático 8: Fluxo Desacoplado para Jupyter Notebooks e Relatórios sem Retreino](guias_praticos/08_fluxo_desacoplado_jupyter_relatorios.md)**
 - `[Avançado]` **[Notebook 04: Vitrine Avançada — Variantes do LS-SVM em Prognose Florestal](../notebooks/04_avancado_variantes_lssvm_prognose_florestal.ipynb)** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/04_avancado_variantes_lssvm_prognose_florestal.ipynb)

@@ -63,7 +63,7 @@ T1 --> T3 --> T4
 **What**: Gerar os dois primeiros notebooks interativos completos cobrindo o tour das 6 etapas e o estudo de ablação LS-SVM em prognose florestal.  
 **Where**: `notebooks/`  
 **Depends on**: T1  
-**Reuses**: `docs/guia/02_tutorial_6_etapas.md`, `docs/guias_praticos/06_ablacao_variantes_algoritmo_lssvm.md`  
+**Reuses**: `docs/guia/02_tutorial_6_etapas.md`, `docs/guias_praticos/06_variantes_algoritmo_lssvm.md`  
 **Requirement**: NB-02  
 **Tests**: `tests/unit/test_notebooks_execution.py`  
 **Gate**: `.venv/bin/pytest tests/unit/test_notebooks_execution.py -v`

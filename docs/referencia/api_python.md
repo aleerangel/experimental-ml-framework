@@ -1,9 +1,17 @@
 # Referência da API Python Pública
 
-Esta referência cataloga a **API pública oficial** do `experimental-ml`, delimitada estritamente pelos símbolos, classes declarativas (*dataclasses*), enumerações e funções exportadas no nível superior (`__init__.py` e `__all__`) dos **11 pacotes públicos** do framework.
+Esta referência cataloga a **API pública oficial** do `experimental-ml`, delimitada estritamente pelos símbolos, classes declarativas (*dataclasses*), enumerações e funções exportadas no nível superior (`__init__.py` e `__all__`) do **pacote raiz** (`experimental_ml`) e dos **11 subpacotes públicos** do framework.
 
 > [!NOTE]
 > **Fronteira de Estabilidade:** Módulos auxiliares internos (como `orchestration.codecs`, formatadores internos de SVG/tabelas, parsers auxiliares e funções iniciadas por `_`) não compõem a API pública e não devem ser importados diretamente por código de pesquisa.
+
+---
+
+## 0. `experimental_ml` (Fachada de Alto Nível)
+
+- **Ponto de Entrada Unificado:** `run_experiment(data, models, output_dir, *, target=None, task=None, schema=None, scenarios=None, partition_config=None, cv_folds=5, group_col=None, metrics=None, rules=(), alpha=0.05, master_seed=42, force=True) -> ExperimentRunSummary` — executa ponta a ponta as Etapas 1 a 6 aceitando entradas simples ou contratos formais completos.
+- **Resumo Imutável:** `ExperimentRunSummary` (atributos: `experiment_dir`, `dataset_hash`, `partition_plan_id`, `completed_cells`, `failed_cells`, `observed_leader`, `statistical_evidence_status`, `report_md_path`, `report_html_path`, `consolidation`, `conclusion`; método `summary() -> str`).
+- **Metadados:** `__version__` (`str`).
 
 ---
 
@@ -84,7 +92,7 @@ Esta referência cataloga a **API pública oficial** do `experimental-ml`, delim
 
 ## 10. `experimental_ml.reporting` (Etapa 6 — Relatórios e Reprodutibilidade)
 
-- **Leitura Somente-Leitura:** `load_experiment_artifacts_readonly`, `select_report_content`, `LoadedExperimentData`, `ReportContentSelection`, `ReportAudience`, `ReportFamily`, `ResearcherDeclarations`.
+- **Acesso Somente-Leitura:** `load_experiment_artifacts_readonly`, `select_report_content`, `LoadedExperimentData`, `ReportContentSelection`, `ReportAudience`, `ReportFamily`, `ResearcherDeclarations`.
 - **Tabelas e Figuras:** `build_table_model`, `render_table_csv`, `render_table_markdown`, `render_table_latex`, `TableModel`, `build_figure_spec`, `render_figure`, `PlotSpecification`, `PlotType`, `render_full_report`.
 - **Empacotamento:** `build_reproducibility_package`, `PackageMode` (`FULL_PACKAGE`, `REDUCED_NO_RAW_DATA`), `ReproducibilityPackageManifest`, `ArtifactProvenance`.
 

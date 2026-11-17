@@ -11,11 +11,11 @@
 - **Status**: active
 
 ### AD-002
-- **Decision**: Adotar o processo de aceite de marcos (*Milestone Acceptance*) baseado em três registros (`SPEC.md`, `ACCEPTANCE.md`, `RESULTS.md`), integrado ao fluxo TLC Spec-Driven.
+- **Decision**: Adotar o processo de aceite de marcos (*Milestone Acceptance*) baseado em registros por funcionalidade (`spec.md`, `ACCEPTANCE.md`, `RESULTS.md`, acompanhados de `proofs.md` e `verification.md` no fluxo TLC Spec-Driven; os arquivos `SPEC.md` legados de M1 permanecem como registro histórico).
 - **Reason**: Diferenciar a aprovação em testes automatizados do aceite formal da entrega, prevendo validação prática por interfaces públicas sob a perspectiva do consumidor e registro explícito de pendências.
-- **Trade-off**: Requer a elaboração e manutenção de três documentos por marco (`SPEC.md`, `ACCEPTANCE.md`, `RESULTS.md`), mantendo pendências manuais registradas explicitamente como PENDENTE.
-- **Scope**: Todos os marcos do framework (retroativo a M1.1 e M1.2; mandatório de M1.3 a M7).
-- **Date**: 2026-11-02
+- **Trade-off**: Requer a elaboração e manutenção dos documentos de especificação, aceite e verificação por marco, mantendo pendências manuais registradas explicitamente como PENDENTE.
+- **Scope**: Todos os marcos do framework (M1 a M7 e Pós-MVP).
+- **Date**: 2026-11-02 (emendada em 2026-11-17)
 - **Status**: active
 
 ### AD-003
@@ -91,11 +91,11 @@
 - **Status**: active
 
 ### AD-012
-- **Decision**: Desacoplamento estrito e absoluto do framework de qualquer domínio aplicado e isolamento formal do critério `CA02` como validação externa a ser conduzida exclusivamente pelo pesquisador.
-- **Reason**: Cumprir rigorosamente o princípio RNF02 (Independência de Domínio), assegurando que o repositório, suíte de testes e documentação interna não contenham dependências, termos, dados ou acoplamentos a problemas específicos (como prognose florestal), garantindo a pureza metodológica da biblioteca.
-- **Trade-off**: Testes automatizados do repositório operam exclusivamente com fixtures sintéticas autocontidas em memória ou disco temporário; a validação empírica em bases reais é exercida externamente pelo usuário consumidor.
-- **Scope**: Todo o repositório `experimental-ml-framework`.
-- **Date**: 2026-11-12
+- **Decision**: Desacoplamento estrito do núcleo (`src/experimental_ml/` e `tests/`) de qualquer repositório externo ou domínio aplicado, mantendo a validação externa `CA02` (`TA-POS.4`) fora do repositório.
+- **Reason**: Cumprir o princípio RNF02 (Independência de Domínio), assegurando que o código, a suíte de testes e a arquitetura não possuam referências ou acoplamentos a repositórios externos de aplicações específicas. Tutoriais e notebooks ilustrativos autocontidos (como estudos temáticos em `notebooks/` sem referência a repositórios externos) são permitidos.
+- **Trade-off**: Testes automatizados operam exclusivamente com fixtures sintéticas autocontidas em memória ou disco temporário; a validação empírica em bases reais é conduzida externamente pelo usuário consumidor.
+- **Scope**: `src/experimental_ml/`, `tests/` e documentos normativos de `docs/engenharia_software/`.
+- **Date**: 2026-11-12 (emendada em 2026-11-17)
 - **Status**: active
 
 ### AD-013
@@ -191,25 +191,33 @@
 - **Decision**: Mega Auditoria Técnica Transversal do MVP (`TA-POS.1` / `pos-1-mega-auditoria-mvp`) concluída com saneamento integral de 6 achados `P0`, 16 `P1` e 6 `P2` (`0` achados `P0`/`P1` em aberto):
   1. Invariantes transversais automatizados em `tests/integration/test_mvp_audit_invariants.py` (pureza AST `XCUT-02` estática/dinâmica, 7 portões de estágio, `CLI-10` e `RNF02`) e regressões dedicadas em `tests/integration/test_mvp_audit_regressions.py`.
   2. Saneamento de isolamento de grupos/temporal em `CV_AND_HOLDOUT`/`HOLDOUT_ONLY`, aplicação de `ModelSpec.parameters` em `instantiate_fresh_model`, exclusão de `UNDEFINED_NAN` em `TOP_K_RELEVANCE`, `requires_probabilities`/`requires_kernel_matrix` em `METRICS_CATALOG`, precedência `ADR-005` + `compare_by_abs` em `mbe`, semente em `RANDOM_SEARCH`, `CLI-11` em `cmd_models.py`, round-trip `Finding` e sincronização integral dos documentos de `engenharia_software/`, `README.md`, `REFERENCIAS_E_FUNDAMENTACAO.md` e `pyproject.toml`.
-- **Reason**: Garantir base científica, contratual e documental 100% consistente e congelável antes do Guia Definitivo do Pesquisador (`TA-POS.2`) e da validação externa `CA02` (`TA-POS.3`).
+- **Reason**: Garantir base científica, contratual e documental 100% consistente e congelável antes do Guia Definitivo do Pesquisador (`TA-POS.2`), da entrega de Usabilidade (`TA-POS.3`) e da validação externa `CA02` (`TA-POS.4`).
 - **Trade-off**: `README.md` teve apenas divergências factuais corrigidas nesta etapa, reservando seu enxugamento completo (remoção de blocos longos de código e aprofundamentos de engenharia) para `TA-POS.2`.
-- **Scope**: Todo o pacote `src/experimental_ml/`, suíte `tests/`, `engenharia_software/*.md`, `README.md`, `REFERENCIAS_E_FUNDAMENTACAO.md` e `pyproject.toml`.
+- **Scope**: Todo o pacote `src/experimental_ml/`, suíte `tests/`, `docs/engenharia_software/*.md`, `README.md`, `docs/REFERENCIAS_E_FUNDAMENTACAO.md` e `pyproject.toml`.
 - **Date**: 2026-11-16
 - **Status**: active
 
 ### AD-022
-- **Decision**: Sub-marco `TA-POS.2` (`pos-2-guia-pesquisador-cookbook`) concluído em português com arquitetura modular sob `docs/` (`docs/README.md`, `docs/guia/`, `docs/cookbook/`, `docs/referencia/`), enxugamento do `README.md` (55 linhas com fluxo CLI de 1 linha e tabela completa de links) e suíte de integridade documental em 5 níveis (`tests/unit/test_documentation_integrity.py`).
-- **Reason**: Alinhar a usabilidade pedagógica e de referência do framework ao MVP congelado e auditado, mantendo o `README.md` limpo e validando automaticamente links, sintaxe AST, imports reais da API pública (11 pacotes), comandos CLI `expml` e execução ponta a ponta (smoke test) do Início Rápido.
+- **Decision**: Sub-marco `TA-POS.2` (`pos-2-guia-pesquisador-cookbook`) concluído em português com arquitetura modular sob `docs/` (`docs/README.md`, `docs/guia/`, `docs/guias_praticos/`, `docs/referencia/`), enxugamento do `README.md` e suíte de integridade documental (`tests/unit/test_documentation_integrity.py`).
+- **Reason**: Alinhar a usabilidade pedagógica e de referência do framework ao MVP congelado e auditado, mantendo o `README.md` limpo e validando automaticamente links, sintaxe AST, imports reais da API pública, comandos CLI `expml` e execução ponta a ponta (smoke test) do Início Rápido.
 - **Trade-off**: O teste legado `test_hard_12_readme_python_blocks_execute_cleanly` foi redirecionado para validar os blocos Python executáveis em `docs/`, uma vez que o `README.md` passou a ser estritamente enxuto e livre de blocos de código Python.
 - **Scope**: `README.md`, `docs/`, `tests/unit/test_documentation_integrity.py` e `tests/integration/test_m1_foundation_integration.py`.
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-022B
+- **Decision**: Sub-marco `pos-2b-notebooks-interativos` concluído e posteriormente reorganizado em `pos-3` para uma trilha de 4 notebooks pré-executados em `notebooks/` (`01_primeiro_experimento_do_zero.ipynb`, `02_classificacao_e_grupos_na_pratica.ipynb`, `03_tour_6_etapas.ipynb`, `04_avancado_variantes_lssvm_prognose_florestal.ipynb`), com validação automatizada em `tests/unit/test_notebooks_execution.py`.
+- **Reason**: Oferecer exemplos executáveis no Jupyter/Colab alinhados à jornada progressiva do pesquisador (do básico ao avançado).
+- **Trade-off**: Notebooks armazenam saídas pré-executadas para leitura imediata sem necessidade de ambiente local prévio.
+- **Scope**: `notebooks/*.ipynb` e `tests/unit/test_notebooks_execution.py`.
+- **Date**: 2026-11-16 (reorganizada em 2026-11-17)
+- **Status**: active
+
 ### AD-023
-- **Decision**: Implementação do marco pós-MVP `pos-3-usabilidade-acessibilidade-pesquisador` (`USAB-01` a `USAB-03`): camada aditiva de usabilidade sem remoção de contratos M1–M7 (`expml init`, `expml quickrun`, `--rules` opcional, `--metrics` em `run start`, `--experiment-dir` unificado em `run {status,verify,resume}`, fachada Python `experimental_ml.run_experiment(...)` via PEP 562 e reorganização documental pelas 5 Jornadas).
+- **Decision**: Implementação do marco pós-MVP `TA-POS.3` (`pos-3-usabilidade-acessibilidade-pesquisador`, `USAB-01` a `USAB-03`): camada aditiva de usabilidade sem remoção de contratos M1–M7 (`expml init`, `expml quickrun`, `--rules` opcional, `--metrics` em `run start`, `--experiment-dir` unificado em `run {status,verify,resume}`, fachada Python `experimental_ml.run_experiment(...)` via PEP 562 e reorganização documental pelas Jornadas e 4 notebooks).
 - **Reason**: Permitir que pesquisadores e alunos de IC sem experiência prévia em CLIs, JSONs ou na arquitetura interna conduzam experimentos científicos completos em 10 linhas de Python ou 2 comandos CLI, mantendo rigor anti-leakage e pureza `XCUT-02`.
 - **Trade-off**: `run_experiment` encapsula as Etapas 1–6 com defaults explícitos, mantendo integralmente os módulos puros subjacentes para estudos avançados.
-- **Scope**: `src/experimental_ml/__init__.py`, `pipeline.py`, `cli/`, `docs/`, `README.md` e `tests/unit/test_usability_cli_and_facade.py`.
+- **Scope**: `src/experimental_ml/__init__.py`, `pipeline.py`, `cli/`, `docs/`, `notebooks/`, `README.md` e `tests/unit/test_usability_cli_and_facade.py`.
 - **Date**: 2026-11-17
 - **Status**: active
 
@@ -220,8 +228,8 @@
 - **Completed**:
   - Auditoria de usabilidade (`AUDITORIA_USABILIDADE.md`), Jornadas (`JORNADA_PESQUISADOR.md`), Plano (`PLANO_MELHORIAS_USABILIDADE.md`).
   - `expml init`, `expml quickrun`, `--metrics`, `--rules` opcional, `--experiment-dir` unificado e fachada `run_experiment`.
-  - Guias `00_comecando_do_zero.md`, `03_interpretando_resultados.md`, `cli_schemas_json.md` e `docs/README.md` pelas 5 Jornadas.
+  - Guias `00_comecando_do_zero.md` a `03_interpretando_resultados.md`, `cli_schemas_json.md`, `docs/README.md` e 4 notebooks (`01` a `04`).
 - **In-progress**: none
-- **Next step**: Homologação científica externa (`CA02`) em dados reais pelo pesquisador.
+- **Next step**: Homologação científica externa (`CA02` / `TA-POS.4`) em dados reais pelo pesquisador.
 - **Blockers**: none
-- **Branch**: feat/pos-3-usabilidade-acessibilidade-pesquisador
+- **Branch**: main

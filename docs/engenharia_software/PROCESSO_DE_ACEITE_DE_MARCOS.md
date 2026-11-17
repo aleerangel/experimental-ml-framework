@@ -2,8 +2,8 @@
 
 > **Experimental ML Framework**  
 > **Status:** Ativo  
-> **Data:** 02 de Novembro de 2026  
-> **Aplicabilidade:** Retroativo aos marcos M1.1 e M1.2 e obrigatório para os marcos subsequentes (M1.3 a M7).  
+> **Data:** 17 de Novembro de 2026  
+> **Aplicabilidade:** Retroativo aos marcos M1.1 e M1.2 e obrigatório para os marcos subsequentes (M1.3 a M7 e Pós-MVP).  
 > **Documentos Relacionados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md), [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md), [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md) e `.specs/STATE.md` (AD-002).
 
 ---
@@ -109,5 +109,8 @@ O processo de aceite integra-se às fases do TLC:
 | **M5 (M5.1–M5.4 + `ACH-M5`)** | `m5-1` a `m5-4` | Concluída | 471/471 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **M6 (M6.1–M6.4)** | `m6-1` a `m6-4` | Concluída | 548/548 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **M7 (M7.1–M7.4)** | `m7-1` a `m7-4` | Concluída | 581/581 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
-| **Pós-MVP (`TA-POS.1`)** | `pos-1-mega-auditoria-mvp` | Em fechamento | 591/591 Aprovados | Em verificação | Executada | **Em Fechamento** |
+| **Pós-MVP (`TA-POS.1`)** | `pos-1-mega-auditoria-mvp` | Concluída | 591/591 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **Pós-MVP (`TA-POS.2` + Notebooks)** | `pos-2-guia-pesquisador-cookbook`, `pos-2b-notebooks-interativos` | Concluída | — | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **Pós-MVP (`TA-POS.3`)** | `pos-3-usabilidade-acessibilidade-pesquisador` | Concluída | 598/598 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **Validação Externa (`TA-POS.4` / `CA02`)** | Externa ao repositório | Pendente (Pesquisador) | — | — | A executar em dados reais | **Pendente** |
 

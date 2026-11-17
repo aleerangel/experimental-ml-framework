@@ -10,7 +10,7 @@ Em estudos comparativos e computação científica (como na **prognose florestal
 2. **LS-SVM com Kernel Quântico** (`ModelFamily.QUANTUM_KERNEL` + `supports_precomputed_kernel=True`);
 3. **LS-SVM com Resolvedor de Sistema Linear Quântico** (`ModelFamily.QUANTUM_SOLVER`).
 
-Como o `experimental-ml` é agnóstico a domínio (`RNF02`) e a estimadores (`ADR-001`), todas as variantes competem sobre **exatamente o mesmo `PartitionPlan`** e são avaliadas por métricas consagradas em inventário florestal (`rmse`, `rmse_rel_pct`, `mbe` e `r2`).
+Como o `experimental-ml` é agnóstico a domínio e a estimadores, todas as variantes competem sobre **exatamente o mesmo `PartitionPlan`** e são avaliadas por métricas consagradas em inventário florestal (`rmse`, `rmse_rel_pct`, `mbe` e `r2`).
 
 ---
 
@@ -124,7 +124,7 @@ specs = [
             capabilities=ModelCapabilities(requires_fit=True),
             parameters={"kernel_mode": "solver_quantico", "gamma": 0.01, "reg": 10.0},
             description="LS-SVM com resolução do sistema KKT via solver quântico",
-            scientific_justification="Ablação do impacto numérico do solver linear",
+            scientific_justification="Avaliação do impacto numérico do solver linear",
         )
     ),
 ]
@@ -139,7 +139,7 @@ assert len(specs) == 3 and len(plan.folds) == 4
 
 ---
 
-## Boas Práticas em Estudos de Ablação
+## Boas Práticas em Estudos Comparativos de Variantes
 
 - **Controle de Variáveis:** Mantenha idênticos o `FeatureScenario`, o `PartitionPlan` e a métrica principal ao comparar variantes do mesmo algoritmo.
 - **Viés em Regressão (`mbe`):** Ao utilizar `mbe` (*Mean Bias Error*) na prognose florestal, lembre-se que o catálogo do `experimental-ml` avalia `mbe` com `compare_by_abs=True` (quanto mais próximo de zero em módulo, melhor).

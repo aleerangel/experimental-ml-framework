@@ -22,7 +22,7 @@ Este marco resolve essas lacunas preservando integralmente os contratos M1–M7,
 
 ## Assumptions & Open Questions
 
-**Open questions:** none - o diagnóstico completo, as evidências do teste real e o plano priorizado estão registrados em `AUDITORIA_USABILIDADE.md`, `JORNADA_PESQUISADOR.md` e `PLANO_MELHORIAS_USABILIDADE.md`, aguardando homologação do usuário antes da implementação.
+**Open questions:** none - o diagnóstico completo, as evidências do teste real e o plano priorizado estão registrados em `AUDITORIA_USABILIDADE.md`, `JORNADA_PESQUISADOR.md` e `PLANO_MELHORIAS_USABILIDADE.md` (homologado e verificado em 2026-11-17; os requisitos diagnósticos `USAB-01..07` de `PLANO_MELHORIAS_USABILIDADE.md` consolidam-se nos requisitos verificados `USAB-01..03` desta especificação, formalizando este marco como `TA-POS.3` e reservando `TA-POS.4` para a validação externa `CA02`).
 
 | Assumption / Question | Chosen default | Rationale |
 | --- | --- | --- |

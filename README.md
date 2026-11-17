@@ -77,7 +77,7 @@ expml report export --experiment-dir exp_dir --mode full_package --output-dir pa
   - [Validação Cruzada Agrupada (`GroupKFold`) com Holdout Isolado](docs/guias_praticos/03_validacao_cruzada_agrupada_holdout.md)
   - [Otimização Multiobjetivo na Fronteira de Pareto](docs/guias_praticos/04_otimizacao_pareto_multiobjetivo.md)
   - [Pacotes Herméticos e Auditoria SHA-256 para Conferências](docs/guias_praticos/05_pacotes_reprodutibilidade_conferencias.md)
-  - [Variações do Mesmo Algoritmo (LS-SVM em Prognose Florestal)](docs/guias_praticos/06_ablacao_variantes_algoritmo_lssvm.md)
+  - [Variações do Mesmo Algoritmo (LS-SVM em Prognose Florestal)](docs/guias_praticos/06_variantes_algoritmo_lssvm.md)
   - [Cenários de Features Fixos vs. Dinâmicos e Estabilidade](docs/guias_praticos/07_cenarios_features_estabilidade.md)
   - [Fluxo Desacoplado para Jupyter Notebooks e Relatórios sem Retreino](docs/guias_praticos/08_fluxo_desacoplado_jupyter_relatorios.md)
   - [Inferência Estatística na Prática e Controle de Multiplicidade](docs/guias_praticos/09_inferencia_estatistica_na_pratica.md)
@@ -89,7 +89,7 @@ expml report export --experiment-dir exp_dir --mode full_package --output-dir pa
 
 ### Referência Técnica
 - **[Schemas JSON da CLI `expml`](docs/referencia/cli_schemas_json.md):** Modelos exatos de `schema.json`, `rules.json`, `scenarios.json`, `models.json` e `partition.json`.
-- **[Catálogo da API Python Pública](docs/referencia/api_python.md):** Assinaturas e contratos dos 11 pacotes públicos exportados.
+- **[Catálogo da API Python Pública](docs/referencia/api_python.md):** Fachada `run_experiment` e contratos dos 11 subpacotes públicos exportados.
 - **[Catálogo Completo da CLI `expml`](docs/referencia/cli_catalogo.md):** Comandos, subcomandos e convenção oficial de códigos de saída (`0`, `1`, `2`).
 
 ### Engenharia, Arquitetura e Fundamentação
