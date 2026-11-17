@@ -1,4 +1,4 @@
-# Experimental ML Framework (`experimental-ml`)
+# Experimental ML Framework 
 
 ![Python](https://img.shields.io/badge/Python-%3E%3D3.10-blue)
 ![NumPy](https://img.shields.io/badge/Runtime-Pure%20Python%20%2B%20NumPy-green)
