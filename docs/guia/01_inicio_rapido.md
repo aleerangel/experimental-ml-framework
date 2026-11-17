@@ -1,69 +1,67 @@
-# Início Rápido em 5 Passos
+# Início Rápido: Básico vs. Controle Granular *(Nível 1)*
 
-Este guia mostra como instalar o `experimental-ml` e conduzir seu primeiro experimento científico reprodutível em **5 passos operacionais**, tanto pela interface de linha de comando (`expml`) quanto pela API Python pura.
+Este guia mostra os dois modos de operar o `experimental-ml`: o **Modo Básico** (mínimo necessário para rodar um experimento completo) e o **Modo Granular / Avançado** (controle explícito etapa por etapa).
 
 ---
 
-## Passo 1: Instalação
+## Parte 1 — Modo Básico *(O Mínimo Necessário)*
 
-O framework possui núcleo em Python padrão e `numpy` (`XCUT-02`), sem dependências pesadas obrigatórias em runtime. Instale em ambiente virtual ativo:
-
+### Instalação
 ```bash
 pip install -e .
 expml --version
 ```
 
+### Pelo Terminal (2 Comandos)
+```bash
+expml init --output-dir exp_demo --task binary_classification
+expml quickrun --experiment-dir exp_demo
+```
+
+### Por Python (Chamada Única)
+Para um experimento padrão com 3 modelos, semente determinística e métricas personalizadas, basta passar um dicionário de modelos para `run_experiment` (veja os detalhes passo a passo em [Começando do Zero](00_comecando_do_zero.md) ou execute diretamente no [Notebook 01](../../notebooks/01_primeiro_experimento_do_zero.ipynb)).
+
 ---
 
-## Passo 2: Preparação e Diagnóstico dos Dados (Etapa 1)
+## Quando Migrar do Modo Básico para o Controle Granular (Avançado)?
 
-Gere o diagnóstico estrutural da base (`profile`) e aplique um plano de saneamento (`sanitize`) a partir dos arquivos JSON declarativos de esquema e regras:
+| Necessidade do Seu Projeto | Use o Modo Básico (`run_experiment` / `quickrun`) | Migre para o Controle Granular (Parte 2) |
+| :--- | :---: | :---: |
+| Comparar modelos em `KFold` / `StratifiedKFold` / `GroupKFold` | Sim | Opcional |
+| Definir seleção dinâmica intra-fold (`TOP_K_RELEVANCE`) e pré-processamento em 2 camadas | — | **Sim** |
+| Configurar busca aninhada de hiperparâmetros (*Nested CV*) | — | **Sim** |
+| Retomar execuções longas interrompidas (`expml run resume`) | — | **Sim** |
+| Exportar tabelas `LaTeX`, figuras `SVG` e pacote hermético SHA-256 (`expml report export`) | — | **Sim** |
+
+---
+
+## Parte 2 — Controle Granular Etapa por Etapa *(Avançado)*
+
+### Fluxo na CLI `expml`
+> Antes de executar os comandos abaixo manualmente, use `expml init` para gerar os arquivos JSON ou consulte [Schemas JSON da CLI](../referencia/cli_schemas_json.md).
 
 ```bash
+# Etapa 1: Diagnóstico e saneamento (--rules é opcional se não houver achados críticos)
 expml data profile --data dados.csv --schema schema.json --output-dir exp_demo
-expml data sanitize --experiment-dir exp_demo --rules regras.json
-```
+expml data sanitize --experiment-dir exp_demo
 
----
+# Etapas 2, 3 e 4A: Exploração, cenários, modelos e partições
+expml features explore --experiment-dir exp_demo
+expml features scenarios --experiment-dir exp_demo --scenarios scenarios.json
+expml models validate --experiment-dir exp_demo --models models.json
+expml partition build --experiment-dir exp_demo --config partition.json --seed 42
 
-## Passo 3: Particionamento, Features e Modelos (Etapas 2, 3 e 4A)
-
-Defina os cenários de atributos, valide o catálogo de modelos e gere o plano de particionamento compartilhado (com semente determinística):
-
-```bash
-expml features scenarios --experiment-dir exp_demo --scenarios cenarios.json
-expml models validate --experiment-dir exp_demo --models modelos.json
-expml partition build --experiment-dir exp_demo --config particao.json --seed 42
-```
-
----
-
-## Passo 4: Execução Matricial e Consolidação Estatística (Etapas 4B e 5)
-
-Execute toda a matriz `(modelo x cenário x fold)` em modo tolerante a falhas e rode a consolidação descritiva e inferência estatística:
-
-```bash
-expml run start --experiment-dir exp_demo --error-policy fault_tolerant
+# Etapas 4B, 5 e 6: Execução, estatística e pacote de reprodutibilidade
+expml run start --experiment-dir exp_demo --error-policy fault_tolerant --metrics accuracy f1
 expml stats run --experiment-dir exp_demo
-```
-
----
-
-## Passo 5: Relatório Científico e Pacote de Reprodutibilidade (Etapa 6)
-
-Gere o relatório offline (`markdown`/`html`/`both`), tabelas (`CSV`/`LaTeX`) e o pacote portátil auditável por checksums SHA-256:
-
-```bash
 expml report generate --experiment-dir exp_demo --format both --audience FULL_LAB
 expml report export --experiment-dir exp_demo --mode full_package --output-dir pacote_final
 expml report verify --experiment-dir pacote_final
 ```
 
----
+### Exemplo Completo Granular em Python *(Smoke Test)*
 
-## Exemplo Completo Executável em Python (Smoke Test)
-
-O script abaixo executa todo o fluxo científico em memória/disco temporário utilizando apenas a API pública do framework:
+Quando precisar controlar cada estrutura declarativa em Python (`DatasetSchemaSpec`, `FeatureScenario`, `ModelSpec`, `PartitionPlan`, `run_experiment_matrix`):
 
 ```python
 # executable-smoke-test
@@ -166,5 +164,5 @@ assert len(consolidation.configurations) == 1
 
 ## Próximos Passos
 
-- Para dominar os fundamentos teóricos, portões de estágio e prevenção de *data leakage*, siga para o [Tutorial Passo a Passo das 6 Etapas](02_tutorial_6_etapas.md).
-- Para cenários avançados, consulte os [Guias Práticos](../guias_praticos/01_modelos_analiticos_vs_treinados.md).
+- Para entender cada uma das 6 etapas (com o que é básico vs. avançado em cada uma), siga para o [Tutorial Passo a Passo das 6 Etapas](02_tutorial_6_etapas.md).
+- Para interpretar métricas, testes pareados e gerar citações para seu artigo/TCC, veja [Interpretando Resultados Científicos](03_interpretando_resultados.md).

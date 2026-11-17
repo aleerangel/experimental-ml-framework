@@ -79,12 +79,20 @@ def handle_run_start(args: argparse.Namespace) -> int:
         auto_consolidate = not bool(getattr(args, "no_oof", False))
         master_seed = getattr(partition_plan.config, "master_seed", 42)
         from experimental_ml.core.enums import TaskType
+        from experimental_ml.metrics.catalog import get_metric_spec
 
         default_metrics = (
             ("rmse", "mae", "r2")
             if sanitized_view.schema.task_type == TaskType.REGRESSION
             else ("accuracy", "balanced_accuracy", "f1")
         )
+        raw_metrics = getattr(args, "metrics", None)
+        if raw_metrics:
+            for m_id in raw_metrics:
+                get_metric_spec(m_id)
+            selected_metrics = tuple(raw_metrics)
+        else:
+            selected_metrics = default_metrics
 
         # 4. Dispatch matrix execution
         try:
@@ -94,7 +102,7 @@ def handle_run_start(args: argparse.Namespace) -> int:
                 partition_plan=partition_plan,
                 sanitized_view=sanitized_view,
                 run_dir=run_dir,
-                metrics=default_metrics,
+                metrics=selected_metrics,
                 master_seed=master_seed,
                 error_policy=error_policy,
                 outer_n_jobs=n_workers,
@@ -123,6 +131,20 @@ def handle_run_start(args: argparse.Namespace) -> int:
     except ValueError as exc:
         sys.stderr.write(f"Error: {exc}\n")
         return 2
+
+
+def _resolve_run_dir(args: argparse.Namespace) -> Path:
+    """Resolve run directory from --run-dir or --experiment-dir."""
+    from pathlib import Path
+    from experimental_ml.core.findings import ConfigurationError
+
+    raw_run = getattr(args, "run_dir", None)
+    if raw_run:
+        return Path(raw_run).resolve()
+    raw_exp = getattr(args, "experiment_dir", None)
+    if raw_exp:
+        return (Path(raw_exp).resolve() / "runs").resolve()
+    raise ConfigurationError("Provide either --run-dir or --experiment-dir.")
 
 
 def handle_run_resume(args: argparse.Namespace) -> int:
@@ -156,7 +178,7 @@ def handle_run_resume(args: argparse.Namespace) -> int:
     from experimental_ml.validation.codecs import partition_plan_from_dict
 
     try:
-        run_dir = Path(args.run_dir).resolve()
+        run_dir = _resolve_run_dir(args)
         if not run_dir.exists() or not (run_dir / "execution_state.json").exists():
             raise ConfigurationError(
                 f"Run directory '{run_dir}' does not exist or lacks execution_state.json"
@@ -243,7 +265,7 @@ def handle_run_status(args: argparse.Namespace) -> int:
     from experimental_ml.orchestration import load_execution_state
 
     try:
-        run_dir = Path(args.run_dir).resolve()
+        run_dir = _resolve_run_dir(args)
         if not run_dir.exists() or not (run_dir / "execution_state.json").exists():
             raise ConfigurationError(
                 f"Run directory '{run_dir}' does not exist or lacks execution_state.json"
@@ -295,7 +317,7 @@ def handle_run_verify(args: argparse.Namespace) -> int:
     from experimental_ml.stages.stage_gates import verify_runs_gate
 
     try:
-        run_dir = Path(args.run_dir).resolve()
+        run_dir = _resolve_run_dir(args)
         if not run_dir.exists():
             raise ConfigurationError(f"Run directory not found at '{run_dir}'")
 

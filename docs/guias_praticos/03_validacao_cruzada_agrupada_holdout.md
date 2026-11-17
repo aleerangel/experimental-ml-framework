@@ -2,6 +2,9 @@
 
 ## Contexto Científico
 
+> [!TIP]
+> Para um exemplo guiado mais simples usando apenas `run_experiment(..., group_col="paciente_id")`, veja o [Notebook 02 — Classificação e Grupos na Prática](../../notebooks/02_classificacao_e_grupos_na_pratica.ipynb).
+
 Em estudos longitudinais, clínicos ou biométricos, múltiplas amostras (exames, sessões, medições temporais) pertencem a um mesmo sujeito ou paciente (`group_col`). Se observações de um mesmo indivíduo forem distribuídas entre treino e validação ou entre desenvolvimento e *holdout*, o modelo memorizará características do indivíduo, inflando artificialmente as métricas (*subject leakage*).
 
 O `experimental-ml` garante matematicamente o isolamento completo em dois níveis quando configurado com `PartitionStrategy.GROUP_KFOLD` e `EvaluationRegime.CV_AND_HOLDOUT`:

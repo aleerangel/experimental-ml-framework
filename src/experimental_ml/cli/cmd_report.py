@@ -85,7 +85,10 @@ def handle_report_generate(args: argparse.Namespace) -> int:
                 "status": "GENERATED",
                 "experiment_id": loaded.experiment_id,
                 "audience": sel.audience.value,
+                "output_dir": str(out_dir),
                 "files": written,
+                "file_paths": [str(out_dir / f) for f in written],
+                "note": "Para gerar tabelas (CSV/MD/LaTeX) e figuras (SVG/PNG/PDF), execute: expml report export",
             },
             indent=2,
         )

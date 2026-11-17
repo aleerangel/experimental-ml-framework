@@ -13,9 +13,20 @@ from experimental_ml import __version__
 from experimental_ml.core.findings import ExperimentalMLError
 
 
+class _ExpMLParser(argparse.ArgumentParser):
+    """ArgumentParser enforcing at least one of --run-dir or --experiment-dir when configured."""
+
+    def parse_known_args(self, args=None, namespace=None):  # type: ignore[override]
+        ns, rest = super().parse_known_args(args, namespace)
+        if getattr(self, "_require_run_or_exp", False):
+            if not getattr(ns, "run_dir", None) and not getattr(ns, "experiment_dir", None):
+                self.error("one of the arguments --run-dir or --experiment-dir is required")
+        return ns, rest
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the hierarchical command-line argument parser."""
-    parser = argparse.ArgumentParser(
+    parser = _ExpMLParser(
         prog="expml",
         description="Experimental ML Framework - CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -28,6 +39,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     subparsers = parser.add_subparsers(dest="command", metavar="<command>")
+
+    # --- init command ---
+    init_p = subparsers.add_parser("init", help="Create a starter experiment directory with example CSV and JSON configs.")
+    init_p.add_argument("--output-dir", required=True, help="Destination directory for starter project.")
+    init_p.add_argument(
+        "--task",
+        choices=["regression", "binary_classification", "multiclass_classification"],
+        default="regression",
+        help="Target task type for starter templates (default: regression).",
+    )
+    init_p.add_argument("--force", action="store_true", help="Overwrite existing starter files.")
+
+    # --- quickrun command ---
+    qr_p = subparsers.add_parser("quickrun", help="Run Stages 1-6 sequentially from an initialized experiment directory.")
+    qr_p.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", required=True, help="Path to initialized experiment directory.")
+    qr_p.add_argument("--data", default=None, help="Optional custom CSV path (default: <experiment-dir>/dados_exemplo.csv).")
+    qr_p.add_argument("--metrics", nargs="+", default=None, help="Optional list of metric IDs to evaluate.")
+    qr_p.add_argument("--force", action="store_true", default=True, help="Overwrite existing outputs (default: True).")
 
     # --- data command ---
     data_parser = subparsers.add_parser("data", help="Data ingestion, profiling and sanitization.")
@@ -43,7 +72,7 @@ def build_parser() -> argparse.ArgumentParser:
     # data sanitize
     sanitize_p = data_subparsers.add_parser("sanitize", help="Apply preparation rules and create sanitized view.")
     sanitize_p.add_argument("--experiment-dir", required=True, help="Path to experiment directory.")
-    sanitize_p.add_argument("--rules", required=True, help="Path to preparation rules JSON file.")
+    sanitize_p.add_argument("--rules", default=None, help="Optional path to preparation rules JSON file (defaults to [] if no confirmed issues).")
     sanitize_p.add_argument("--force", action="store_true", help="Overwrite existing output artifacts.")
 
     # --- partition command ---
@@ -120,15 +149,23 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Disable automatic out-of-fold predictions consolidation.",
     )
+    run_start_p.add_argument(
+        "--metrics",
+        nargs="+",
+        default=None,
+        help="Optional list of metric IDs from METRICS_CATALOG (defaults to task-appropriate metrics).",
+    )
     run_start_p.add_argument("--force", action="store_true", help="Overwrite existing execution directory if present.")
 
     # run resume
     run_resume_p = run_subparsers.add_parser("resume", help="Resume an interrupted experiment execution.")
-    run_resume_p.add_argument("--run-dir", required=True, help="Path to run directory containing execution_state.json.")
+    run_resume_p._require_run_or_exp = True  # type: ignore[attr-defined]
+    run_resume_p.add_argument("--run-dir", default=None, help="Path to run directory containing execution_state.json.")
     run_resume_p.add_argument(
-        "--experiment-dir",
+        "--experiment-dir", "--exp-dir",
+        dest="experiment_dir",
         default=None,
-        help="Optional path to experiment directory (inferred from run-dir if not provided).",
+        help="Path to experiment directory (infers <experiment-dir>/runs if --run-dir omitted).",
     )
     run_resume_p.add_argument(
         "-j", "--jobs", "--parallel",
@@ -146,11 +183,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     # run status
     run_status_p = run_subparsers.add_parser("status", help="Inspect current progress of an experiment execution.")
-    run_status_p.add_argument("--run-dir", required=True, help="Path to run directory containing execution_state.json.")
+    status_grp = run_status_p.add_mutually_exclusive_group(required=True)
+    status_grp.add_argument("--run-dir", default=None, help="Path to run directory containing execution_state.json.")
+    status_grp.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", default=None, help="Path to experiment directory (infers <experiment-dir>/runs).")
 
     # run verify
     run_verify_p = run_subparsers.add_parser("verify", help="Verify stage 4 execution and OOF gates.")
-    run_verify_p.add_argument("--run-dir", required=True, help="Path to run directory containing execution_state.json.")
+    verify_grp = run_verify_p.add_mutually_exclusive_group(required=True)
+    verify_grp.add_argument("--run-dir", default=None, help="Path to run directory containing execution_state.json.")
+    verify_grp.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", default=None, help="Path to experiment directory (infers <experiment-dir>/runs).")
 
     # --- stats command ---
     stats_parser = subparsers.add_parser("stats", help="Stage 5 statistical consolidation and inference.")
@@ -229,11 +270,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.print_help()
         return 0
 
-    if getattr(args, "subcommand", None) is None:
+    if args.command not in {"init", "quickrun"} and getattr(args, "subcommand", None) is None:
         sys.stderr.write(f"Error: subcommand required for '{args.command}'\n")
         return 2
 
     try:
+        if args.command == "init":
+            from experimental_ml.cli.cmd_init import handle_init
+
+            return handle_init(args)
+        if args.command == "quickrun":
+            from experimental_ml.cli.cmd_init import handle_quickrun
+
+            return handle_quickrun(args)
         if args.command == "data":
             from experimental_ml.cli.cmd_data import handle_data_profile, handle_data_sanitize
 
