@@ -49,5 +49,5 @@ So that I can learn and adapt rigorous experimental workflows interactively.
 
 | Requirement ID | Acceptance Criteria | Target Component | Status |
 | --- | --- | --- | --- |
-| NB-01 | AC-NB-01-01 | `tests/unit/test_notebooks_execution.py` | pending |
-| NB-02 | AC-NB-02-01, AC-NB-02-02, AC-NB-02-03, AC-NB-02-04, AC-NB-02-05 | `notebooks/*.ipynb`, `README.md`, `docs/README.md` | pending |
+| NB-01 | AC-NB-01-01 | `tests/unit/test_notebooks_execution.py` | verified |
+| NB-02 | AC-NB-02-01, AC-NB-02-02, AC-NB-02-03, AC-NB-02-04, AC-NB-02-05 | `notebooks/*.ipynb`, `README.md`, `docs/README.md` | verified |

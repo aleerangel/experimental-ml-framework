@@ -60,6 +60,8 @@ expml report export --experiment-dir exp_dir --mode full_package --output-dir pa
   - [Cenários de Features Fixos vs. Dinâmicos e Estabilidade](docs/guias_praticos/07_cenarios_features_estabilidade.md)
   - [Fluxo Desacoplado para Jupyter Notebooks e Relatórios sem Retreino](docs/guias_praticos/08_fluxo_desacoplado_jupyter_relatorios.md)
   - [Inferência Estatística na Prática e Controle de Multiplicidade](docs/guias_praticos/09_inferencia_estatistica_na_pratica.md)
+- **Notebooks Interativos (`notebooks/`):**
+  - [Tour das 6 Etapas](notebooks/01_tour_6_etapas.ipynb) | [Ablação LS-SVM (Prognose Florestal)](notebooks/02_ablacao_lssvm_prognose_florestal.ipynb) | [GroupKFold e Bloqueios](notebooks/03_validacao_agrupada_e_prevencao_leakage.ipynb) | [Pós-Experimento LaTeX/SVG](notebooks/04_pos_experimento_relatorios_artigo.ipynb)
 
 ### Referência Técnica
 - **[Catálogo da API Python Pública](docs/referencia/api_python.md):** Assinaturas e contratos dos 11 pacotes públicos exportados.
@@ -88,6 +90,7 @@ experimental-ml-framework/
 │   ├── referencia/                      # Catálogos de API Python e CLI expml
 │   ├── engenharia_software/             # SRS, arquitetura, contratos e aceite de marcos
 │   └── REFERENCIAS_E_FUNDAMENTACAO.md   # Fundamentação teórica, bibliografia e ADRs
+├── notebooks/                           # Notebooks Jupyter interativos (.ipynb)
 ├── src/
 │   └── experimental_ml/                 # Pacote da biblioteca (layout src/)
 │       ├── cli/                         # Interface de linha de comando (Nível 7)

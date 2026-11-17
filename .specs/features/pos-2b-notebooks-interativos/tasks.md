@@ -7,7 +7,7 @@ Implement these tasks with the `tlc-spec-driven` skill.
 ---
 
 **Design**: `.specs/features/pos-2b-notebooks-interativos/design.md`  
-**Status**: In Progress  
+**Status**: Completed  
 **Approved**: 2026-11-16 - user: "Vamos fazer isso agora"  
 **Build**: none - Notebooks JSON nbformat 4.5 e testes pytest  
 **Run unit**: .venv/bin/pytest tests/unit/test_notebooks_execution.py -v  
@@ -86,7 +86,7 @@ T1 --> T3 --> T4
 
 ### Phase 4: Navegação e Fechamento
 
-#### T4: Atualizar `README.md` e `docs/README.md` com seção de Notebooks e validar suíte completa [ ]
+#### T4: Atualizar `README.md` e `docs/README.md` com seção de Notebooks e validar suíte completa [x]
 
 **What**: Adicionar links para `notebooks/` em `README.md` e `docs/README.md` e executar toda a suíte `pytest tests/ -q`.  
 **Where**: `README.md`  
