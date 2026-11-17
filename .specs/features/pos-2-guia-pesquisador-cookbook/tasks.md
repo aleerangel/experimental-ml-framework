@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/pos-2-guia-pesquisador-cookbook/design.md`  
-**Status**: In Progress  
+**Status**: Completed  
 **Approved**: 2026-11-16 - user: "aprovado"  
 **Build**: none - Python interpreted package and Markdown GFM documentation; quality verified via pytest gates  
 **Run unit**: .venv/bin/pytest tests/unit/test_documentation_integrity.py -v  
@@ -123,7 +123,7 @@ T4 --> T5
 
 ### Phase 4: Limpeza do README.md e Fechamento
 
-#### T5: Enxugar `README.md`, validar integridade total e executar suíte completa de testes [ ]
+#### T5: Enxugar `README.md`, validar integridade total e executar suíte completa de testes [x]
 
 **What**: Reestrurar `README.md` removendo blocos longos de código e detalhamento de engenharia/requisitos, mantendo badges, proposta de valor, instalação em 1 linha, fluxo CLI resumido de 1 linha e tabela completa de navegação para `docs/`, `engenharia_software/` e `REFERENCIAS_E_FUNDAMENTACAO.md`. Executar toda a suíte `pytest tests/ -q` e validar pureza `XCUT-02`.  
 **Where**: `README.md`  
@@ -154,5 +154,5 @@ Proof: run unit | tests/unit/test_documentation_integrity.py::test_readme_lean_s
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T5
-- **Next Task:** Done
+- **Current Task:** Completed
+- **Next Task:** Independent Verification

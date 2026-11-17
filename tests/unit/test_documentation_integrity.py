@@ -249,3 +249,18 @@ def test_cli_blocks_and_quickstart_smoke_execution(tmp_path: Path) -> None:
             exec(compiled, exec_globals)
         except Exception as exc:
             pytest.fail(f"Falha ao executar smoke-test '{label}': {exc}")
+
+
+def test_readme_lean_structure_and_pointers() -> None:
+    """Nível estrutural (Check C4): README.md enxuto, sem código Python e com ponteiros úteis."""
+    content = README_PATH.read_text(encoding="utf-8")
+    lines = content.splitlines()
+    assert len(lines) <= 120, f"README.md deve ser enxuto (<= 120 linhas), possui {len(lines)}."
+    assert "```python" not in content, "README.md não deve conter blocos de código Python."
+    for required_target in (
+        "docs/README.md",
+        "engenharia_software/ARQUITETURA_E_CONTRATOS.md",
+        "REFERENCIAS_E_FUNDAMENTACAO.md",
+    ):
+        assert required_target in content, f"README.md deve apontar para '{required_target}'."
+
