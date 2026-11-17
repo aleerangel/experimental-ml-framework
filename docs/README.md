@@ -26,13 +26,14 @@ Bem-vindo ao portal oficial do **Experimental ML Framework (`experimental-ml`)**
 
 ### Jornada 2 — Construindo Experimentos
 - `[Intermediário]` **[Tutorial Passo a Passo das 6 Etapas](guia/02_tutorial_6_etapas.md)** — O mínimo obrigatório vs. opções avançadas em cada uma das 6 etapas.
+- `[Intermediário]` **[Notebook 03: Tour Completo pelas 6 Etapas](../notebooks/03_tour_6_etapas.ipynb)** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/03_tour_6_etapas.ipynb)
 - `[Avançado]` **[Schemas JSON da CLI `expml`](referencia/cli_schemas_json.md)** — Modelos exatos para uso granular pela linha de comando.
 - `[Avançado]` **[Catálogo Completo da CLI `expml`](referencia/cli_catalogo.md)** — Todos os comandos, opções e códigos de saída (`0`, `1`, `2`).
 - `[Avançado]` **[Guia Prático 3: Validação Cruzada Agrupada (`GroupKFold`) e Holdout](guias_praticos/03_validacao_cruzada_agrupada_holdout.md)** *(veja também o [Notebook 02](../notebooks/02_classificacao_e_grupos_na_pratica.ipynb))*
 
 ### Jornada 3 — Interpretando Resultados Científicos
 - `[Básico → Avançado]` **[Interpretando Resultados Científicos](guia/03_interpretando_resultados.md)** — Leitura básica de métricas + guia estatístico completo com citações bibliográficas para artigos e TCCs.
-- `[Avançado]` **[Guia Prático 9: Inferência Estatística na Prática](guias_praticos/09_inferencia_estatistica_na_pratica.md)** *(exemplos visuais de saída no [Notebook 03](../notebooks/03_avancado_variantes_lssvm_prognose_florestal.ipynb))*
+- `[Avançado]` **[Guia Prático 9: Inferência Estatística na Prática](guias_praticos/09_inferencia_estatistica_na_pratica.md)** *(exemplos visuais de saída no [Notebook 04](../notebooks/04_avancado_variantes_lssvm_prognose_florestal.ipynb))*
 
 ### Jornada 4 — Recursos Avançados
 - `[Avançado]` **[Referência da API Python Pública](referencia/api_python.md)** — Os 11 pacotes públicos exportados.
@@ -43,7 +44,7 @@ Bem-vindo ao portal oficial do **Experimental ML Framework (`experimental-ml`)**
 - `[Avançado]` **[Guia Prático 6: Variações do Mesmo Algoritmo — LS-SVM em Prognose Florestal](guias_praticos/06_ablacao_variantes_algoritmo_lssvm.md)**
 - `[Avançado]` **[Guia Prático 7: Cenários de Features Fixos vs. Dinâmicos e Estabilidade](guias_praticos/07_cenarios_features_estabilidade.md)**
 - `[Avançado]` **[Guia Prático 8: Fluxo Desacoplado para Jupyter Notebooks e Relatórios sem Retreino](guias_praticos/08_fluxo_desacoplado_jupyter_relatorios.md)**
-- `[Avançado]` **[Notebook 03: Vitrine Avançada — Variantes do LS-SVM em Prognose Florestal](../notebooks/03_avancado_variantes_lssvm_prognose_florestal.ipynb)** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/03_avancado_variantes_lssvm_prognose_florestal.ipynb)
+- `[Avançado]` **[Notebook 04: Vitrine Avançada — Variantes do LS-SVM em Prognose Florestal](../notebooks/04_avancado_variantes_lssvm_prognose_florestal.ipynb)** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/04_avancado_variantes_lssvm_prognose_florestal.ipynb)
 
 ### Jornada 5 — Desenvolvimento e Engenharia Interna
 - [Arquitetura e Contratos Técnicos](engenharia_software/ARQUITETURA_E_CONTRATOS.md)

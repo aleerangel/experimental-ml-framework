@@ -4,6 +4,9 @@ O `experimental-ml` organiza todo experimento científico em **6 etapas metodol�
 - No **Modo Básico** (`run_experiment(...)` em Python ou `expml quickrun` na CLI), o framework executa todas as 6 etapas automaticamente com configurações seguras.  
 - No **Modo Avançado** (APIs modulares ou subcomandos individuais da CLI), você pode customizar cada etapa detalhadamente.
 
+> [!TIP]
+> Para acompanhar todas as 6 etapas executando passo a passo em código vivo, abra o [Notebook 03 — Tour Completo pelas 6 Etapas](../../notebooks/03_tour_6_etapas.ipynb).
+
 ```mermaid
 flowchart LR
     E1["Etapa 1<br/>Entrada, Triagem e<br/>Diagnóstico"] --> E2["Etapa 2<br/>Exploração e Cenários<br/>de Features"]

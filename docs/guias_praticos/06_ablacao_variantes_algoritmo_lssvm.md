@@ -1,7 +1,7 @@
 # Guia Prático 6: Variações do Mesmo Algoritmo — LS-SVM em Prognose Florestal
 
 > [!TIP]
-> Este estudo completo — incluindo geração de relatórios, tabelas LaTeX e gráficos SVG — está disponível pronto para executar no [Notebook 03 — Variantes do LS-SVM em Prognose Florestal](../../notebooks/03_avancado_variantes_lssvm_prognose_florestal.ipynb).
+> Este estudo completo — incluindo geração de relatórios, tabelas LaTeX e gráficos SVG — está disponível pronto para executar no [Notebook 04 — Variantes do LS-SVM em Prognose Florestal](../../notebooks/04_avancado_variantes_lssvm_prognose_florestal.ipynb).
 
 ## Contexto Científico
 
