@@ -58,7 +58,7 @@ T1 --> T3 --> T4
 
 ### Phase 2: Notebooks 01 e 02
 
-#### T2: Criar `01_tour_6_etapas.ipynb` e `02_ablacao_lssvm_prognose_florestal.ipynb` [ ]
+#### T2: Criar `01_tour_6_etapas.ipynb` e `02_ablacao_lssvm_prognose_florestal.ipynb` [x]
 
 **What**: Gerar os dois primeiros notebooks interativos completos cobrindo o tour das 6 etapas e o estudo de ablação LS-SVM em prognose florestal.  
 **Where**: `notebooks/`  
@@ -111,5 +111,5 @@ Proof: run unit | tests/unit/test_documentation_integrity.py::test_markdown_link
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T2
-- **Next Task:** T3
+- **Current Task:** T3
+- **Next Task:** T4
