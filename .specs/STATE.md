@@ -205,18 +205,23 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-023
+- **Decision**: Implementação do marco pós-MVP `pos-3-usabilidade-acessibilidade-pesquisador` (`USAB-01` a `USAB-03`): camada aditiva de usabilidade sem remoção de contratos M1–M7 (`expml init`, `expml quickrun`, `--rules` opcional, `--metrics` em `run start`, `--experiment-dir` unificado em `run {status,verify,resume}`, fachada Python `experimental_ml.run_experiment(...)` via PEP 562 e reorganização documental pelas 5 Jornadas).
+- **Reason**: Permitir que pesquisadores e alunos de IC sem experiência prévia em CLIs, JSONs ou na arquitetura interna conduzam experimentos científicos completos em 10 linhas de Python ou 2 comandos CLI, mantendo rigor anti-leakage e pureza `XCUT-02`.
+- **Trade-off**: `run_experiment` encapsula as Etapas 1–6 com defaults explícitos, mantendo integralmente os módulos puros subjacentes para estudos avançados.
+- **Scope**: `src/experimental_ml/__init__.py`, `pipeline.py`, `cli/`, `docs/`, `README.md` e `tests/unit/test_usability_cli_and_facade.py`.
+- **Date**: 2026-11-17
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: pos-2-guia-pesquisador-cookbook (`TA-POS.2` Concluída e Aceita)
-- **Phase / Task**: `TA-POS.2` concluída com Verificação Independente (`PASS`); pronta para homologação externa `CA02` (`TA-POS.3`).
+- **Feature**: pos-3-usabilidade-acessibilidade-pesquisador (Concluída e Aceita)
+- **Phase / Task**: Concluída com Verificação Independente (`PASS`) e **598 testes** aprovados.
 - **Completed**:
-  - Índice Unificador (`docs/README.md`), Início Rápido em 5 passos (`docs/guia/01_inicio_rapido.md`) e Tutorial das 6 Etapas Oficiais (`docs/guia/02_tutorial_6_etapas.md`).
-  - 5 receitas completas no Scientific Cookbook (`docs/cookbook/01..05`).
-  - Catálogos da API Python pública (11 pacotes) e CLI `expml` com códigos `0`, `1`, `2` (`docs/referencia/`).
-  - Enxugamento do `README.md` e suíte de integridade documental em 5 níveis (`tests/unit/test_documentation_integrity.py`).
-  - `check_proofs.py pos-2-guia-pesquisador-cookbook`: 4 pass, 0 fail.
-  - Suíte completa de testes automatizados: **595 passed**, 100% aprovados via `pytest`.
-- **In-progress**: Nenhuma pendência interna de código ou documentação.
-- **Next step**: Homologação científica externa (`TA-POS.3` / `CA02`), conduzida pelo pesquisador fora do repositório.
+  - Auditoria de usabilidade (`AUDITORIA_USABILIDADE.md`), Jornadas (`JORNADA_PESQUISADOR.md`), Plano (`PLANO_MELHORIAS_USABILIDADE.md`).
+  - `expml init`, `expml quickrun`, `--metrics`, `--rules` opcional, `--experiment-dir` unificado e fachada `run_experiment`.
+  - Guias `00_comecando_do_zero.md`, `03_interpretando_resultados.md`, `cli_schemas_json.md` e `docs/README.md` pelas 5 Jornadas.
+- **In-progress**: none
+- **Next step**: Homologação científica externa (`CA02`) em dados reais pelo pesquisador.
 - **Blockers**: none
-- **Branch**: feat/pos-2-guia-pesquisador-cookbook
+- **Branch**: feat/pos-3-usabilidade-acessibilidade-pesquisador
