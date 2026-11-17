@@ -831,6 +831,42 @@ O Marco M1 é dividido em **quatro entregas sequenciais e independentemente veri
 * **Escopo:** Remoção do alias não-implementado `"MUTUAL_INFO_TOP_K"` restringindo a seleção supervisionada às estratégias validadas da Onda 1, sincronização formal das provas TLC em `proofs.md` e `verification.md`, e confirmação da invariância matemática contra alvos nulos na Onda 1 (`ACH-M3-02`).
 * **Resultados e Verificação:** Parecer formal PASS confirmado com zero erros em `validate_verification.py` e 236 testes aprovados.
 
+#### Entregas M4.1 a M4.4 — Modelos, Pré-processamento em Duas Camadas, Tuning Aninhado e CLI `models` (Concluídas)
+* **Escopo:**
+  * **M4.1 (`models`):** Contratos desacoplados (`ModelSpec`, `ModelCapabilities`, `ModelDiagnostics`), isolamento estrito de instâncias (`instantiate_fresh_model`, `_ActiveInstancesRegistry`), ciclo funcional (`fit_model`, `predict_model`, `extract_model_diagnostics`) e baselines canônicos (`DummyBaselineModel`, `AnalyticalBiometricModel`).
+  * **M4.2 (`preprocessing`):** Pré-processamento em duas camadas (Camada 1: Cenário/Domínio; Camada 2: Modelo/Tecnologia) com ajuste estrito intra-fold, escalonadores em NumPy puro, adaptador de kernel pré-computado sem vazamento e prevenção de duplicação (`validate_two_layer_preprocessing`).
+  * **M4.3 (`tuning`):** Otimização aninhada de hiperparâmetros (`run_nested_tuning`, *Nested CV* com `K_inner ≥ 2`) com Grid e Random Search determinísticos e desqualificação de candidatos degenerados (`UNDEFINED_NAN`).
+  * **M4.4 (Persistência e CLI):** Persistência atômica em `configuration/models.json`, resolução segura de fábricas (`resolve_estimator_factory`), portão `verify_models_gate` e subcomandos `expml models validate` e `expml models verify` (`CLI-10`).
+* **Resultados e Verificação:** Homologação formal sob `.specs/features/m4-*`, totalizando 348 testes automatizados aprovados.
+
+#### Entregas M5.1 a M5.4 — Execução Matricial, Checkpoint, Consolidação OOF e CLI `run` (Concluídas)
+* **Escopo:**
+  * **M5.1 (`orchestration`):** Execução unitária isolada (`CellCoordinate`, `CellExecutionSpec`, `execute_cell`), máquina de estados (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED`), tempos desagregados (`TimingBreakdown`) e persistência atômica por célula.
+  * **M5.2 (Executor Matricial e Checkpoint):** Grade cartesiana (`Modelos × Cenários × Folds`), `run_experiment_matrix` e `resume_experiment_matrix` com `FAULT_TOLERANT` / `FAIL_FAST`, paralelismo configurável (`outer_n_jobs`) e checkpoint incremental.
+  * **M5.3 (Consolidação OOF e Portão Stage 4):** `consolidate_oof_predictions` com ordenação canônica por `ObservationId`, estatísticas de comitê, separação `POOLED_OOF` vs `FOLD_AGGREGATION` e portão `verify_runs_gate`.
+  * **M5.4 (CLI e Saneamento P1 `ACH-M5-01` a `ACH-M5-03`):** Subcomandos `expml run {start,resume,status,verify}` com supressão de tracebacks/hashes (`CLI-06`, `CLI-11`), validação tripartite de hashes na retomada e discriminação de execuções parciais no portão Stage 4.
+* **Resultados e Verificação:** Homologação formal sob `.specs/features/m5-*`, totalizando 471 testes automatizados aprovados.
+
+#### Entregas M6.1 a M6.4 — Comparação Estatística, Fronteira de Pareto, Síntese e CLI `stats` (Concluídas)
+* **Escopo:**
+  * **M6.1 (Consolidação Descritiva e Adequação):** `validate_stage5_entry`, `consolidate_descriptive` (cobertura tripartite `VALID`, `PARTIAL_COVERAGE`, `NO_COVERAGE`) e avaliação de elegibilidade (`evaluate_method_suitability`) com isolamento de `FINAL_HOLDOUT`.
+  * **M6.2 (Inferência Pareada e Multiplicidade):** Distribuição Student-*t* pura em NumPy/Python (`_distributions.py`, `XCUT-02`), `paired_nadeau_bengio_test`, `paired_wilcoxon_test` (DP exata para `n_eff ≤ 20`, alerta `J < 6`), `compute_paired_cohens_d`, ajustes `adjust_pvalues_holm` / `adjust_pvalues_bh` e `run_statistical_comparisons`.
+  * **M6.3 (Pareto, Aquisição e Síntese):** `compute_pareto_frontier` (apenas configurações `VALID`), `score_candidate_acquisition` (`EXPECTED_IMPROVEMENT`, `UCB`, `LCB`, `EXPLOITATION`, `EXPLORATION`) e `synthesize_conclusions` (`StructuredConclusion`).
+  * **M6.4 (Persistência e CLI):** `save_statistics_artifacts` / `load_statistics_artifacts`, portão `verify_statistics_gate` e subcomandos `expml stats {run,status,verify}`.
+* **Resultados e Verificação:** Homologação formal sob `.specs/features/m6-*`, totalizando 548 testes automatizados aprovados.
+
+#### Entregas M7.1 a M7.4 — Relatórios, Figuras, Pacote de Reprodutibilidade e CLI `report` (Concluídas)
+* **Escopo:**
+  * **M7.1 (Leitura Somente-Leitura e Tabelas):** `load_experiment_artifacts_readonly` (`CA-E6-01`), `select_report_content` (`FULL_LAB`, `ARTICLE_COMPACT`, `CUSTOM`), `build_table_model` (famílias A–G com exclusão de `*_hash`) e renderizadores CSV, Markdown e LaTeX `booktabs`.
+  * **M7.2 (Figuras e Relatório Completo):** `build_figure_spec` e `render_figure` em `"svg"`, `"png"` (300 DPI) e `"pdf"` 100% em Python/NumPy puro (`XCUT-02`), e `render_full_report` (Markdown e HTML offline).
+  * **M7.3 (Empacotamento e Portão Stage 6):** `build_reproducibility_package` (`FULL_PACKAGE`, `REDUCED_NO_RAW_DATA`) com `artifact_provenance.json`, `checksums.sha256` relativo, `environment.json`, `seeds.json`, `REPRODUCE.md` e portão `verify_report_gate`.
+  * **M7.4 (CLI e Homologação E2E 1 → 6):** Subcomandos `expml report {generate,export,verify}` e teste E2E completo da Etapa 1 até a Etapa 6.
+* **Resultados e Verificação:** Homologação formal sob `.specs/features/m7-*`, totalizando 581 testes automatizados aprovados.
+
+#### Entregas Pós-MVP (`TA-POS.1`, `TA-POS.2` e Usabilidade/Notebooks) (Concluídas)
+* **Escopo:** Auditoria transversal de invariantes (`TA-POS.1`, zero achados P0/P1 abertos), reorganização pedagógica da documentação (`TA-POS.2`), fachada Python `run_experiment` / `ExperimentRunSummary`, comandos `expml init` / `expml quickrun` e 4 notebooks interativos pré-executados (`01` a `04`).
+* **Resultados e Verificação:** 598 testes automatizados aprovados com 100% de sucesso e zero dependências externas adicionais em runtime (`XCUT-02`).
+
 #### Comandos Reprodutíveis de Instalação, Execução de Testes e Qualidade
 ```bash
 # 1. Criação do ambiente virtual e instalação em modo editável com dependências de teste
@@ -841,7 +877,7 @@ python3 -m venv .venv
 # 2. Verificação empírica das versões instaladas no ambiente
 .venv/bin/python -c "import sys, numpy, pytest; print(sys.version); print('numpy:', numpy.__version__, 'pytest:', pytest.__version__)"
 
-# 3. Execução da suíte completa de testes (591 verificações automatizadas com 100% de sucesso)
+# 3. Execução da suíte completa de testes (598 verificações automatizadas com 100% de sucesso)
 .venv/bin/pytest tests/ -v --tb=short
 
 # 4. Execução de suítes modulares por domínio
