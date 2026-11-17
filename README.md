@@ -62,11 +62,11 @@ expml report export --exp-dir exp_dir --mode FULL_PACKAGE --output-dir pacote_fi
 - **[Catálogo Completo da CLI `expml`](docs/referencia/cli_catalogo.md):** Comandos, subcomandos e convenção oficial de códigos de saída (`0`, `1`, `2`).
 
 ### Engenharia, Arquitetura e Fundamentação
-- **[Arquitetura e Contratos](engenharia_software/ARQUITETURA_E_CONTRATOS.md):** Camadas, contratos formais, portões e plano de marcos.
-- **[Especificação de Requisitos](engenharia_software/ESPECIFICACAO_REQUISITOS.md):** Requisitos funcionais, não funcionais e critérios de aceite.
-- **[Estado Atual de Engenharia](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md):** Registro do estágio atual de evolução do projeto.
-- **[Processo de Aceite de Marcos](engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md):** Governança de homologação e auditoria independente.
-- **[Referências e Fundamentação](REFERENCIAS_E_FUNDAMENTACAO.md):** Base bibliográfica, decisões arquiteturais (ADRs) e estatística.
+- **[Arquitetura e Contratos](docs/engenharia_software/ARQUITETURA_E_CONTRATOS.md):** Camadas, contratos formais, portões e plano de marcos.
+- **[Especificação de Requisitos](docs/engenharia_software/ESPECIFICACAO_REQUISITOS.md):** Requisitos funcionais, não funcionais e critérios de aceite.
+- **[Estado Atual de Engenharia](docs/engenharia_software/ETAPA_ATUAL_ENGENHARIA.md):** Registro do estágio atual de evolução do projeto.
+- **[Processo de Aceite de Marcos](docs/engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md):** Governança de homologação e auditoria independente.
+- **[Referências e Fundamentação](docs/REFERENCIAS_E_FUNDAMENTACAO.md):** Base bibliográfica, decisões arquiteturais (ADRs) e estatística.
 
 ---
 
@@ -77,16 +77,13 @@ experimental-ml-framework/
 ├── .specs/                              # Governança TLC Spec-Driven
 │   ├── STATE.md                         # Decisões arquiteturais ativas e registro de handoff
 │   └── features/                        # Especificações, tarefas, provas e verificações por submarco
-├── docs/                                # Documentação do Pesquisador, Guias Práticos e Referências
+├── docs/                                # Documentação completa do projeto
 │   ├── README.md                        # Índice central e trilha pedagógica
 │   ├── guia/                            # Início rápido e tutorial das 6 etapas
 │   ├── guias_praticos/                  # Guias práticos para cenários avançados
-│   └── referencia/                      # Catálogos de API Python e CLI expml
-├── engenharia_software/                 # Documentação de Engenharia de Software
-│   ├── ESPECIFICACAO_REQUISITOS.md      # Especificação formal de requisitos (SRS)
-│   ├── ARQUITETURA_E_CONTRATOS.md       # Arquitetura em camadas, contratos e modelo de dados
-│   ├── PROCESSO_DE_ACEITE_DE_MARCOS.md  # Governança e critérios formais de aceite
-│   └── ETAPA_ATUAL_ENGENHARIA.md        # Estado atual e roadmap detalhado
+│   ├── referencia/                      # Catálogos de API Python e CLI expml
+│   ├── engenharia_software/             # SRS, arquitetura, contratos e aceite de marcos
+│   └── REFERENCIAS_E_FUNDAMENTACAO.md   # Fundamentação teórica, bibliografia e ADRs
 ├── src/
 │   └── experimental_ml/                 # Pacote da biblioteca (layout src/)
 │       ├── cli/                         # Interface de linha de comando (Nível 7)
@@ -106,8 +103,7 @@ experimental-ml-framework/
 │   ├── test_smoke.py                    # Testes de fumaça da CLI e metadados de empacotamento
 │   └── unit/                            # Testes unitários e de integridade documental
 ├── pyproject.toml                       # Configuração de build (Hatchling) e dependências
-├── README.md                            # Apresentação executiva e mapa de navegação
-└── REFERENCIAS_E_FUNDAMENTACAO.md       # Fundamentação teórica, bibliografia e ADRs
+└── README.md                            # Apresentação executiva e mapa de navegação
 ```
 
 ---

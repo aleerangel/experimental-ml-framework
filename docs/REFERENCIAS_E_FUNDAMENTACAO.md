@@ -4,7 +4,7 @@
 > **Versão:** 1.2.0  
 > **Data:** 31 de Outubro de 2026  
 > **Natureza:** Documento Técnico de Arquitetura e Fundamentação  
-> **Documentos Relacionados:** [`ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md) | [`ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./engenharia_software/ETAPA_ATUAL_ENGENHARIA.md) | [`README.md`](./README.md)
+> **Documentos Relacionados:** [`ARQUITETURA_E_CONTRATOS.md`](./engenharia_software/ARQUITETURA_E_CONTRATOS.md) | [`ESPECIFICACAO_REQUISITOS.md`](./engenharia_software/ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./engenharia_software/ETAPA_ATUAL_ENGENHARIA.md) | [`README.md`](../README.md)
 
 ---
 

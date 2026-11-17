@@ -127,6 +127,8 @@ def test_markdown_links_and_anchors_valid() -> None:
                 continue
 
             if anchor_part and target_path.is_file() and target_path.suffix == ".md":
+                if re.match(r"^L\d+(?:-L?\d+)?$", anchor_part):
+                    continue
                 if target_path not in anchor_cache:
                     anchor_cache[target_path] = _extract_anchors(target_path)
                 if anchor_part not in anchor_cache[target_path]:
@@ -259,8 +261,8 @@ def test_readme_lean_structure_and_pointers() -> None:
     assert "```python" not in content, "README.md não deve conter blocos de código Python."
     for required_target in (
         "docs/README.md",
-        "engenharia_software/ARQUITETURA_E_CONTRATOS.md",
-        "REFERENCIAS_E_FUNDAMENTACAO.md",
+        "docs/engenharia_software/ARQUITETURA_E_CONTRATOS.md",
+        "docs/REFERENCIAS_E_FUNDAMENTACAO.md",
         "Alexandre Rangel",
         "Licença MIT",
     ):

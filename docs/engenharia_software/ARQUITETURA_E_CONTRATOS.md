@@ -27,7 +27,7 @@
 5. [Estrutura do Pacote de Reprodutibilidade em Disco](#5-estrutura-do-pacote-de-reprodutibilidade-em-disco)
 6. [Recorte Estratégico: MVP Essencial vs. Evoluções Posteriores](#6-recorte-estratégico-mvp-essencial-vs-evoluções-posteriores)
 7. [Ordem de Implementação (Marcos M1–M7) e Testes de Aceitação](#7-ordem-de-implementação-marcos-m1m7-e-testes-de-aceitação)
-8. [Protocolo de Validação Externa de Referência (Critério `CA02`)](#8-protocolo-de-validação-externa-de-referência-critério-ca02)
+8. [Diretrizes de Validação Externa pelo Pesquisador (Critério `CA02`)](#8-diretrizes-de-validação-externa-pelo-pesquisador-critério-ca02)
 
 ---
 

@@ -27,7 +27,7 @@ A documentação foi organizada progressivamente do uso imediato até a referên
 
 ## Documentação Complementar de Engenharia
 
-- [Arquitetura e Contratos Técnicos](../engenharia_software/ARQUITETURA_E_CONTRATOS.md)
-- [Especificação de Requisitos](../engenharia_software/ESPECIFICACAO_REQUISITOS.md)
-- [Fundamentação Teórica e Referências Bibliográficas](../REFERENCIAS_E_FUNDAMENTACAO.md)
+- [Arquitetura e Contratos Técnicos](engenharia_software/ARQUITETURA_E_CONTRATOS.md)
+- [Especificação de Requisitos](engenharia_software/ESPECIFICACAO_REQUISITOS.md)
+- [Fundamentação Teórica e Referências Bibliográficas](REFERENCIAS_E_FUNDAMENTACAO.md)
 - [Página Principal do Repositório](../README.md)
