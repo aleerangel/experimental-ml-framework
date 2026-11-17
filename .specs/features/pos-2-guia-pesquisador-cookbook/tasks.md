@@ -97,7 +97,7 @@ T4 --> T5
 
 ### Phase 3: Scientific Cookbook e Referências de API/CLI
 
-#### T3: Elaborar as 5 receitas avançadas do Scientific Cookbook em `docs/cookbook/` [ ]
+#### T3: Elaborar as 5 receitas avançadas do Scientific Cookbook em `docs/cookbook/` [x]
 
 **What**: Criar as 5 receitas autocontidas em português: `01_modelos_analiticos_vs_treinados.md`, `02_metricas_quanticas_e_probabilisticas.md`, `03_validacao_cruzada_agrupada_holdout.md`, `04_otimizacao_pareto_multiobjetivo.md` e `05_pacotes_reprodutibilidade_conferencias.md`, todas estritamente alinhadas aos contratos implementados no MVP.  
 **Where**: `docs/cookbook/`  
@@ -154,5 +154,5 @@ Proof: run unit | tests/unit/test_documentation_integrity.py::test_readme_lean_s
 ## Handoff
 
 - **Dispatched:** none
-- **Current Task:** T3
-- **Next Task:** T4
+- **Current Task:** T4
+- **Next Task:** T5
