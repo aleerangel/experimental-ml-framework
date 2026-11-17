@@ -56,6 +56,10 @@ expml report export --exp-dir exp_dir --mode FULL_PACKAGE --output-dir pacote_fi
   - [Validação Cruzada Agrupada (`GroupKFold`) com Holdout Isolado](docs/guias_praticos/03_validacao_cruzada_agrupada_holdout.md)
   - [Otimização Multiobjetivo na Fronteira de Pareto](docs/guias_praticos/04_otimizacao_pareto_multiobjetivo.md)
   - [Pacotes Herméticos e Auditoria SHA-256 para Conferências](docs/guias_praticos/05_pacotes_reprodutibilidade_conferencias.md)
+  - [Ablação de Variantes do Mesmo Algoritmo (LS-SVM em Prognose Florestal)](docs/guias_praticos/06_ablacao_variantes_algoritmo_lssvm.md)
+  - [Cenários de Features Fixos vs. Dinâmicos e Estabilidade](docs/guias_praticos/07_cenarios_features_estabilidade.md)
+  - [Fluxo Desacoplado para Jupyter Notebooks e Relatórios sem Retreino](docs/guias_praticos/08_fluxo_desacoplado_jupyter_relatorios.md)
+  - [Inferência Estatística na Prática e Controle de Multiplicidade](docs/guias_praticos/09_inferencia_estatistica_na_pratica.md)
 
 ### Referência Técnica
 - **[Catálogo da API Python Pública](docs/referencia/api_python.md):** Assinaturas e contratos dos 11 pacotes públicos exportados.
