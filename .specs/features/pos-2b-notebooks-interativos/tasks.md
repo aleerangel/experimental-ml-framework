@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill.
 **Status**: Completed  
 **Approved**: 2026-11-16 - user: "Vamos fazer isso agora"  
 **Build**: none - Notebooks JSON nbformat 4.5 e testes pytest  
-**Run unit**: .venv/bin/pytest tests/unit/test_notebooks_execution.py -v  
+**Run unit**: .venv/bin/pytest tests/unit/test_notebooks_execution.py tests/unit/test_documentation_integrity.py -v  
 
 ---
 
