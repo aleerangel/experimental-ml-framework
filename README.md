@@ -7,6 +7,8 @@
 
 Framework científico agnóstico para condução, auditoria e publicação de experimentos em Aprendizado de Máquina (*Machine Learning* — ML) sobre dados tabulares. Projetado em Python padrão e NumPy (`XCUT-02`), o projeto prioriza a integridade metodológica, o determinismo numérico e a reprodutibilidade integral de resultados científicos.
 
+Um dos principais objetivos do framework é **democratizar o acesso à pesquisa científica rigorosa para novos pesquisadores, especialmente alunos de Iniciação Científica (IC)**, reduzindo barreiras técnicas e prevenindo armadilhas metodológicas comuns. Este projeto foi desenvolvido durante a Iniciação Científica na **Universidade Federal do Espírito Santo (UFES)**, no âmbito do **Projeto QUAIS (*Quantum Artificial Intelligence for Science*)**, em parceria com o **Instituto Kunumi**.
+
 ---
 
 ## Motivação Científica e Problemas Endereçados
