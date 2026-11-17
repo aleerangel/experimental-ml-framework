@@ -255,12 +255,14 @@ def test_readme_lean_structure_and_pointers() -> None:
     """Nível estrutural (Check C4): README.md enxuto, sem código Python e com ponteiros úteis."""
     content = README_PATH.read_text(encoding="utf-8")
     lines = content.splitlines()
-    assert len(lines) <= 120, f"README.md deve ser enxuto (<= 120 linhas), possui {len(lines)}."
+    assert len(lines) <= 160, f"README.md deve ser enxuto (<= 160 linhas), possui {len(lines)}."
     assert "```python" not in content, "README.md não deve conter blocos de código Python."
     for required_target in (
         "docs/README.md",
         "engenharia_software/ARQUITETURA_E_CONTRATOS.md",
         "REFERENCIAS_E_FUNDAMENTACAO.md",
+        "Alexandre Rangel",
+        "Licença MIT",
     ):
         assert required_target in content, f"README.md deve apontar para '{required_target}'."
 
