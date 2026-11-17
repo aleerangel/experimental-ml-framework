@@ -45,14 +45,19 @@ from experimental_ml.metrics import (
 )
 
 
-def test_hard_12_readme_python_blocks_execute_cleanly() -> None:
-    """Validate that every fenced python code block in README.md executes cleanly in subprocess (HARD-12)."""
-    readme_path = Path(__file__).resolve().parents[2] / "README.md"
-    content = readme_path.read_text(encoding="utf-8")
+def test_hard_12_readme_python_blocks_execute_cleanly(tmp_path: Path) -> None:
+    """Validate that non-conceptual fenced python code blocks in docs/ execute cleanly in subprocess (HARD-12)."""
+    docs_dir = Path(__file__).resolve().parents[2] / "docs"
+    blocks: list[str] = []
+    for md_file in sorted(docs_dir.rglob("*.md")):
+        content = md_file.read_text(encoding="utf-8")
+        for code in re.findall(r"```python\n(.*?)```", content, re.DOTALL):
+            first_line = code.lstrip().splitlines()[0] if code.strip() else ""
+            if "# conceptual" in first_line or "# pseudocode" in first_line:
+                continue
+            blocks.append(code)
 
-    # Extract all ```python blocks
-    blocks = re.findall(r"```python\n(.*?)```", content, re.DOTALL)
-    assert len(blocks) >= 4, f"Expected at least 4 python blocks in README.md, found {len(blocks)}"
+    assert len(blocks) >= 4, f"Expected at least 4 executable python blocks in docs/, found {len(blocks)}"
 
     for idx, code in enumerate(blocks, 1):
         # Run code block in isolated subprocess with current venv python
@@ -60,10 +65,11 @@ def test_hard_12_readme_python_blocks_execute_cleanly() -> None:
             [sys.executable, "-c", code],
             capture_output=True,
             text=True,
+            cwd=tmp_path,
             env={**os.environ, "PYTHONHASHSEED": "42"},
         )
         assert proc.returncode == 0, (
-            f"README.md Python block {idx} failed with exit code {proc.returncode}:\n"
+            f"docs/ Python block {idx} failed with exit code {proc.returncode}:\n"
             f"STDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}\nCODE:\n{code}"
         )
 

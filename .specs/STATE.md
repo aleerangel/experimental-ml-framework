@@ -197,17 +197,26 @@
 - **Date**: 2026-11-16
 - **Status**: active
 
+### AD-022
+- **Decision**: Sub-marco `TA-POS.2` (`pos-2-guia-pesquisador-cookbook`) concluído em português com arquitetura modular sob `docs/` (`docs/README.md`, `docs/guia/`, `docs/cookbook/`, `docs/referencia/`), enxugamento do `README.md` (55 linhas com fluxo CLI de 1 linha e tabela completa de links) e suíte de integridade documental em 5 níveis (`tests/unit/test_documentation_integrity.py`).
+- **Reason**: Alinhar a usabilidade pedagógica e de referência do framework ao MVP congelado e auditado, mantendo o `README.md` limpo e validando automaticamente links, sintaxe AST, imports reais da API pública (11 pacotes), comandos CLI `expml` e execução ponta a ponta (smoke test) do Início Rápido.
+- **Trade-off**: O teste legado `test_hard_12_readme_python_blocks_execute_cleanly` foi redirecionado para validar os blocos Python executáveis em `docs/`, uma vez que o `README.md` passou a ser estritamente enxuto e livre de blocos de código Python.
+- **Scope**: `README.md`, `docs/`, `tests/unit/test_documentation_integrity.py` e `tests/integration/test_m1_foundation_integration.py`.
+- **Date**: 2026-11-16
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: pos-1-mega-auditoria-mvp (`TA-POS.1` Concluída e Aceita na Branch da Feature)
-- **Phase / Task**: `TA-POS.1` concluída com 0 achados `P0`/`P1` abertos; pronta para integração e transição para `TA-POS.2` (Guia Definitivo do Pesquisador, Cookbook Científico e limpeza do `README.md`).
+- **Feature**: pos-2-guia-pesquisador-cookbook (`TA-POS.2` Concluída e Aceita)
+- **Phase / Task**: `TA-POS.2` concluída com Verificação Independente (`PASS`); pronta para homologação externa `CA02` (`TA-POS.3`).
 - **Completed**:
-  - Auditoria independente transversal de código (Etapas 1–6) e documentação/referências (`AUDIT_REPORT.md`).
-  - Saneamento TDD de 100% dos achados `P0`, `P1` e `P2`.
-  - `check_proofs.py pos-1-mega-auditoria-mvp`: 3 pass, 0 fail.
-  - Verificação Independente TLC (`PASS`, `HEAD 65cb86c`).
-  - Suíte completa de testes automatizados expandida para **591 testes**, 100% aprovados via `pytest`.
-- **In-progress**: Aguardando revisão/merge do PR de `feat/pos-1-mega-auditoria-mvp` e autorização para iniciar `TA-POS.2`.
-- **Next step**: Sub-marco `TA-POS.2` (Guia Definitivo do Pesquisador em 4 níveis + limpeza e enxugamento do `README.md`).
+  - Índice Unificador (`docs/README.md`), Início Rápido em 5 passos (`docs/guia/01_inicio_rapido.md`) e Tutorial das 6 Etapas Oficiais (`docs/guia/02_tutorial_6_etapas.md`).
+  - 5 receitas completas no Scientific Cookbook (`docs/cookbook/01..05`).
+  - Catálogos da API Python pública (11 pacotes) e CLI `expml` com códigos `0`, `1`, `2` (`docs/referencia/`).
+  - Enxugamento do `README.md` e suíte de integridade documental em 5 níveis (`tests/unit/test_documentation_integrity.py`).
+  - `check_proofs.py pos-2-guia-pesquisador-cookbook`: 4 pass, 0 fail.
+  - Suíte completa de testes automatizados: **595 passed**, 100% aprovados via `pytest`.
+- **In-progress**: Nenhuma pendência interna de código ou documentação.
+- **Next step**: Homologação científica externa (`TA-POS.3` / `CA02`), conduzida pelo pesquisador fora do repositório.
 - **Blockers**: none
-- **Branch**: feat/pos-1-mega-auditoria-mvp
+- **Branch**: feat/pos-2-guia-pesquisador-cookbook
