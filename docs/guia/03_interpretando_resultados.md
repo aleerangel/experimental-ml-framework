@@ -11,7 +11,7 @@ Este guia ajuda você a ler o resumo (`resultado.summary()`) e os relatórios (`
 | Tarefa | Métrica | Direção Melhor | Observação Prática |
 | :--- | :--- | :---: | :--- |
 | **Regressão** | `rmse`, `mae`, `rmse_rel_pct` | **Menor** | Quanto mais próximo de `0`, menor o erro de predição. |
-| **Regressão** | `mbe` *(Mean Bias Error)* | **Mais próximo de `0` (em módulo)** | Mede viés sistemático (superestimação ou subestimação); o framework compara `|mbe|`. |
+| **Regressão** | `mbe` *(Mean Bias Error)* | **Mais próximo de `0` (em módulo)** | Mede viés sistemático (superestimação ou subestimação); o framework compara o valor absoluto (`abs(mbe)`). |
 | **Regressão** | `r2` | **Maior** (até `1.0`) | Proporção da variância explicada; valores negativos indicam desempenho pior que prever a média. |
 | **Classificação** | `accuracy`, `balanced_accuracy`, `f1`, `roc_auc` | **Maior** (até `1.0`) | Em classes desbalanceadas, prefira `balanced_accuracy` ou `f1` em vez de `accuracy` isolada. |
 | **Classificação** | `log_loss` | **Menor** | Penaliza previsões probabilísticas erradas com alta confiança. |
