@@ -12,7 +12,6 @@ Bem-vindo ao portal oficial do **Experimental ML Framework (`experimental-ml`)**
 | Já rodei o básico e quero entender quando usar o controle granular | **Intermediário** | [Início Rápido: Básico vs. Granular](guia/01_inicio_rapido.md) |
 | Quero estruturar um estudo completo (TCC, IC ou artigo) com rigor nas 6 etapas | **Intermediário / Avançado** | [Tutorial das 6 Etapas](guia/02_tutorial_6_etapas.md) e [Interpretando Resultados](guia/03_interpretando_resultados.md) |
 | Preciso de casos especiais (`GroupKFold`, LS-SVM/kernels quânticos, Pareto, LaTeX) | **Avançado** | [Guias Práticos (`01..09`)](#jornada-4--recursos-avançados) |
-| Sou colaborador de código / mantenedor do framework | **Desenvolvedor** | [Engenharia e Arquitetura](#jornada-5--desenvolvimento-e-engenharia-interna) |
 
 ---
 
@@ -46,10 +45,7 @@ Bem-vindo ao portal oficial do **Experimental ML Framework (`experimental-ml`)**
 - `[Avançado]` **[Guia Prático 8: Fluxo Desacoplado para Jupyter Notebooks e Relatórios sem Retreino](guias_praticos/08_fluxo_desacoplado_jupyter_relatorios.md)**
 - `[Avançado]` **[Notebook 04: Vitrine Avançada — Variantes do LS-SVM em Prognose Florestal](../notebooks/04_avancado_variantes_lssvm_prognose_florestal.ipynb)** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aleerangel/experimental-ml-framework/blob/main/notebooks/04_avancado_variantes_lssvm_prognose_florestal.ipynb)
 
-### Jornada 5 — Desenvolvimento e Engenharia Interna
-- [Arquitetura e Contratos Técnicos](engenharia_software/ARQUITETURA_E_CONTRATOS.md)
-- [Especificação de Requisitos](engenharia_software/ESPECIFICACAO_REQUISITOS.md)
-- [Estado Atual de Engenharia](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md)
-- [Processo de Aceite de Marcos](engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md)
+---
+
 - [Fundamentação Teórica e Referências Bibliográficas](REFERENCIAS_E_FUNDAMENTACAO.md)
 - [Página Principal do Repositório](../README.md)
