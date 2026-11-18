@@ -95,7 +95,7 @@ expml models verify --experiment-dir exp_dir
 | :--- | :--- | :--- |
 | Amostras independentes (regressão) | `KFOLD` | Divide aleatoriamente em $K$ dobras iguais. |
 | Classes desbalanceadas (classificação) | `STRATIFIED_KFOLD` | Preserva a proporção de cada classe em todas as dobras. |
-| Várias medições do mesmo paciente, árvore ou parcela | `GROUP_KFOLD` (`group_col=...`) | Impede que observações do mesmo grupo apareçam no treino e na validação/holdout. |
+| Múltiplas medições pertencentes à mesma unidade ou grupo | `GROUP_KFOLD` (`group_col=...`) | Impede que observações do mesmo grupo apareçam no treino e na validação/holdout. |
 | Série temporal / ordem cronológica | `TEMPORAL` (`time_col=...`) | Garante que o modelo nunca treine no futuro para prever o passado. |
 
 **Módulos:** `experimental_ml.validation`, `experimental_ml.orchestration`, `experimental_ml.stages` (`verify_partition_gate`, `verify_runs_gate`)
