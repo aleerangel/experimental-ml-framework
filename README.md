@@ -37,7 +37,11 @@ A pesquisa experimental em ML frequentemente padece de vulnerabilidades metodol�
 ## Instalação e Fluxo Básico (`expml`)
 
 ```bash
+# Na pasta do repositório
 pip install -e .
+
+# Ou, a partir do .venv de outro projeto seu:
+pip install -e /caminho/para/experimental-ml-framework
 ```
 
 Execute todo o pipeline científico das **6 etapas** diretamente pelo terminal:

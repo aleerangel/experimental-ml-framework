@@ -42,6 +42,19 @@ python -m venv .venv
 pip install -e .
 ```
 
+### Opção C: Usando em outro projeto no seu computador
+Se você já tem um projeto em outra pasta e quer importar o `experimental-ml` lá dentro, ative o `.venv` do seu outro projeto e instale apontando para a pasta onde este repositório foi clonado (ou direto do Git):
+
+```bash
+# Dentro da pasta do seu outro projeto (com o .venv dele ativado)
+pip install -e /caminho/para/experimental-ml-framework
+
+# Ou instalando direto do GitHub
+pip install git+https://github.com/aleerangel/experimental-ml-framework.git
+```
+
+Para confirmar que funcionou, rode `expml --version`.
+
 ---
 
 ## Passo 2 — Como Deve Ser o Seu Arquivo `.csv`
