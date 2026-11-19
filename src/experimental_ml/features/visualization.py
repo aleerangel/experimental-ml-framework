@@ -28,15 +28,6 @@ table { border-collapse: collapse; width: 100%; margin: 1rem 0 1.5rem 0; font-si
 th, td { border: 1px solid #d1d5db; padding: 0.45rem 0.65rem; text-align: left; }
 th { background: #f3f4f6; font-weight: 600; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
-.matrix-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 6px; margin: 0.75rem 0 1.5rem 0; }
-table.matrix-table { width: max-content; min-width: 100%; margin: 0; font-size: 0.82rem; border: none; }
-table.matrix-table th, table.matrix-table td { padding: 0.4rem 0.55rem; white-space: nowrap; }
-table.matrix-table th.col-hdr { text-align: center; min-width: 3.6rem; font-size: 0.78rem; }
-table.matrix-table th.row-hdr, table.matrix-table td.row-hdr { position: sticky; left: 0; background: #f9fafb; z-index: 1; font-weight: 600; border-right: 2px solid #d1d5db; }
-table.matrix-table td.matrix-cell { text-align: center; font-variant-numeric: tabular-nums; min-width: 3.6rem; }
-table.matrix-table td.matrix-diag { background: #f1f5f9; color: #64748b; font-weight: 600; }
-.legend { display: flex; align-items: center; gap: 0.75rem; font-size: 0.84rem; color: #4b5563; margin: 0.5rem 0; flex-wrap: wrap; }
-.legend-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 4px; border: 1px solid #d1d5db; }
 .warning-box { background: #fffbeb; border-left: 4px solid #d97706; padding: 0.85rem 1.1rem; margin: 1rem 0; }
 .guide-box { background: #eff6ff; border-left: 4px solid #2563eb; padding: 0.85rem 1.1rem; margin: 1rem 0; }
 .badge-forte { background: #dcfce7; color: #166534; padding: 0.12rem 0.45rem; border-radius: 4px; font-weight: 600; font-size: 0.82rem; }
@@ -456,42 +447,26 @@ def render_exploratory_report(
         parts.append("</tbody></table>")
 
     parts.append("<h2>3. Matriz Completa Preditor × Preditor</h2>")
-    if not features:
-        parts.append("<p><em>(Matriz vazia)</em></p>")
-    else:
-        parts.append(
-            '<div class="legend">'
-            '<span><strong>Intensidade fora da diagonal (|associação|):</strong></span>'
-            '<span><i class="legend-swatch" style="background:#f1f5f9;"></i>0.00 (baixa)</span>'
-            '<span><i class="legend-swatch" style="background:#fbbf24;"></i>0.50 (moderada)</span>'
-            '<span><i class="legend-swatch" style="background:#dc2626;"></i>1.00 (alta / redundante)</span>'
-            '<span><i class="legend-swatch" style="background:#f1f5f9;"></i>Diagonal (autossimilaridade)</span>'
-            '</div>'
-        )
-        parts.append('<div class="matrix-wrap"><table class="matrix-table"><thead><tr><th class="row-hdr">Atributo</th>')
+    if features:
+        parts.append("<table><thead><tr><th>Atributo</th>")
         for f in features:
-            parts.append(f'<th class="col-hdr" title="{html.escape(f)}">{html.escape(f)}</th>')
+            parts.append(f'<th class="num">{html.escape(f)}</th>')
         parts.append("</tr></thead><tbody>")
         for fa in features:
-            parts.append(f'<tr><td class="row-hdr"><code>{html.escape(fa)}</code></td>')
+            parts.append(f"<tr><td><code>{html.escape(fa)}</code></td>")
             row = report.pairwise_redundancy_matrix.get(fa, {})
             for fb in features:
                 v = row.get(fb)
                 if v is None or not math.isfinite(v):
-                    parts.append('<td class="matrix-cell">N/A</td>')
-                elif fa == fb:
-                    parts.append(
-                        f'<td class="matrix-cell matrix-diag" title="{html.escape(fa)} × {html.escape(fb)}: {v:+.4f}">{v:+.2f}</td>'
-                    )
+                    parts.append('<td class="num">N/A</td>')
                 else:
                     r, g, b = _heat_color(abs(v))
                     txt_col = "#ffffff" if abs(v) >= 0.65 else "#111827"
                     parts.append(
-                        f'<td class="matrix-cell" title="{html.escape(fa)} × {html.escape(fb)}: {v:+.4f}" '
-                        f'style="background:rgb({r},{g},{b});color:{txt_col};">{v:+.2f}</td>'
+                        f'<td class="num" style="background:rgb({r},{g},{b});color:{txt_col};">{v:+.2f}</td>'
                     )
             parts.append("</tr>")
-        parts.append("</tbody></table></div>")
+        parts.append("</tbody></table>")
 
     if figure_paths:
         parts.append("<h2>4. Visualizações Geradas</h2>")
