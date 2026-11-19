@@ -7,6 +7,7 @@ isolation against Wave 2 features during Wave 1 MVP.
 
 from __future__ import annotations
 
+import codecs
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
@@ -16,6 +17,8 @@ import unicodedata
 from experimental_ml.core.enums import StrEnum, TaskType
 from experimental_ml.core.findings import ConfigurationError
 from experimental_ml.core.storage import read_json
+
+_VALID_CSV_DELIMITERS = (",", ";", "\t", "|", "whitespace")
 
 
 class ColumnSemanticType(StrEnum):
@@ -212,3 +215,80 @@ def load_schema_spec(schema_path: Path | str) -> DatasetSchemaSpec:
         observation_id_col=data.get("observation_id_col"),
         ignore_cols=tuple(data.get("ignore_cols", ())),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class CsvFormatSpec:
+    """Declarative specification for tabular CSV/TXT formatting and auto-detection."""
+
+    delimiter: str | None = None
+    decimal: str | None = "."
+    encoding: str = "utf-8-sig"
+    has_header: bool = True
+    column_names: tuple[str, ...] | None = None
+    quotechar: str = '"'
+
+    def __post_init__(self) -> None:
+        if self.delimiter is not None:
+            if not isinstance(self.delimiter, str) or self.delimiter not in _VALID_CSV_DELIMITERS:
+                raise ConfigurationError(
+                    f"Unsupported CSV delimiter {self.delimiter!r}; expected one of {_VALID_CSV_DELIMITERS} or None."
+                )
+
+        dec = self.decimal
+        if dec == "auto":
+            dec = None
+            object.__setattr__(self, "decimal", None)
+        if dec is not None and dec not in {".", ","}:
+            raise ConfigurationError(
+                f"Invalid CSV decimal separator {self.decimal!r}; expected '.', ',', 'auto', or None."
+            )
+
+        if dec == "," and self.delimiter == ",":
+            raise ConfigurationError(
+                "Ambiguous CSV configuration: decimal=',' cannot be paired with delimiter=','."
+            )
+
+        if not isinstance(self.quotechar, str) or len(self.quotechar) != 1:
+            raise ConfigurationError(
+                f"Invalid CSV quotechar {self.quotechar!r}; expected a single-character string."
+            )
+        if self.quotechar == self.delimiter or (dec is not None and self.quotechar == dec):
+            raise ConfigurationError(
+                f"Invalid CSV quotechar {self.quotechar!r}: cannot equal delimiter or decimal separator."
+            )
+
+        if not isinstance(self.encoding, str) or not self.encoding.strip():
+            raise ConfigurationError("CSV encoding must be a non-empty string or 'auto'.")
+        enc_clean = self.encoding.strip()
+        object.__setattr__(self, "encoding", enc_clean)
+        if enc_clean.lower() == "auto":
+            object.__setattr__(self, "encoding", "auto")
+        else:
+            try:
+                codecs.lookup(enc_clean)
+            except LookupError as err:
+                raise ConfigurationError(f"Unknown CSV encoding '{enc_clean}': {err}") from err
+
+        if not isinstance(self.has_header, bool):
+            raise ConfigurationError(
+                f"CSV has_header must be a bool, got {type(self.has_header).__name__}."
+            )
+
+        if self.column_names is not None:
+            if isinstance(self.column_names, (str, bytes)):
+                raise ConfigurationError("CSV column_names must be a sequence of column names, not a string.")
+            norm_cols = tuple(
+                _validate_and_normalize_col_name(col, "column_names element")
+                for col in self.column_names
+            )
+            object.__setattr__(self, "column_names", norm_cols)
+
+
+def validate_csv_format_spec(spec: Any) -> CsvFormatSpec:
+    """Validate that the provided object is a valid CsvFormatSpec instance."""
+    if not isinstance(spec, CsvFormatSpec):
+        raise ConfigurationError(
+            f"Expected CsvFormatSpec instance, got {type(spec).__name__}"
+        )
+    return spec

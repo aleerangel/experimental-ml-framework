@@ -31,7 +31,9 @@ from experimental_ml.data.query import (
 )
 from experimental_ml.data.schema import (
     ColumnSemanticType,
+    CsvFormatSpec,
     DatasetSchemaSpec,
+    validate_csv_format_spec,
     validate_schema_spec,
 )
 from experimental_ml.data.types import (
@@ -45,7 +47,9 @@ from experimental_ml.data.validation import (
 
 __all__ = [
     "ColumnSemanticType",
+    "CsvFormatSpec",
     "DatasetSchemaSpec",
+    "validate_csv_format_spec",
     "validate_schema_spec",
     "ColumnDescriptor",
     "DatasetBundle",
