@@ -1,7 +1,7 @@
 # exploratory-visual-redesign proofs
 
-**HEAD**: 3c4be36
-**Tree**: dirty - notebooks/01_tour_6_etapas.ipynb, notebooks/02_ablacao_lssvm_prognose_florestal.ipynb
+**HEAD**: 91b3608
+**Tree**: clean
 **Shell**: /bin/sh
 **Result**: 7 pass, 0 fail
 
@@ -51,7 +51,7 @@ tests/integration/test_mvp_audit_invariants.py::test_audit_xcut02_runtime_purity
 tests/integration/test_mvp_audit_invariants.py::test_audit_stage_gates_cli_and_domain_neutrality PASSED [ 80%]
 tests/integration/test_mvp_audit_invariants.py::test_audit_report_zero_open_p0_p1 PASSED [100%]
 
-============================== 5 passed in 1.22s ===============================
+============================== 5 passed in 1.21s ===============================
 ```
 
 `Run explr_docs` - exit 0
@@ -69,5 +69,5 @@ tests/unit/test_documentation_integrity.py::test_python_snippets_ast_and_public_
 tests/unit/test_documentation_integrity.py::test_cli_blocks_and_quickstart_smoke_execution PASSED [ 75%]
 tests/unit/test_documentation_integrity.py::test_readme_lean_structure_and_pointers PASSED [100%]
 
-============================== 4 passed in 0.23s ===============================
+============================== 4 passed in 0.34s ===============================
 ```
