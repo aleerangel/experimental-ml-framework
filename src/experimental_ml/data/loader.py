@@ -23,8 +23,8 @@ from experimental_ml.core.hashing import (
     is_missing_scalar,
 )
 from experimental_ml.core.types import DomainIdentifier
-from experimental_ml.data.parsing import detect_delimiter, parse_tabular_text
-from experimental_ml.data.schema import DatasetSchemaSpec
+from experimental_ml.data.parsing import detect_decimal, detect_delimiter, parse_tabular_text
+from experimental_ml.data.schema import CsvFormatSpec, DatasetSchemaSpec, validate_csv_format_spec
 from experimental_ml.data.types import ColumnDescriptor, DatasetBundle
 from experimental_ml.data.validation import (
     assign_or_validate_observation_ids,
@@ -192,6 +192,23 @@ def _coerce_column_values(values: Sequence[Any]) -> tuple[np.ndarray, str, int]:
     return arr, "object", null_count
 
 
+def _read_sample_lines_with_encoding(source_path: Path, encoding: str) -> tuple[list[str], str]:
+    """Read up to 100 sample lines, supporting encoding='auto' (utf-8-sig -> cp1252)."""
+    candidates = ("utf-8-sig", "cp1252") if encoding == "auto" else (encoding,)
+    last_err: UnicodeDecodeError | None = None
+    for enc in candidates:
+        try:
+            with open(source_path, mode="r", encoding=enc, newline="") as f:
+                sample_lines = [f.readline() for _ in range(100)]
+                sample_lines = [line for line in sample_lines if line != ""]
+            return sample_lines, enc
+        except UnicodeDecodeError as err:
+            last_err = err
+    raise DataIntegrityError(
+        f"Failed to decode tabular file '{source_path}' with encoding '{encoding}': {last_err}"
+    ) from last_err
+
+
 def load_dataset(
     source: Any,
     schema: DatasetSchemaSpec,
@@ -199,7 +216,10 @@ def load_dataset(
     delimiter: str | None = None,
     has_header: bool = True,
     column_names: Sequence[str] | None = None,
-    encoding: str = "utf-8",
+    encoding: str = "utf-8-sig",
+    decimal: str | None = ".",
+    quotechar: str = '"',
+    csv_format: CsvFormatSpec | None = None,
 ) -> DatasetBundle:
     """Load a tabular dataset into an immutable DatasetBundle with exclusive data ownership.
 
@@ -208,8 +228,43 @@ def load_dataset(
 
     Raises:
         FileNotFoundError: If source path does not exist.
+        ConfigurationError: If CSV formatting configuration is invalid or ambiguous.
         DataIntegrityError: On parsing, encoding, structural or immutability violations.
     """
+    if csv_format is not None:
+        fmt = validate_csv_format_spec(csv_format)
+        eff_delimiter = fmt.delimiter if delimiter is None else delimiter
+        eff_has_header = fmt.has_header if has_header is True else has_header
+        eff_column_names = fmt.column_names if column_names is None else tuple(column_names)
+        eff_encoding = fmt.encoding if encoding == "utf-8-sig" else encoding
+        eff_decimal = fmt.decimal if decimal == "." else decimal
+        eff_quotechar = fmt.quotechar if quotechar == '"' else quotechar
+    else:
+        fmt = CsvFormatSpec(
+            delimiter=delimiter,
+            decimal=decimal,
+            encoding=encoding,
+            has_header=has_header,
+            column_names=tuple(column_names) if column_names is not None else None,
+            quotechar=quotechar,
+        )
+        eff_delimiter = fmt.delimiter
+        eff_has_header = fmt.has_header
+        eff_column_names = fmt.column_names
+        eff_encoding = fmt.encoding
+        eff_decimal = fmt.decimal
+        eff_quotechar = fmt.quotechar
+
+    # Validate merged spec
+    fmt = CsvFormatSpec(
+        delimiter=eff_delimiter,
+        decimal=eff_decimal,
+        encoding=eff_encoding,
+        has_header=eff_has_header,
+        column_names=eff_column_names,
+        quotechar=eff_quotechar,
+    )
+
     source_path_str: str | None = None
     is_file_source = isinstance(source, (str, Path))
 
@@ -219,27 +274,36 @@ def load_dataset(
             raise FileNotFoundError(f"Dataset file not found or is a directory: {source_path}")
 
         source_path_str = str(source_path.resolve())
+        sample_lines, resolved_encoding = _read_sample_lines_with_encoding(source_path, fmt.encoding)
 
-        try:
-            with open(source_path, mode="r", encoding=encoding, newline="") as f:
-                sample_lines = [f.readline() for _ in range(100)]
-                sample_lines = [line for line in sample_lines if line != ""]
-        except UnicodeDecodeError as err:
-            raise DataIntegrityError(
-                f"Failed to decode tabular file '{source_path}' with encoding '{encoding}': {err}"
-            ) from err
-
-        if delimiter is None:
-            effective_delimiter = detect_delimiter(sample_lines)
+        if fmt.delimiter is None:
+            effective_delimiter = detect_delimiter(
+                sample_lines,
+                decimal=fmt.decimal,
+                quotechar=fmt.quotechar,
+                has_header=fmt.has_header,
+            )
         else:
-            effective_delimiter = delimiter
+            effective_delimiter = fmt.delimiter
 
-        with open(source_path, mode="r", encoding=encoding, newline="") as f:
+        if fmt.decimal is None:
+            effective_decimal = detect_decimal(
+                sample_lines,
+                delimiter=effective_delimiter,
+                quotechar=fmt.quotechar,
+                has_header=fmt.has_header,
+            )
+        else:
+            effective_decimal = fmt.decimal
+
+        with open(source_path, mode="r", encoding=resolved_encoding, newline="") as f:
             parsed_col_names, raw_columns_dict = parse_tabular_text(
                 f,
                 delimiter=effective_delimiter,
-                has_header=has_header,
-                column_names=column_names,
+                has_header=fmt.has_header,
+                column_names=fmt.column_names,
+                decimal=effective_decimal,
+                quotechar=fmt.quotechar,
             )
 
     else:
@@ -259,13 +323,13 @@ def load_dataset(
             }
         elif isinstance(source, np.ndarray) and source.ndim == 2:
             n_rows_arr, n_cols_arr = source.shape
-            if column_names is not None:
-                if len(column_names) != n_cols_arr:
+            if fmt.column_names is not None:
+                if len(fmt.column_names) != n_cols_arr:
                     raise DataIntegrityError(
-                        f"Specified column_names length ({len(column_names)}) does not match "
+                        f"Specified column_names length ({len(fmt.column_names)}) does not match "
                         f"ndarray column count ({n_cols_arr})"
                     )
-                parsed_col_names = tuple(unicodedata.normalize("NFC", str(c).strip()) for c in column_names)
+                parsed_col_names = fmt.column_names
             else:
                 parsed_col_names = tuple(f"col_{j}" for j in range(n_cols_arr))
 

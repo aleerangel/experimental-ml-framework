@@ -7,6 +7,7 @@ and pure functional query/slicing utilities.
 from experimental_ml.data.loader import load_dataset
 from experimental_ml.data.parsing import (
     SUPPORTED_DELIMITERS,
+    detect_decimal,
     detect_delimiter,
     parse_tabular_text,
 )
@@ -58,6 +59,7 @@ __all__ = [
     "ProfileConfig",
     "profile_dataset",
     "SUPPORTED_DELIMITERS",
+    "detect_decimal",
     "detect_delimiter",
     "parse_tabular_text",
     "assign_or_validate_observation_ids",

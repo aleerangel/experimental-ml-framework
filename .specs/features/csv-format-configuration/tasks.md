@@ -47,7 +47,7 @@ T1 --> T2 --> T3 --> T4
 **Tests**: Unit tests verifying `CsvFormatSpec` defaults, `"auto"` normalization, invalid `decimal`/`delimiter`/`quotechar`/`encoding`, and `ConfigurationError` on `decimal=","` + `delimiter=","`.  
 **Gate**: `.venv/bin/pytest tests/unit/data/test_csv_format.py -k "spec" -v`  
 
-### T2: Implement `quotechar`, `decimal`, `detect_decimal`, tie-breaking `detect_delimiter`, and `encoding="auto"` in `parsing.py` and `loader.py`
+### T2: Implement `quotechar`, `decimal`, `detect_decimal`, tie-breaking `detect_delimiter`, and `encoding="auto"` in `parsing.py` and `loader.py` [x]
 **Depends on**: T1  
 **Files**: `src/experimental_ml/data/parsing.py`, `src/experimental_ml/data/loader.py`, `src/experimental_ml/data/__init__.py`, `tests/unit/data/test_csv_format.py`  
 **Done when**: `load_dataset`, `parse_tabular_text`, `detect_delimiter`, and `detect_decimal` handle regional CSVs, auto-detection, and mixed-decimal rejection cleanly.  

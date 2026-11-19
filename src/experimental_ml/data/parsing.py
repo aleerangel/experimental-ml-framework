@@ -20,12 +20,15 @@ MISSING_TOKENS: frozenset[str] = frozenset(
     {"", "NA", "NaN", "null", "None", "nan", "NULL"}
 )
 
+_COMMA_DECIMAL_RE = re.compile(r"^[+-]?\d+,\d+(?:[eE][+-]?\d+)?$")
+_DOT_DECIMAL_RE = re.compile(r"^[+-]?\d+\.\d+(?:[eE][+-]?\d+)?$")
 
-def _tokenize_row(line: str, delimiter: str) -> list[str]:
-    """Tokenize a single tabular text line honoring RFC 4180 double-quoted fields."""
+
+def _tokenize_row(line: str, delimiter: str, quotechar: str = '"') -> list[str]:
+    """Tokenize a single tabular text line honoring RFC 4180 quoted fields."""
     stripped_line = line.rstrip("\r\n")
     if delimiter in (",", ";", "\t", "|"):
-        reader = csv.reader([stripped_line], delimiter=delimiter, quotechar='"', doublequote=True)
+        reader = csv.reader([stripped_line], delimiter=delimiter, quotechar=quotechar, doublequote=True)
         try:
             row = next(reader)
             return row
@@ -42,14 +45,14 @@ def _tokenize_row(line: str, delimiter: str) -> list[str]:
                 i += 1
             if i >= n:
                 break
-            if stripped_line[i] == '"':
+            if stripped_line[i] == quotechar:
                 # Quoted token
                 i += 1
                 buf: list[str] = []
                 while i < n:
-                    if stripped_line[i] == '"':
-                        if i + 1 < n and stripped_line[i + 1] == '"':
-                            buf.append('"')
+                    if stripped_line[i] == quotechar:
+                        if i + 1 < n and stripped_line[i + 1] == quotechar:
+                            buf.append(quotechar)
                             i += 2
                         else:
                             i += 1
@@ -69,21 +72,70 @@ def _tokenize_row(line: str, delimiter: str) -> list[str]:
         raise DataIntegrityError(f"Unsupported delimiter: {repr(delimiter)}")
 
 
-def detect_delimiter(sample_lines: Sequence[str]) -> str:
+def detect_decimal(
+    sample_lines: Sequence[str],
+    *,
+    delimiter: str,
+    quotechar: str = '"',
+    has_header: bool = True,
+) -> str:
+    """Detect decimal separator ('.' or ',') conservatively from sampled lines.
+
+    Raises DataIntegrityError if mixed decimal conventions are observed.
+    """
+    non_empty = [line for line in sample_lines if line.strip() != ""][:100]
+    if not non_empty:
+        return "."
+    data_lines = non_empty[1:] if has_header and len(non_empty) > 1 else non_empty
+
+    has_comma = False
+    has_dot = False
+    for line in data_lines:
+        for tok in _tokenize_row(line, delimiter, quotechar=quotechar):
+            s = tok.strip()
+            if _COMMA_DECIMAL_RE.match(s):
+                has_comma = True
+            elif _DOT_DECIMAL_RE.match(s):
+                has_dot = True
+
+    if has_comma and has_dot:
+        raise DataIntegrityError(
+            "Mixed decimal separators ('.' and ',') detected in sampled rows. "
+            "Please specify decimal explicitly."
+        )
+    if has_comma:
+        if delimiter == ",":
+            raise DataIntegrityError(
+                "Comma decimal separator detected with delimiter=','. "
+                "Please specify delimiter and decimal explicitly."
+            )
+        return ","
+    return "."
+
+
+def detect_delimiter(
+    sample_lines: Sequence[str],
+    *,
+    decimal: str | None = ".",
+    quotechar: str = '"',
+    has_header: bool = True,
+) -> str:
     """Detect delimiter from sample lines by verifying constant column count M >= 2.
 
     Inspects up to the first 100 non-empty lines across supported delimiters.
+    Excludes ',' when decimal=',' and resolves ties using comma-decimal tokens when decimal is None.
     Raises DataIntegrityError if detection is ambiguous or fails.
     """
     non_empty_lines = [line for line in sample_lines if line.strip() != ""][:100]
     if not non_empty_lines:
         raise DataIntegrityError("Cannot detect delimiter: input contains zero non-empty lines")
 
+    candidates = [d for d in SUPPORTED_DELIMITERS if not (decimal == "," and d == ",")]
     valid_candidates: list[tuple[str, int]] = []
 
-    for delim in SUPPORTED_DELIMITERS:
+    for delim in candidates:
         try:
-            first_row = _tokenize_row(non_empty_lines[0], delim)
+            first_row = _tokenize_row(non_empty_lines[0], delim, quotechar=quotechar)
             m = len(first_row)
             if m < 2:
                 continue
@@ -91,7 +143,7 @@ def detect_delimiter(sample_lines: Sequence[str]) -> str:
             # Verify that every sampled line produces exact same count m
             all_match = True
             for line in non_empty_lines[1:]:
-                row = _tokenize_row(line, delim)
+                row = _tokenize_row(line, delim, quotechar=quotechar)
                 if len(row) != m:
                     all_match = False
                     break
@@ -104,12 +156,31 @@ def detect_delimiter(sample_lines: Sequence[str]) -> str:
     if len(valid_candidates) > 1:
         candidate_names = [c[0] for c in valid_candidates]
         # Disambiguate tab vs generic whitespace:
-        # If '\t' is a candidate and all sampled lines use tab without spaces between columns,
-        # '\t' is the specific delimiter, not generic whitespace.
         if "\t" in candidate_names and "whitespace" in candidate_names:
             has_space_delimiter = any("  " in line or (" " in line and "\t" not in line) for line in non_empty_lines)
             if not has_space_delimiter:
                 valid_candidates = [c for c in valid_candidates if c[0] != "whitespace"]
+
+    if len(valid_candidates) > 1 and decimal is None:
+        # Break ties in favor of a non-comma delimiter when it yields comma-decimal numeric tokens
+        non_comma_with_comma_dec: list[tuple[str, int]] = []
+        data_lines = non_empty_lines[1:] if has_header and len(non_empty_lines) > 1 else non_empty_lines
+        for delim, m in valid_candidates:
+            if delim == ",":
+                continue
+            has_comma_dec = False
+            has_dot_dec = False
+            for line in data_lines:
+                for tok in _tokenize_row(line, delim, quotechar=quotechar):
+                    s = tok.strip()
+                    if _COMMA_DECIMAL_RE.match(s):
+                        has_comma_dec = True
+                    elif _DOT_DECIMAL_RE.match(s):
+                        has_dot_dec = True
+            if has_comma_dec and not has_dot_dec:
+                non_comma_with_comma_dec.append((delim, m))
+        if len(non_comma_with_comma_dec) == 1:
+            return non_comma_with_comma_dec[0][0]
 
     if len(valid_candidates) == 1:
         return valid_candidates[0][0]
@@ -135,6 +206,8 @@ def parse_tabular_text(
     delimiter: str,
     has_header: bool = True,
     column_names: Sequence[str] | None = None,
+    decimal: str = ".",
+    quotechar: str = '"',
 ) -> tuple[tuple[str, ...], dict[str, list[Any]]]:
     """Parse tabular text lines with RFC 4180 quotes, ragged rows check and missing values.
 
@@ -154,7 +227,7 @@ def parse_tabular_text(
     if first_non_empty is None:
         raise DataIntegrityError("Tabular file is empty or contains only whitespace")
 
-    first_row = _tokenize_row(first_non_empty, delimiter)
+    first_row = _tokenize_row(first_non_empty, delimiter, quotechar=quotechar)
     m = len(first_row)
     if m == 0:
         raise DataIntegrityError(f"Line {first_line_num}: parsed 0 columns")
@@ -213,7 +286,7 @@ def parse_tabular_text(
     for line_num, line in line_iter:
         if line.strip() == "":
             continue  # ignore blank lines
-        row = _tokenize_row(line, delimiter)
+        row = _tokenize_row(line, delimiter, quotechar=quotechar)
         if len(row) != m:
             raise DataIntegrityError(
                 f"Line {line_num}: ragged row encountered. Expected {m} columns, got {len(row)}"
@@ -233,6 +306,8 @@ def parse_tabular_text(
             if val in MISSING_TOKENS:
                 raw_columns[col_name][row_idx] = None
             else:
+                if decimal == "," and _COMMA_DECIMAL_RE.match(val):
+                    val = val.replace(",", ".", 1)
                 raw_columns[col_name][row_idx] = val
 
     return tuple(final_col_names), raw_columns
