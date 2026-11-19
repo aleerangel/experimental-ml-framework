@@ -36,9 +36,11 @@ from experimental_ml.features.types import (
     RedundancyPair,
 )
 from experimental_ml.features.visualization import (
+    render_exploratory_redundancy_csv,
     render_exploratory_redundancy_heatmap,
     render_exploratory_report,
     render_exploratory_target_chart,
+    render_exploratory_target_csv,
 )
 
 __all__ = [
@@ -54,6 +56,8 @@ __all__ = [
     "RedundancyPair",
     "ExploratoryFeatureReport",
     "render_exploratory_report",
+    "render_exploratory_target_csv",
+    "render_exploratory_redundancy_csv",
     "render_exploratory_target_chart",
     "render_exploratory_redundancy_heatmap",
     # M3.2: Scenarios modeling & catalog

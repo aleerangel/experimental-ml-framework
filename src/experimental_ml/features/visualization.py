@@ -1,40 +1,146 @@
-"""Stage 2 exploratory feature visualization: Markdown/HTML reports and pure-NumPy SVG/PNG charts.
+"""Stage 2 exploratory feature visualization: Markdown, print/PDF-ready HTML, CSVs, and labeled pure-NumPy PNGs.
 
-Complies with EXPL-01..EXPL-05, CA-E2-01, XCUT-02 (pure Python stdlib + numpy), and CLI-11.
+Complies with EXPLR-01..EXPLR-06, CA-E2-01, XCUT-02 (pure Python stdlib + numpy), and CLI-11.
 """
 
 from __future__ import annotations
 
+import csv
 import html
+import io
 import math
 import struct
 from typing import Sequence
-from xml.sax.saxutils import escape as xml_escape
+import unicodedata
 import zlib
 
 import numpy as np
 
 from experimental_ml.core.enums import MetricStatus
 from experimental_ml.core.findings import ConfigurationError
-from experimental_ml.features.types import AssociationMeasure, ExploratoryFeatureReport
+from experimental_ml.features.types import ExploratoryFeatureReport
 
 
 _DPI_300_PX_PER_METER = 11811  # round(300 / 0.0254)
 
+# Compact 5x7 bitmap font (each row is 5 bits, MSB on the left)
+_FONT_5X7: dict[str, tuple[int, ...]] = {
+    " ": (0, 0, 0, 0, 0, 0, 0),
+    "!": (0x04, 0x04, 0x04, 0x04, 0x04, 0x00, 0x04),
+    '"': (0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00),
+    "%": (0x19, 0x1A, 0x04, 0x04, 0x0B, 0x13, 0x00),
+    "'": (0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00),
+    "(": (0x02, 0x04, 0x08, 0x08, 0x08, 0x04, 0x02),
+    ")": (0x08, 0x04, 0x02, 0x02, 0x02, 0x04, 0x08),
+    "*": (0x00, 0x15, 0x0E, 0x1F, 0x0E, 0x15, 0x00),
+    "+": (0x00, 0x04, 0x04, 0x1F, 0x04, 0x04, 0x00),
+    ",": (0x00, 0x00, 0x00, 0x00, 0x04, 0x04, 0x08),
+    "-": (0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00),
+    ".": (0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x0C),
+    "/": (0x01, 0x02, 0x04, 0x04, 0x08, 0x10, 0x00),
+    "0": (0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E),
+    "1": (0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E),
+    "2": (0x0E, 0x11, 0x01, 0x06, 0x08, 0x10, 0x1F),
+    "3": (0x1E, 0x01, 0x01, 0x0E, 0x01, 0x01, 0x1E),
+    "4": (0x02, 0x06, 0x0A, 0x12, 0x1F, 0x02, 0x02),
+    "5": (0x1F, 0x10, 0x1E, 0x01, 0x01, 0x11, 0x0E),
+    "6": (0x06, 0x08, 0x10, 0x1E, 0x11, 0x11, 0x0E),
+    "7": (0x1F, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08),
+    "8": (0x0E, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x0E),
+    "9": (0x0E, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C),
+    ":": (0x00, 0x0C, 0x0C, 0x00, 0x0C, 0x0C, 0x00),
+    ";": (0x00, 0x0C, 0x0C, 0x00, 0x0C, 0x04, 0x08),
+    "<": (0x02, 0x04, 0x08, 0x10, 0x08, 0x04, 0x02),
+    "=": (0x00, 0x00, 0x1F, 0x00, 0x1F, 0x00, 0x00),
+    ">": (0x08, 0x04, 0x02, 0x01, 0x02, 0x04, 0x08),
+    "?": (0x0E, 0x11, 0x01, 0x06, 0x04, 0x00, 0x04),
+    "A": (0x0E, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11),
+    "B": (0x1E, 0x11, 0x11, 0x1E, 0x11, 0x11, 0x1E),
+    "C": (0x0E, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0E),
+    "D": (0x1C, 0x12, 0x11, 0x11, 0x11, 0x12, 0x1C),
+    "E": (0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x1F),
+    "F": (0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x10),
+    "G": (0x0E, 0x11, 0x10, 0x17, 0x11, 0x11, 0x0F),
+    "H": (0x11, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11),
+    "I": (0x0E, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0E),
+    "J": (0x07, 0x02, 0x02, 0x02, 0x12, 0x12, 0x0C),
+    "K": (0x11, 0x12, 0x14, 0x18, 0x14, 0x12, 0x11),
+    "L": (0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1F),
+    "M": (0x11, 0x1B, 0x15, 0x15, 0x11, 0x11, 0x11),
+    "N": (0x11, 0x19, 0x15, 0x13, 0x11, 0x11, 0x11),
+    "O": (0x0E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E),
+    "P": (0x1E, 0x11, 0x11, 0x1E, 0x10, 0x10, 0x10),
+    "Q": (0x0E, 0x11, 0x11, 0x11, 0x15, 0x12, 0x0D),
+    "R": (0x1E, 0x11, 0x11, 0x1E, 0x14, 0x12, 0x11),
+    "S": (0x0F, 0x10, 0x10, 0x0E, 0x01, 0x01, 0x1E),
+    "T": (0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04),
+    "U": (0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E),
+    "V": (0x11, 0x11, 0x11, 0x11, 0x11, 0x0A, 0x04),
+    "W": (0x11, 0x11, 0x11, 0x15, 0x15, 0x1B, 0x11),
+    "X": (0x11, 0x11, 0x0A, 0x04, 0x0A, 0x11, 0x11),
+    "Y": (0x11, 0x11, 0x0A, 0x04, 0x04, 0x04, 0x04),
+    "Z": (0x1F, 0x01, 0x02, 0x04, 0x08, 0x10, 0x1F),
+    "[": (0x0E, 0x08, 0x08, 0x08, 0x08, 0x08, 0x0E),
+    "]": (0x0E, 0x02, 0x02, 0x02, 0x02, 0x02, 0x0E),
+    "_": (0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F),
+    "a": (0x00, 0x00, 0x0E, 0x01, 0x0F, 0x11, 0x0F),
+    "b": (0x10, 0x10, 0x1E, 0x11, 0x11, 0x11, 0x1E),
+    "c": (0x00, 0x00, 0x0F, 0x10, 0x10, 0x10, 0x0F),
+    "d": (0x01, 0x01, 0x0F, 0x11, 0x11, 0x11, 0x0F),
+    "e": (0x00, 0x00, 0x0E, 0x11, 0x1F, 0x10, 0x0E),
+    "f": (0x06, 0x08, 0x1C, 0x08, 0x08, 0x08, 0x08),
+    "g": (0x00, 0x0F, 0x11, 0x11, 0x0F, 0x01, 0x0E),
+    "h": (0x10, 0x10, 0x1E, 0x11, 0x11, 0x11, 0x11),
+    "i": (0x04, 0x00, 0x0C, 0x04, 0x04, 0x04, 0x0E),
+    "j": (0x02, 0x00, 0x06, 0x02, 0x02, 0x12, 0x0C),
+    "k": (0x10, 0x10, 0x12, 0x14, 0x18, 0x14, 0x12),
+    "l": (0x0C, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0E),
+    "m": (0x00, 0x00, 0x1A, 0x15, 0x15, 0x11, 0x11),
+    "n": (0x00, 0x00, 0x1E, 0x11, 0x11, 0x11, 0x11),
+    "o": (0x00, 0x00, 0x0E, 0x11, 0x11, 0x11, 0x0E),
+    "p": (0x00, 0x1E, 0x11, 0x11, 0x1E, 0x10, 0x10),
+    "q": (0x00, 0x0F, 0x11, 0x11, 0x0F, 0x01, 0x01),
+    "r": (0x00, 0x00, 0x16, 0x19, 0x10, 0x10, 0x10),
+    "s": (0x00, 0x00, 0x0F, 0x10, 0x0E, 0x01, 0x1E),
+    "t": (0x08, 0x08, 0x1C, 0x08, 0x08, 0x09, 0x06),
+    "u": (0x00, 0x00, 0x11, 0x11, 0x11, 0x11, 0x0F),
+    "v": (0x00, 0x00, 0x11, 0x11, 0x11, 0x0A, 0x04),
+    "w": (0x00, 0x00, 0x11, 0x11, 0x15, 0x15, 0x0A),
+    "x": (0x00, 0x00, 0x11, 0x0A, 0x04, 0x0A, 0x11),
+    "y": (0x00, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C),
+    "z": (0x00, 0x00, 0x1F, 0x02, 0x04, 0x08, 0x1F),
+    "|": (0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04),
+}
+
 _HTML_CSS = """
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 1040px; margin: 2rem auto; padding: 0 1.25rem; color: #1f2937; line-height: 1.6; }
-h1, h2, h3 { color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3rem; }
-table { border-collapse: collapse; width: 100%; margin: 1rem 0 1.5rem 0; font-size: 0.92rem; }
-th, td { border: 1px solid #d1d5db; padding: 0.45rem 0.65rem; text-align: left; }
+@page { size: A4 portrait; margin: 15mm; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 960px; margin: 1.5rem auto; padding: 0 1.25rem; color: #1f2937; line-height: 1.55; }
+h1, h2, h3 { color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; margin-top: 1.4rem; }
+table { border-collapse: collapse; width: 100%; margin: 0.75rem 0 1.25rem 0; font-size: 0.9rem; }
+th, td { border: 1px solid #d1d5db; padding: 0.45rem 0.6rem; text-align: left; vertical-align: top; }
 th { background: #f3f4f6; font-weight: 600; }
-.num { text-align: right; font-variant-numeric: tabular-nums; }
-.warning-box { background: #fffbeb; border-left: 4px solid #d97706; padding: 0.85rem 1.1rem; margin: 1rem 0; }
-.guide-box { background: #eff6ff; border-left: 4px solid #2563eb; padding: 0.85rem 1.1rem; margin: 1rem 0; }
-.badge-forte { background: #dcfce7; color: #166534; padding: 0.12rem 0.45rem; border-radius: 4px; font-weight: 600; font-size: 0.82rem; }
-.badge-mod { background: #fef9c3; color: #854d0e; padding: 0.12rem 0.45rem; border-radius: 4px; font-weight: 600; font-size: 0.82rem; }
-.badge-fraca { background: #f3f4f6; color: #4b5563; padding: 0.12rem 0.45rem; border-radius: 4px; font-size: 0.82rem; }
-img.chart { max-width: 100%; height: auto; border: 1px solid #e5e7eb; margin: 0.75rem 0 1.25rem 0; background: #ffffff; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.warning-box { background: #fffbeb; border-left: 4px solid #d97706; padding: 0.8rem 1rem; margin: 0.9rem 0; }
+.guide-box { background: #eff6ff; border-left: 4px solid #2563eb; padding: 0.8rem 1rem; margin: 0.9rem 0; }
+.badge-forte { background: #dcfce7; color: #166534; padding: 0.1rem 0.45rem; border-radius: 4px; font-weight: 600; font-size: 0.82rem; }
+.badge-mod { background: #fef9c3; color: #854d0e; padding: 0.1rem 0.45rem; border-radius: 4px; font-weight: 600; font-size: 0.82rem; }
+.badge-fraca { background: #f3f4f6; color: #4b5563; padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.82rem; }
+figure.chart-card { margin: 1rem 0 1.4rem 0; padding: 0.6rem; border: 1px solid #e5e7eb; background: #ffffff; text-align: center; }
+figure.chart-card img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+figure.chart-card figcaption { font-size: 0.85rem; color: #4b5563; margin-top: 0.45rem; }
+@media print {
+  body { margin: 0; padding: 0; max-width: none; font-size: 10.5pt; }
+  table, figure.chart-card, .warning-box, .guide-box { break-inside: avoid; page-break-inside: avoid; }
+  h1, h2 { break-after: avoid; page-break-after: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
 """.strip()
+
+
+def _to_ascii_label(text: str) -> str:
+    """Fold Unicode accents cleanly for deterministic 5x7 bitmap rendering."""
+    replaced = text.replace("×", "x").replace("·", ".")
+    return unicodedata.normalize("NFKD", replaced).encode("ascii", "ignore").decode("ascii")
 
 
 def _strength_label(abs_val: float) -> str:
@@ -43,20 +149,6 @@ def _strength_label(abs_val: float) -> str:
     if abs_val >= 0.30:
         return "Moderada"
     return "Fraca"
-
-
-def _split_ranked_associations(
-    report: ExploratoryFeatureReport,
-) -> tuple[list[AssociationMeasure], list[AssociationMeasure]]:
-    valid: list[AssociationMeasure] = []
-    undef: list[AssociationMeasure] = []
-    for assoc in report.target_associations:
-        if assoc.status == MetricStatus.VALID and math.isfinite(assoc.value):
-            valid.append(assoc)
-        else:
-            undef.append(assoc)
-    valid.sort(key=lambda a: (-abs(a.value), a.feature_name, a.metric_name))
-    return valid, undef
 
 
 def _png_chunk(tag: bytes, data: bytes) -> bytes:
@@ -98,8 +190,76 @@ def _fill_rect(
         canvas[cy0:cy1, cx0:cx1] = color
 
 
+def _draw_text(
+    canvas: np.ndarray,
+    x: int,
+    y: int,
+    text: str,
+    color: tuple[int, int, int],
+    *,
+    scale: int = 2,
+    align: str = "left",
+) -> None:
+    """Draw crisp pixel-aligned 5x7 bitmap text onto an RGB canvas."""
+    clean = _to_ascii_label(text)
+    if not clean:
+        return
+    step = 6 * scale
+    total_w = len(clean) * step - scale
+    start_x = x
+    if align == "right":
+        start_x = x - total_w
+    elif align == "center":
+        start_x = x - total_w // 2
+
+    h_img, w_img, _ = canvas.shape
+    for idx, ch in enumerate(clean):
+        glyph = _FONT_5X7.get(ch, _FONT_5X7.get(ch.upper(), _FONT_5X7[" "]))
+        gx = start_x + idx * step
+        for row_idx, bits in enumerate(glyph):
+            py0 = y + row_idx * scale
+            if py0 >= h_img or py0 + scale <= 0:
+                continue
+            for col_idx in range(5):
+                if (bits >> (4 - col_idx)) & 1:
+                    px0 = gx + col_idx * scale
+                    if px0 < w_img and px0 + scale > 0:
+                        _fill_rect(canvas, px0, py0, px0 + scale, py0 + scale, color)
+
+
+def _draw_text_vertical(
+    canvas: np.ndarray,
+    x_center: int,
+    y_bottom: int,
+    text: str,
+    color: tuple[int, int, int],
+    *,
+    scale: int = 1,
+) -> None:
+    """Draw text rotated 90 degrees counter-clockwise (bottom-to-top) for column headers."""
+    clean = _to_ascii_label(text)
+    if not clean:
+        return
+    step = 6 * scale
+    glyph_w = 7 * scale
+    x0 = x_center - glyph_w // 2
+    h_img, w_img, _ = canvas.shape
+    for idx, ch in enumerate(clean):
+        glyph = _FONT_5X7.get(ch, _FONT_5X7.get(ch.upper(), _FONT_5X7[" "]))
+        base_y = y_bottom - idx * step
+        for col_idx in range(5):
+            py0 = base_y - (col_idx + 1) * scale
+            if py0 >= h_img or py0 + scale <= 0:
+                continue
+            for row_idx, bits in enumerate(glyph):
+                if (bits >> (4 - col_idx)) & 1:
+                    px0 = x0 + row_idx * scale
+                    if px0 < w_img and px0 + scale > 0:
+                        _fill_rect(canvas, px0, py0, px0 + scale, py0 + scale, color)
+
+
 def _heat_color(abs_val: float) -> tuple[int, int, int]:
-    """Interpolate |corr| in [0, 1] from light blue-gray to amber/crimson."""
+    """Interpolate |corr| in [0, 1] from light slate to amber/crimson."""
     t = max(0.0, min(1.0, abs_val))
     if t < 0.5:
         u = t * 2.0
@@ -116,169 +276,192 @@ def _heat_color(abs_val: float) -> tuple[int, int, int]:
 
 def render_exploratory_target_chart(
     report: ExploratoryFeatureReport,
-    fmt: str = "svg",
+    fmt: str = "png",
     *,
     top_n: int = 15,
 ) -> bytes:
-    """Render horizontal bar chart of feature-target associations in pure SVG or PNG."""
+    """Render legible horizontal bar chart of unique features ranked by mean |value| into PNG."""
     fmt_norm = fmt.strip().lower()
-    if fmt_norm not in ("svg", "png"):
-        raise ConfigurationError(f"Unsupported chart format '{fmt}'; expected 'svg' or 'png'.")
+    if fmt_norm != "png":
+        raise ConfigurationError(f"Unsupported chart format '{fmt}'; only 'png' is supported.")
     if top_n < 1:
         raise ConfigurationError(f"top_n must be >= 1, got {top_n}")
 
-    valid, _ = _split_ranked_associations(report)
-    items = valid[:top_n]
+    valid_entries, _ = report.ranked_target_features()
+    items = valid_entries[:top_n]
     target_name = (
         report.target_associations[0].target_name
         if report.target_associations
         else str(report.metadata.get("target_col", "alvo"))
     )
 
-    if fmt_norm == "svg":
-        width = 760
-        row_h = 30
-        top_pad = 64
-        bottom_pad = 36
-        height = max(180, top_pad + bottom_pad + max(1, len(items)) * row_h)
-        label_x = 185
-        bar_area_w = 430
-        parts = [
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
-            f'<rect width="{width}" height="{height}" fill="#ffffff"/>',
-            f'<text x="20" y="28" font-family="sans-serif" font-size="16" font-weight="bold" fill="#111827">'
-            f'Associação Exploratória com o Alvo ({xml_escape(target_name)})</text>',
-            f'<text x="20" y="46" font-family="sans-serif" font-size="11" fill="#6b7280">'
-            f'Escopo: {xml_escape(report.scope)} — Top {len(items)} por |valor|</text>',
-        ]
-        if not items:
-            parts.append(
-                '<text x="20" y="95" font-family="sans-serif" font-size="13" fill="#6b7280">'
-                'Nenhuma associação válida disponível.</text>'
-            )
-        else:
-            max_abs = max(max(abs(a.value) for a in items), 1e-9)
-            scale_max = 1.0 if max_abs <= 1.0 else max_abs
-            for i, assoc in enumerate(items):
-                y = top_pad + i * row_h
-                bar_w = int(round((abs(assoc.value) / scale_max) * bar_area_w))
-                bar_w = max(2, bar_w)
-                color = "#2563eb" if assoc.value >= 0 else "#dc2626"
-                parts.append(
-                    f'<text x="{label_x - 8}" y="{y + 16}" text-anchor="end" font-family="sans-serif" '
-                    f'font-size="12" fill="#1f2937">{xml_escape(assoc.feature_name)}</text>'
-                )
-                parts.append(
-                    f'<rect x="{label_x}" y="{y + 3}" width="{bar_w}" height="18" rx="3" fill="{color}"/>'
-                )
-                parts.append(
-                    f'<text x="{label_x + bar_w + 8}" y="{y + 16}" font-family="monospace" '
-                    f'font-size="11" fill="#374151">{assoc.value:+.4f} ({xml_escape(assoc.metric_name)})</text>'
-                )
-        parts.append("</svg>")
-        return "\n".join(parts).encode("utf-8")
+    max_feat_len = max((len(feat) for feat, _, _ in items), default=10)
+    left_margin = max(170, min(320, max_feat_len * 12 + 30))
+    bar_area_w = 340
+    right_margin = 340
+    width = left_margin + bar_area_w + right_margin
+    row_h = 34
+    top_pad = 86
+    height = max(210, top_pad + 36 + max(1, len(items)) * row_h)
 
-    # Deterministic PNG rasterization
-    width = 680
-    row_h = 28
-    top_pad = 40
-    height = max(120, top_pad + 24 + max(1, len(items)) * row_h)
     canvas = np.full((height, width, 3), 255, dtype=np.uint8)
-    _fill_rect(canvas, 0, 0, width, 3, (37, 99, 235))
-    if items:
-        max_abs = max(max(abs(a.value) for a in items), 1e-9)
-        scale_max = 1.0 if max_abs <= 1.0 else max_abs
-        bar_x0 = 140
-        max_bar_w = 480
-        _fill_rect(canvas, bar_x0 - 2, top_pad, bar_x0, top_pad + len(items) * row_h, (209, 213, 219))
-        for i, assoc in enumerate(items):
-            y0 = top_pad + i * row_h + 4
-            bar_w = max(3, int(round((abs(assoc.value) / scale_max) * max_bar_w)))
-            col = (37, 99, 235) if assoc.value >= 0 else (220, 38, 38)
-            _fill_rect(canvas, bar_x0, y0, bar_x0 + bar_w, y0 + 18, col)
+    _fill_rect(canvas, 0, 0, width, 5, (37, 99, 235))
+
+    _draw_text(canvas, 22, 18, f"Ranking Unico Atributo x Alvo ({target_name})", (17, 24, 39), scale=2)
+    _draw_text(
+        canvas,
+        22,
+        42,
+        f"Escopo: {report.scope} | Top {len(items)} por Media |valor|",
+        (107, 114, 128),
+        scale=1,
+    )
+    # Legend
+    _fill_rect(canvas, 22, 58, 34, 68, (37, 99, 235))
+    _draw_text(canvas, 40, 59, "Sinal medio (+)", (55, 65, 81), scale=1)
+    _fill_rect(canvas, 165, 58, 177, 68, (220, 38, 38))
+    _draw_text(canvas, 183, 59, "Sinal medio (-)", (55, 65, 81), scale=1)
+
+    if not items:
+        _draw_text(canvas, 22, 110, "Nenhuma associacao valida disponivel.", (107, 114, 128), scale=2)
+        return _encode_rgb_png(canvas)
+
+    # Axis line & grid
+    _fill_rect(canvas, left_margin - 2, top_pad - 6, left_margin, top_pad + len(items) * row_h, (156, 163, 175))
+    max_abs = max(max(mean_abs for _, mean_abs, _ in items), 1e-9)
+    scale_max = 1.0 if max_abs <= 1.0 else max_abs
+
+    for tick in (0.25, 0.50, 0.75, 1.00):
+        tx = left_margin + int(round((tick / scale_max) * bar_area_w))
+        if tx <= left_margin + bar_area_w:
+            _fill_rect(canvas, tx, top_pad - 4, tx + 1, top_pad + len(items) * row_h, (243, 244, 246))
+            _draw_text(canvas, tx, top_pad + len(items) * row_h + 6, f"{tick:.2f}", (107, 114, 128), scale=1, align="center")
+
+    for idx, (feat_name, mean_abs, sub_items) in enumerate(items):
+        y0 = top_pad + idx * row_h
+        if idx % 2 == 1:
+            _fill_rect(canvas, 16, y0, width - 16, y0 + row_h - 2, (249, 250, 251))
+
+        _draw_text(canvas, left_margin - 10, y0 + 9, feat_name, (31, 41, 55), scale=2, align="right")
+
+        signed_mean = sum(a.value for a in sub_items) / len(sub_items)
+        bar_col = (37, 99, 235) if signed_mean >= 0 else (220, 38, 38)
+        bar_w = max(4, int(round((mean_abs / scale_max) * bar_area_w)))
+        _fill_rect(canvas, left_margin, y0 + 6, left_margin + bar_w, y0 + 26, bar_col)
+
+        detail = " ".join(f"{a.metric_name[:1]}:{a.value:+.2f}" for a in sub_items)
+        label = f"{mean_abs:.3f} ({detail})"
+        _draw_text(canvas, left_margin + bar_w + 10, y0 + 11, label, (55, 65, 81), scale=1, align="left")
+
     return _encode_rgb_png(canvas)
 
 
 def render_exploratory_redundancy_heatmap(
     report: ExploratoryFeatureReport,
-    fmt: str = "svg",
+    fmt: str = "png",
 ) -> bytes:
-    """Render symmetric predictor-predictor redundancy heatmap in pure SVG or PNG."""
+    """Render legible symmetric Predictor x Predictor redundancy heatmap into PNG."""
     fmt_norm = fmt.strip().lower()
-    if fmt_norm not in ("svg", "png"):
-        raise ConfigurationError(f"Unsupported chart format '{fmt}'; expected 'svg' or 'png'.")
+    if fmt_norm != "png":
+        raise ConfigurationError(f"Unsupported chart format '{fmt}'; only 'png' is supported.")
 
     features = list(report.pairwise_redundancy_matrix.keys())
     n = len(features)
+    if n == 0:
+        canvas = np.full((180, 480, 3), 255, dtype=np.uint8)
+        _fill_rect(canvas, 0, 0, 480, 5, (37, 99, 235))
+        _draw_text(canvas, 20, 20, "Matriz de Redundancia Preditor x Preditor", (17, 24, 39), scale=2)
+        _draw_text(canvas, 20, 80, "Matriz vazia.", (107, 114, 128), scale=2)
+        return _encode_rgb_png(canvas)
 
-    if fmt_norm == "svg":
-        cell = 44
-        margin_left = 150
-        margin_top = 80
-        width = max(360, margin_left + max(1, n) * cell + 30)
-        height = max(200, margin_top + max(1, n) * cell + 30)
-        parts = [
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
-            f'<rect width="{width}" height="{height}" fill="#ffffff"/>',
-            '<text x="20" y="28" font-family="sans-serif" font-size="16" font-weight="bold" fill="#111827">'
-            'Matriz de Redundância Preditor × Preditor</text>',
-            f'<text x="20" y="46" font-family="sans-serif" font-size="11" fill="#6b7280">'
-            f'Escopo: {xml_escape(report.scope)} — Intensidade por |associação|</text>',
-        ]
-        if n == 0:
-            parts.append(
-                '<text x="20" y="95" font-family="sans-serif" font-size="13" fill="#6b7280">'
-                'Matriz vazia.</text>'
-            )
-        else:
-            for j, feat in enumerate(features):
-                cx = margin_left + j * cell + cell // 2
-                parts.append(
-                    f'<text x="{cx}" y="{margin_top - 8}" text-anchor="middle" font-family="sans-serif" '
-                    f'font-size="10" fill="#374151">{xml_escape(feat[:10])}</text>'
-                )
-            for i, fa in enumerate(features):
-                ry = margin_top + i * cell
-                parts.append(
-                    f'<text x="{margin_left - 8}" y="{ry + cell // 2 + 4}" text-anchor="end" '
-                    f'font-family="sans-serif" font-size="11" fill="#1f2937">{xml_escape(fa)}</text>'
-                )
-                row = report.pairwise_redundancy_matrix.get(fa, {})
-                for j, fb in enumerate(features):
-                    cx = margin_left + j * cell
-                    val = row.get(fb)
-                    if val is None or not math.isfinite(val):
-                        fill_hex = "#e5e7eb"
-                        txt = "N/A"
-                        txt_col = "#4b5563"
-                    else:
-                        r, g, b = _heat_color(abs(val))
-                        fill_hex = f"#{r:02x}{g:02x}{b:02x}"
-                        txt = f"{val:.2f}"
-                        txt_col = "#ffffff" if abs(val) >= 0.65 else "#111827"
-                    parts.append(
-                        f'<rect x="{cx}" y="{ry}" width="{cell}" height="{cell}" fill="{fill_hex}" stroke="#ffffff" stroke-width="1"/>'
-                    )
-                    parts.append(
-                        f'<text x="{cx + cell // 2}" y="{ry + cell // 2 + 4}" text-anchor="middle" '
-                        f'font-family="monospace" font-size="10" fill="{txt_col}">{txt}</text>'
-                    )
-        parts.append("</svg>")
-        return "\n".join(parts).encode("utf-8")
+    cell_px = 54 if n <= 8 else (42 if n <= 15 else (32 if n <= 24 else 22))
+    max_len = max(len(f) for f in features)
+    left_margin = max(130, min(260, max_len * 10 + 24))
+    top_margin = max(115, min(220, max_len * 7 + 84))
+    grid_side = n * cell_px
+    width = max(560, left_margin + grid_side + 40)
+    height = top_margin + grid_side + 60
 
-    # PNG heatmap
-    cell_px = 36
-    pad = 24
-    side = max(1, n) * cell_px + 2 * pad
-    canvas = np.full((side, side, 3), 255, dtype=np.uint8)
+    canvas = np.full((height, width, 3), 255, dtype=np.uint8)
+    _fill_rect(canvas, 0, 0, width, 5, (37, 99, 235))
+    _draw_text(canvas, 20, 18, "Matriz de Redundancia Preditor x Preditor", (17, 24, 39), scale=2)
+    _draw_text(
+        canvas,
+        20,
+        42,
+        f"Escopo: {report.scope} | {n} x {n} preditores",
+        (107, 114, 128),
+        scale=1,
+    )
+
+    # Color bar legend
+    _draw_text(canvas, 20, 62, "0.00", (75, 85, 99), scale=1)
+    for k in range(120):
+        c = _heat_color(k / 119.0)
+        _fill_rect(canvas, 54 + k, 59, 55 + k, 71, c)
+    _draw_text(canvas, 182, 62, "1.00 (alta redundancia)", (75, 85, 99), scale=1)
+
+    # Vertical column headers
+    for j, feat in enumerate(features):
+        cx = left_margin + j * cell_px + cell_px // 2
+        _draw_text_vertical(canvas, cx, top_margin - 8, feat, (31, 41, 55), scale=1)
+
+    # Rows + cells
     for i, fa in enumerate(features):
+        ry = top_margin + i * cell_px
+        _draw_text(canvas, left_margin - 8, ry + cell_px // 2 - 4, fa, (31, 41, 55), scale=1, align="right")
         row = report.pairwise_redundancy_matrix.get(fa, {})
         for j, fb in enumerate(features):
-            val = row.get(fb)
-            col = (229, 231, 235) if (val is None or not math.isfinite(val)) else _heat_color(abs(val))
-            x0, y0 = pad + j * cell_px, pad + i * cell_px
-            _fill_rect(canvas, x0 + 1, y0 + 1, x0 + cell_px - 1, y0 + cell_px - 1, col)
+            cx = left_margin + j * cell_px
+            v = row.get(fb)
+            if v is None or not math.isfinite(v):
+                col = (229, 231, 235)
+                txt = "N/A"
+                txt_col = (75, 85, 99)
+            elif fa == fb:
+                col = (241, 245, 249)
+                txt = f"{v:.2f}"
+                txt_col = (100, 116, 139)
+            else:
+                col = _heat_color(abs(v))
+                txt = f"{v:.2f}"
+                txt_col = (255, 255, 255) if abs(v) >= 0.65 else (17, 24, 39)
+            _fill_rect(canvas, cx + 1, ry + 1, cx + cell_px - 1, ry + cell_px - 1, col)
+            if cell_px >= 32:
+                _draw_text(canvas, cx + cell_px // 2, ry + cell_px // 2 - 4, txt, txt_col, scale=1, align="center")
+
     return _encode_rgb_png(canvas)
+
+
+def render_exploratory_target_csv(report: ExploratoryFeatureReport) -> str:
+    """Export unique-feature ranked associations (mean |value| + individual metrics) to CSV."""
+    valid_entries, nan_entries = report.ranked_target_features()
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(["rank", "feature", "mean_abs", "strength", "metrics_detail", "status"])
+    for idx, (feat_name, mean_abs, items) in enumerate(valid_entries, start=1):
+        detail = "; ".join(f"{a.metric_name}={a.value:.6f}" for a in items)
+        writer.writerow([idx, feat_name, f"{mean_abs:.6f}", _strength_label(mean_abs), detail, "VALID"])
+    for feat_name, items in nan_entries:
+        detail = "; ".join(f"{a.metric_name}={a.status.value}" for a in items)
+        writer.writerow(["", feat_name, "NaN", "N/A", detail, items[0].status.value])
+    return buf.getvalue()
+
+
+def render_exploratory_redundancy_csv(report: ExploratoryFeatureReport) -> str:
+    """Export full Predictor x Predictor redundancy matrix to standalone CSV."""
+    features = list(report.pairwise_redundancy_matrix.keys())
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(["feature", *features])
+    for fa in features:
+        row = report.pairwise_redundancy_matrix.get(fa, {})
+        vals = []
+        for fb in features:
+            v = row.get(fb)
+            vals.append("NaN" if (v is None or not math.isfinite(v)) else f"{v:.6f}")
+        writer.writerow([fa, *vals])
+    return buf.getvalue()
 
 
 def render_exploratory_report(
@@ -288,15 +471,16 @@ def render_exploratory_report(
     top_n: int = 15,
     figure_paths: Sequence[str] = (),
 ) -> str:
-    """Render Stage 2 exploratory feature report into Markdown or offline self-contained HTML."""
+    """Render Stage 2 exploratory feature report into clean Markdown or print/PDF-ready HTML."""
     fmt_norm = fmt.strip().lower()
     if fmt_norm not in ("markdown", "html"):
         raise ConfigurationError(f"Unsupported report format '{fmt}'; expected 'markdown' or 'html'.")
     if top_n < 1:
         raise ConfigurationError(f"top_n must be >= 1, got {top_n}")
 
-    valid, undef = _split_ranked_associations(report)
-    displayed = valid[:top_n]
+    valid_entries, undef_entries = report.ranked_target_features()
+    displayed = valid_entries[:top_n]
+    total_unique = len(valid_entries) + len(undef_entries)
     target_name = (
         report.target_associations[0].target_name
         if report.target_associations
@@ -314,7 +498,7 @@ def render_exploratory_report(
             "",
             f"- **Escopo:** `{report.scope}`",
             f"- **Tarefa:** `{report.task_type.value}`",
-            f"- **Atributos analisados:** {len(report.target_associations)} (válidos: {len(valid)}, indefinidos: {len(undef)})",
+            f"- **Atributos analisados:** {total_unique} (válidos: {len(valid_entries)}, indefinidos: {len(undef_entries)})",
             "",
             "> [!WARNING]",
             "> **Aviso Anti-Leakage (`EXPLORATORY_FULL_DATA`):** Estas estatísticas foram calculadas sobre a base completa apenas para entendimento inicial dos dados. Não remova ou escolha variáveis definitivas apenas por estes números sem validar em cenários controlados dentro das dobras.",
@@ -324,22 +508,21 @@ def render_exploratory_report(
 
         lines.extend([
             "",
-            f"## 1. Ranking de Associação Atributo × Alvo (Top {min(top_n, len(valid))})",
+            f"## 1. Ranking Único de Associação Atributo × Alvo (Top {min(top_n, len(valid_entries))})",
             "",
-            "| Posição | Atributo | Métrica | Valor | \\|Valor\\| | Força | Status |",
-            "| :---: | :--- | :--- | ---: | ---: | :---: | :---: |",
+            "| Posição | Atributo | Média \\|·\\| | Força | Métricas Individuais | Status |",
+            "| :---: | :--- | ---: | :---: | :--- | :---: |",
         ])
-        for idx, assoc in enumerate(displayed, start=1):
-            abs_v = abs(assoc.value)
+        for idx, (feat_name, mean_abs, items) in enumerate(displayed, start=1):
+            detail = ", ".join(f"`{a.metric_name}`={a.value:+.4f}" for a in items)
             lines.append(
-                f"| {idx} | `{assoc.feature_name}` | `{assoc.metric_name}` | "
-                f"{assoc.value:+.4f} | {abs_v:.4f} | {_strength_label(abs_v)} | `{assoc.status.value}` |"
+                f"| {idx} | `{feat_name}` | {mean_abs:.4f} | {_strength_label(mean_abs)} | {detail} | `VALID` |"
             )
         if not displayed:
-            lines.append("| — | *(nenhuma associação válida)* | — | — | — | — | — |")
+            lines.append("| — | *(nenhuma associação válida)* | — | — | — | — |")
 
-        if undef:
-            undef_list = ", ".join(f"`{a.feature_name}` (`{a.status.value}`)" for a in undef)
+        if undef_entries:
+            undef_list = ", ".join(f"`{f}` (`{items[0].status.value}`)" for f, items in undef_entries)
             lines.extend(["", f"**Associações indefinidas (nunca convertidas para `0.0`):** {undef_list}"])
 
         lines.extend(["", f"## 2. Pares Redundantes / Multicolinearidade ({len(sorted_pairs)})", ""])
@@ -353,29 +536,19 @@ def render_exploratory_report(
             for p in sorted_pairs:
                 lines.append(f"| `{p.feature_a}` | `{p.feature_b}` | `{p.metric_name}` | {p.value:+.4f} |")
 
-        lines.extend(["", "## 3. Matriz Completa Preditor × Preditor", ""])
-        if not features:
-            lines.append("*(Matriz vazia)*")
-        else:
-            header = "| Atributo | " + " | ".join(f"`{f}`" for f in features) + " |"
-            sep = "| :--- | " + " | ".join("---:" for _ in features) + " |"
-            lines.extend([header, sep])
-            for fa in features:
-                row = report.pairwise_redundancy_matrix.get(fa, {})
-                cells = []
-                for fb in features:
-                    v = row.get(fb)
-                    cells.append("N/A" if (v is None or not math.isfinite(v)) else f"{v:+.2f}")
-                lines.append(f"| `{fa}` | " + " | ".join(cells) + " |")
-
-        if figure_paths:
-            lines.extend(["", "## 4. Visualizações Geradas", ""])
-            for fp in figure_paths:
-                lines.append(f"![Gráfico exploratório]({fp})")
+        lines.extend([
+            "",
+            "## 3. Arquivos Exportados e Visualizações",
+            "",
+            "- **Ranking completo (CSV):** [`exploratory_target_associations.csv`](exploratory_target_associations.csv)",
+            f"- **Matriz completa Preditor × Preditor ({len(features)} × {len(features)}, CSV):** [`exploratory_redundancy_matrix.csv`](exploratory_redundancy_matrix.csv)",
+        ])
+        for fp in figure_paths:
+            lines.append(f"- ![Gráfico exploratório]({fp})")
 
         lines.extend([
             "",
-            "## 5. Como Usar Estes Indicadores para Montar Cenários (`scenarios.json`)",
+            "## 4. Como Usar Estes Indicadores para Montar Cenários (`scenarios.json`)",
             "",
             "- **Cenário `FIXED` de referência:** mantenha todas as variáveis preditoras (`todas_features`) como linha de base.",
             "- **Cenário `FIXED` sem redundância:** quando houver pares muito correlacionados na Seção 2, crie um segundo cenário removendo um membro de cada par redundante para testar se modelos lineares/kernels ficam mais estáveis.",
@@ -383,7 +556,7 @@ def render_exploratory_report(
         ])
         return "\n".join(lines) + "\n"
 
-    # Offline self-contained HTML
+    # Print/PDF-ready offline HTML (clean, no horizontal scrollbars, no giant inline matrix)
     parts = [
         "<!DOCTYPE html>",
         '<html lang="pt-BR">',
@@ -396,8 +569,8 @@ def render_exploratory_report(
         f"<h1>Relatório Exploratório de Atributos (Etapa 2) — <code>{html.escape(target_name)}</code></h1>",
         f"<p><strong>Escopo:</strong> <code>{html.escape(report.scope)}</code> | "
         f"<strong>Tarefa:</strong> <code>{html.escape(report.task_type.value)}</code> | "
-        f"<strong>Atributos:</strong> {len(report.target_associations)} "
-        f"(válidos: {len(valid)}, indefinidos: {len(undef)})</p>",
+        f"<strong>Atributos únicos:</strong> {total_unique} "
+        f"(válidos: {len(valid_entries)}, indefinidos: {len(undef_entries)})</p>",
         '<div class="warning-box"><strong>Aviso Anti-Leakage (EXPLORATORY_FULL_DATA):</strong> '
         "Estas estatísticas foram calculadas sobre a base completa apenas para exploração. "
         "Não selecione variáveis definitivas sem validar em cenários dentro das dobras.<ul>",
@@ -406,27 +579,27 @@ def render_exploratory_report(
         parts.append(f"<li>{html.escape(w)}</li>")
     parts.append("</ul></div>")
 
-    parts.append(f"<h2>1. Ranking de Associação Atributo × Alvo (Top {min(top_n, len(valid))})</h2>")
+    parts.append(f"<h2>1. Ranking Único Atributo × Alvo (Top {min(top_n, len(valid_entries))})</h2>")
     parts.append(
-        "<table><thead><tr><th>#</th><th>Atributo</th><th>Métrica</th>"
-        '<th class="num">Valor</th><th class="num">|Valor|</th><th>Força</th><th>Status</th></tr></thead><tbody>'
+        "<table><thead><tr><th>#</th><th>Atributo</th>"
+        '<th class="num">Média |·|</th><th>Força</th><th>Métricas Individuais</th><th>Status</th></tr></thead><tbody>'
     )
-    for idx, assoc in enumerate(displayed, start=1):
-        abs_v = abs(assoc.value)
-        strength = _strength_label(abs_v)
-        badge_cls = "badge-forte" if abs_v >= 0.70 else ("badge-mod" if abs_v >= 0.30 else "badge-fraca")
+    for idx, (feat_name, mean_abs, items) in enumerate(displayed, start=1):
+        strength = _strength_label(mean_abs)
+        badge_cls = "badge-forte" if mean_abs >= 0.70 else ("badge-mod" if mean_abs >= 0.30 else "badge-fraca")
+        detail = ", ".join(f"<code>{html.escape(a.metric_name)}</code>={a.value:+.4f}" for a in items)
         parts.append(
-            f"<tr><td>{idx}</td><td><code>{html.escape(assoc.feature_name)}</code></td>"
-            f"<td><code>{html.escape(assoc.metric_name)}</code></td>"
-            f'<td class="num">{assoc.value:+.4f}</td><td class="num">{abs_v:.4f}</td>'
+            f"<tr><td>{idx}</td><td><code>{html.escape(feat_name)}</code></td>"
+            f'<td class="num">{mean_abs:.4f}</td>'
             f'<td><span class="{badge_cls}">{strength}</span></td>'
-            f"<td><code>{html.escape(assoc.status.value)}</code></td></tr>"
+            f"<td>{detail}</td>"
+            "<td><code>VALID</code></td></tr>"
         )
     parts.append("</tbody></table>")
-    if undef:
+    if undef_entries:
         undef_html = ", ".join(
-            f"<code>{html.escape(a.feature_name)}</code> (<code>{html.escape(a.status.value)}</code>)"
-            for a in undef
+            f"<code>{html.escape(f)}</code> (<code>{html.escape(items[0].status.value)}</code>)"
+            for f, items in undef_entries
         )
         parts.append(f"<p><strong>Associações indefinidas (sem coerção para 0.0):</strong> {undef_html}</p>")
 
@@ -446,35 +619,23 @@ def render_exploratory_report(
             )
         parts.append("</tbody></table>")
 
-    parts.append("<h2>3. Matriz Completa Preditor × Preditor</h2>")
-    if features:
-        parts.append("<table><thead><tr><th>Atributo</th>")
-        for f in features:
-            parts.append(f'<th class="num">{html.escape(f)}</th>')
-        parts.append("</tr></thead><tbody>")
-        for fa in features:
-            parts.append(f"<tr><td><code>{html.escape(fa)}</code></td>")
-            row = report.pairwise_redundancy_matrix.get(fa, {})
-            for fb in features:
-                v = row.get(fb)
-                if v is None or not math.isfinite(v):
-                    parts.append('<td class="num">N/A</td>')
-                else:
-                    r, g, b = _heat_color(abs(v))
-                    txt_col = "#ffffff" if abs(v) >= 0.65 else "#111827"
-                    parts.append(
-                        f'<td class="num" style="background:rgb({r},{g},{b});color:{txt_col};">{v:+.2f}</td>'
-                    )
-            parts.append("</tr>")
-        parts.append("</tbody></table>")
-
-    if figure_paths:
-        parts.append("<h2>4. Visualizações Geradas</h2>")
-        for fp in figure_paths:
-            parts.append(f'<img class="chart" src="{html.escape(fp)}" alt="Visualização exploratória"/>')
+    parts.extend([
+        "<h2>3. Gráficos e Planilhas Exportadas</h2>",
+        "<ul>",
+        '<li><strong>Ranking completo (CSV):</strong> <a href="exploratory_target_associations.csv"><code>exploratory_target_associations.csv</code></a></li>',
+        f'<li><strong>Matriz completa Preditor × Preditor ({len(features)} × {len(features)}, CSV):</strong> '
+        '<a href="exploratory_redundancy_matrix.csv"><code>exploratory_redundancy_matrix.csv</code></a></li>',
+        "</ul>",
+    ])
+    for fp in figure_paths:
+        cap = "Ranking único de associação com o alvo" if "target" in fp else "Mapa de calor de redundância Preditor × Preditor"
+        parts.append(
+            f'<figure class="chart-card"><img src="{html.escape(fp)}" alt="{html.escape(cap)}"/>'
+            f"<figcaption>{html.escape(cap)}</figcaption></figure>"
+        )
 
     parts.extend([
-        "<h2>5. Como Usar Estes Indicadores para Montar Cenários (<code>scenarios.json</code>)</h2>",
+        "<h2>4. Como Usar Estes Indicadores para Montar Cenários (<code>scenarios.json</code>)</h2>",
         '<div class="guide-box"><ul>',
         "<li><strong>Cenário <code>FIXED</code> de referência:</strong> mantenha todas as variáveis (<code>todas_features</code>) como linha de base.</li>",
         "<li><strong>Cenário <code>FIXED</code> sem redundância:</strong> se houver pares redundantes na Seção 2, crie um cenário alternativo removendo um item de cada par.</li>",

@@ -47,7 +47,7 @@ T1 --> T2 --> T3 --> T4
 **Tests**: Unit tests verifying unique-feature Top-N deduplication, `mean(|value|)` ordering, and `UNDEFINED_NAN` separation.  
 **Gate**: `.venv/bin/pytest tests/unit/features/test_exploratory_visualization.py -k "summary" -v`  
 
-### T2: Implement labeled pure-NumPy PNG charts, CSV exporters, clean Markdown, and print/PDF-ready HTML in `features/visualization.py`
+### T2: Implement labeled pure-NumPy PNG charts, CSV exporters, clean Markdown, and print/PDF-ready HTML in `features/visualization.py` [x]
 **Depends on**: T1  
 **Files**: `src/experimental_ml/features/visualization.py`, `src/experimental_ml/features/__init__.py`, `tests/unit/features/test_exploratory_visualization.py`  
 **Done when**: PNG bar chart & heatmap include crisp bitmap text labels/values/legends (`XCUT-02`), SVG is rejected, `render_exploratory_target_csv` & `render_exploratory_redundancy_csv` work, and `exploratory_features.{md,html}` has `@page`/`@media print` CSS and no giant inline matrix.  
