@@ -54,7 +54,7 @@ T1 --> T2 --> T3 --> T4
 **Tests**: Unit tests verifying MD/HTML sections (warnings, ranked table, redundant pairs, matrix, scenario guidance), valid SVG XML & PNG magic header, and determinism.  
 **Gate**: `.venv/bin/pytest tests/unit/features/test_exploratory_visualization.py -v`  
 
-### T3: Integrate visual outputs and ranked `stdout` summary into `cmd_features.py`
+### T3: Integrate visual outputs and ranked `stdout` summary into `cmd_features.py` [x]
 **Depends on**: T2  
 **Files**: `src/experimental_ml/cli/cmd_features.py`, `tests/unit/cli/test_exploratory_cli_visuals.py`  
 **Done when**: `expml features explore` prints ranked summary to `stdout` without 64-hex hashes (`CLI-11`), writes `reports/exploratory_features.{json,md,html}` and `figures/exploratory_*.{svg,png}`, and leaves `configuration/scenarios.json` untouched.  

@@ -17,6 +17,11 @@ from experimental_ml.features.scenarios import (
     save_scenarios,
     validate_scenarios,
 )
+from experimental_ml.features.visualization import (
+    render_exploratory_redundancy_heatmap,
+    render_exploratory_report,
+    render_exploratory_target_chart,
+)
 from experimental_ml.stages.stage_gates import (
     EXPLORATORY_FEATURES_REL_PATH,
     SCENARIOS_CATALOG_REL_PATH,
@@ -55,17 +60,45 @@ def handle_features_explore(args: argparse.Namespace) -> int:
     report_dict = report.to_dict()
     write_json_atomic(report_path, report_dict, overwrite=True)
 
-    # Format summary to stdout
-    target_info = view.schema.target_col
-    n_assocs = len(report.target_associations)
-    n_redundant = len(report.high_redundancy_pairs)
+    # Persist visual reports and deterministic SVG/PNG figures (EXPL-02..EXPL-04)
+    figures_dir = experiment_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    reports_dir = report_path.parent
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
+    bar_svg_path = figures_dir / "exploratory_target_associations.svg"
+    bar_png_path = figures_dir / "exploratory_target_associations.png"
+    hm_svg_path = figures_dir / "exploratory_redundancy_heatmap.svg"
+    hm_png_path = figures_dir / "exploratory_redundancy_heatmap.png"
+
+    bar_svg_path.write_bytes(render_exploratory_target_chart(report, fmt="svg"))
+    bar_png_path.write_bytes(render_exploratory_target_chart(report, fmt="png"))
+    hm_svg_path.write_bytes(render_exploratory_redundancy_heatmap(report, fmt="svg"))
+    hm_png_path.write_bytes(render_exploratory_redundancy_heatmap(report, fmt="png"))
+
+    rel_figs = (
+        "../figures/exploratory_target_associations.svg",
+        "../figures/exploratory_redundancy_heatmap.svg",
+    )
+    md_path = reports_dir / "exploratory_features.md"
+    html_path = reports_dir / "exploratory_features.html"
+    md_path.write_text(
+        render_exploratory_report(report, fmt="markdown", figure_paths=rel_figs),
+        encoding="utf-8",
+    )
+    html_path.write_text(
+        render_exploratory_report(report, fmt="html", figure_paths=rel_figs),
+        encoding="utf-8",
+    )
+
+    # Print readable ranked summary and artifact paths without raw SHA-256 hashes (CLI-11)
     sys.stdout.write(
-        f"Exploratory feature analysis completed successfully:\n"
-        f"  - Target column: {target_info}\n"
-        f"  - Features analyzed: {n_assocs}\n"
-        f"  - Redundant pairs flagged: {n_redundant}\n"
-        f"  - Report: {report_path.relative_to(experiment_dir)}\n"
+        report.summary()
+        + "\n\nArtefatos gerados:\n"
+        + f"  - JSON: {report_path.relative_to(experiment_dir)}\n"
+        + f"  - Markdown: {md_path.relative_to(experiment_dir)}\n"
+        + f"  - HTML: {html_path.relative_to(experiment_dir)}\n"
+        + f"  - Figuras: {bar_svg_path.relative_to(experiment_dir)}, {hm_svg_path.relative_to(experiment_dir)}\n"
     )
 
     return 0
