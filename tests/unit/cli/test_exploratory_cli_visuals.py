@@ -57,6 +57,7 @@ def test_cli_features_explore_visual_outputs_and_stdout(tmp_path: Path) -> None:
     assert (exp_dir / "reports" / "exploratory_features.json").exists()
     assert (exp_dir / "reports" / "exploratory_features.md").exists()
     assert (exp_dir / "reports" / "exploratory_features.html").exists()
+    assert (exp_dir / "reports" / "exploratory_redundancy_matrix.csv").exists()
     assert (exp_dir / "figures" / "exploratory_target_associations.svg").exists()
     assert (exp_dir / "figures" / "exploratory_target_associations.png").exists()
     assert (exp_dir / "figures" / "exploratory_redundancy_heatmap.svg").exists()

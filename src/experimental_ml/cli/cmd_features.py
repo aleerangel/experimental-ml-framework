@@ -18,6 +18,7 @@ from experimental_ml.features.scenarios import (
     validate_scenarios,
 )
 from experimental_ml.features.visualization import (
+    render_exploratory_redundancy_csv,
     render_exploratory_redundancy_heatmap,
     render_exploratory_report,
     render_exploratory_target_chart,
@@ -82,12 +83,17 @@ def handle_features_explore(args: argparse.Namespace) -> int:
     )
     md_path = reports_dir / "exploratory_features.md"
     html_path = reports_dir / "exploratory_features.html"
+    matrix_csv_path = reports_dir / "exploratory_redundancy_matrix.csv"
     md_path.write_text(
         render_exploratory_report(report, fmt="markdown", figure_paths=rel_figs),
         encoding="utf-8",
     )
     html_path.write_text(
         render_exploratory_report(report, fmt="html", figure_paths=rel_figs),
+        encoding="utf-8",
+    )
+    matrix_csv_path.write_text(
+        render_exploratory_redundancy_csv(report),
         encoding="utf-8",
     )
 
@@ -103,6 +109,7 @@ def handle_features_explore(args: argparse.Namespace) -> int:
         f"  - Report: {report_path.relative_to(experiment_dir)}\n"
         f"  - Markdown: {md_path.relative_to(experiment_dir)}\n"
         f"  - HTML: {html_path.relative_to(experiment_dir)}\n"
+        f"  - Matriz CSV: {matrix_csv_path.relative_to(experiment_dir)}\n"
         f"  - Figuras: {bar_svg_path.relative_to(experiment_dir)}, {hm_svg_path.relative_to(experiment_dir)}\n\n"
         + report.summary()
         + "\n"

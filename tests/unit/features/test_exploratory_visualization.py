@@ -14,6 +14,7 @@ from experimental_ml.features.types import (
     RedundancyPair,
 )
 from experimental_ml.features.visualization import (
+    render_exploratory_redundancy_csv,
     render_exploratory_redundancy_heatmap,
     render_exploratory_report,
     render_exploratory_target_chart,
@@ -115,3 +116,32 @@ def test_exploratory_svg_and_png_charts_deterministic() -> None:
     png_hm_2 = render_exploratory_redundancy_heatmap(report, fmt="png")
     assert png_hm_1 == png_hm_2
     assert png_hm_1.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_large_redundancy_matrix_externalized_to_csv_and_heatmap() -> None:
+    """When >8 predictors exist, MD/HTML link to exploratory_redundancy_matrix.csv & heatmap without giant inline table."""
+    feats = [f"f_{i:02d}" for i in range(10)]
+    matrix = {fa: {fb: (1.0 if fa == fb else 0.1) for fb in feats} for fa in feats}
+    large_report = ExploratoryFeatureReport(
+        scope=SCOPE_EXPLORATORY_FULL_DATA,
+        dataset_hash="b" * 64,
+        task_type=TaskType.REGRESSION,
+        target_associations=(AssociationMeasure("f_00", "alvo", "PEARSON", 0.5, MetricStatus.VALID),),
+        pairwise_redundancy_matrix=matrix,
+        high_redundancy_pairs=(),
+        warnings=METHODOLOGICAL_WARNINGS,
+    )
+
+    csv_text = render_exploratory_redundancy_csv(large_report)
+    lines = csv_text.strip().splitlines()
+    assert len(lines) == 11
+    assert lines[0].startswith("feature,f_00,f_01")
+
+    md = render_exploratory_report(large_report, fmt="markdown")
+    assert "exploratory_redundancy_matrix.csv" in md
+    assert "exploratory_redundancy_heatmap.svg" in md
+    assert "| Atributo | `f_00`" not in md
+
+    html_doc = render_exploratory_report(large_report, fmt="html")
+    assert "exploratory_redundancy_matrix.csv" in html_doc
+    assert '<table class="matrix-table">' not in html_doc

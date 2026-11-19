@@ -5,7 +5,9 @@ Complies with EXPL-01..EXPL-05, CA-E2-01, XCUT-02 (pure Python stdlib + numpy), 
 
 from __future__ import annotations
 
+import csv
 import html
+import io
 import math
 import struct
 from typing import Sequence
@@ -221,11 +223,13 @@ def render_exploratory_redundancy_heatmap(
     n = len(features)
 
     if fmt_norm == "svg":
-        cell = 44
-        margin_left = 150
-        margin_top = 80
-        width = max(360, margin_left + max(1, n) * cell + 30)
-        height = max(200, margin_top + max(1, n) * cell + 30)
+        n_feats = len(features)
+        cell = 48 if n_feats <= 12 else (36 if n_feats <= 24 else 28)
+        max_len = max((len(f) for f in features), default=6)
+        margin_left = max(130, min(240, max_len * 7 + 24))
+        margin_top = max(100, min(200, max_len * 5 + 56))
+        width = max(420, margin_left + max(1, n) * cell + 40)
+        height = max(240, margin_top + max(1, n) * cell + 36)
         parts = [
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
             f'<rect width="{width}" height="{height}" fill="#ffffff"/>',
@@ -242,9 +246,10 @@ def render_exploratory_redundancy_heatmap(
         else:
             for j, feat in enumerate(features):
                 cx = margin_left + j * cell + cell // 2
+                cy = margin_top - 8
                 parts.append(
-                    f'<text x="{cx}" y="{margin_top - 8}" text-anchor="middle" font-family="sans-serif" '
-                    f'font-size="10" fill="#374151">{xml_escape(feat[:10])}</text>'
+                    f'<text x="{cx}" y="{cy}" transform="rotate(-45 {cx} {cy})" text-anchor="start" '
+                    f'font-family="sans-serif" font-size="10" fill="#374151">{xml_escape(feat)}</text>'
                 )
             for i, fa in enumerate(features):
                 ry = margin_top + i * cell
@@ -260,6 +265,10 @@ def render_exploratory_redundancy_heatmap(
                         fill_hex = "#e5e7eb"
                         txt = "N/A"
                         txt_col = "#4b5563"
+                    elif fa == fb:
+                        fill_hex = "#f1f5f9"
+                        txt = f"{val:.2f}"
+                        txt_col = "#64748b"
                     else:
                         r, g, b = _heat_color(abs(val))
                         fill_hex = f"#{r:02x}{g:02x}{b:02x}"
@@ -268,10 +277,11 @@ def render_exploratory_redundancy_heatmap(
                     parts.append(
                         f'<rect x="{cx}" y="{ry}" width="{cell}" height="{cell}" fill="{fill_hex}" stroke="#ffffff" stroke-width="1"/>'
                     )
-                    parts.append(
-                        f'<text x="{cx + cell // 2}" y="{ry + cell // 2 + 4}" text-anchor="middle" '
-                        f'font-family="monospace" font-size="10" fill="{txt_col}">{txt}</text>'
-                    )
+                    if cell >= 32:
+                        parts.append(
+                            f'<text x="{cx + cell // 2}" y="{ry + cell // 2 + 4}" text-anchor="middle" '
+                            f'font-family="monospace" font-size="10" fill="{txt_col}">{txt}</text>'
+                        )
         parts.append("</svg>")
         return "\n".join(parts).encode("utf-8")
 
@@ -288,6 +298,22 @@ def render_exploratory_redundancy_heatmap(
             x0, y0 = pad + j * cell_px, pad + i * cell_px
             _fill_rect(canvas, x0 + 1, y0 + 1, x0 + cell_px - 1, y0 + cell_px - 1, col)
     return _encode_rgb_png(canvas)
+
+
+def render_exploratory_redundancy_csv(report: ExploratoryFeatureReport) -> str:
+    """Export full Predictor x Predictor redundancy matrix to standalone CSV."""
+    features = list(report.pairwise_redundancy_matrix.keys())
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(["feature", *features])
+    for fa in features:
+        row = report.pairwise_redundancy_matrix.get(fa, {})
+        vals = []
+        for fb in features:
+            v = row.get(fb)
+            vals.append("NaN" if (v is None or not math.isfinite(v)) else f"{v:.6f}")
+        writer.writerow([fa, *vals])
+    return buf.getvalue()
 
 
 def render_exploratory_report(
@@ -365,7 +391,17 @@ def render_exploratory_report(
         lines.extend(["", "## 3. Matriz Completa Preditor × Preditor", ""])
         if not features:
             lines.append("*(Matriz vazia)*")
+        elif len(features) > 8:
+            lines.extend([
+                f"A matriz completa ({len(features)} × {len(features)}) foi exportada em arquivo separado para evitar poluição visual:",
+                "- **Tabela completa:** [`exploratory_redundancy_matrix.csv`](exploratory_redundancy_matrix.csv)",
+                "- **Mapa de calor visual:** [`exploratory_redundancy_heatmap.svg`](../figures/exploratory_redundancy_heatmap.svg) / [`.png`](../figures/exploratory_redundancy_heatmap.png)",
+            ])
         else:
+            lines.extend([
+                "*(Também exportada separadamente em [`exploratory_redundancy_matrix.csv`](exploratory_redundancy_matrix.csv).)*",
+                "",
+            ])
             header = "| Atributo | " + " | ".join(f"`{f}`" for f in features) + " |"
             sep = "| :--- | " + " | ".join("---:" for _ in features) + " |"
             lines.extend([header, sep])
@@ -458,7 +494,19 @@ def render_exploratory_report(
     parts.append("<h2>3. Matriz Completa Preditor × Preditor</h2>")
     if not features:
         parts.append("<p><em>(Matriz vazia)</em></p>")
+    elif len(features) > 8:
+        parts.append(
+            f'<div class="guide-box"><p>A matriz completa (<strong>{len(features)} × {len(features)}</strong>) '
+            "foi exportada em arquivo separado para manter o relatório legível sem barras de rolagem:</p><ul>"
+            '<li><strong>Planilha CSV:</strong> <a href="exploratory_redundancy_matrix.csv"><code>exploratory_redundancy_matrix.csv</code></a></li>'
+            '<li><strong>Mapa de calor visual:</strong> <a href="../figures/exploratory_redundancy_heatmap.svg"><code>exploratory_redundancy_heatmap.svg</code></a> '
+            '(<a href="../figures/exploratory_redundancy_heatmap.png"><code>PNG</code></a>)</li>'
+            "</ul></div>"
+        )
     else:
+        parts.append(
+            '<p><em>Também exportada em <a href="exploratory_redundancy_matrix.csv"><code>exploratory_redundancy_matrix.csv</code></a>.</em></p>'
+        )
         parts.append(
             '<div class="legend">'
             '<span><strong>Intensidade fora da diagonal (|associação|):</strong></span>'
@@ -468,7 +516,7 @@ def render_exploratory_report(
             '<span><i class="legend-swatch" style="background:#f1f5f9;"></i>Diagonal (autossimilaridade)</span>'
             '</div>'
         )
-        parts.append('<div class="matrix-wrap"><table class="matrix-table"><thead><tr><th class="row-hdr">Atributo</th>')
+        parts.append('<table class="matrix-table"><thead><tr><th class="row-hdr">Atributo</th>')
         for f in features:
             parts.append(f'<th class="col-hdr" title="{html.escape(f)}">{html.escape(f)}</th>')
         parts.append("</tr></thead><tbody>")
@@ -491,7 +539,7 @@ def render_exploratory_report(
                         f'style="background:rgb({r},{g},{b});color:{txt_col};">{v:+.2f}</td>'
                     )
             parts.append("</tr>")
-        parts.append("</tbody></table></div>")
+        parts.append("</tbody></table>")
 
     if figure_paths:
         parts.append("<h2>4. Visualizações Geradas</h2>")
