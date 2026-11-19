@@ -13,6 +13,11 @@ from experimental_ml.features.types import (
     ExploratoryFeatureReport,
     RedundancyPair,
 )
+from experimental_ml.features.visualization import (
+    render_exploratory_redundancy_heatmap,
+    render_exploratory_report,
+    render_exploratory_target_chart,
+)
 
 
 def _sample_report() -> ExploratoryFeatureReport:
@@ -55,3 +60,58 @@ def test_exploratory_report_summary_ranking_and_nan() -> None:
 
     with pytest.raises(ConfigurationError):
         report.summary(top_n=0)
+
+
+def test_render_exploratory_report_md_and_html() -> None:
+    """render_exploratory_report generates Markdown and offline HTML with all 5 sections."""
+    report = _sample_report()
+    md = render_exploratory_report(
+        report,
+        fmt="markdown",
+        figure_paths=("../figures/exploratory_target_associations.svg",),
+    )
+    assert "EXPLORATORY_FULL_DATA" in md
+    assert "| 1 | `x_neg_forte` | `PEARSON` | -0.8800 | 0.8800 | Forte |" in md
+    assert "x_const" in md
+    assert "x_neg_forte` | `x_mod`" in md
+    assert "## 3. Matriz Completa Preditor × Preditor" in md
+    assert "## 5. Como Usar Estes Indicadores para Montar Cenários" in md
+    assert "![Gráfico exploratório](../figures/exploratory_target_associations.svg)" in md
+
+    html_doc = render_exploratory_report(
+        report,
+        fmt="html",
+        figure_paths=("../figures/exploratory_target_associations.svg",),
+    )
+    assert "<!DOCTYPE html>" in html_doc
+    assert "warning-box" in html_doc
+    assert "guide-box" in html_doc
+    assert "http://" not in html_doc and "https://" not in html_doc
+    assert "x_neg_forte" in html_doc
+    assert "a" * 64 not in html_doc
+
+    with pytest.raises(ConfigurationError):
+        render_exploratory_report(report, fmt="pdf")
+
+
+def test_exploratory_svg_and_png_charts_deterministic() -> None:
+    """Target bar chart and redundancy heatmap produce deterministic SVG and PNG bytes."""
+    report = _sample_report()
+
+    svg_bar_1 = render_exploratory_target_chart(report, fmt="svg")
+    svg_bar_2 = render_exploratory_target_chart(report, fmt="svg")
+    assert svg_bar_1 == svg_bar_2
+    assert svg_bar_1.startswith(b"<svg ")
+    assert b"x_neg_forte" in svg_bar_1
+
+    png_bar = render_exploratory_target_chart(report, fmt="png")
+    assert png_bar.startswith(b"\x89PNG\r\n\x1a\n")
+
+    svg_hm = render_exploratory_redundancy_heatmap(report, fmt="svg")
+    assert svg_hm.startswith(b"<svg ")
+    assert b"0.92" in svg_hm
+
+    png_hm_1 = render_exploratory_redundancy_heatmap(report, fmt="png")
+    png_hm_2 = render_exploratory_redundancy_heatmap(report, fmt="png")
+    assert png_hm_1 == png_hm_2
+    assert png_hm_1.startswith(b"\x89PNG\r\n\x1a\n")

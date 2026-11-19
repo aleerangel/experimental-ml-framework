@@ -47,7 +47,7 @@ T1 --> T2 --> T3 --> T4
 **Tests**: Unit tests in `tests/unit/features/test_exploratory_visualization.py` verifying ranking, `UNDEFINED_NAN` separation, redundant pairs, and warnings.  
 **Gate**: `.venv/bin/pytest tests/unit/features/test_exploratory_visualization.py -k "summary" -v`  
 
-### T2: Implement Markdown/HTML exploratory reports and pure-NumPy SVG/PNG builders in `features/visualization.py`
+### T2: Implement Markdown/HTML exploratory reports and pure-NumPy SVG/PNG builders in `features/visualization.py` [x]
 **Depends on**: T1  
 **Files**: `src/experimental_ml/features/visualization.py`, `src/experimental_ml/features/__init__.py`, `tests/unit/features/test_exploratory_visualization.py`  
 **Done when**: `render_exploratory_report`, `render_exploratory_target_chart`, and `render_exploratory_redundancy_heatmap` generate deterministic MD, offline HTML, SVG, and PNG bytes using stdlib + `numpy` only (`XCUT-02`).  
