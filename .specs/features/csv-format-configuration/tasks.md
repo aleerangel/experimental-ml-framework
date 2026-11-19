@@ -94,5 +94,5 @@ T1 --> T2 --> T3 --> T4
 
 ## Handoff
 
-- **Next step**: Awaiting user approval of `tasks.md` before starting T1.
+- **Next step**: Feature verified (`PASS`, 604 tests). Ready for user review.
 - **Dispatched:** none

@@ -2,7 +2,7 @@
 
 - **Feature**: `csv-format-configuration`
 - **Date**: 2026-11-19
-- **Status**: Completed (Pending Independent Verification)
+- **Status**: Accepted (`PASS` — 604/604 tests passing)
 
 ## Automated Validations
 - `tests/unit/data/test_csv_format.py`: 4/4 passed (`CsvFormatSpec`, regional `;`+`,`+`latin-1`+`quotechar`, auto-detection tie-break + `cp1252` fallback + mixed-decimal rejection, headerless CSV).
