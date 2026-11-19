@@ -237,14 +237,22 @@
 - **Date**: 2026-11-19
 - **Status**: active
 
+### AD-026
+- **Decision**: Redesenho visual e de ranking da Etapa 2 (`exploratory-visual-redesign`, `EXPLR-01` a `EXPLR-06`): agregação única por atributo via `mean(|valor|)` em `ExploratoryFeatureReport.ranked_target_features()` e `.summary(top_n=15)`, geração exclusiva de PNGs rotulados com fonte bitmap em Python/NumPy puro (`XCUT-02`, sem SVGs), exportação CSV dedicada (`render_exploratory_target_csv`, `render_exploratory_redundancy_csv`), Markdown limpo sem matriz gigante inline e HTML offline com CSS `@page`/`@media print` pronto para PDF (preservando `CA-E2-01` sem criar `scenarios.json`).
+- **Reason**: Eliminar duplicação de atributos com múltiplas métricas no Top-15, remover matrizes ilegíveis com barra de rolagem horizontal no HTML/Markdown e garantir figuras PNG completas e legíveis com rótulos, valores e legenda.
+- **Trade-off**: Gráficos PNG usam fonte bitmap 5×7 em Python/NumPy puro para manter zero dependências externas de plotagem (`XCUT-02`), e matrizes completas são exportadas em CSV para análise tabular.
+- **Scope**: `src/experimental_ml/features/{types.py,visualization.py,__init__.py}`, `cli/cmd_features.py`, `docs/` e `tests/unit/{features/test_exploratory_visualization.py,cli/test_exploratory_cli_visuals.py}`.
+- **Date**: 2026-11-19
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: exploratory-features-visualization (Concluída e Aceita)
-- **Phase / Task**: Concluída com Verificação Independente (`PASS`).
+- **Feature**: exploratory-visual-redesign (Concluída)
+- **Phase / Task**: T1–T4 implementados e testados; pronto para `check_proofs.py`, inspeção visual no browser e verificação independente.
 - **Completed**:
-  - `ExploratoryFeatureReport.summary(top_n=15)` e `features/visualization.py` (`render_exploratory_report`, `render_exploratory_target_chart`, `render_exploratory_redundancy_heatmap`).
-  - Integração em `expml features explore` (`stdout` legível + `.md`/`.html`/`.svg`/`.png`).
-  - Sincronização de guias, referências, engenharia e `.specs/STATE.md`.
+  - `ExploratoryFeatureReport.ranked_target_features()` e `.summary(top_n=15)` com ranking único por `mean(|valor|)`.
+  - `features/visualization.py` com PNGs rotulados, exportadores CSV, Markdown limpo e HTML pronto para impressão A4/PDF (zero SVGs).
+  - Integração em `expml features explore` e `expml quickrun`, mais sincronização documental e `.specs/STATE.md`.
 - **In-progress**: none
 - **Next step**: Homologação científica externa (`CA02` / `TA-POS.4`) em dados reais pelo pesquisador.
 - **Blockers**: none

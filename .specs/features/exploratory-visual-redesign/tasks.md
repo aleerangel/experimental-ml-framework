@@ -1,7 +1,7 @@
 # exploratory-visual-redesign Tasks
 
 **Design**: `.specs/features/exploratory-visual-redesign/design.md`  
-**Status**: In Progress  
+**Status**: Completed  
 **Approved**: 2026-11-19 - user: "aprovado"  
 **Build**: .venv/bin/python -c "import experimental_ml.features"  
 **Run explr_unit**: .venv/bin/pytest tests/unit/features/test_exploratory_visualization.py -v  
@@ -61,7 +61,7 @@ T1 --> T2 --> T3 --> T4
 **Tests**: CLI and `quickrun` tests in `tests/unit/cli/test_exploratory_cli_visuals.py` plus `tests/integration/test_mvp_audit_invariants.py`.  
 **Gate**: `.venv/bin/pytest tests/unit/cli/test_exploratory_cli_visuals.py tests/integration/test_mvp_audit_invariants.py -v`  
 
-### T4: Synchronize documentation, reference catalogs, engineering docs, and `.specs/STATE.md`
+### T4: Synchronize documentation, reference catalogs, engineering docs, and `.specs/STATE.md` [x]
 **Depends on**: T3  
 **Files**: `docs/guia/02_tutorial_6_etapas.md`, `docs/guias_praticos/07_cenarios_features_estabilidade.md`, `docs/referencia/{api_python,cli_catalogo}.md`, `docs/engenharia_software/{ARQUITETURA_E_CONTRATOS,ESPECIFICACAO_REQUISITOS,ETAPA_ATUAL_ENGENHARIA}.md`, `.specs/STATE.md`  
 **Done when**: All docs and `.specs/STATE.md` (`AD-026`) reflect the redesigned Stage 2 outputs (CSVs, labeled PNGs, print-ready HTML, unique Top-N) and pass `test_documentation_integrity.py` + full test suite.  
@@ -92,5 +92,5 @@ T1 --> T2 --> T3 --> T4
 
 ## Handoff
 
-- **Next step**: Awaiting user approval of `tasks.md` before starting T1.
+- **Next step**: Run `check_proofs.py exploratory-visual-redesign`, inspect generated HTML/PNGs in real browser, and dispatch Independent Verifier.
 - **Dispatched:** none
