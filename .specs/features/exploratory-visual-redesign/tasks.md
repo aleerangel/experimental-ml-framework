@@ -54,7 +54,7 @@ T1 --> T2 --> T3 --> T4
 **Tests**: Unit tests verifying labeled PNG pixel content & determinism, CSV formats, MD/HTML print CSS, and SVG rejection.  
 **Gate**: `.venv/bin/pytest tests/unit/features/test_exploratory_visualization.py -v`  
 
-### T3: Update `cmd_features.py` to emit deduplicated summary, MD, print-ready HTML, CSVs, and PNGs (no SVG)
+### T3: Update `cmd_features.py` to emit deduplicated summary, MD, print-ready HTML, CSVs, and PNGs (no SVG) [x]
 **Depends on**: T2  
 **Files**: `src/experimental_ml/cli/cmd_features.py`, `tests/unit/cli/test_exploratory_cli_visuals.py`  
 **Done when**: `expml features explore` and `expml quickrun` generate JSON, MD, HTML, 2 CSVs, and 2 PNGs (zero `.svg` files) while keeping `configuration/scenarios.json` untouched.  

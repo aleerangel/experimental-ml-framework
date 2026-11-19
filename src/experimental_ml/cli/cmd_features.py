@@ -18,9 +18,11 @@ from experimental_ml.features.scenarios import (
     validate_scenarios,
 )
 from experimental_ml.features.visualization import (
+    render_exploratory_redundancy_csv,
     render_exploratory_redundancy_heatmap,
     render_exploratory_report,
     render_exploratory_target_chart,
+    render_exploratory_target_csv,
 )
 from experimental_ml.stages.stage_gates import (
     EXPLORATORY_FEATURES_REL_PATH,
@@ -60,25 +62,26 @@ def handle_features_explore(args: argparse.Namespace) -> int:
     report_dict = report.to_dict()
     write_json_atomic(report_path, report_dict, overwrite=True)
 
-    # Persist visual reports and deterministic SVG/PNG figures (EXPL-02..EXPL-04)
+    # Persist visual reports, CSV tables, and labeled PNG figures (EXPLR-02..EXPLR-06)
     figures_dir = experiment_dir / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)
     reports_dir = report_path.parent
     reports_dir.mkdir(parents=True, exist_ok=True)
 
-    bar_svg_path = figures_dir / "exploratory_target_associations.svg"
     bar_png_path = figures_dir / "exploratory_target_associations.png"
-    hm_svg_path = figures_dir / "exploratory_redundancy_heatmap.svg"
     hm_png_path = figures_dir / "exploratory_redundancy_heatmap.png"
 
-    bar_svg_path.write_bytes(render_exploratory_target_chart(report, fmt="svg"))
     bar_png_path.write_bytes(render_exploratory_target_chart(report, fmt="png"))
-    hm_svg_path.write_bytes(render_exploratory_redundancy_heatmap(report, fmt="svg"))
     hm_png_path.write_bytes(render_exploratory_redundancy_heatmap(report, fmt="png"))
 
+    target_csv_path = reports_dir / "exploratory_target_associations.csv"
+    matrix_csv_path = reports_dir / "exploratory_redundancy_matrix.csv"
+    target_csv_path.write_text(render_exploratory_target_csv(report), encoding="utf-8")
+    matrix_csv_path.write_text(render_exploratory_redundancy_csv(report), encoding="utf-8")
+
     rel_figs = (
-        "../figures/exploratory_target_associations.svg",
-        "../figures/exploratory_redundancy_heatmap.svg",
+        "../figures/exploratory_target_associations.png",
+        "../figures/exploratory_redundancy_heatmap.png",
     )
     md_path = reports_dir / "exploratory_features.md"
     html_path = reports_dir / "exploratory_features.html"
@@ -103,7 +106,8 @@ def handle_features_explore(args: argparse.Namespace) -> int:
         f"  - Report: {report_path.relative_to(experiment_dir)}\n"
         f"  - Markdown: {md_path.relative_to(experiment_dir)}\n"
         f"  - HTML: {html_path.relative_to(experiment_dir)}\n"
-        f"  - Figuras: {bar_svg_path.relative_to(experiment_dir)}, {hm_svg_path.relative_to(experiment_dir)}\n\n"
+        f"  - CSVs: {target_csv_path.relative_to(experiment_dir)}, {matrix_csv_path.relative_to(experiment_dir)}\n"
+        f"  - Figuras: {bar_png_path.relative_to(experiment_dir)}, {hm_png_path.relative_to(experiment_dir)}\n\n"
         + report.summary()
         + "\n"
     )

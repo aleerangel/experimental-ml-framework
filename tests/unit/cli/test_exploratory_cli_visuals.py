@@ -1,4 +1,4 @@
-"""CLI integration tests for Stage 2 exploratory feature visualization (EXPL-02..EXPL-05)."""
+"""CLI integration tests for Stage 2 exploratory feature visualization (EXPLR-01..EXPLR-06)."""
 
 from __future__ import annotations
 
@@ -47,27 +47,37 @@ def test_cli_features_explore_visual_outputs_and_stdout(tmp_path: Path) -> None:
     res_exp = _run_cli("features", "explore", "--experiment-dir", str(exp_dir))
     assert res_exp.returncode == 0, res_exp.stderr
 
-    # Ranked summary in stdout, no raw 64-hex hashes (CLI-11)
-    assert "Ranking Atributo x Alvo" in res_exp.stdout
-    assert "x1 [PEARSON]" in res_exp.stdout
+    # Ranked summary in stdout (1 line per unique feature), no raw 64-hex hashes (CLI-11)
+    assert "Ranking Único Atributo x Alvo" in res_exp.stdout
+    ranking_section = res_exp.stdout.split("Pares Redundantes")[0]
+    assert ranking_section.count("x1 — Média |·|:") == 1
+    assert "PEARSON=" in ranking_section
+    assert "SPEARMAN=" in ranking_section
     assert "Pares Redundantes" in res_exp.stdout
     assert not re.search(r"\b[0-9a-f]{64}\b", res_exp.stdout)
 
-    # Visual artifacts created
+    # Visual artifacts created (JSON, MD, print-ready HTML, 2 CSVs, 2 PNGs; zero SVGs)
     assert (exp_dir / "reports" / "exploratory_features.json").exists()
     assert (exp_dir / "reports" / "exploratory_features.md").exists()
-    assert (exp_dir / "reports" / "exploratory_features.html").exists()
-    assert (exp_dir / "figures" / "exploratory_target_associations.svg").exists()
-    assert (exp_dir / "figures" / "exploratory_target_associations.png").exists()
-    assert (exp_dir / "figures" / "exploratory_redundancy_heatmap.svg").exists()
-    assert (exp_dir / "figures" / "exploratory_redundancy_heatmap.png").exists()
+    html_path = exp_dir / "reports" / "exploratory_features.html"
+    assert html_path.exists()
+    html_text = html_path.read_text(encoding="utf-8")
+    assert "@page { size: A4 portrait;" in html_text
+    assert "@media print" in html_text
+    assert "matrix-wrap" not in html_text
 
-    # Anti-leakage: configuration/scenarios.json is never auto-created (EXPL-05)
+    assert (exp_dir / "reports" / "exploratory_target_associations.csv").exists()
+    assert (exp_dir / "reports" / "exploratory_redundancy_matrix.csv").exists()
+    assert (exp_dir / "figures" / "exploratory_target_associations.png").exists()
+    assert (exp_dir / "figures" / "exploratory_redundancy_heatmap.png").exists()
+    assert not list((exp_dir / "figures").glob("*.svg"))
+
+    # Anti-leakage: configuration/scenarios.json is never auto-created (EXPLR-06)
     assert not (exp_dir / "configuration" / "scenarios.json").exists()
 
 
 def test_quickrun_generates_stage2_visuals_and_preserves_scenarios(tmp_path: Path) -> None:
-    """expml quickrun produces Stage 2 visual reports/figures without mutating scenarios.json."""
+    """expml quickrun produces Stage 2 visual reports/CSVs/PNGs (no SVGs) without mutating scenarios.json."""
     exp_dir = tmp_path / "qr_exp"
     init_res = _run_cli("init", "--output-dir", str(exp_dir), "--task", "regression")
     assert init_res.returncode == 0, init_res.stderr
@@ -78,6 +88,9 @@ def test_quickrun_generates_stage2_visuals_and_preserves_scenarios(tmp_path: Pat
     assert qr_res.returncode == 0, qr_res.stderr
     assert (exp_dir / "reports" / "exploratory_features.md").exists()
     assert (exp_dir / "reports" / "exploratory_features.html").exists()
-    assert (exp_dir / "figures" / "exploratory_target_associations.svg").exists()
-    assert (exp_dir / "figures" / "exploratory_redundancy_heatmap.svg").exists()
+    assert (exp_dir / "reports" / "exploratory_target_associations.csv").exists()
+    assert (exp_dir / "reports" / "exploratory_redundancy_matrix.csv").exists()
+    assert (exp_dir / "figures" / "exploratory_target_associations.png").exists()
+    assert (exp_dir / "figures" / "exploratory_redundancy_heatmap.png").exists()
+    assert not list((exp_dir / "figures").glob("*.svg"))
     assert (exp_dir / "scenarios.json").read_text(encoding="utf-8") == orig_scenarios
