@@ -229,6 +229,71 @@ class ExploratoryFeatureReport:
             "metadata": dict(self.metadata),
         }
 
+    def summary(self, top_n: int = 15) -> str:
+        """Return a readable Portuguese summary of ranked associations, redundancy, and warnings."""
+        if top_n < 1:
+            raise ConfigurationError(f"top_n must be >= 1, got {top_n}")
+
+        target_name = (
+            self.target_associations[0].target_name
+            if self.target_associations
+            else str(self.metadata.get("target_col", "N/A"))
+        )
+
+        valid_assocs: list[AssociationMeasure] = []
+        nan_assocs: list[AssociationMeasure] = []
+        for assoc in self.target_associations:
+            if assoc.status == MetricStatus.VALID and math.isfinite(assoc.value):
+                valid_assocs.append(assoc)
+            else:
+                nan_assocs.append(assoc)
+
+        ranked_valid = sorted(
+            valid_assocs,
+            key=lambda a: (-abs(a.value), a.feature_name, a.metric_name),
+        )
+        displayed = ranked_valid[:top_n]
+
+        lines: list[str] = [
+            "=== Análise Exploratória de Atributos (Etapa 2) ===",
+            f"Alvo: {target_name} | Tarefa: {self.task_type.value} | Escopo: {self.scope}",
+            f"Atributos avaliados: {len(self.target_associations)} (válidos: {len(valid_assocs)}, indefinidos: {len(nan_assocs)})",
+            "",
+            f"Ranking Atributo x Alvo (Top {min(top_n, len(ranked_valid))} por |valor|):",
+        ]
+        if not displayed:
+            lines.append("  (Nenhuma associação válida calculada)")
+        else:
+            for idx, assoc in enumerate(displayed, start=1):
+                abs_v = abs(assoc.value)
+                strength = "Forte" if abs_v >= 0.70 else ("Moderada" if abs_v >= 0.30 else "Fraca")
+                lines.append(
+                    f"  {idx:>2}. {assoc.feature_name} [{assoc.metric_name}]: {assoc.value:+.4f} ({strength})"
+                )
+
+        if nan_assocs:
+            nan_names = ", ".join(f"{a.feature_name} ({a.status.value})" for a in nan_assocs)
+            lines.extend(["", f"Associações indefinidas (não convertidas para 0.0): {nan_names}"])
+
+        lines.extend(["", f"Pares Redundantes / Multicolinearidade ({len(self.high_redundancy_pairs)}):"])
+        if not self.high_redundancy_pairs:
+            lines.append("  Nenhum par redundante acima do limiar.")
+        else:
+            sorted_pairs = sorted(
+                self.high_redundancy_pairs,
+                key=lambda p: (-abs(p.value), p.feature_a, p.feature_b),
+            )
+            for p in sorted_pairs:
+                lines.append(
+                    f"  - {p.feature_a} <-> {p.feature_b} [{p.metric_name}]: {p.value:+.4f}"
+                )
+
+        lines.extend(["", "Avisos Metodológicos (Anti-Leakage):"])
+        for w in self.warnings:
+            lines.append(f"  ! {w}")
+
+        return "\n".join(lines)
+
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> ExploratoryFeatureReport:
         """Reconstruct from dictionary representation."""
