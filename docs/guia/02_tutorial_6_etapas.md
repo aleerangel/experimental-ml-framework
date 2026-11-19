@@ -25,7 +25,7 @@ flowchart LR
 | Nível | O Que Você Faz |
 | :--- | :--- |
 | **Mínimo Obrigatório (Básico)** | Informar `data`, `target` e `task` no `run_experiment` (ou gerar `schema.json` com `expml init`). Se não houver achados críticos, `rules` fica vazio automaticamente. |
-| **O Que Você Pode Customizar (Avançado)** | Ignorar colunas (`ignore_cols`), declarar coluna de grupo (`group_col`) ou tempo (`time_col`), e definir regras determinísticas explícitas de saneamento em `PreparationRule` / `rules.json`. |
+| **O Que Você Pode Customizar (Avançado)** | Configurar formatação do CSV (`CsvFormatSpec`: `delimiter`, `decimal` `"."`/`","`/`"auto"`, `encoding`, `has_header`, `column_names`, `quotechar`), ignorar colunas (`ignore_cols`), declarar coluna de grupo (`group_col`) ou tempo (`time_col`), e definir regras determinísticas explícitas de saneamento em `PreparationRule` / `rules.json`. |
 
 **Módulos:** `experimental_ml.data`, `experimental_ml.stages` (`verify_preparation_gate`)
 - `load_dataset` ingere a base em um `DatasetBundle` imutável com hashes SHA-256 tripartites (`raw_source_hash`, `schema_hash`, `dataset_hash`).

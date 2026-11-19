@@ -70,7 +70,7 @@ dap,altura,idade,volume
 
 > [!WARNING]
 > **3 erros comuns de `.csv` no Brasil (Excel em Português):**
-> 1. **Separador `;` e vírgula decimal `,`:** O padrão internacional de `.csv` usa **vírgula `,`** entre colunas e **ponto `.`** para decimais (`14.5`). Ao salvar no Excel, escolha *CSV UTF-8 (delimitado por vírgulas)* ou verifique os separadores.
+> 1. **Separador `;` e vírgula decimal `,`:** O padrão internacional usa **vírgula `,`** entre colunas e **ponto `.`** para decimais (`14.5`). Se o seu arquivo usar `;` e vírgula decimal (ou *encoding* `latin-1`/`cp1252`), você pode passar `delimiter=";"`, `decimal=","` e `encoding="latin-1"` (ou `"auto"` para detecção automática) direto no `run_experiment(...)` ou via flags `--delimiter`, `--decimal`, `--encoding` na CLI.
 > 2. **Colunas de texto/ID esquecidas:** Se sua tabela tiver uma coluna como `nome_amostra` ou `data_coleta` que não é numérica, remova-a antes ou ignore-a usando a configuração avançada (`DatasetSchemaSpec(..., ignore_cols=...)`).
 > 3. **Células vazias:** Evite deixar células em branco na coluna alvo ou nos preditores no primeiro experimento.
 

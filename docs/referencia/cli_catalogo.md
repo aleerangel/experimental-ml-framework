@@ -26,6 +26,12 @@ Executa sequencialmente todas as 6 etapas a partir de uma pasta inicializada.
 | `--experiment-dir DIR` / `--exp-dir DIR` | Sim | Diretório do experimento inicializado. |
 | `--data CSV` | Não | Caminho alternativo para o arquivo CSV de entrada. |
 | `--metrics M1 [M2 ...]` | Não | Lista explícita de métricas a calcular e consolidar. |
+| `--delimiter DELIM` | Não | Delimitador de colunas (`,`, `;`, `\t`, `|`, `whitespace`). Sobrescreve `schema.json`. |
+| `--decimal {., ,, auto}` | Não | Separador decimal (`.`, `,` ou `auto`). Sobrescreve `schema.json`. |
+| `--encoding CODEC` | Não | Codificação do arquivo (`utf-8-sig`, `latin-1`, `cp1252` ou `auto`). |
+| `--no-header` | Não | Trata a primeira linha como dados em vez de cabeçalho. |
+| `--column-names COL ...` | Não | Nomes explícitos de colunas (útil com `--no-header`). |
+| `--quotechar CHAR` | Não | Caractere de aspas (padrão: `"`). |
 | `--force` | Não | Sobrescreve artefatos de execuções anteriores (habilitado por padrão: `default=True`). |
 
 ---
@@ -52,6 +58,12 @@ Ingere a base tabular bruta, calcula os hashes tripartites (`raw_source_hash`, `
 | `--data DATA` | Sim | Caminho para o arquivo tabular de entrada (`.csv`, `.tsv`, `.txt`). |
 | `--schema SCHEMA` | Sim | Caminho para o arquivo JSON com o esquema (`DatasetSchemaSpec`). |
 | `--output-dir OUTPUT_DIR` | Sim | Diretório de saída onde os artefatos do experimento serão criados. |
+| `--delimiter DELIM` | Não | Delimitador de colunas (`,`, `;`, `\t`, `|`, `whitespace`). Sobrescreve `"csv_format"` do `schema.json`. |
+| `--decimal {., ,, auto}` | Não | Separador decimal (`.`, `,` ou `auto`). Sobrescreve `"csv_format"` do `schema.json`. |
+| `--encoding CODEC` | Não | Codificação do arquivo (`utf-8-sig`, `latin-1`, `cp1252` ou `auto`). Sobrescreve `schema.json`. |
+| `--no-header` | Não | Trata a primeira linha como dados em vez de cabeçalho. |
+| `--column-names COL ...` | Não | Nomes explícitos de colunas (útil com `--no-header`). |
+| `--quotechar CHAR` | Não | Caractere de aspas (padrão: `"`). |
 | `--force` | Não | Sobrescreve artefatos existentes no diretório de saída (padrão: bloqueado). |
 
 ### `expml data sanitize`

@@ -9,7 +9,7 @@ Esta referência cataloga a **API pública oficial** do `experimental-ml`, delim
 
 ## 0. `experimental_ml` (Fachada de Alto Nível)
 
-- **Ponto de Entrada Unificado:** `run_experiment(data, models, output_dir, *, target=None, task=None, schema=None, scenarios=None, partition_config=None, cv_folds=5, group_col=None, metrics=None, rules=(), alpha=0.05, master_seed=42, force=True) -> ExperimentRunSummary` — executa ponta a ponta as Etapas 1 a 6 aceitando entradas simples ou contratos formais completos.
+- **Ponto de Entrada Unificado:** `run_experiment(data, models, output_dir, *, target=None, task=None, schema=None, scenarios=None, partition_config=None, cv_folds=5, group_col=None, metrics=None, rules=(), alpha=0.05, master_seed=42, force=True, delimiter=None, decimal=".", encoding="utf-8-sig", has_header=True, column_names=None, quotechar='"', csv_format=None) -> ExperimentRunSummary` — executa ponta a ponta as Etapas 1 a 6 aceitando entradas simples ou contratos formais completos (incluindo formatação regional de CSV).
 - **Resumo Imutável:** `ExperimentRunSummary` (atributos: `experiment_dir`, `dataset_hash`, `partition_plan_id`, `completed_cells`, `failed_cells`, `observed_leader`, `statistical_evidence_status`, `report_md_path`, `report_html_path`, `consolidation`, `conclusion`; método `summary() -> str`).
 - **Metadados:** `__version__` (`str`).
 
@@ -26,7 +26,8 @@ Esta referência cataloga a **API pública oficial** do `experimental-ml`, delim
 
 ## 2. `experimental_ml.data` (Etapa 1 — Ingestão, Diagnóstico e Saneamento)
 
-- **Ingestão Imutável:** `load_dataset(source, schema, *, delimiter=None, has_header=True, column_names=None, encoding="utf-8") -> DatasetBundle`
+- **Ingestão Imutável:** `load_dataset(source, schema, *, delimiter=None, has_header=True, column_names=None, encoding="utf-8-sig", decimal=".", quotechar='"', csv_format=None) -> DatasetBundle`
+- **Formatação CSV e Detecção:** `CsvFormatSpec`, `validate_csv_format_spec`, `detect_delimiter`, `detect_decimal`.
 - **Esquema e Descritores:** `DatasetSchemaSpec`, `DatasetBundle`, `ColumnDescriptor`, `ColumnSemanticType`, `validate_schema_spec`, `validate_dataset_schema`, `assign_or_validate_observation_ids`.
 - **Triagem e Perfilamento:** `profile_dataset(bundle, config=None) -> DatasetProfile`, `DatasetProfile`, `ColumnProfile`, `ProfileConfig`.
 - **Saneamento Determinístico:** `create_preparation_plan(profile, rules) -> PreparationPlan`, `sanitize_dataset(bundle, profile, plan) -> SanitizedDatasetView`, `PreparationPlan`, `PreparationRule`, `SanitizedDatasetView`, `UnresolvedFinding`.

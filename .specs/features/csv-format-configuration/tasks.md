@@ -1,7 +1,7 @@
 # csv-format-configuration Tasks
 
 **Design**: `.specs/features/csv-format-configuration/design.md`  
-**Status**: In Progress  
+**Status**: Completed  
 **Approved**: 2026-11-19 - user: "aprovado"  
 **Build**: .venv/bin/python -c "import experimental_ml"  
 **Run csv_unit**: .venv/bin/pytest tests/unit/data/test_csv_format.py -v  
@@ -61,7 +61,7 @@ T1 --> T2 --> T3 --> T4
 **Tests**: CLI and facade tests verifying `"csv_format"` in `schema.json`, CLI flag overrides, `quickrun`, and `run_experiment` end-to-end on regional CSVs, plus `tests/integration/test_mvp_audit_invariants.py`.  
 **Gate**: `.venv/bin/pytest tests/unit/cli/test_csv_format_cli.py tests/unit/test_usability_cli_and_facade.py tests/integration/test_mvp_audit_invariants.py -v`  
 
-### T4: Synchronize documentation, reference catalogs, engineering docs, and `.specs/STATE.md`
+### T4: Synchronize documentation, reference catalogs, engineering docs, and `.specs/STATE.md` [x]
 **Depends on**: T3  
 **Files**: `README.md`, `docs/guia/00_comecando_do_zero.md`, `docs/guia/02_tutorial_6_etapas.md`, `docs/referencia/api_python.md`, `docs/referencia/cli_catalogo.md`, `docs/referencia/cli_schemas_json.md`, `docs/engenharia_software/{ARQUITETURA_E_CONTRATOS,ESPECIFICACAO_REQUISITOS,ETAPA_ATUAL_ENGENHARIA}.md`, `.specs/STATE.md`  
 **Done when**: All user guides, reference docs, engineering specs, and `.specs/STATE.md` (`AD-024`) document CSV formatting options and pass automated integrity checks.  

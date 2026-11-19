@@ -221,14 +221,22 @@
 - **Date**: 2026-11-17
 - **Status**: active
 
+### AD-024
+- **Decision**: Implementação da configuração e detecção automática de formatação CSV (`csv-format-configuration`, `CSV-01` a `CSV-06`): `CsvFormatSpec` separado de `DatasetSchemaSpec` (preservando `schema_hash`), suporte a `decimal` (`"."`, `","`, `"auto"`), `quotechar`, `encoding` (`"utf-8-sig"`, `"auto"` com fallback `cp1252`), persistência opcional em `DatasetDescriptor` (`data/codecs.py` / `reconstruct_sanitized_view`), bloco `"csv_format"` em `schema.json`, flags CLI em `data profile` e `quickrun` (flags prevalecem sobre JSON) e parâmetros equivalentes em `run_experiment`.
+- **Reason**: Suportar nativamente arquivos regionais (ex.: `;` com vírgula decimal e `latin-1`/`cp1252`) sem pré-conversão manual e sem corromper combinações ambíguas (`decimal=","` + `delimiter=","`).
+- **Trade-off**: `CsvFormatSpec` é persistido em `DatasetDescriptor` (e não em `DatasetSchemaSpec`) para garantir retrocompatibilidade integral dos `schema_hash` existentes.
+- **Scope**: `src/experimental_ml/data/`, `pipeline.py`, `cli/`, `stages/stage_gates.py`, `docs/` e `tests/unit/{data/test_csv_format.py,cli/test_csv_format_cli.py}`.
+- **Date**: 2026-11-19
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: pos-3-usabilidade-acessibilidade-pesquisador (Concluída e Aceita)
-- **Phase / Task**: Concluída com Verificação Independente (`PASS`) e **598 testes** aprovados.
+- **Feature**: csv-format-configuration (Concluída e Aceita)
+- **Phase / Task**: Concluída com Verificação Independente (`PASS`).
 - **Completed**:
-  - Auditoria de usabilidade (`AUDITORIA_USABILIDADE.md`), Jornadas (`JORNADA_PESQUISADOR.md`), Plano (`PLANO_MELHORIAS_USABILIDADE.md`).
-  - `expml init`, `expml quickrun`, `--metrics`, `--rules` opcional, `--experiment-dir` unificado e fachada `run_experiment`.
-  - Guias `00_comecando_do_zero.md` a `03_interpretando_resultados.md`, `cli_schemas_json.md`, `docs/README.md` e 4 notebooks (`01` a `04`).
+  - `CsvFormatSpec`, `validate_csv_format_spec`, `detect_decimal`, desempate `detect_delimiter`, `decimal`/`quotechar`/`encoding="auto"` em `parsing.py` e `loader.py`.
+  - Persistência de `csv_format` em `DatasetDescriptor`, `reconstruct_sanitized_view`, `run_experiment`, `expml data profile` e `expml quickrun`.
+  - Sincronização de `README.md`, guias, referências, engenharia e `.specs/STATE.md`.
 - **In-progress**: none
 - **Next step**: Homologação científica externa (`CA02` / `TA-POS.4`) em dados reais pelo pesquisador.
 - **Blockers**: none

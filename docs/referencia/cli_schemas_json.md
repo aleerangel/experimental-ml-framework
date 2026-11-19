@@ -12,10 +12,19 @@ Ao utilizar os comandos granulares da CLI (`expml data`, `features`, `models`, `
   "task_type": "REGRESSION",
   "group_col": null,
   "time_col": null,
-  "ignore_cols": []
+  "ignore_cols": [],
+  "csv_format": {
+    "delimiter": ";",
+    "decimal": ",",
+    "encoding": "latin-1",
+    "has_header": true,
+    "column_names": null,
+    "quotechar": "\""
+  }
 }
 ```
 - `task_type`: `"REGRESSION"`, `"BINARY_CLASSIFICATION"` ou `"MULTICLASS_CLASSIFICATION"`.
+- `csv_format` *(opcional)*: configura delimitador (`","`, `";"`, `"\t"`, `"|"`, `"whitespace"` ou `null` para auto-detecção), separador decimal (`"."`, `","` ou `"auto"`), codificação (`"utf-8-sig"`, `"latin-1"`, `"cp1252"` ou `"auto"`), `has_header`, `column_names` e `quotechar`. Flags passadas diretamente na CLI (`--delimiter`, `--decimal`, etc.) têm precedência sobre este bloco.
 
 ---
 
