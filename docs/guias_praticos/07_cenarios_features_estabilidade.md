@@ -4,6 +4,8 @@
 
 Selecionar atributos manualmente com base na literatura difere fundamentalmente de aplicar seleção automática (como filtro de variância ou *Top-K* univariado). Para evitar *data leakage*, todo algoritmo de seleção dinâmica precisa ser **reajustado exclusivamente nos dados de treino de cada dobra**.
 
+Antes de definir os cenários, o framework ajuda você a inspecionar seus atributos por meio de `explore_features(view).summary()` (no Python) ou `expml features explore` (que imprime o ranking no terminal e gera `reports/exploratory_features.md`/`.html` e gráficos `.svg`/`.png` de associação e redundância).
+
 Além da acurácia preditiva, o pesquisador deve auditar a **estabilidade da seleção** entre dobras: se pequenas perturbações nas amostras mudam completamente os atributos escolhidos, a interpretabilidade científica do modelo fica comprometida.
 
 ---

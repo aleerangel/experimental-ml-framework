@@ -49,7 +49,7 @@ expml data sanitize --experiment-dir exp_dir --force
 | **O Que Você Pode Customizar (Avançado)** | Comparar múltiplos `FeatureScenario` (`FIXED` vs. `DYNAMIC` com `TOP_K_RELEVANCE` ou `VARIANCE_THRESHOLD` ajustados estritamente dentro do treino) e medir estabilidade inter-dobras (`Jaccard` e `Kuncheva`). |
 
 **Módulos:** `experimental_ml.features`, `experimental_ml.stages` (`verify_scenarios_gate`)
-- `explore_features` rotula obrigatoriamente a análise exploratória global como `EXPLORATORY_FULL_DATA`.
+- `explore_features` rotula obrigatoriamente a análise exploratória global como `EXPLORATORY_FULL_DATA`, oferece `.summary()` em Python e gera relatórios visuais (`exploratory_features.md`/`.html` + gráficos `.svg`/`.png` de associação e redundância).
 - `validate_scenarios` impede que atributos pré-calculados entrem em cenários dinâmicos.
 
 **Comandos CLI (Etapa 2):**

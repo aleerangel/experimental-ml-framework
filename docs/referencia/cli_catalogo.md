@@ -80,7 +80,7 @@ Aplica regras determinísticas pré-partição e materializa a visão saneada (`
 ## 2. `expml features` (Etapa 2 — Exploração e Cenários de Features)
 
 ### `expml features explore`
-Executa análise exploratória univariada rotulada compulsoriamente como `EXPLORATORY_FULL_DATA` (`exploratory_features.json`).
+Executa análise exploratória univariada rotulada compulsoriamente como `EXPLORATORY_FULL_DATA`, imprime no terminal o ranking de associações e os pares redundantes e gera `reports/exploratory_features.{json,md,html}` e gráficos `figures/exploratory_{target_associations,redundancy_heatmap}.{svg,png}`.
 
 | Argumento / Opção | Obrigatório | Descrição e Variações |
 | :--- | :---: | :--- |

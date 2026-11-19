@@ -229,14 +229,22 @@
 - **Date**: 2026-11-19
 - **Status**: active
 
+### AD-025
+- **Decision**: Implementação da visualização exploratória da Etapa 2 (`exploratory-features-visualization`, `EXPL-01` a `EXPL-06`): método `ExploratoryFeatureReport.summary(top_n=15)`, módulo `features/visualization.py` (`render_exploratory_report` em Markdown e HTML offline autocontido; gráficos `render_exploratory_target_chart` e `render_exploratory_redundancy_heatmap` em SVG/PNG 100% em Python/NumPy puro — `XCUT-02`) e impressão do ranking no `stdout` de `expml features explore` (`CLI-11`, preservando `CA-E2-01` sem auto-gerar `scenarios.json`).
+- **Reason**: Permitir que pesquisadores interpretem rapidamente associações Atributo×Alvo e pares redundantes antes de montar `scenarios.json`, sem depender de inspeção manual de JSON bruto nem de bibliotecas externas de plotagem.
+- **Trade-off**: Funções de renderização ficam em `features/visualization.py` (Nível 2) para evitar dependência circular com `reporting` (Nível 6).
+- **Scope**: `src/experimental_ml/features/{types.py,visualization.py,__init__.py}`, `cli/cmd_features.py`, `docs/` e `tests/unit/{features/test_exploratory_visualization.py,cli/test_exploratory_cli_visuals.py}`.
+- **Date**: 2026-11-19
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: csv-format-configuration (Concluída e Aceita)
+- **Feature**: exploratory-features-visualization (Concluída e Aceita)
 - **Phase / Task**: Concluída com Verificação Independente (`PASS`).
 - **Completed**:
-  - `CsvFormatSpec`, `validate_csv_format_spec`, `detect_decimal`, desempate `detect_delimiter`, `decimal`/`quotechar`/`encoding="auto"` em `parsing.py` e `loader.py`.
-  - Persistência de `csv_format` em `DatasetDescriptor`, `reconstruct_sanitized_view`, `run_experiment`, `expml data profile` e `expml quickrun`.
-  - Sincronização de `README.md`, guias, referências, engenharia e `.specs/STATE.md`.
+  - `ExploratoryFeatureReport.summary(top_n=15)` e `features/visualization.py` (`render_exploratory_report`, `render_exploratory_target_chart`, `render_exploratory_redundancy_heatmap`).
+  - Integração em `expml features explore` (`stdout` legível + `.md`/`.html`/`.svg`/`.png`).
+  - Sincronização de guias, referências, engenharia e `.specs/STATE.md`.
 - **In-progress**: none
 - **Next step**: Homologação científica externa (`CA02` / `TA-POS.4`) em dados reais pelo pesquisador.
 - **Blockers**: none

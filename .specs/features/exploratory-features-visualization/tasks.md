@@ -1,7 +1,7 @@
 # exploratory-features-visualization Tasks
 
 **Design**: `.specs/features/exploratory-features-visualization/design.md`  
-**Status**: In Progress  
+**Status**: Completed  
 **Approved**: 2026-11-19 - user: "aprovado"  
 **Build**: .venv/bin/python -c "import experimental_ml.features"  
 **Run expl_unit**: .venv/bin/pytest tests/unit/features/test_exploratory_visualization.py -v  
@@ -61,7 +61,7 @@ T1 --> T2 --> T3 --> T4
 **Tests**: CLI and `quickrun` integration tests in `tests/unit/cli/test_exploratory_cli_visuals.py` plus `tests/integration/test_mvp_audit_invariants.py`.  
 **Gate**: `.venv/bin/pytest tests/unit/cli/test_exploratory_cli_visuals.py tests/integration/test_mvp_audit_invariants.py -v`  
 
-### T4: Synchronize documentation, reference catalogs, engineering docs, and `.specs/STATE.md`
+### T4: Synchronize documentation, reference catalogs, engineering docs, and `.specs/STATE.md` [x]
 **Depends on**: T3  
 **Files**: `docs/guia/02_tutorial_6_etapas.md`, `docs/guias_praticos/07_cenarios_features_estabilidade.md`, `docs/referencia/{api_python,cli_catalogo}.md`, `docs/engenharia_software/{ARQUITETURA_E_CONTRATOS,ESPECIFICACAO_REQUISITOS,ETAPA_ATUAL_ENGENHARIA}.md`, `.specs/STATE.md`  
 **Done when**: All guides, reference docs, engineering docs, and `.specs/STATE.md` (`AD-025`) document Stage 2 visualization outputs and pass automated integrity checks + full test suite.  

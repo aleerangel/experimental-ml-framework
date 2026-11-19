@@ -46,7 +46,7 @@ Esta referência cataloga a **API pública oficial** do `experimental-ml`, delim
 
 ## 4. `experimental_ml.features` (Etapa 2 — Exploração e Cenários)
 
-- **Análise Exploratória:** `explore_features`, `ExploratoryFeatureReport`, `RedundancyPair`, `AssociationMeasure`, `SCOPE_EXPLORATORY_FULL_DATA`, `METHODOLOGICAL_WARNINGS`, `compute_pearson`, `compute_spearman`, `compute_correlation_ratio`, `compute_cramers_v`.
+- **Análise Exploratória e Visualização:** `explore_features`, `ExploratoryFeatureReport` (método `.summary(top_n=15)`), `RedundancyPair`, `AssociationMeasure`, `SCOPE_EXPLORATORY_FULL_DATA`, `METHODOLOGICAL_WARNINGS`, `compute_pearson`, `compute_spearman`, `compute_correlation_ratio`, `compute_cramers_v`, `render_exploratory_report`, `render_exploratory_target_chart`, `render_exploratory_redundancy_heatmap`.
 - **Cenários de Features:** `FeatureScenario`, `ScenarioMode` (`FIXED`, `DYNAMIC`), `ScenariosCatalog`, `validate_scenarios`, `save_scenarios`, `load_scenarios`.
 - **Seleção Intra-Fold e Estabilidade:** `select_features_in_fold`, `apply_feature_selection`, `SelectionResult`, `compute_selection_stability`, `SelectionStabilityReport` (Jaccard e Kuncheva corrigido).
 
