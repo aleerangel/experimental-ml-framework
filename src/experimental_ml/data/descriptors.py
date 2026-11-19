@@ -12,6 +12,7 @@ from typing import Any, Mapping
 from experimental_ml.core.enums import TaskType
 from experimental_ml.core.types import ObservationId
 from experimental_ml.data.preparation import PreparationRule
+from experimental_ml.data.schema import CsvFormatSpec
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +31,7 @@ class DatasetDescriptor:
     group_col: str | None = None
     time_col: str | None = None
     schema_path: str | None = None
+    csv_format: CsvFormatSpec | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.column_names, tuple):

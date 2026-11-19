@@ -180,7 +180,18 @@ def handle_quickrun(args: argparse.Namespace) -> int:
     force = bool(getattr(args, "force", True))
     sys.stdout.write(f"[1/6] Preparando e diagnosticando dados ({data_path.name})...\n")
     rc = handle_data_profile(
-        argparse.Namespace(data=str(data_path), schema=str(schema_path), output_dir=str(exp_dir), force=force)
+        argparse.Namespace(
+            data=str(data_path),
+            schema=str(schema_path),
+            output_dir=str(exp_dir),
+            force=force,
+            delimiter=getattr(args, "delimiter", None),
+            decimal=getattr(args, "decimal", None),
+            encoding=getattr(args, "encoding", None),
+            no_header=getattr(args, "no_header", False),
+            column_names=getattr(args, "column_names", None),
+            quotechar=getattr(args, "quotechar", None),
+        )
     )
     if rc != 0:
         return rc

@@ -68,7 +68,7 @@ def _to_json_primitive(val: Any) -> Any:
 
 def dataset_descriptor_to_dict(desc: DatasetDescriptor) -> dict[str, Any]:
     """Serialize DatasetDescriptor to standard JSON-compatible dict."""
-    return {
+    out: dict[str, Any] = {
         "dataset_hash": desc.dataset_hash,
         "raw_source_hash": desc.raw_source_hash,
         "raw_source_path": desc.raw_source_path,
@@ -82,10 +82,35 @@ def dataset_descriptor_to_dict(desc: DatasetDescriptor) -> dict[str, Any]:
         "time_col": desc.time_col,
         "schema_path": desc.schema_path,
     }
+    if desc.csv_format is not None:
+        out["csv_format"] = {
+            "delimiter": desc.csv_format.delimiter,
+            "decimal": desc.csv_format.decimal,
+            "encoding": desc.csv_format.encoding,
+            "has_header": desc.csv_format.has_header,
+            "column_names": list(desc.csv_format.column_names) if desc.csv_format.column_names is not None else None,
+            "quotechar": desc.csv_format.quotechar,
+        }
+    return out
 
 
 def dataset_descriptor_from_dict(d: dict[str, Any]) -> DatasetDescriptor:
     """Reconstruct DatasetDescriptor from dict."""
+    from experimental_ml.data.schema import CsvFormatSpec
+
+    raw_fmt = d.get("csv_format")
+    csv_format = None
+    if isinstance(raw_fmt, dict):
+        raw_cols = raw_fmt.get("column_names")
+        csv_format = CsvFormatSpec(
+            delimiter=raw_fmt.get("delimiter"),
+            decimal=raw_fmt.get("decimal", "."),
+            encoding=raw_fmt.get("encoding", "utf-8-sig"),
+            has_header=raw_fmt.get("has_header", True),
+            column_names=tuple(raw_cols) if raw_cols is not None else None,
+            quotechar=raw_fmt.get("quotechar", '"'),
+        )
+
     return DatasetDescriptor(
         dataset_hash=d["dataset_hash"],
         raw_source_hash=d.get("raw_source_hash"),
@@ -99,6 +124,7 @@ def dataset_descriptor_from_dict(d: dict[str, Any]) -> DatasetDescriptor:
         group_col=d.get("group_col"),
         time_col=d.get("time_col"),
         schema_path=d.get("schema_path"),
+        csv_format=csv_format,
     )
 
 

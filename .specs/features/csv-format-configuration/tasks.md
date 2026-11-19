@@ -54,7 +54,7 @@ T1 --> T2 --> T3 --> T4
 **Tests**: Unit tests covering `;` + `,` decimal + `latin-1`/`cp1252` + custom `quotechar`, `dataset_hash` invariance, auto-detection tie-break (`1,5;2,3`), mixed-decimal rejection (`DataIntegrityError`), and `tests/unit/test_data_schemas.py`.  
 **Gate**: `.venv/bin/pytest tests/unit/data/test_csv_format.py tests/unit/test_data_schemas.py -v`  
 
-### T3: Expose CSV formatting in `pipeline.py`, `cli/main.py`, `cli/cmd_data.py`, and `cli/cmd_init.py`
+### T3: Expose CSV formatting in `pipeline.py`, `cli/main.py`, `cli/cmd_data.py`, and `cli/cmd_init.py` [x]
 **Depends on**: T2  
 **Files**: `src/experimental_ml/pipeline.py`, `src/experimental_ml/cli/main.py`, `src/experimental_ml/cli/cmd_data.py`, `src/experimental_ml/cli/cmd_init.py`, `tests/unit/cli/test_csv_format_cli.py`, `tests/unit/test_usability_cli_and_facade.py`  
 **Done when**: `run_experiment`, `expml data profile`, `expml quickrun`, and `schema.json` `"csv_format"` support all CSV formatting options with CLI flags taking precedence.  

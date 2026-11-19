@@ -18,6 +18,7 @@ from experimental_ml.core.enums import MetricDirection, TaskType
 from experimental_ml.core.findings import ConfigurationError
 from experimental_ml.core.storage import write_json_atomic
 from experimental_ml.data import (
+    CsvFormatSpec,
     DatasetSchemaSpec,
     PreparationRule,
     create_preparation_plan,
@@ -205,6 +206,13 @@ def run_experiment(
     alpha: float = 0.05,
     master_seed: int = 42,
     force: bool = True,
+    delimiter: str | None = None,
+    decimal: str | None = ".",
+    encoding: str = "utf-8-sig",
+    has_header: bool = True,
+    column_names: Sequence[str] | None = None,
+    quotechar: str = '"',
+    csv_format: CsvFormatSpec | None = None,
 ) -> ExperimentRunSummary:
     """Executa ponta a ponta as Etapas 1 a 6 de forma segura e reproduzível.
 
@@ -230,7 +238,17 @@ def run_experiment(
     else:
         resolved_schema = schema
 
-    bundle = load_dataset(data, resolved_schema)
+    bundle = load_dataset(
+        data,
+        resolved_schema,
+        delimiter=delimiter,
+        decimal=decimal,
+        encoding=encoding,
+        has_header=has_header,
+        column_names=column_names,
+        quotechar=quotechar,
+        csv_format=csv_format,
+    )
     profile = profile_dataset(bundle)
     prep_plan = create_preparation_plan(profile, list(rules))
     if prep_plan.status != "READY":

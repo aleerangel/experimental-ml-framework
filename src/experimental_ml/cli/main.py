@@ -24,6 +24,43 @@ class _ExpMLParser(argparse.ArgumentParser):
         return ns, rest
 
 
+def _add_csv_format_args(p: argparse.ArgumentParser) -> None:
+    """Register optional CSV formatting flags on a subcommand parser."""
+    p.add_argument(
+        "--delimiter",
+        default=None,
+        help="CSV column delimiter (',', ';', '\\t', '|', 'whitespace'). Auto-detected if omitted.",
+    )
+    p.add_argument(
+        "--decimal",
+        choices=[".", ",", "auto"],
+        default=None,
+        help="Decimal separator ('.', ',', or 'auto').",
+    )
+    p.add_argument(
+        "--encoding",
+        default=None,
+        help="File character encoding (e.g., 'utf-8-sig', 'latin-1', 'cp1252', or 'auto').",
+    )
+    p.add_argument(
+        "--no-header",
+        action="store_true",
+        default=False,
+        help="Treat the first row as data instead of column headers.",
+    )
+    p.add_argument(
+        "--column-names",
+        nargs="+",
+        default=None,
+        help="Explicit column names (typically used with --no-header).",
+    )
+    p.add_argument(
+        "--quotechar",
+        default=None,
+        help="Single-character quote delimiter (default: '\"').",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the hierarchical command-line argument parser."""
     parser = _ExpMLParser(
@@ -57,6 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
     qr_p.add_argument("--data", default=None, help="Optional custom CSV path (default: <experiment-dir>/dados_exemplo.csv).")
     qr_p.add_argument("--metrics", nargs="+", default=None, help="Optional list of metric IDs to evaluate.")
     qr_p.add_argument("--force", action="store_true", default=True, help="Overwrite existing outputs (default: True).")
+    _add_csv_format_args(qr_p)
 
     # --- data command ---
     data_parser = subparsers.add_parser("data", help="Data ingestion, profiling and sanitization.")
@@ -68,6 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
     profile_p.add_argument("--schema", required=True, help="Path to schema JSON file.")
     profile_p.add_argument("--output-dir", required=True, help="Path to output experiment directory.")
     profile_p.add_argument("--force", action="store_true", help="Overwrite existing output artifacts.")
+    _add_csv_format_args(profile_p)
 
     # data sanitize
     sanitize_p = data_subparsers.add_parser("sanitize", help="Apply preparation rules and create sanitized view.")

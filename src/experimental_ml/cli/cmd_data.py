@@ -28,7 +28,7 @@ from experimental_ml.data.preparation import (
     sanitize_dataset,
 )
 from experimental_ml.data.profiling import profile_dataset
-from experimental_ml.data.schema import ColumnSemanticType, DatasetSchemaSpec
+from experimental_ml.data.schema import ColumnSemanticType, CsvFormatSpec, DatasetSchemaSpec
 from experimental_ml.stages.stage_gates import (
     DATASET_DESCRIPTOR_REL_PATH,
     DATASET_PROFILE_REL_PATH,
@@ -69,6 +69,47 @@ def _load_schema_spec(schema_path: Path | str) -> DatasetSchemaSpec:
     )
 
 
+def _resolve_csv_format(schema_path: Path | str, args: argparse.Namespace) -> CsvFormatSpec:
+    """Resolve CsvFormatSpec from optional 'csv_format' in schema.json with CLI flag overrides."""
+    d = read_json(Path(schema_path).resolve())
+    raw_csv = d.get("csv_format")
+    if raw_csv is not None and not isinstance(raw_csv, dict):
+        raise ConfigurationError("'csv_format' in schema JSON must be a JSON object.")
+    cfg = dict(raw_csv) if raw_csv else {}
+
+    cli_delim = getattr(args, "delimiter", None)
+    if cli_delim is not None:
+        delimiter = "\t" if cli_delim == "\\t" else cli_delim
+    else:
+        raw_d = cfg.get("delimiter")
+        delimiter = "\t" if raw_d == "\\t" else raw_d
+
+    cli_dec = getattr(args, "decimal", None)
+    decimal = cli_dec if cli_dec is not None else cfg.get("decimal", ".")
+
+    cli_enc = getattr(args, "encoding", None)
+    encoding = cli_enc if cli_enc is not None else cfg.get("encoding", "utf-8-sig")
+
+    cli_no_header = bool(getattr(args, "no_header", False))
+    has_header = False if cli_no_header else cfg.get("has_header", True)
+
+    cli_cols = getattr(args, "column_names", None)
+    raw_cols = cli_cols if cli_cols is not None else cfg.get("column_names")
+    column_names = tuple(raw_cols) if raw_cols is not None else None
+
+    cli_quote = getattr(args, "quotechar", None)
+    quotechar = cli_quote if cli_quote is not None else cfg.get("quotechar", '"')
+
+    return CsvFormatSpec(
+        delimiter=delimiter,
+        decimal=decimal,
+        encoding=encoding,
+        has_header=has_header,
+        column_names=column_names,
+        quotechar=quotechar,
+    )
+
+
 def handle_data_profile(args: argparse.Namespace) -> int:
     """Handle 'expml data profile'."""
     data_path = Path(args.data).resolve()
@@ -79,7 +120,8 @@ def handle_data_profile(args: argparse.Namespace) -> int:
         raise ConfigurationError(f"Data file not found at '{data_path}'")
 
     schema = _load_schema_spec(schema_path)
-    bundle = load_dataset(str(data_path), schema=schema)
+    csv_format = _resolve_csv_format(schema_path, args)
+    bundle = load_dataset(str(data_path), schema=schema, csv_format=csv_format)
     profile = profile_dataset(bundle)
 
     desc = DatasetDescriptor(
@@ -95,6 +137,7 @@ def handle_data_profile(args: argparse.Namespace) -> int:
         group_col=schema.group_col,
         time_col=schema.time_col,
         schema_path=str(schema_path),
+        csv_format=csv_format,
     )
 
     desc_file = output_dir / DATASET_DESCRIPTOR_REL_PATH
@@ -171,7 +214,7 @@ def handle_data_sanitize(args: argparse.Namespace) -> int:
         raise DataIntegrityError("Dataset descriptor lacks source path or schema path for reloading")
 
     schema = _load_schema_spec(desc.schema_path)
-    bundle = load_dataset(desc.raw_source_path, schema=schema)
+    bundle = load_dataset(desc.raw_source_path, schema=schema, csv_format=desc.csv_format)
     view = sanitize_dataset(bundle, profile, plan)
 
     plan_file = exp_dir / PREPARATION_PLAN_REL_PATH

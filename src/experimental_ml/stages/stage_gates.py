@@ -224,7 +224,7 @@ def reconstruct_sanitized_view(experiment_dir: Path | str) -> SanitizedDatasetVi
         )
 
     schema = load_schema_spec(desc.schema_path)
-    bundle = load_dataset(desc.raw_source_path, schema=schema)
+    bundle = load_dataset(desc.raw_source_path, schema=schema, csv_format=desc.csv_format)
     prof = dataset_profile_from_dict(read_json(prof_path))
     plan = preparation_plan_from_dict(read_json(prep_plan_path))
 
