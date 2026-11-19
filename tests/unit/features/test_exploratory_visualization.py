@@ -27,9 +27,13 @@ def _sample_report() -> ExploratoryFeatureReport:
         task_type=TaskType.REGRESSION,
         target_associations=(
             AssociationMeasure("x_fraco", "alvo", "PEARSON", 0.12, MetricStatus.VALID),
+            AssociationMeasure("x_fraco", "alvo", "SPEARMAN", 0.14, MetricStatus.VALID),
             AssociationMeasure("x_neg_forte", "alvo", "PEARSON", -0.88, MetricStatus.VALID),
+            AssociationMeasure("x_neg_forte", "alvo", "SPEARMAN", -0.90, MetricStatus.VALID),
             AssociationMeasure("x_const", "alvo", "PEARSON", float("nan"), MetricStatus.UNDEFINED_NAN),
+            AssociationMeasure("x_const", "alvo", "SPEARMAN", float("nan"), MetricStatus.UNDEFINED_NAN),
             AssociationMeasure("x_mod", "alvo", "PEARSON", 0.45, MetricStatus.VALID),
+            AssociationMeasure("x_mod", "alvo", "SPEARMAN", 0.55, MetricStatus.VALID),
         ),
         pairwise_redundancy_matrix={
             "x_neg_forte": {"x_neg_forte": 1.0, "x_mod": 0.92, "x_fraco": 0.05},
@@ -44,15 +48,17 @@ def _sample_report() -> ExploratoryFeatureReport:
 
 
 def test_exploratory_report_summary_ranking_and_nan() -> None:
-    """summary() ranks valid associations by |value|, keeps UNDEFINED_NAN separate, and lists warnings."""
+    """summary() aggregates unique features by mean |value|, avoids duplicates, and keeps UNDEFINED_NAN separate."""
     report = _sample_report()
     text = report.summary(top_n=2)
 
     assert "EXPLORATORY_FULL_DATA" in text
     assert "a" * 64 not in text  # never expose raw 64-hex hash
-    assert "1. x_neg_forte [PEARSON]: -0.8800 (Forte)" in text
-    assert "2. x_mod [PEARSON]: +0.4500 (Moderada)" in text
-    assert "x_fraco" not in text  # top_n=2 limits ranked list
+    assert "Atributos avaliados: 4 (válidos: 3, indefinidos: 1)" in text
+    assert "1. x_neg_forte — Média |·|: 0.8900 (Forte) [PEARSON=-0.8800, SPEARMAN=-0.9000]" in text
+    assert "2. x_mod — Média |·|: 0.5000 (Moderada) [PEARSON=+0.4500, SPEARMAN=+0.5500]" in text
+    assert text.count("x_neg_forte —") == 1
+    assert "x_fraco" not in text  # top_n=2 limits to 2 unique features
     assert "x_const (UNDEFINED_NAN)" in text
     assert "x_neg_forte <-> x_mod [PEARSON]: +0.9200" in text
     for w in METHODOLOGICAL_WARNINGS:
