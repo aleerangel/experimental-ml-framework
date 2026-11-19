@@ -64,3 +64,20 @@ def test_cli_features_explore_visual_outputs_and_stdout(tmp_path: Path) -> None:
 
     # Anti-leakage: configuration/scenarios.json is never auto-created (EXPL-05)
     assert not (exp_dir / "configuration" / "scenarios.json").exists()
+
+
+def test_quickrun_generates_stage2_visuals_and_preserves_scenarios(tmp_path: Path) -> None:
+    """expml quickrun produces Stage 2 visual reports/figures without mutating scenarios.json."""
+    exp_dir = tmp_path / "qr_exp"
+    init_res = _run_cli("init", "--output-dir", str(exp_dir), "--task", "regression")
+    assert init_res.returncode == 0, init_res.stderr
+
+    orig_scenarios = (exp_dir / "scenarios.json").read_text(encoding="utf-8")
+
+    qr_res = _run_cli("quickrun", "--experiment-dir", str(exp_dir))
+    assert qr_res.returncode == 0, qr_res.stderr
+    assert (exp_dir / "reports" / "exploratory_features.md").exists()
+    assert (exp_dir / "reports" / "exploratory_features.html").exists()
+    assert (exp_dir / "figures" / "exploratory_target_associations.svg").exists()
+    assert (exp_dir / "figures" / "exploratory_redundancy_heatmap.svg").exists()
+    assert (exp_dir / "scenarios.json").read_text(encoding="utf-8") == orig_scenarios

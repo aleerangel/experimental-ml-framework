@@ -91,14 +91,21 @@ def handle_features_explore(args: argparse.Namespace) -> int:
         encoding="utf-8",
     )
 
-    # Print readable ranked summary and artifact paths without raw SHA-256 hashes (CLI-11)
+    # Print backward-compatible header + readable ranked summary and artifact paths (CLI-11)
+    target_info = view.schema.target_col
+    n_assocs = len(report.target_associations)
+    n_redundant = len(report.high_redundancy_pairs)
     sys.stdout.write(
-        report.summary()
-        + "\n\nArtefatos gerados:\n"
-        + f"  - JSON: {report_path.relative_to(experiment_dir)}\n"
-        + f"  - Markdown: {md_path.relative_to(experiment_dir)}\n"
-        + f"  - HTML: {html_path.relative_to(experiment_dir)}\n"
-        + f"  - Figuras: {bar_svg_path.relative_to(experiment_dir)}, {hm_svg_path.relative_to(experiment_dir)}\n"
+        f"Exploratory feature analysis completed successfully:\n"
+        f"  - Target column: {target_info}\n"
+        f"  - Features analyzed: {n_assocs}\n"
+        f"  - Redundant pairs flagged: {n_redundant}\n"
+        f"  - Report: {report_path.relative_to(experiment_dir)}\n"
+        f"  - Markdown: {md_path.relative_to(experiment_dir)}\n"
+        f"  - HTML: {html_path.relative_to(experiment_dir)}\n"
+        f"  - Figuras: {bar_svg_path.relative_to(experiment_dir)}, {hm_svg_path.relative_to(experiment_dir)}\n\n"
+        + report.summary()
+        + "\n"
     )
 
     return 0

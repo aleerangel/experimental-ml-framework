@@ -84,13 +84,13 @@ T1 --> T2 --> T3 --> T4
 **C4** - `expml features explore` prints ranked summary to `stdout` without 64-hex hashes (`CLI-11`) and persists all visual reports and charts (EXPL-02).
   Proof: run expl_cli | test_cli_features_explore_visual_outputs_and_stdout PASSED
 
-**C5** - Stage 2 visualization never creates or mutates `configuration/scenarios.json` (`CA-E2-01`) and `expml quickrun` + `XCUT-02` invariants pass (EXPL-05).
-  Proof: run expl_cli | test_audit_xcut02_runtime_purity_ast PASSED
+**C5** - Stage 2 visualization never creates or mutates `configuration/scenarios.json` (`CA-E2-01`) and `expml quickrun` produces Stage 2 visual reports/figures (EXPL-05).
+  Proof: run expl_cli | test_quickrun_generates_stage2_visuals_and_preserves_scenarios PASSED
 
 **C6** - Documentation integrity passes after synchronizing guides, reference catalogs, and engineering docs (EXPL-06).
   Proof: run expl_docs | test_markdown_links_and_anchors_valid PASSED
 
 ## Handoff
 
-- **Next step**: Awaiting user approval of `tasks.md` before starting T1.
+- **Next step**: Verification findings fixed; running full test suite and closing verification.
 - **Dispatched:** none
