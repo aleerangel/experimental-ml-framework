@@ -2,6 +2,10 @@
 
 **Verdict:** `PASS`
 
+## Findings
+
+None - all criteria C1..C2, requirements DIAG-01..DIAG-03, AC-M41-06-03, XCUT-02, and edge cases verified with 611/611 passing tests.
+
 ## Requirements Verification
 
 - **DIAG-01 (Sub-estimator safe summarization):** Verified in `src/experimental_ml/models/diagnostics.py` (`_is_subestimator`, `_to_immutable_primitive`) and `tests/unit/models/test_model_diagnostics.py::test_diag_ensemble_subestimators_summarized_immutably`. Objects with callable `fit` + `predict`/`transform` or `sklearn`/`sklearn.*` `__module__` are converted to `type(val).__name__` (including inside `list`, `np.ndarray`, and `get_diagnostics()` mappings).
