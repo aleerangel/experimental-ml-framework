@@ -3,7 +3,7 @@
 > **Documento:** Arquitetura de Software, Contratos de Módulos, Modelo de Dados e Recorte de MVP<br/>
 > **Versão:** 1.3.0<br/>
 > **Data:** 17 de Novembro de 2026<br/>
-> **Status:** Consolidado e Aprovado — MVP (Onda 1) e Pós-MVP (`TA-POS.1` a `TA-POS.3`) Concluídos e Aceitos (**598 testes automatizados**)<br/>
+> **Status:** Consolidado e Aprovado — MVP (Onda 1) e Pós-MVP Concluídos e Aceitos (**611 testes automatizados**)<br/>
 > **Documentos Relacionados:** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md) | [`ETAPA_ATUAL_ENGENHARIA.md`](./ETAPA_ATUAL_ENGENHARIA.md) | [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
 
 ---
@@ -357,7 +357,7 @@ Registrar especificações de modelos heterogêneos sob estruturas de dados padr
    * `instantiate_fresh_model(model_spec, seed) -> model_instance`: cria uma instância nova e limpa (ou função pura configurada) para cada execução, impedindo contaminação de pesos, estados internos ou parâmetros entre *folds*, repetições de *bootstrap*, cenários ou tentativas de *tuning*.
    * `fit_model(model_instance, X_train, y_train, model_spec, **fit_kwargs) -> (fitted_model, fit_diagnostics)` (no-op transparente quando `requires_fit == False`).
    * `predict_model(fitted_model, X_eval, model_spec) -> dict`: retorna dicionário padronizado contendo predição pontual `y_pred` (`ndarray`), incerteza preditiva individual `y_std` (`ndarray | None`, quando `supports_uncertainty == True`) e probabilidades/escores `y_proba` (`ndarray | None`, quando aplicável).
-   * `extract_model_diagnostics(fitted_model, model_spec, phase) -> ModelDiagnostics`: função que extrai um dicionário estruturado de metadados internos específicos da família algorítmica:
+   * `extract_model_diagnostics(fitted_model, model_spec, phase) -> ModelDiagnostics`: função que extrai um dicionário estruturado e profundamente imutável de metadados internos específicos da família algorítmica (sumarizando sub-estimadores de ensembles, como `estimators_` / `estimator_` de `scikit-learn` ou objetos com `fit` + `predict`/`transform`, pelo nome da classe `type(val).__name__`, enquanto objetos mutáveis complexos arbitrários continuam rejeitados com `ContractViolationError` — `AC-M41-06-03`):
      * *Quânticos / Kernels / HHL:* tipo de mapa de atributos (*Feature Map*), tipo de kernel quântico, número de qubits, profundidade do circuito, contagem de portas, número de *shots*, backend, fidelidade de estado, número de condição, diagnósticos do resolvedor.
      * *Redes Neurais:* épocas executadas, curvas de perda de treino/validação interna, critério de parada atingido.
      * *Analíticos / Biométricos:* equação funcional, coeficientes ajustados ou fixos, parâmetros calibrados.
@@ -921,6 +921,10 @@ O Marco M1 é dividido em **quatro entregas sequenciais e independentemente veri
 #### Entrega `exploratory-visual-redesign` — Redesenho Visual e Ranking Único da Etapa 2 (Concluída)
 * **Escopo:** Agregação única por atributo via `mean(|valor|)` em `ExploratoryFeatureReport.ranked_target_features()` e `.summary(top_n=15)`, remoção de SVGs na Etapa 2, gráficos PNG rotulados em Python/NumPy puro com fonte bitmap (`XCUT-02`), tabelas CSV completas (`render_exploratory_target_csv`, `render_exploratory_redundancy_csv`), Markdown limpo sem matriz gigante inline e HTML offline com CSS `@page`/`@media print` pronto para PDF (preservando `CA-E2-01` sem criar `scenarios.json`).
 * **Resultados e Verificação:** Testes unitários e de CLI (`tests/unit/features/test_exploratory_visualization.py`, `tests/unit/cli/test_exploratory_cli_visuals.py`), integridade documental (`tests/unit/test_documentation_integrity.py`) e verificação independente TLC sob `.specs/features/exploratory-visual-redesign/`.
+
+#### Entrega `sklearn-ensemble-diagnostics` — Sumarização Segura de Sub-estimadores em Diagnósticos (Concluída)
+* **Escopo:** Detecção de sub-estimadores em `src/experimental_ml/models/diagnostics.py` (`_is_subestimator`: instâncias do namespace `sklearn.*` ou com `fit` + `predict`/`transform` chamáveis, inclusive dentro de listas, tuplas, dicionários e `np.ndarray`) e sumarização imutável como `type(val).__name__`, preservando `ContractViolationError` (`AC-M41-06-03`) para objetos mutáveis arbitrários.
+* **Resultados e Verificação:** Testes unitários em `tests/unit/models/test_model_diagnostics.py` (`test_diag_ensemble_subestimators_summarized_immutably` e `test_m41_06_03_extract_model_diagnostics_unsupported_complex_rejection`), suíte completa com **611 testes aprovados** e verificação independente TLC (`PASS`) sob `.specs/features/sklearn-ensemble-diagnostics/`.
 
 #### Comandos Reprodutíveis de Instalação, Execução de Testes e Qualidade
 ```bash

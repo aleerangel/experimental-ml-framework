@@ -3,7 +3,7 @@
 > **Documento de Registro de Estado da Engenharia**<br/>
 > **Data:** 17 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
-> **Estado Atual:** Marcos M1 a M7 e Pós-MVP (`TA-POS.1`, `TA-POS.2`, `pos-2b`, `TA-POS.3`) Concluídos e Aceitos (598 testes automatizados)<br/>
+> **Estado Atual:** Marcos M1 a M7 e Pós-MVP Concluídos e Aceitos (611 testes automatizados)<br/>
 > **Próximo Marco:** Validação Científica Externa (`TA-POS.4` / `CA02`) em dados reais pelo pesquisador<br/>
 > **Especificação de Requisitos (SRS v2.2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
@@ -24,7 +24,7 @@ flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
     Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(M1 a M7 Homologados — 581 testes)"]
-    Fase4 --> Fase5["Fase 5: Pós-MVP TA-POS.1 a TA-POS.3<br/>(Concluída — 598 testes | Próximo: CA02)"]
+    Fase4 --> Fase5["Fase 5: Pós-MVP e Evoluções Contínuas<br/>(Concluída — 611 testes | Próximo: CA02)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
     style Fase2 fill:#d4edda,stroke:#28a745
@@ -251,4 +251,5 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
    * **Usabilidade e Acessibilidade do Pesquisador (`TA-POS.3` — Concluída e Aceita):** Fachada Python `run_experiment` (`pipeline.py`), comandos `expml init` e `expml quickrun`, flexibilização de flags na CLI e reorganização pedagógica por jornadas, consolidando **598 testes automatizados**.
    * **Configuração e Detecção Automática de CSV (`csv-format-configuration` — Concluída e Aceita):** Contrato `CsvFormatSpec`, suporte a `decimal` (`"."`, `","`, `"auto"`), `quotechar`, `encoding` (`"utf-8-sig"` / `"auto"`), flags CLI em `data profile` e `quickrun`, bloco `"csv_format"` em `schema.json`, persistência em `DatasetDescriptor` e exposição em `run_experiment` (604 testes aprovados).
    * **Redesenho Visual e Ranking Único da Etapa 2 (`exploratory-visual-redesign` — Concluída):** Agregação única por atributo (`mean(|valor|)`) em `ExploratoryFeatureReport.summary()`, relatórios limpos `exploratory_features.{md,html}` (HTML pronto para impressão A4/PDF), tabelas CSV e gráficos PNG rotulados em Python/NumPy puro (`XCUT-02`, sem SVGs), integrados em `expml features explore`.
+   * **Compatibilidade de Diagnósticos com Ensembles Scikit-Learn (`sklearn-ensemble-diagnostics` — Concluída):** Sumarização imutável de sub-estimadores (`estimators_`, `estimator_`, arrays/coleções aninhadas) pelo nome da classe em `extract_model_diagnostics`, preservando `ContractViolationError` (`AC-M41-06-03`) para objetos mutáveis arbitrários (**611 testes aprovados**).
    * **Homologação Científica Externa (`TA-POS.4` / `CA02` — Pendente):** Execução do pipeline completo sobre estudo de caso experimental real pelo pesquisador fora do repositório.

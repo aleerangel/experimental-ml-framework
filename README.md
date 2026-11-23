@@ -134,7 +134,7 @@ experimental-ml-framework/
 │       ├── statistics/                  # Consolidação, inferência pareada, Pareto e síntese (Nível 5)
 │       ├── tuning/                      # Particionamento interno e Nested CV (Nível 3)
 │       └── validation/                  # Particionamento compartilhado e validação matemática (Nível 2)
-├── tests/                               # Suíte de testes automatizados (595 verificações)
+├── tests/                               # Suíte de testes automatizados (611 verificações)
 │   ├── integration/                     # Testes de integração transversal e subprocessos
 │   ├── test_smoke.py                    # Testes de fumaça da CLI e metadados de empacotamento
 │   └── unit/                            # Testes unitários e de integridade documental
