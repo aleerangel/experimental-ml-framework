@@ -111,3 +111,38 @@ def test_m41_06_04_extract_model_diagnostics_model_mutation_invariance() -> None
     assert np.array_equal(pred_before, pred_after)
     assert model.loss_ == loss_before
     assert np.array_equal(model.coef_, coef_before)
+
+
+def test_diag_ensemble_subestimators_summarized_immutably() -> None:
+    """DIAG-01 / DIAG-02: Sub-estimators in ensemble attributes are summarized as immutable class names."""
+    spec = _make_spec()
+
+    class DecisionTreeRegressor:
+        def __init__(self, depth: int) -> None:
+            self.depth = depth
+
+        def fit(self, X: np.ndarray, y: np.ndarray) -> "DecisionTreeRegressor":
+            return self
+
+        def predict(self, X: np.ndarray) -> np.ndarray:
+            return np.zeros(X.shape[0])
+
+    class EnsembleModel:
+        def __init__(self) -> None:
+            self.n_estimators_ = 2
+            self.estimator_ = DecisionTreeRegressor(depth=3)
+            self.estimators_ = [DecisionTreeRegressor(depth=3), DecisionTreeRegressor(depth=4)]
+            self.boosted_grid_ = np.array([[DecisionTreeRegressor(depth=2)]], dtype=object)
+
+    model = EnsembleModel()
+    diag = extract_model_diagnostics(model, spec, phase="fit")
+
+    assert isinstance(diag.diagnostics, MappingProxyType)
+    assert diag.diagnostics["n_estimators_"] == 2
+    assert diag.diagnostics["estimator_"] == "DecisionTreeRegressor"
+    assert diag.diagnostics["estimators_"] == ("DecisionTreeRegressor", "DecisionTreeRegressor")
+    assert diag.diagnostics["boosted_grid_"] == (("DecisionTreeRegressor",),)
+
+    # Mutating original model list after extraction must not alter diagnostics
+    model.estimators_.append(DecisionTreeRegressor(depth=5))
+    assert len(diag.diagnostics["estimators_"]) == 2

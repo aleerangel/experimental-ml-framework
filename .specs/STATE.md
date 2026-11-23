@@ -245,14 +245,21 @@
 - **Date**: 2026-11-19
 - **Status**: active
 
+### AD-027
+- **Decision**: Sumarização imutável de sub-estimadores em `extract_model_diagnostics` (`sklearn-ensemble-diagnostics`, `DIAG-01` a `DIAG-03`): objetos com `fit` e `predict`/`transform` chamáveis ou do namespace `sklearn.*` são convertidos recursivamente (inclusive em listas, tuplas, dicts e `np.ndarray`) para `type(val).__name__`, preservando `ContractViolationError` (`AC-M41-06-03`) para objetos mutáveis arbitrários.
+- **Reason**: Permitir a execução de estimadores ensemble do scikit-learn (como `RandomForestRegressor` com `estimators_`) em `expml run start` sem quebrar a garantia de imutabilidade profunda nem enfraquecer a rejeição de objetos complexos não suportados.
+- **Trade-off**: Sub-estimadores são resumidos pelo nome da classe em vez de terem seus hiperparâmetros internos duplicados recursivamente, mantendo o snapshot enxuto e determinístico.
+- **Scope**: `src/experimental_ml/models/diagnostics.py`, `tests/unit/models/test_model_diagnostics.py`.
+- **Date**: 2026-11-23
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: exploratory-visual-redesign (Concluída)
-- **Phase / Task**: T1–T4 implementados e testados; pronto para `check_proofs.py`, inspeção visual no browser e verificação independente.
+- **Feature**: sklearn-ensemble-diagnostics (Concluída)
+- **Phase / Task**: Implementado e testado; pronto para `check_proofs.py` e Verificador Independente.
 - **Completed**:
-  - `ExploratoryFeatureReport.ranked_target_features()` e `.summary(top_n=15)` com ranking único por `mean(|valor|)`.
-  - `features/visualization.py` com PNGs rotulados, exportadores CSV, Markdown limpo e HTML pronto para impressão A4/PDF (zero SVGs).
-  - Integração em `expml features explore` e `expml quickrun`, mais sincronização documental e `.specs/STATE.md`.
+  - `_is_subestimator` e conversão recursiva segura em `_to_immutable_primitive` (`diagnostics.py`).
+  - Testes unitários de ensemble e preservação de `AC-M41-06-03` (`test_model_diagnostics.py`).
 - **In-progress**: none
 - **Next step**: Homologação científica externa (`CA02` / `TA-POS.4`) em dados reais pelo pesquisador.
 - **Blockers**: none

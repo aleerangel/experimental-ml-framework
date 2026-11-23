@@ -16,11 +16,26 @@ from experimental_ml.models.spec import ModelSpec, validate_model_spec
 from experimental_ml.models.types import ModelDiagnostics
 
 
+def _is_subestimator(val: Any) -> bool:
+    """Return True if val behaves like a sub-estimator (e.g., scikit-learn estimator)."""
+    if isinstance(val, type):
+        return False
+    module_name = getattr(type(val), "__module__", "")
+    if module_name == "sklearn" or module_name.startswith("sklearn."):
+        return True
+    has_fit = callable(getattr(val, "fit", None))
+    has_infer = callable(getattr(val, "predict", None)) or callable(
+        getattr(val, "transform", None)
+    )
+    return has_fit and has_infer
+
+
 def _to_immutable_primitive(val: Any) -> Any:
     """Recursively convert values to immutable primitives and MappingProxyType.
 
-    Raises ContractViolationError if an unsupported mutable complex object is encountered
-    (AC-M41-06-03).
+    Sub-estimators (such as scikit-learn ensemble members) are summarized as their
+    immutable class name. Raises ContractViolationError if an unsupported mutable
+    complex object is encountered (AC-M41-06-03).
     """
     if val is None or isinstance(val, (int, float, str, bool, bytes)):
         return val
@@ -29,10 +44,10 @@ def _to_immutable_primitive(val: Any) -> Any:
         return val.item()
 
     if isinstance(val, np.ndarray):
-        # Convert small or 1D arrays to tuples of primitives
-        if val.ndim <= 1:
-            return tuple(x.item() if hasattr(x, "item") else x for x in val)
-        return tuple(_to_immutable_primitive(row) for row in val)
+        # Convert arrays recursively to immutable tuples of primitives
+        if val.ndim == 0:
+            return _to_immutable_primitive(val.item())
+        return tuple(_to_immutable_primitive(item) for item in val)
 
     if isinstance(val, (list, tuple, set, frozenset)):
         return tuple(_to_immutable_primitive(item) for item in val)
@@ -42,6 +57,9 @@ def _to_immutable_primitive(val: Any) -> Any:
             str(k): _to_immutable_primitive(v) for k, v in val.items()
         }
         return MappingProxyType(converted_mapping)
+
+    if _is_subestimator(val):
+        return type(val).__name__
 
     # If it's a known non-primitive complex object (function, generator, thread, socket, arbitrary custom class)
     # that is not handled, raise ContractViolationError per AC-M41-06-03
