@@ -1,6 +1,6 @@
 # M8 — Estabilização do MVP e Alinhamento Contratual (Specification — Draft)
 
-- **Status**: Draft — Pending Developer Approval (Fase TLC: **Specify**)
+- **Status**: Draft — Decisões D1 e D2 Registradas (Fase TLC: **Specify** — aguardando autorização para `Design`/`Execute`)
 - **Milestone**: `M8` (`m8-mvp-stabilization-contract-alignment`)
 - **Related Validation Findings**: `VAL-BUG-002`, `VAL-BUG-003`, `VAL-BUG-004`, `VAL-BUG-005`, `VAL-BUG-007`, `VAL-BUG-009`, `VAL-BUG-010`, `VAL-BUG-011`, `VAL-QUAL-003`, `VAL-ENH-004`
 
@@ -33,14 +33,18 @@ Durante a auditoria técnica do MVP (`AUDITORIA_TECNICA_DO_MVP.md`), verificou-s
 
 ---
 
-## Open Questions for Developer Decision (Before Approval)
+## Decisões Registradas pelo Desenvolvedor
 
-Antes de aprovar esta especificação (`Specify -> Design`), o desenvolvedor deve confirmar duas decisões de escopo/contrato:
-
-1. **[Decisão D1 — `VAL-BUG-005` / `ADR-003`]:** Quando um experimento combina seleção dinâmica de atributos (`ScenarioMode.DYNAMIC`) com busca de hiperparâmetros (`GRID_SEARCH`/`RANDOM_SEARCH`), você prefere:
-   - **(Opção A — Recomendada, cumprimento estrito do `ADR-003`):** Executar a Camada 1 e `select_features_in_fold` dentro de cada sub-fold interno durante o tuning (e também propagar estratificação/agrupamento/temporalidade para `split_inner_folds`), reajustando no fold externo completo após escolher o melhor hiperparâmetro; ou
-   - **(Opção B — Seleção externa única):** Manter a seleção dinâmica executando uma única vez por fold externo antes do tuning (por desempenho computacional) e atualizar formalmente o texto do `ADR-003`?
-2. **[Decisão D2 — `VAL-BUG-010` / Nome dos arquivos de células]:** O motor atual grava `runs/cells/cell_cell_<m>__<s>__<f>.json` (com prefixo `cell_` duplicado) e `reporting/loader.py` / `orchestration/storage.py` leem via glob `cell_*.json`. Você prefere normalizar o nome para `cell_<m>__<s>__<f>.json` mantendo leitura retrocompatível, ou manter o nome atual para não alterar caminhos já esperados em scripts externos?
+1. **Decisão D1 (`VAL-BUG-005` / `ADR-003` — Opção A):**
+   - A seleção dinâmica de atributos deve ocorrer dentro de cada sub-fold interno durante o tuning, incluindo a execução da Camada 1 e de `select_features_in_fold`, utilizando exclusivamente os dados de treinamento daquele sub-fold.
+   - Após a escolha dos melhores hiperparâmetros, a Camada 1 e a seleção dinâmica devem ser reajustadas utilizando todo o treinamento do fold externo, antes da avaliação no respectivo fold de teste.
+   - As restrições de estratificação, agrupamento e temporalidade também devem ser propagadas para `split_inner_folds`.
+   - Justificativa: manter o cumprimento estrito do `ADR-003`, priorizando a integridade metodológica e a prevenção de vazamento de dados em detrimento da economia computacional.
+2. **Decisão D2 (`VAL-BUG-010` — Nome dos arquivos de células: normalização sem retrocompatibilidade):**
+   - Adotar `cell_<m>__<s>__<f>.json` como único padrão canônico de gravação e leitura (e padrão correspondente para predições, sem prefixo `cell_` duplicado).
+   - Não implementar suporte ao padrão legado `cell_cell_<m>__<s>__<f>.json`; arquivos existentes nesse formato não precisam de migração automática nem de aceitação pelo loader.
+   - Atualizar componentes de armazenamento e carregamento, documentação e testes para refletir a convenção única.
+   - Justificativa: o framework ainda está em desenvolvimento e não há necessidade estabelecida de manter compatibilidade com o formato anterior.
 
 ---
 
@@ -66,7 +70,8 @@ Antes de aprovar esta especificação (`Specify -> Design`), o desenvolvedor dev
 - **WHEN** `expml stats compute` ou `run_experiment` executa `consolidate_descriptive`, **THE SYSTEM SHALL** calcular `n_total_candidates_per_config` a partir de `len(scenario.candidate_features)` (ou do total de atributos preditores disponíveis na visão sanitizada quando `candidate_features` estiver vazio), garantindo que `mean_kuncheva` seja calculado sempre que $0 < k < N_{\text{total}}$.
 - **WHEN** `stats_config.json` contém uma lista `"pareto_objectives"` com 2 ou mais objetivos, **THE SYSTEM SHALL** construir `MultiObjectiveSpec` com todos os objetivos declarados durante `expml stats compute`.
 
-### R7 — Hashes de Retomada, Thread-Safety, `expml init` e Script TLC (`VAL-BUG-010`, `VAL-QUAL-003`, `VAL-BUG-011`)
+### R7 — Hashes de Retomada, Nomenclatura de Células, Thread-Safety, `expml init` e Script TLC (`VAL-BUG-010`, `VAL-QUAL-003`, `VAL-BUG-011`)
+- **WHEN** `save_cell_artifacts` e os loaders de `orchestration`/`reporting` persistem ou leem registros de células em `runs/cells/` (Decisão D2), **THE SYSTEM SHALL** utilizar exclusivamente o padrão canônico `cell_<m>__<s>__<f>.json`, sem suporte ou fallback para o formato legado `cell_cell_<m>__<s>__<f>.json`.
 - **WHEN** `run_execution_matrix(..., resume=True)` valida `execution_state.json`, **THE SYSTEM SHALL** verificar a igualdade de `source_dataset_hash`, `partition_plan_id`, `scenarios_hash` e `models_hash`, lançando `DataIntegrityError` se qualquer um divergir.
 - **WHEN** `instantiate_fresh_model` e `execute_single_cell` registram ou removem instâncias em `_ACTIVE_INSTANCES`, **THE SYSTEM SHALL** sincronizar o acesso com um `threading.Lock`.
 - **WHEN** `expml init --task binary_classification` ou `multiclass_classification` é executado, **THE SYSTEM SHALL** gerar 2 modelos no catálogo inicial (`baseline_majoritario` e um modelo comparativo), permitindo comparações pareadas imediatas no `expml quickrun`.
@@ -83,3 +88,4 @@ Antes de aprovar esta especificação (`Specify -> Design`), o desenvolvedor dev
 | `AC-M8-04` | Diretório gerado por `run_experiment` passa em `expml partition verify`, `expml run verify` e `expml report export`. | Teste de integração API→CLI (`pytest`). |
 | `AC-M8-05` | `mean_kuncheva` é numérico ($\neq \text{None}$) quando $k < N_{\text{candidatos}}$ mesmo que todos os folds selecionem os mesmos $k$ atributos (`mean_kuncheva == 1.0`). | Teste unitário e CLI (`pytest`). |
 | `AC-M8-06` | `resume=True` rejeita alteração em `scenarios.json` ou `models.json` via `scenarios_hash`/`models_hash`. | Teste unitário de retomada (`pytest`). |
+| `AC-M8-07` | Artefatos de célula gravados e lidos exclusivamente como `runs/cells/cell_<m>__<s>__<f>.json` (sem `cell_cell_` e sem fallback legado). | Teste unitário de armazenamento e carregamento (`pytest`). |

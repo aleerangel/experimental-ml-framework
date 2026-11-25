@@ -253,15 +253,31 @@
 - **Date**: 2026-11-23
 - **Status**: active
 
+### AD-028
+- **Decision**: Decisão D1 (`VAL-BUG-005` / cumprimento estrito do `ADR-003`): quando `ScenarioMode.DYNAMIC` é combinado com tuning (`GRID_SEARCH`/`RANDOM_SEARCH`), a execução da Camada 1 e `select_features_in_fold` devem ocorrer dentro de cada sub-fold interno usando exclusivamente os dados de treinamento daquele sub-fold; após a escolha dos melhores hiperparâmetros, Camada 1 e seleção dinâmica são reajustadas no treinamento completo do fold externo antes da avaliação no fold de teste; e estratificação, agrupamento e temporalidade devem ser propagados para `split_inner_folds`.
+- **Reason**: Priorizar a integridade metodológica e a prevenção de vazamento de dados no Nested CV em detrimento da economia computacional.
+- **Trade-off**: Maior custo computacional por reexecutar Camada 1 e seleção dinâmica em cada sub-fold interno, com garantia estrita de ausência de data leakage no tuning.
+- **Scope**: `src/experimental_ml/orchestration/execution.py`, `src/experimental_ml/tuning/{engine.py,partitioning.py}`, `.specs/features/m8-mvp-stabilization-contract-alignment/`.
+- **Date**: 2026-11-24
+- **Status**: active
+
+### AD-029
+- **Decision**: Decisão D2 (`VAL-BUG-010` / normalização sem retrocompatibilidade): adotar `cell_<m>__<s>__<f>.json` como único padrão canônico de gravação e leitura em `runs/cells/`, sem suporte, migração automática ou fallback no loader para o padrão legado `cell_cell_<m>__<s>__<f>.json`.
+- **Reason**: O framework ainda está em desenvolvimento e não há necessidade estabelecida de manter compatibilidade com o formato anterior com prefixo duplicado.
+- **Trade-off**: Artefatos antigos gravados com `cell_cell_*.json` não serão aceitos após a mudança em `M8`, simplificando armazenamento, carregamento, documentação e testes.
+- **Scope**: `src/experimental_ml/orchestration/{matrix.py,storage.py}`, `src/experimental_ml/reporting/loader.py`, documentação e testes em `M8`.
+- **Date**: 2026-11-24
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: Auditoria Geral, Validação Contínua do MVP e Planejamento de Evolução (`M8`, `M9`, `M10`)
-- **Phase / Task**: Auditoria técnica e documental concluída; processo de validação contínua estabelecido e especificações preliminares (`Specify` / Draft) criadas para `M8`, `M9` e `M10`.
+- **Phase / Task**: Auditoria documental/técnica commitada (`de37448`); decisões `D1` (`AD-028`) e `D2` (`AD-029`) registradas para o Marco `M8` (sem iniciar implementação).
 - **Completed**:
   - `sklearn-ensemble-diagnostics` implementada, provada (`proofs.md`) e verificada (`verification.md: PASS`, 611 testes).
   - Documentos centrais de governança criados em `docs/engenharia_software/`: `AUDITORIA_TECNICA_DO_MVP.md`, `PLANO_DE_VALIDACAO_DO_MVP.md`, `REGISTRO_DE_VALIDACAO_DO_MVP.md` e `ROADMAP_EVOLUCAO.md`.
-  - Especificações preliminares TLC (`Specify` — Draft aguardando decisão do desenvolvedor) criadas em `.specs/features/m8-mvp-stabilization-contract-alignment/`, `.specs/features/m9-intra-fold-imputation-encoding-holdout/` e `.specs/features/m10-scientific-visualization-reporting-redesign/`.
+  - Especificações preliminares TLC (`Specify` — Draft) criadas para `M8`, `M9` e `M10`; decisões `D1` e `D2` formalizadas em `AD-028`, `AD-029` e `M8/spec.md`.
 - **In-progress**: Validação contínua do MVP pelo desenvolvedor.
-- **Next step**: Revisão pelo desenvolvedor das decisões de escopo/arquitetura dos marcos `M8`, `M9` e `M10` e execução contínua de testes exploratórios.
+- **Next step**: Autorização explícita do desenvolvedor para iniciar `M8` (`Design -> Tasks -> Execute`) ou decisões sobre `M9`/`M10`.
 - **Blockers**: none
 - **Branch**: main

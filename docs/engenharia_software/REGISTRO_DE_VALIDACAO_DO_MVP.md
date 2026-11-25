@@ -80,12 +80,12 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 | [`VAL-BUG-002`](#val-bug-002) | Tabela da Família A (`tbl_family_a`) sempre vazia (0 linhas) em experimentos reais | `BUG` | `P0` | `reporting/tables.py`, `data/codecs.py` | Marco `M8` (Estabilização do MVP) | `IDENTIFICADO (Aguardando Decisão)` |
 | [`VAL-BUG-003`](#val-bug-003) | Tabela da Família G (`tbl_family_g`) lê `models.json` em vez de `runs/cells/` e fica sempre vazia | `BUG` | `P0` | `reporting/tables.py`, `reporting/loader.py` | Marco `M8` (Estabilização do MVP) | `IDENTIFICADO (Aguardando Decisão)` |
 | [`VAL-BUG-004`](#val-bug-004) | `TypeError` em `compute_correlation_ratio` e `compute_cramers_v` quando há `None` em coluna categórica | `BUG` | `P0` | `features/stats.py` | Marco `M8` (Estabilização do MVP) | `IDENTIFICADO (Aguardando Decisão)` |
-| [`VAL-BUG-005`](#val-bug-005) | Seleção dinâmica executada fora do loop interno do Nested CV (desvio de `ADR-003`) e `preprocessing_config` ignorado | `BUG` | `P1` | `orchestration/execution.py`, `tuning/engine.py`, `tuning/partitioning.py` | Marco `M8` (Alinhamento `ADR-003`) | `IDENTIFICADO (Aguardando Decisão)` |
+| [`VAL-BUG-005`](#val-bug-005) | Seleção dinâmica executada fora do loop interno do Nested CV (desvio de `ADR-003`) e `preprocessing_config` ignorado | `BUG` | `P1` | `orchestration/execution.py`, `tuning/engine.py`, `tuning/partitioning.py` | Marco `M8` (Alinhamento `ADR-003`) | `DECISÃO REGISTRADA (D1 — Opção A / M8)` |
 | [`VAL-BUG-006`](#val-bug-006) | Falhas visuais e geométricas nos renderizadores de figuras da Etapa 6 (PNG sem texto, PDF só barras, SVG Pareto por índice) | `BUG` | `P1` | `reporting/figures.py` | Marco `M10` (Redesenho de Visualização e Relatórios) | `IDENTIFICADO (Aguardando Decisão)` |
 | [`VAL-BUG-007`](#val-bug-007) | Fachada `run_experiment` grava artefatos incompletos em disco (quebrando CLI subsequente) e ignora `seed` em instâncias prontas | `BUG` | `P1` | `pipeline.py` | Marco `M8` (Estabilização do MVP) | `IDENTIFICADO (Aguardando Decisão)` |
 | [`VAL-BUG-008`](#val-bug-008) | Partição `holdout_ids` nunca é executada como célula `FINAL_HOLDOUT` no regime `CV_AND_HOLDOUT` | `BUG` | `P1` | `orchestration/matrix.py`, `orchestration/execution.py` | Marco `M9` (Imputação, Encoding e Holdout Final) | `IDENTIFICADO (Aguardando Decisão)` |
 | [`VAL-BUG-009`](#val-bug-009) | Kuncheva retorna `None` na CLI/fachada, Pareto na CLI é fixo em 1 objetivo e `FULL_CONFIGURATIONS` equivale a `ALL_PAIRWISE` | `BUG` | `P1` | `cli/cmd_stats.py`, `pipeline.py`, `statistics/consolidation.py`, `statistics/comparisons.py` | Marco `M8` (Estabilização do MVP) | `IDENTIFICADO (Aguardando Decisão)` |
-| [`VAL-BUG-010`](#val-bug-010) | `MatrixExecutionState` não valida `scenarios_hash`/`models_hash` no resume, gera prefixo duplo `cell_cell_` e muta `_ACTIVE_INSTANCES` sem lock | `BUG` | `P2` | `orchestration/state.py`, `orchestration/storage.py`, `models/execution.py` | Marco `M8` (Estabilização do MVP) | `IDENTIFICADO (Aguardando Decisão)` |
+| [`VAL-BUG-010`](#val-bug-010) | `MatrixExecutionState` não valida `scenarios_hash`/`models_hash` no resume, gera prefixo duplo `cell_cell_` e muta `_ACTIVE_INSTANCES` sem lock | `BUG` | `P2` | `orchestration/state.py`, `orchestration/storage.py`, `models/execution.py` | Marco `M8` (Estabilização do MVP) | `DECISÃO REGISTRADA (D2 — Normalização sem retrocompatibilidade / M8)` |
 | [`VAL-BUG-011`](#val-bug-011) | Script TLC `validate_verification.py` busca `PROCESSO_DE_ACEITE_DE_MARCOS.md` sem o prefixo `docs/` | `BUG` | `P2` | `.agent/skills/tlc-spec-driven/scripts/validate_verification.py` | Marco `M8` (Manutenção de Ferramental TLC) | `IDENTIFICADO (Aguardando Decisão)` |
 | [`VAL-QUAL-001`](#val-qual-001) | Limitações tipográficas e de layout nos gráficos PNG em NumPy puro da Etapa 2 (`features/visualization.py`) | `QUALITY` | `P1` | `features/visualization.py` | Marco `M10` (Subsistema de Visualização Científica) | `IDENTIFICADO (Aguardando Decisão)` |
 | [`VAL-QUAL-002`](#val-qual-002) | Tabelas B e C da Etapa 6 omitem metadados científicos e `report.md` é gerado em inglês sem glossário estatístico | `QUALITY` | `P1` | `reporting/tables.py`, `reporting/report.py` | Marco `M10` (Redesenho de Visualização e Relatórios) | `IDENTIFICADO (Aguardando Decisão)` |
@@ -199,8 +199,8 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 - **Prioridade:** `P1`
 - **Dependências:** Relacionado a `VAL-BUG-001`.
 - **Destino:** Marco `M8` (`m8-mvp-stabilization-contract-alignment`).
-- **Status:** `IDENTIFICADO (Aguardando Decisão)`
-- **Decisão e justificativa:** Recomenda-se corrigir no Marco `M8` passando o callback/especificação de seleção de atributos e a estratégia de particionamento para `run_nested_tuning`, cumprindo integralmente o `ADR-003`.
+- **Status:** `DECISÃO REGISTRADA (D1 — Opção A / M8)`
+- **Decisão e justificativa:** **Decisão D1 (Opção A — Cumprimento estrito do `ADR-003`):** a seleção dinâmica de atributos deve ocorrer dentro de cada sub-fold interno durante o tuning (incluindo a execução da Camada 1 e de `select_features_in_fold` usando exclusivamente os dados de treino daquele sub-fold); após a escolha dos melhores hiperparâmetros, Camada 1 e seleção dinâmica devem ser reajustadas no treino completo do fold externo antes da avaliação no fold de teste; e restrições de estratificação, agrupamento e temporalidade devem ser propagadas para `split_inner_folds`. Registrado em `.specs/STATE.md` (`AD-028`) e em `.specs/features/m8-mvp-stabilization-contract-alignment/spec.md`.
 
 ---
 
@@ -311,8 +311,8 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 - **Prioridade:** `P2`
 - **Dependências:** Nenhuma.
 - **Destino:** Marco `M8` (`m8-mvp-stabilization-contract-alignment`).
-- **Status:** `IDENTIFICADO (Aguardando Decisão)`
-- **Decisão e justificativa:** Incluir a verificação de `scenarios_hash`/`models_hash` e o `threading.Lock` no Marco `M8`.
+- **Status:** `DECISÃO REGISTRADA (D2 — Normalização sem retrocompatibilidade / M8)`
+- **Decisão e justificativa:** **Decisão D2 (Normalização sem retrocompatibilidade):** adotar `cell_<m>__<s>__<f>.json` como único padrão canônico de gravação e leitura, sem implementar suporte, migração automática ou aceitação pelo loader para o padrão legado `cell_cell_<m>__<s>__<f>.json`, atualizando armazenamento, carregamento, documentação e testes em `M8` (além da verificação de `scenarios_hash`/`models_hash` e `threading.Lock`). Registrado em `.specs/STATE.md` (`AD-029`) e em `.specs/features/m8-mvp-stabilization-contract-alignment/spec.md`.
 
 ---
 
