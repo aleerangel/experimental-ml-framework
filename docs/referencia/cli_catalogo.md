@@ -166,8 +166,8 @@ Retoma uma execução interrompida preservando células `COMPLETED` e validando 
 
 | Argumento / Opção | Obrigatório | Descrição e Variações |
 | :--- | :---: | :--- |
-| `--run-dir RUN_DIR` | Sim | Diretório da execução contendo `execution_state.json`. |
-| `--experiment-dir EXPERIMENT_DIR` | Não | Diretório do experimento (inferido automaticamente a partir de `--run-dir` se omitido). |
+| `--run-dir RUN_DIR` | Condicional | Diretório da execução contendo `execution_state.json` (opcional se `--experiment-dir` for informado). |
+| `--experiment-dir`, `--exp-dir` | Condicional | Diretório do experimento (infere `<experiment-dir>/runs` quando `--run-dir` é omitido). |
 | `-j`, `--jobs`, `--parallel PARALLEL` | Não | Número de trabalhadores paralelos na retomada (padrão: `1`). |
 | `--retry-failed` | Não | Reexecuta também células marcadas anteriormente como `FAILED` (padrão: executa apenas `PENDING`/`RUNNING`). |
 | `--no-oof` | Não | Desativa a consolidação OOF automática após a retomada. |

@@ -1,21 +1,22 @@
 # Engenharia de Software — `experimental-ml-framework`
 
 > **Documento de Registro de Estado da Engenharia**<br/>
-> **Data:** 17 de Novembro de 2026<br/>
+> **Data:** 24 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
-> **Estado Atual:** Marcos M1 a M7 e Pós-MVP Concluídos e Aceitos (611 testes automatizados)<br/>
-> **Próximo Marco:** Validação Científica Externa (`TA-POS.4` / `CA02`) em dados reais pelo pesquisador<br/>
+> **Estado Atual:** Marcos M1 a M7 e Pós-MVP Concluídos (611 testes automatizados) — Em Validação Contínua do MVP e Planejamento M8–M10<br/>
+> **Próximo Marco:** Estabilização do MVP (`M8`) e Validação Contínua pelo Pesquisador (`TA-POS.4` / `CA02`)<br/>
 > **Especificação de Requisitos (SRS v2.2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
-> **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)
+> **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)<br/>
+> **Auditoria, Validação e Evolução do MVP:** [`AUDITORIA_TECNICA_DO_MVP.md`](./AUDITORIA_TECNICA_DO_MVP.md) | [`PLANO_DE_VALIDACAO_DO_MVP.md`](./PLANO_DE_VALIDACAO_DO_MVP.md) | [`REGISTRO_DE_VALIDACAO_DO_MVP.md`](./REGISTRO_DE_VALIDACAO_DO_MVP.md) | [`ROADMAP_EVOLUCAO.md`](./ROADMAP_EVOLUCAO.md)
 
 ---
 
 ## 1. Etapa Atual no Ciclo de Vida da Engenharia
 
-O projeto encontra-se na **Fase 5: Pós-MVP Concluído — Pronto para Homologação Científica Externa (`CA02`)**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) integrado à skill `tlc-spec-driven`.
+O projeto encontra-se na **Fase 5: Validação Contínua do MVP, Planejamento de Evolução (`M8`–`M10`) e Homologação Científica Externa (`CA02`)**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) e o processo de validação contínua ([`REGISTRO_DE_VALIDACAO_DO_MVP.md`](./REGISTRO_DE_VALIDACAO_DO_MVP.md)) integrados à skill `tlc-spec-driven`.
 
-As entregas dos **Marcos M1 (`m1-1` a `m1-5`)**, **M2 (`m2-1` a `m2-5` com hardening `REV-M2`)**, **M3 (`m3-1` a `m3-4`)**, **M4 (`m4-1` a `m4-4`)**, **M5 (`m5-1` a `m5-4` com auditoria independente e correção de achados P1 `ACH-M5-01` a `ACH-M5-03`)**, **M6 (`m6-1` a `m6-4` com auditoria estatística/técnica e verificação independente TLC)** e **M7 (`m7-1` a `m7-4` com verificação independente TLC)** foram formalmente aceitas com aprovação em **581 testes automatizados**, expandidos nas entregas pós-MVP (**`TA-POS.1`**, **`TA-POS.2`**, **`pos-2b`** e **`TA-POS.3`**) para **598 testes automatizados** 100% aprovados.
+As entregas dos **Marcos M1 (`m1-1` a `m1-5`)**, **M2 (`m2-diagnostics-partitioning` e `m2-2` a `m2-5` com hardening `REV-M2`)**, **M3 (`m3-1` a `m3-4`)**, **M4 (`m4-1` a `m4-4`)**, **M5 (`m5-1` a `m5-4` com auditoria independente e correção de achados P1 `ACH-M5-01` a `ACH-M5-03`)**, **M6 (`m6-1` a `m6-4` com auditoria estatística/técnica e verificação independente TLC)** e **M7 (`m7-1` a `m7-4` com verificação independente TLC)** foram formalmente aceitas com aprovação em **581 testes automatizados**, expandidos nas entregas pós-MVP (**`TA-POS.1`**, **`TA-POS.2`**, **`pos-2b`**, **`TA-POS.3`**, **`csv-format-configuration`**, **`exploratory-visual-redesign`** e **`sklearn-ensemble-diagnostics`**) para **611 testes automatizados** 100% aprovados.
 
 As Fundações Transversais (M1), o Pipeline de Dados e Diagnóstico (M2), a Engenharia e Cenários de Atributos (M3), os Contratos de Modelos, Pré-processamento e Tuning Aninhado (M4), a Execução Matricial com Tolerância a Falhas, Checkpoint e Consolidação OOF (M5), a Consolidação Descritiva, Inferência Pareada, Fronteira de Pareto e Síntese Estatística (M6), os Relatórios Científicos, Visualizações Puras, Pacote de Reprodutibilidade e CLI `expml report` (M7), e a camada de usabilidade (`run_experiment`, `expml init`, `expml quickrun`, guias e 4 notebooks) estão integralmente consolidados, determinísticos e integrados em Python/NumPy puro (`XCUT-02`). O framework é 100% agnóstico a repositórios externos (`RNF02`), tendo o critério `CA02` formalizado como validação externa a ser executada exclusivamente pelo pesquisador.
 

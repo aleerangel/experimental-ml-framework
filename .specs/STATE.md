@@ -235,7 +235,7 @@
 - **Trade-off**: Funções de renderização ficam em `features/visualization.py` (Nível 2) para evitar dependência circular com `reporting` (Nível 6).
 - **Scope**: `src/experimental_ml/features/{types.py,visualization.py,__init__.py}`, `cli/cmd_features.py`, `docs/` e `tests/unit/{features/test_exploratory_visualization.py,cli/test_exploratory_cli_visuals.py}`.
 - **Date**: 2026-11-19
-- **Status**: active
+- **Status**: superseded (parcialmente substituída por `AD-026` no ranking agregado e remoção de SVGs na Etapa 2)
 
 ### AD-026
 - **Decision**: Redesenho visual e de ranking da Etapa 2 (`exploratory-visual-redesign`, `EXPLR-01` a `EXPLR-06`): agregação única por atributo via `mean(|valor|)` em `ExploratoryFeatureReport.ranked_target_features()` e `.summary(top_n=15)`, geração exclusiva de PNGs rotulados com fonte bitmap em Python/NumPy puro (`XCUT-02`, sem SVGs), exportação CSV dedicada (`render_exploratory_target_csv`, `render_exploratory_redundancy_csv`), Markdown limpo sem matriz gigante inline e HTML offline com CSS `@page`/`@media print` pronto para PDF (preservando `CA-E2-01` sem criar `scenarios.json`).
@@ -255,12 +255,13 @@
 
 ## Handoff
 
-- **Feature**: sklearn-ensemble-diagnostics (Concluída)
-- **Phase / Task**: Implementado e testado; pronto para `check_proofs.py` e Verificador Independente.
+- **Feature**: Auditoria Geral, Validação Contínua do MVP e Planejamento de Evolução (`M8`, `M9`, `M10`)
+- **Phase / Task**: Auditoria técnica e documental concluída; processo de validação contínua estabelecido e especificações preliminares (`Specify` / Draft) criadas para `M8`, `M9` e `M10`.
 - **Completed**:
-  - `_is_subestimator` e conversão recursiva segura em `_to_immutable_primitive` (`diagnostics.py`).
-  - Testes unitários de ensemble e preservação de `AC-M41-06-03` (`test_model_diagnostics.py`).
-- **In-progress**: none
-- **Next step**: Homologação científica externa (`CA02` / `TA-POS.4`) em dados reais pelo pesquisador.
+  - `sklearn-ensemble-diagnostics` implementada, provada (`proofs.md`) e verificada (`verification.md: PASS`, 611 testes).
+  - Documentos centrais de governança criados em `docs/engenharia_software/`: `AUDITORIA_TECNICA_DO_MVP.md`, `PLANO_DE_VALIDACAO_DO_MVP.md`, `REGISTRO_DE_VALIDACAO_DO_MVP.md` e `ROADMAP_EVOLUCAO.md`.
+  - Especificações preliminares TLC (`Specify` — Draft aguardando decisão do desenvolvedor) criadas em `.specs/features/m8-mvp-stabilization-contract-alignment/`, `.specs/features/m9-intra-fold-imputation-encoding-holdout/` e `.specs/features/m10-scientific-visualization-reporting-redesign/`.
+- **In-progress**: Validação contínua do MVP pelo desenvolvedor.
+- **Next step**: Revisão pelo desenvolvedor das decisões de escopo/arquitetura dos marcos `M8`, `M9` e `M10` e execução contínua de testes exploratórios.
 - **Blockers**: none
 - **Branch**: main

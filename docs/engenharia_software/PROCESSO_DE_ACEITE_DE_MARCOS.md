@@ -103,14 +103,21 @@ O processo de aceite integra-se às fases do TLC:
 | Marco | Identificador TLC | Implementação | Testes Automatizados | Verificação TLC | Validação de Aceitação | Decisão de Aceite |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **M1 (M1.1–M1.5)** | `m1-1` a `m1-5` | Concluída | 96/96 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
-| **M2 (M2.1–M2.5 + `REV-M2`)** | `m2-1` a `m2-5` | Concluída | 193/193 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **M2 (M2.1–M2.5 + `REV-M2`)** | `m2-diagnostics-partitioning`, `m2-2` a `m2-5` | Concluída | 193/193 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **M3 (M3.1–M3.4)** | `m3-1` a `m3-4` | Concluída | 236/236 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **M4 (M4.1–M4.4)** | `m4-1` a `m4-4` | Concluída | 348/348 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **M5 (M5.1–M5.4 + `ACH-M5`)** | `m5-1` a `m5-4` | Concluída | 471/471 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **M6 (M6.1–M6.4)** | `m6-1` a `m6-4` | Concluída | 548/548 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **M7 (M7.1–M7.4)** | `m7-1` a `m7-4` | Concluída | 581/581 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **Pós-MVP (`TA-POS.1`)** | `pos-1-mega-auditoria-mvp` | Concluída | 591/591 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
-| **Pós-MVP (`TA-POS.2` + Notebooks)** | `pos-2-guia-pesquisador-cookbook`, `pos-2b-notebooks-interativos` | Concluída | — | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **Pós-MVP (`TA-POS.2` + Notebooks)** | `pos-2-guia-pesquisador-cookbook`, `pos-2b-notebooks-interativos` | Concluída | 596/596 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **Pós-MVP (`TA-POS.3`)** | `pos-3-usabilidade-acessibilidade-pesquisador` | Concluída | 598/598 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
-| **Validação Externa (`TA-POS.4` / `CA02`)** | Externa ao repositório | Pendente (Pesquisador) | — | — | A executar em dados reais | **Pendente** |
+| **Pós-MVP (`CSV-01..06`)** | `csv-format-configuration` | Concluída | 604/604 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
+| **Pós-MVP (`EXPL-01..06`)** | `exploratory-features-visualization` | Concluída | 609/609 Aprovados | Sucedida por `AD-026` | Sucedida por `exploratory-visual-redesign` | **Substituído (`AD-026`)** |
+| **Pós-MVP (`EXPLR-01..06`)** | `exploratory-visual-redesign` | Concluída | 610/610 Aprovados | Aprovado (`PASS`) | Executada e verificada | **Aprovado** |
+| **Pós-MVP (`DIAG-01..03`)** | `sklearn-ensemble-diagnostics` | Concluída | 611/611 Aprovados | Aprovado (`PASS`) | Executada e verificada | **Aprovado** |
+| **Estabilização do MVP (`M8`)** | `m8-mvp-stabilization-contract-alignment` | Planejada (`Specify`) | — | — | Roteiro em `ACCEPTANCE.md` | **Pendente** |
+| **Intra-Fold e Holdout Final (`M9`)** | `m9-intra-fold-imputation-encoding-holdout` | Planejada (`Specify`) | — | — | Roteiro preliminar em `ACCEPTANCE.md` | **Pendente** |
+| **Visualização Científica e Relatórios (`M10`)** | `m10-scientific-visualization-reporting-redesign` | Planejada (`Specify`) | — | — | Roteiro preliminar em `ACCEPTANCE.md` | **Pendente** |
+| **Validação Contínua e Externa (`TA-POS.4` / `CA02`)** | [`PLANO_DE_VALIDACAO_DO_MVP.md`](./PLANO_DE_VALIDACAO_DO_MVP.md) / [`REGISTRO_DE_VALIDACAO_DO_MVP.md`](./REGISTRO_DE_VALIDACAO_DO_MVP.md) | Em andamento (Pesquisador) | 611/611 base | — | Em execução contínua em dados reais | **Em Validação** |
 

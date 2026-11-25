@@ -101,6 +101,10 @@ expml report export --experiment-dir exp_dir --mode full_package --output-dir pa
 - **[Especificação de Requisitos](docs/engenharia_software/ESPECIFICACAO_REQUISITOS.md):** Requisitos funcionais, não funcionais e critérios de aceite.
 - **[Estado Atual de Engenharia](docs/engenharia_software/ETAPA_ATUAL_ENGENHARIA.md):** Registro do estágio atual de evolução do projeto.
 - **[Processo de Aceite de Marcos](docs/engenharia_software/PROCESSO_DE_ACEITE_DE_MARCOS.md):** Governança de homologação e auditoria independente.
+- **[Auditoria Técnica do MVP](docs/engenharia_software/AUDITORIA_TECNICA_DO_MVP.md):** Inventário documental e diagnóstico técnico das 6 etapas.
+- **[Plano de Validação do MVP](docs/engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md):** Roteiro prático de testes funcionais, metodológicos e exploratórios.
+- **[Registro de Validação do MVP](docs/engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md):** Processo contínuo e catálogo vivo de achados (`BUG`, `QUALITY`, `ENHANCEMENT`).
+- **[Roadmap de Evolução](docs/engenharia_software/ROADMAP_EVOLUCAO.md):** Planejamento dos marcos futuros (`M8`–`M10` e `Onda 2`) e avaliação de visualização científica.
 - **[Referências e Fundamentação](docs/REFERENCIAS_E_FUNDAMENTACAO.md):** Base bibliográfica, decisões arquiteturais (ADRs) e estatística.
 
 ---
