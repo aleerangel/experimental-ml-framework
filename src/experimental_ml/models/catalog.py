@@ -121,6 +121,10 @@ def resolve_estimator_factory(
         fn = lambda seed=None: DummyBaselineModel(strategy="most_frequent")
         fn._factory_ref = "DUMMY_BASELINE_MOST_FREQUENT"
         return fn
+    if ref == "DUMMY_BASELINE_UNIFORM":
+        fn = lambda seed=None: DummyBaselineModel(strategy="uniform")
+        fn._factory_ref = "DUMMY_BASELINE_UNIFORM"
+        return fn
     if ref == "ANALYTICAL_BIOMETRIC":
         fn = lambda seed=None: AnalyticalBiometricModel()
         fn._factory_ref = "ANALYTICAL_BIOMETRIC"

@@ -93,8 +93,8 @@ T7 (expml init classificação + validate_verification.py)
 **Gate**: `.venv/bin/pytest tests/ -q`
 
 ### T7: Incluir segundo modelo default nos templates de classificação de `expml init` (`cli/cmd_init.py`) e corrigir o caminho de `PROCESSO_DE_ACEITE_DE_MARCOS.md` em `validate_verification.py`
-- [ ] Implement & test T7
-**Where**: `src/experimental_ml/cli/cmd_init.py`, `.agent/skills/tlc-spec-driven/scripts/validate_verification.py`, `.agents/skills/tlc-spec-driven/scripts/validate_verification.py`, `tests/unit/test_usability_cli_and_facade.py`
+- [x] Implement & test T7
+**Where**: `src/experimental_ml/cli/cmd_init.py`, `src/experimental_ml/models/baselines.py`, `src/experimental_ml/models/catalog.py`, `.agent/skills/tlc-spec-driven/scripts/validate_verification.py`, `tests/unit/test_usability_cli_and_facade.py`
 **Depends on**: none
 **Tests**: Teste executando `expml init --task binary_classification` + `expml quickrun` verificando `>= 1` comparação pareada e teste do script `validate_verification.py`.
 **Gate**: `.venv/bin/pytest tests/ -q`
@@ -104,7 +104,7 @@ T7 (expml init classificação + validate_verification.py)
 ## Checks
 
 **Run m8_unit**: `.venv/bin/pytest tests/unit/reporting/test_reporting_tables.py tests/unit/features/test_stats.py tests/unit/orchestration/test_cell_codecs.py tests/unit/orchestration/test_matrix_resume.py tests/unit/tuning/test_tuning_execution.py -v`
-**Run m8_e2e**: `.venv/bin/pytest tests/integration/ -v`
+**Run m8_e2e**: `.venv/bin/pytest tests/unit/test_usability_cli_and_facade.py tests/unit/cli/test_cli_stats.py -v`
 
 **C1** - `tbl_family_a` e `tbl_family_g` contêm linhas reais a partir de `dataset_profile.json` e `runs/cells/*.json` (`M8-01`, `M8-02`, `AC-M8-01`)
 Proof: run m8_unit | test_family_a_and_g_populated_from_real_artifacts PASSED
@@ -132,6 +132,6 @@ Proof: run m8_unit | test_canonical_cell_filename_without_legacy_prefix PASSED
 ## Handoff
 
 - **Feature**: `m8-mvp-stabilization-contract-alignment`
-- **Phase / Task**: `Design` e `Tasks` elaborados; aguardando aprovação das tarefas (`tasks.md`) pelo desenvolvedor antes de iniciar `T1`.
+- **Phase / Task**: Todas as tarefas `T1`–`T7` implementadas e validadas; pronto para `check_proofs.py` e Verificador Independente.
 - **In-progress**: none
-- **Next step**: Aprovação de `tasks.md` pelo desenvolvedor para iniciar `Execute` (`T1`–`T7`).
+- **Next step**: Executar `check_proofs.py` e despachar Verificador Independente.

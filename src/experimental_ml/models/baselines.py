@@ -22,9 +22,9 @@ class DummyBaselineModel:
     """
 
     def __init__(self, strategy: str = "mean") -> None:
-        if strategy not in ("mean", "median", "most_frequent"):
+        if strategy not in ("mean", "median", "most_frequent", "uniform"):
             raise ConfigurationError(
-                f"Unknown strategy '{strategy}'. Supported strategies: 'mean', 'median', 'most_frequent'"
+                f"Unknown strategy '{strategy}'. Supported strategies: 'mean', 'median', 'most_frequent', 'uniform'"
             )
         self.strategy = strategy
         self.is_fitted = False
@@ -61,6 +61,11 @@ class DummyBaselineModel:
 
             self.classes_ = unique_classes
             self.class_frequencies_ = np.array([counts[c] / n for c in unique_classes], dtype=float)
+        elif self.strategy == "uniform":
+            unique_classes = np.unique(y_arr)
+            self.classes_ = np.array(sorted(unique_classes, key=lambda x: str(x)))
+            self.majority_class_ = self.classes_[0]
+            self.class_frequencies_ = np.full(len(self.classes_), 1.0 / len(self.classes_), dtype=float)
 
         self.is_fitted = True
         return self
@@ -78,6 +83,9 @@ class DummyBaselineModel:
             return np.full(n, self.median_, dtype=float)
         elif self.strategy == "most_frequent":
             return np.full(n, self.majority_class_)
+        elif self.strategy == "uniform":
+            assert self.classes_ is not None
+            return np.array([self.classes_[i % len(self.classes_)] for i in range(n)])
         raise ContractViolationError(f"Unsupported strategy: {self.strategy}")
 
     def predict_std(self, X: np.ndarray) -> np.ndarray:
@@ -99,7 +107,7 @@ class DummyBaselineModel:
         """Predict empirical class relative frequencies for classification baseline."""
         if not self.is_fitted:
             raise ContractViolationError("DummyBaselineModel has not been fitted")
-        if self.strategy != "most_frequent" or self.class_frequencies_ is None:
+        if self.strategy not in ("most_frequent", "uniform") or self.class_frequencies_ is None:
             raise ContractViolationError(
                 f"predict_proba is not supported for regression strategy '{self.strategy}'"
             )

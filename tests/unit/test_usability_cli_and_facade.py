@@ -162,3 +162,15 @@ def test_run_experiment_cli_interoperability_and_seed_propagation(tmp_path: Path
         res1.consolidation.configurations[("stochastic", "todas_features")].aggregated_metrics["rmse"].mean
         == res2.consolidation.configurations[("stochastic", "todas_features")].aggregated_metrics["rmse"].mean
     )
+
+
+def test_cli_init_classification_has_two_models_and_compares(tmp_path: Path) -> None:
+    """M8-07 (VAL-QUAL-003): expml init for classification generates 2 models enabling >= 1 paired comparison."""
+    proj_dir = tmp_path / "meu_exp_clf"
+    assert cli_main(["init", "--output-dir", str(proj_dir), "--task", "binary_classification"]) == 0
+    models_cfg = json.loads((proj_dir / "models.json").read_text(encoding="utf-8"))
+    assert len(models_cfg) == 2
+
+    assert cli_main(["quickrun", "--experiment-dir", str(proj_dir)]) == 0
+    comp_bundle = json.loads((proj_dir / "statistics" / "statistical_comparisons.json").read_text(encoding="utf-8"))
+    assert len(comp_bundle.get("comparisons", [])) >= 1

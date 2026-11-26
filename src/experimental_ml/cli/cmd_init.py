@@ -109,7 +109,17 @@ def handle_init(args: argparse.Namespace) -> int:
                 "capabilities": {"requires_fit": True, "supports_predict_proba": True},
                 "description": "Preditor pela classe mais frequente",
                 "scientific_justification": "Referência mínima de classificação",
-            }
+            },
+            {
+                "model_id": "baseline_uniforme",
+                "display_name": "Baseline Uniforme",
+                "family": "BASELINE",
+                "estimator_factory": "DUMMY_BASELINE_UNIFORM",
+                "parameters": {"strategy": "uniform"},
+                "capabilities": {"requires_fit": True, "supports_predict_proba": True},
+                "description": "Preditor uniforme equilibrado entre classes",
+                "scientific_justification": "Comparador de referência uniforme para classificação",
+            },
         ]
         part_strategy = "STRATIFIED_KFOLD"
         primary_metric = "accuracy"
