@@ -110,12 +110,57 @@ def execute_single_cell(
 
         t_data = time.perf_counter() - t_phase_start
 
-        # 2. FEATURE_SELECTION: Select features on training fold and project validation fold
-        current_phase = CellPhase.FEATURE_SELECTION
-        t_phase_start = time.perf_counter()
-
+        # 2. FEATURE_SELECTION & 3. HYPERPARAMETER_TUNING (ADR-003, AD-028):
+        # When DYNAMIC + search_spec are both active, Nested CV runs Layer 1 + dynamic selection
+        # inside each inner sub-fold first, then refits Layer 1 + dynamic selection + Layer 2 on outer train.
         X_train_cand = {col: train_view.columns[col] for col in train_view.candidate_feature_cols}
         X_val_cand = {col: val_view.columns[col] for col in val_view.candidate_feature_cols}
+
+        part_strategy = str(getattr(partition_plan, "strategy", "")) or None
+        group_col = sanitized_view.schema.group_col
+        groups_arr = (
+            np.asarray(train_view.columns[group_col])
+            if group_col and group_col in train_view.columns
+            else None
+        )
+
+        is_dynamic = getattr(getattr(scenario, "mode", None), "value", scenario.mode) == "DYNAMIC"
+
+        if model_spec.search_spec is not None and is_dynamic:
+            current_phase = CellPhase.HYPERPARAMETER_TUNING
+            t_phase_start = time.perf_counter()
+            cand_cols = list(X_train_cand.keys())
+            X_train_cand_mat = np.column_stack([X_train_cand[col] for col in cand_cols])
+            tuning_res = run_nested_tuning(
+                spec=model_spec.search_spec,
+                model_spec=model_spec,
+                X_train=X_train_cand_mat,
+                y_train=y_train,
+                seed=cell_seed,
+                X_train_cand=X_train_cand,
+                scenario=scenario,
+                partition_strategy=part_strategy,
+                groups=groups_arr,
+            )
+            merged_params = dict(model_spec.parameters)
+            merged_params.update(tuning_res.best_params)
+            effective_spec = ModelSpec(
+                model_id=model_spec.model_id,
+                display_name=model_spec.display_name,
+                family=model_spec.family,
+                estimator_factory=model_spec.estimator_factory,
+                capabilities=model_spec.capabilities,
+                description=model_spec.description,
+                scientific_justification=model_spec.scientific_justification,
+                parameters=merged_params,
+                random_seed_policy=model_spec.random_seed_policy,
+                preprocessing=model_spec.preprocessing,
+                search_spec=None,
+            )
+            t_tune = time.perf_counter() - t_phase_start
+
+        current_phase = CellPhase.FEATURE_SELECTION
+        t_phase_start = time.perf_counter()
 
         selection_res = select_features_in_fold(
             X_train=X_train_cand,
@@ -133,17 +178,18 @@ def execute_single_cell(
 
         t_fs = time.perf_counter() - t_phase_start
 
-        # 3. HYPERPARAMETER_TUNING: Nested CV on training fold only if search_spec is active
-        current_phase = CellPhase.HYPERPARAMETER_TUNING
-        t_phase_start = time.perf_counter()
-
-        if model_spec.search_spec is not None:
+        # 3. HYPERPARAMETER_TUNING (FIXED scenario with search_spec)
+        if model_spec.search_spec is not None and not is_dynamic:
+            current_phase = CellPhase.HYPERPARAMETER_TUNING
+            t_phase_start = time.perf_counter()
             tuning_res = run_nested_tuning(
                 spec=model_spec.search_spec,
                 model_spec=model_spec,
                 X_train=X_train_matrix,
                 y_train=y_train,
                 seed=cell_seed,
+                partition_strategy=part_strategy,
+                groups=groups_arr,
             )
             merged_params = dict(model_spec.parameters)
             merged_params.update(tuning_res.best_params)
@@ -162,7 +208,7 @@ def execute_single_cell(
                 search_spec=None,
             )
 
-        t_tune = time.perf_counter() - t_phase_start
+            t_tune = time.perf_counter() - t_phase_start
 
         # 4. PREPROCESSING_L2: Two-layer preprocessing fit on train and project validation
         current_phase = CellPhase.PREPROCESSING_L2

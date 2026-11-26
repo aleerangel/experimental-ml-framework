@@ -72,8 +72,8 @@ T7 (expml init classificação + validate_verification.py)
 **Gate**: `.venv/bin/pytest tests/ -q`
 
 ### T4: Alinhar seleção dinâmica intra-subfold e Camada 1 no Nested CV ao `ADR-003` (`AD-028` / `D1`) e propagar estratificação, agrupamento e temporalidade para `split_inner_folds`
-- [ ] Implement & test T4
-**Where**: `src/experimental_ml/tuning/partitioning.py`, `src/experimental_ml/tuning/engine.py`, `src/experimental_ml/orchestration/execution.py`, `tests/unit/test_tuning_engine.py`
+- [x] Implement & test T4
+**Where**: `src/experimental_ml/tuning/partitioning.py`, `src/experimental_ml/tuning/engine.py`, `src/experimental_ml/orchestration/execution.py`, `tests/unit/tuning/test_tuning_execution.py`, `tests/unit/tuning/test_tuning_partitioning.py`
 **Depends on**: T3
 **Tests**: Teste metodológico provando que `select_features_in_fold` no Nested CV não acessa `y_in_val`, teste de refit no fold externo completo e testes de estratificação/grupos/ordem em `split_inner_folds`.
 **Gate**: `.venv/bin/pytest tests/ -q`
