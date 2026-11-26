@@ -95,6 +95,7 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 | [`VAL-ENH-002`](#val-enh-002) | Pipeline completo de Imputação (`MEAN`, `MEDIAN`, `MODE`) e Codificação Categórica (`ONE_HOT`, `ORDINAL`) Intra-Fold | `ENHANCEMENT` | `P1` | `models/preprocessing/`, `orchestration/execution.py`, `data/preparation.py` | Marco `M9` | `PLANEJADO (Aguardando Aprovação de Escopo)` |
 | [`VAL-ENH-003`](#val-enh-003) | Execução, persistência e consolidação estatística de células `FINAL_HOLDOUT` no regime `CV_AND_HOLDOUT` | `ENHANCEMENT` | `P1` | `orchestration/`, `statistics/`, `reporting/` | Marco `M9` | `PLANEJADO (Aguardando Aprovação de Escopo)` |
 | [`VAL-ENH-004`](#val-enh-004) | Suporte a múltiplos objetivos de Pareto e `planned_pairs` em `stats_config.json` na CLI e na fachada `run_experiment` | `ENHANCEMENT` | `P2` | `cli/cmd_stats.py`, `pipeline.py`, `statistics/comparisons.py` | Marco `M8` / `M10` | `PLANEJADO (Aguardando Aprovação de Escopo)` |
+| [`VAL-ENH-005`](#val-enh-005) | Avaliação de erro em treino (`train_metrics`) e visualização/comparação Treino vs. Teste (diagnóstico de overfitting) | `ENHANCEMENT` | `P1` | `orchestration/types.py`, `orchestration/execution.py`, `statistics/`, `reporting/` | Marco `M10` (ou `M9` + `M10`) | `IDENTIFICADO (Aguardando Decisão)` |
 
 ---
 
@@ -499,6 +500,25 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 - **Destino:** Marco `M8` (`m8-mvp-stabilization-contract-alignment`).
 - **Status:** `PLANEJADO (Aguardando Aprovação de Escopo)`
 - **Decisão e justificativa:** Incluído na especificação preliminar do Marco `M8`.
+
+---
+
+### `VAL-ENH-005`
+- **Identificador único:** `VAL-ENH-005`
+- **Título:** Avaliação de erro em treino (`train_metrics`) e visualização/comparação entre erro de treino e erro de teste/validação
+- **Categoria:** `ENHANCEMENT`
+- **Data de identificação:** 2026-11-26
+- **Módulo afetado:** `src/experimental_ml/orchestration/types.py`, `src/experimental_ml/orchestration/execution.py`, `src/experimental_ml/statistics/`, `src/experimental_ml/reporting/`
+- **Descrição:** Relato do desenvolvedor durante a validação do MVP: o framework não calcula nem exibe comparação visual entre o erro de treinamento (*in-sample*) e o erro de teste/validação (*out-of-fold* / *holdout*) para diagnosticar subajuste (*underfitting*) e sobreajuste (*overfitting*).
+- **Comportamento observado:** Em [`execute_single_cell`](file:///home/alexandrerangel/Projetos/iniciacao_cientifica/experimental-ml-framework/src/experimental_ml/orchestration/execution.py#L194-L225), após ajustar `fitted_model` em `X_train_proc`, o motor executa `predict_model` apenas sobre `X_val_proc` e persiste somente `metrics` (validação/teste) em `CellResultRecord` (`orchestration/types.py:L173`). `PredictionRecord` também armazena apenas as observações de validação. Nem `ESPECIFICACAO_REQUISITOS.md` nem `ARQUITETURA_E_CONTRATOS.md` haviam especificado `train_metrics` na Onda 1.
+- **Comportamento esperado:** Após a conclusão de `fit_model`, avaliar opcionalmente (ou por padrão para fins exclusivamente diagnósticos) o modelo ajustado sobre `X_train_proc`, registrando `train_metrics` em `CellResultRecord` sem contaminar a seleção de hiperparâmetros, os testes pareados ou a fronteira de Pareto (que devem continuar usando exclusivamente métricas de validação/teste), consolidando a diferença Treino vs. Teste (gap de generalização) e gerando gráfico comparativo dedicado na Etapa 6.
+- **Evidências:** `src/experimental_ml/orchestration/execution.py:L194-L225`; `src/experimental_ml/orchestration/types.py:L97-L174`; `src/experimental_ml/reporting/figures.py`.
+- **Impacto:** Alto para análise científica e diagnóstico de viés-variância (*overfitting* vs. *underfitting*) em experimentos de Iniciação Científica.
+- **Prioridade:** `P1`
+- **Dependências:** A visualização gráfica depende do subsistema de figuras da Etapa 6 (`VAL-ENH-001` / Marco `M10`), podendo a coleta de `train_metrics` na Etapa 4B ser preparada em `M9` ou `M10`.
+- **Destino:** Marco `M10` (`m10-scientific-visualization-reporting-redesign`, com coleta de `train_metrics` em `orchestration`).
+- **Status:** `IDENTIFICADO (Aguardando Decisão)`
+- **Decisão e justificativa:** Classificado como `ENHANCEMENT` (funcionalidade não prevista nos contratos originais da Onda 1, não se tratando de bug do MVP). Recomendado alocar no Marco `M10` (ou dividir a coleta em `M9` e a visualização em `M10`) sem atrasar a estabilização do Marco `M8`.
 
 ---
 

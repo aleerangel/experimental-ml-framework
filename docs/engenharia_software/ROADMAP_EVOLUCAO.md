@@ -54,6 +54,7 @@ Conforme exigido pelo processo de engenharia, as evoluções mapeadas dividem-se
 
 ### 2.7. Categoria 7 — Melhorias de Visualização e Relatórios
 1. **Redesenho do Subsistema de Visualização Científica das Etapas 2 e 6 (`VAL-BUG-006`, `VAL-QUAL-001`, `VAL-ENH-001`):** Substituição dos renderizadores manuais de pixels/bytes por uma arquitetura desacoplada com suporte a `matplotlib` (e `pandas` na camada de apresentação tabular), detalhada na Seção 3 abaixo.
+2. **Visualização e Comparação de Erro de Treino vs. Teste (`VAL-ENH-005`):** Instrumentação diagnóstica opcional de `train_metrics` pós-`fit_model` em `CellResultRecord` (estritamente isolada da inferência estatística) e gráfico comparativo Treino vs. Teste (gap de generalização / diagnóstico de *overfitting*) na Etapa 6 (`M10`).
 
 ### 2.8. Categoria 8 — Melhorias de Documentação e Ferramentas de Desenvolvimento
 1. **Correção do Caminho de `PROCESSO_DE_ACEITE_DE_MARCOS.md` em `validate_verification.py` (`VAL-BUG-011`):** Ajustar a linha 370 do script TLC em `.agent/` e `.agents/` para incluir o prefixo `docs/`.
