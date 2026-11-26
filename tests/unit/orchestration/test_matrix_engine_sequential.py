@@ -178,10 +178,10 @@ def test_m52_03_02_atomic_artifacts_written(tmp_path: Path):
         metrics=("rmse",),
     )
 
-    cell_0 = run_dir / "cells" / "cell_cell_dummy_mean__sc_fixed__fold_0.json"
-    pred_0 = run_dir / "predictions" / "pred_cell_dummy_mean__sc_fixed__fold_0.json"
-    cell_1 = run_dir / "cells" / "cell_cell_dummy_mean__sc_fixed__fold_1.json"
-    pred_1 = run_dir / "predictions" / "pred_cell_dummy_mean__sc_fixed__fold_1.json"
+    cell_0 = run_dir / "cells" / "cell_dummy_mean__sc_fixed__fold_0.json"
+    pred_0 = run_dir / "predictions" / "pred_dummy_mean__sc_fixed__fold_0.json"
+    cell_1 = run_dir / "cells" / "cell_dummy_mean__sc_fixed__fold_1.json"
+    pred_1 = run_dir / "predictions" / "pred_dummy_mean__sc_fixed__fold_1.json"
 
     assert cell_0.exists()
     assert pred_0.exists()

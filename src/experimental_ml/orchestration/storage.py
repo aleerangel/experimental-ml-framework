@@ -19,6 +19,15 @@ from experimental_ml.orchestration.codecs import (
 from experimental_ml.orchestration.types import CellId, CellResultRecord, PredictionRecord
 
 
+def cell_artifact_filenames(cell_id: CellId | str) -> tuple[str, str]:
+    """Return canonical (cell_filename, pred_filename) for a cell_id (AD-029)."""
+    raw = str(cell_id)
+    if raw.startswith("cell_"):
+        stem = raw.removeprefix("cell_")
+        return f"{raw}.json", f"pred_{stem}.json"
+    return f"cell_{raw}.json", f"pred_{raw}.json"
+
+
 def save_cell_artifacts(
     cell_result: CellResultRecord,
     prediction_record: PredictionRecord | None,
@@ -51,9 +60,10 @@ def save_cell_artifacts(
     cells_dir.mkdir(parents=True, exist_ok=True)
     preds_dir.mkdir(parents=True, exist_ok=True)
 
-    cell_file = cells_dir / f"cell_{cell_result.cell_id}.json"
+    cell_fname, pred_fname = cell_artifact_filenames(cell_result.cell_id)
+    cell_file = cells_dir / cell_fname
     pred_file = (
-        preds_dir / f"pred_{cell_result.cell_id}.json"
+        preds_dir / pred_fname
         if prediction_record is not None
         else None
     )
@@ -95,8 +105,9 @@ def load_cell_artifacts(
         ConfigurationError: If cell artifact does not exist or content is malformed.
     """
     run_path = Path(run_dir).resolve()
-    cell_file = run_path / "cells" / f"cell_{cell_id}.json"
-    pred_file = run_path / "predictions" / f"pred_{cell_id}.json"
+    cell_fname, pred_fname = cell_artifact_filenames(cell_id)
+    cell_file = run_path / "cells" / cell_fname
+    pred_file = run_path / "predictions" / pred_fname
 
     if not cell_file.exists():
         raise ConfigurationError(f"Cell artifact not found: '{cell_file}'")

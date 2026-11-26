@@ -7,6 +7,7 @@ and RNF07.
 
 from __future__ import annotations
 
+import threading
 from typing import Any
 import weakref
 
@@ -26,6 +27,7 @@ class _ActiveInstancesRegistry:
     """
 
     def __init__(self) -> None:
+        self._lock = threading.Lock()
         self._refs: dict[int, weakref.ref[Any]] = {}
         self._non_weakable: set[int] = set()
 
@@ -33,33 +35,36 @@ class _ActiveInstancesRegistry:
         """Register instance or raise ContractViolationError if it is already active."""
         obj_id = id(instance)
 
-        # Check weakref registry
-        if obj_id in self._refs:
-            live = self._refs[obj_id]()
-            if live is not None and live is instance:
+        def _cleanup(ref: weakref.ref[Any], target_id: int = obj_id) -> None:
+            with self._lock:
+                self._refs.pop(target_id, None)
+
+        with self._lock:
+            # Check weakref registry
+            if obj_id in self._refs:
+                live = self._refs[obj_id]()
+                if live is not None and live is instance:
+                    raise ContractViolationError(
+                        f"Instance isolation breach: estimator_factory for model '{model_id}' "
+                        f"returned a singleton or previously instantiated active instance {instance!r}."
+                    )
+
+            # Check non-weakable fallback
+            if obj_id in self._non_weakable:
                 raise ContractViolationError(
                     f"Instance isolation breach: estimator_factory for model '{model_id}' "
                     f"returned a singleton or previously instantiated active instance {instance!r}."
                 )
 
-        # Check non-weakable fallback
-        if obj_id in self._non_weakable:
-            raise ContractViolationError(
-                f"Instance isolation breach: estimator_factory for model '{model_id}' "
-                f"returned a singleton or previously instantiated active instance {instance!r}."
-            )
-
-        def _cleanup(ref: weakref.ref[Any], target_id: int = obj_id) -> None:
-            self._refs.pop(target_id, None)
-
-        try:
-            self._refs[obj_id] = weakref.ref(instance, _cleanup)
-        except TypeError:
-            self._non_weakable.add(obj_id)
+            try:
+                self._refs[obj_id] = weakref.ref(instance, _cleanup)
+            except TypeError:
+                self._non_weakable.add(obj_id)
 
     def clear(self) -> None:
-        self._refs.clear()
-        self._non_weakable.clear()
+        with self._lock:
+            self._refs.clear()
+            self._non_weakable.clear()
 
 
 # Track active model instances by identity to detect singletons and shared memory leakage (AC-M41-03-03, CA-E3-01, AUD-M4-02)

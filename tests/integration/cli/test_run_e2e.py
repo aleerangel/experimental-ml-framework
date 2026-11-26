@@ -259,7 +259,7 @@ def test_m54_05_02_e2e_cli_crash_recovery(tmp_path: Path) -> None:
     state_dict["failed_cells"] += 1
     state_file.write_text(json.dumps(state_dict), encoding="utf-8")
 
-    pred_file = run_dir / "predictions" / f"pred_{first_cid}.json"
+    pred_file = run_dir / "predictions" / f"pred_{first_cid.removeprefix('cell_')}.json"
     if pred_file.exists():
         pred_file.unlink()
 

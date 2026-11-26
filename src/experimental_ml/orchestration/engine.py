@@ -12,6 +12,7 @@ import threading
 from typing import Callable, Sequence
 
 from experimental_ml.core.findings import ConfigurationError, DataIntegrityError
+from experimental_ml.core.hashing import config_hash
 from experimental_ml.core.types import ExperimentId
 from experimental_ml.data.preparation import SanitizedDatasetView
 from experimental_ml.features.scenarios import FeatureScenario
@@ -31,8 +32,40 @@ from experimental_ml.orchestration.state import (
     save_execution_state,
 )
 from experimental_ml.orchestration.storage import (
+    cell_artifact_filenames,
     save_cell_artifacts,
 )
+
+
+def _compute_matrix_config_hashes(
+    model_specs: Sequence[ModelSpec],
+    scenarios: Sequence[FeatureScenario],
+) -> tuple[str, str]:
+    """Compute canonical SHA-256 digests for scenarios and models catalogs."""
+    sorted_sc = tuple(sorted(scenarios, key=lambda s: str(s.scenario_id)))
+    sorted_mo = tuple(sorted(model_specs, key=lambda m: str(m.model_id)))
+    sc_hash = config_hash([s.to_dict() for s in sorted_sc])
+    mo_payload = [
+        {
+            "model_id": str(m.model_id),
+            "display_name": m.display_name,
+            "family": str(m.family),
+            "parameters": dict(m.parameters),
+            "random_seed_policy": str(m.random_seed_policy),
+            "preprocessing": repr(m.preprocessing),
+            "search_spec": repr(m.search_spec),
+            "factory_ref": str(
+                getattr(
+                    m.estimator_factory,
+                    "_factory_ref",
+                    getattr(m.estimator_factory, "__qualname__", type(m.estimator_factory).__name__),
+                )
+            ),
+        }
+        for m in sorted_mo
+    ]
+    mo_hash = config_hash(mo_payload)
+    return sc_hash, mo_hash
 from experimental_ml.orchestration.types import (
     CellId,
     CellResultRecord,
@@ -118,6 +151,7 @@ def run_experiment_matrix(
     now_iso = datetime.now(timezone.utc).isoformat()
     plan_id = str(getattr(partition_plan, "partition_plan_id", None) or getattr(partition_plan, "plan_id", ""))
     view_hash = str(getattr(sanitized_view, "dataset_hash", ""))
+    scenarios_hash, models_hash = _compute_matrix_config_hashes(model_specs, scenarios)
 
     initial_statuses = {desc.cell_id: ExecutionStatus.PENDING for desc in descriptors}
     state = MatrixExecutionState(
@@ -130,6 +164,8 @@ def run_experiment_matrix(
         cell_statuses=initial_statuses,
         source_dataset_hash=view_hash,
         partition_plan_id=plan_id,
+        scenarios_hash=scenarios_hash,
+        models_hash=models_hash,
     )
     save_execution_state(state, dest_run_dir, overwrite=True)
 
@@ -291,6 +327,18 @@ def resume_experiment_matrix(
             f"State expects '{state.partition_plan_id}', got '{plan_id}'"
         )
 
+    scenarios_hash, models_hash = _compute_matrix_config_hashes(model_specs, scenarios)
+    if state.scenarios_hash and state.scenarios_hash != scenarios_hash:
+        raise DataIntegrityError(
+            f"Cannot resume execution: scenarios hash mismatch. "
+            f"State expects '{state.scenarios_hash}', got '{scenarios_hash}'"
+        )
+    if state.models_hash and state.models_hash != models_hash:
+        raise DataIntegrityError(
+            f"Cannot resume execution: models hash mismatch. "
+            f"State expects '{state.models_hash}', got '{models_hash}'"
+        )
+
     descriptors = build_cell_matrix(
         model_specs=model_specs,
         scenarios=scenarios,
@@ -306,7 +354,7 @@ def resume_experiment_matrix(
 
     for desc in descriptors:
         current_status = state.cell_statuses.get(desc.cell_id, ExecutionStatus.PENDING)
-        cell_file = cells_dir / f"cell_{desc.cell_id}.json"
+        cell_file = cells_dir / cell_artifact_filenames(desc.cell_id)[0]
 
         if current_status == ExecutionStatus.COMPLETED and cell_file.exists():
             try:
@@ -329,7 +377,7 @@ def resume_experiment_matrix(
     # 3. Reconcile statuses and verify physical artifacts
     for desc in descriptors:
         current_status = state.cell_statuses.get(desc.cell_id, ExecutionStatus.PENDING)
-        cell_file = cells_dir / f"cell_{desc.cell_id}.json"
+        cell_file = cells_dir / cell_artifact_filenames(desc.cell_id)[0]
 
         if current_status == ExecutionStatus.COMPLETED:
             if not cell_file.exists():

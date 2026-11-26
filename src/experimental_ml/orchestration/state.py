@@ -35,6 +35,8 @@ class MatrixExecutionState:
     cell_statuses: Mapping[CellId, ExecutionStatus]
     source_dataset_hash: str = ""
     partition_plan_id: str = ""
+    scenarios_hash: str = ""
+    models_hash: str = ""
     completed_cells: int = 0
     failed_cells: int = 0
     cancelled_cells: int = 0
@@ -93,6 +95,8 @@ class MatrixExecutionState:
             cell_statuses=new_statuses,
             source_dataset_hash=self.source_dataset_hash,
             partition_plan_id=self.partition_plan_id,
+            scenarios_hash=self.scenarios_hash,
+            models_hash=self.models_hash,
         )
 
 
@@ -111,6 +115,8 @@ def matrix_execution_state_to_dict(state: MatrixExecutionState) -> dict[str, Any
         "cell_statuses": {str(k): v.value for k, v in state.cell_statuses.items()},
         "source_dataset_hash": state.source_dataset_hash,
         "partition_plan_id": state.partition_plan_id,
+        "scenarios_hash": state.scenarios_hash,
+        "models_hash": state.models_hash,
     }
 
 
@@ -131,6 +137,8 @@ def matrix_execution_state_from_dict(d: dict[str, Any]) -> MatrixExecutionState:
         cell_statuses=cell_statuses,
         source_dataset_hash=str(d.get("source_dataset_hash", "") or ""),
         partition_plan_id=str(d.get("partition_plan_id", "") or ""),
+        scenarios_hash=str(d.get("scenarios_hash", "") or ""),
+        models_hash=str(d.get("models_hash", "") or ""),
     )
 
 

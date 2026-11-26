@@ -65,8 +65,8 @@ T7 (expml init classificação + validate_verification.py)
 **Gate**: `.venv/bin/pytest tests/unit/features/test_stats.py -v`
 
 ### T3: Normalizar gravação/leitura de células para `cell_<m>__<s>__<f>.json` sem fallback legado (`AD-029` / `D2`), adicionar `scenarios_hash`/`models_hash` em `MatrixExecutionState` e proteger `_ACTIVE_INSTANCES` com `threading.Lock` (`orchestration/`, `models/execution.py`)
-- [ ] Implement & test T3
-**Where**: `src/experimental_ml/orchestration/storage.py`, `src/experimental_ml/orchestration/state.py`, `src/experimental_ml/orchestration/engine.py`, `src/experimental_ml/models/execution.py`, `tests/unit/test_orchestration_storage.py`
+- [x] Implement & test T3
+**Where**: `src/experimental_ml/orchestration/storage.py`, `src/experimental_ml/orchestration/state.py`, `src/experimental_ml/orchestration/engine.py`, `src/experimental_ml/stages/stage_gates.py`, `src/experimental_ml/models/execution.py`, `tests/unit/orchestration/test_cell_codecs.py`, `tests/unit/orchestration/test_matrix_resume.py`
 **Depends on**: none
 **Tests**: Testes de nomenclatura única `cell_<m>__<s>__<f>.json` (sem `cell_cell_`), rejeição de retomada com alteração de `scenarios_hash`/`models_hash` e segurança concorrente de `_ACTIVE_INSTANCES`.
 **Gate**: `.venv/bin/pytest tests/ -q`

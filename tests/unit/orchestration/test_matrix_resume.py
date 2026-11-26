@@ -210,7 +210,7 @@ def test_m52_05_03_resume_reexecutes_missing_artifacts(tmp_path: Path):
     )
 
     # Delete artifact of fold 0 manually
-    c0_file = run_dir / "cells" / "cell_cell_dummy_mean__sc_f__fold_0.json"
+    c0_file = run_dir / "cells" / "cell_dummy_mean__sc_f__fold_0.json"
     assert c0_file.exists()
     c0_file.unlink()
 
@@ -432,7 +432,7 @@ def test_ach_m5_02_resume_with_incompatible_cell_artifact_raises_before_executio
     )
 
     # Tamper with one cell artifact's partition_plan_id
-    cell_file = run_dir / "cells" / "cell_cell_dummy_mean__sc_f__fold_0.json"
+    cell_file = run_dir / "cells" / "cell_dummy_mean__sc_f__fold_0.json"
     data = json.loads(cell_file.read_text(encoding="utf-8"))
     data["partition_plan_id"] = "forged_plan_id"
     cell_file.write_text(json.dumps(data), encoding="utf-8")
@@ -474,6 +474,60 @@ def test_ach_m5_02_legacy_state_without_identity_fields_raises(tmp_path: Path):
         resume_experiment_matrix(
             run_dir=run_dir,
             model_specs=models,
+            scenarios=scenarios,
+            partition_plan=plan,
+            sanitized_view=view,
+            metrics=("rmse",),
+        )
+
+
+def test_resume_rejects_modified_scenarios_or_models_hash(tmp_path: Path) -> None:
+    """C6 (M8-07): resume_experiment_matrix rejects modified scenarios or models configuration via hash."""
+    view, plan, models, scenarios = _build_test_env()
+    run_dir = tmp_path / "run_cfg_hash"
+
+    state = run_experiment_matrix(
+        model_specs=models,
+        scenarios=scenarios,
+        partition_plan=plan,
+        sanitized_view=view,
+        run_dir=run_dir,
+        metrics=("rmse",),
+    )
+    assert state.scenarios_hash
+    assert state.models_hash
+
+    alt_scenario = FeatureScenario(
+        scenario_id=ScenarioId("sc_f"),
+        name="Modified F",
+        description="Modified",
+        scientific_justification="Modified",
+        mode=ScenarioMode.FIXED,
+        selected_features=("x",),
+    )
+    with pytest.raises(DataIntegrityError, match="scenarios hash mismatch"):
+        resume_experiment_matrix(
+            run_dir=run_dir,
+            model_specs=models,
+            scenarios=[alt_scenario],
+            partition_plan=plan,
+            sanitized_view=view,
+            metrics=("rmse",),
+        )
+
+    alt_model = ModelSpec(
+        model_id=ModelId("dummy_mean"),
+        display_name="Changed Mean Model",
+        family=ModelFamily.BASELINE,
+        capabilities=ModelCapabilities(requires_fit=True, supports_predict=True),
+        estimator_factory=resolve_estimator_factory("DUMMY_BASELINE_MEDIAN"),
+        description="Median",
+        scientific_justification="Changed",
+    )
+    with pytest.raises(DataIntegrityError, match="models hash mismatch"):
+        resume_experiment_matrix(
+            run_dir=run_dir,
+            model_specs=[alt_model],
             scenarios=scenarios,
             partition_plan=plan,
             sanitized_view=view,

@@ -393,17 +393,20 @@ def verify_runs_gate(target: Path | str) -> dict[str, Any]:
     ]
     candidate_oof_dirs = [run_dir / "oof", exp_dir / "oof", exp_dir / "runs" / "oof"]
 
+    from experimental_ml.orchestration.storage import cell_artifact_filenames
+
     completed_configs: set[tuple[str, str]] = set()
 
     for cid, status in exec_state.cell_statuses.items():
-        cell_file_found = any((d / f"cell_{cid}.json").exists() for d in candidate_cells_dirs)
+        cell_fname, pred_fname = cell_artifact_filenames(cid)
+        cell_file_found = any((d / cell_fname).exists() for d in candidate_cells_dirs)
         if not cell_file_found:
             raise DataIntegrityError(
                 f"Missing cell artifact for cell '{cid}' with status {status.value}"
             )
 
         if status == ExecutionStatus.COMPLETED:
-            pred_file_found = any((d / f"pred_{cid}.json").exists() for d in candidate_preds_dirs)
+            pred_file_found = any((d / pred_fname).exists() for d in candidate_preds_dirs)
             if not pred_file_found:
                 raise DataIntegrityError(
                     f"Missing prediction artifact for completed cell '{cid}'"
@@ -442,8 +445,9 @@ def verify_runs_gate(target: Path | str) -> dict[str, Any]:
         expected_plan_id = part_dict.get("plan_id")
         if expected_plan_id:
             for cid in exec_state.cell_statuses.keys():
+                cell_fname, _ = cell_artifact_filenames(cid)
                 for d in candidate_cells_dirs:
-                    cfile = d / f"cell_{cid}.json"
+                    cfile = d / cell_fname
                     if cfile.exists():
                         c_dict = read_json(cfile)
                         c_plan_id = c_dict.get("partition_plan_id")
