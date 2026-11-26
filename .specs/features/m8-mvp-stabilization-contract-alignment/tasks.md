@@ -79,8 +79,8 @@ T7 (expml init classificação + validate_verification.py)
 **Gate**: `.venv/bin/pytest tests/ -q`
 
 ### T5: Garantir paridade completa de artefatos em disco e propagação de `seed` para instâncias clonadas na fachada `run_experiment` (`pipeline.py`)
-- [ ] Implement & test T5
-**Where**: `src/experimental_ml/pipeline.py`, `tests/unit/test_pipeline_facade.py`
+- [x] Implement & test T5
+**Where**: `src/experimental_ml/pipeline.py`, `tests/unit/test_usability_cli_and_facade.py`
 **Depends on**: T3
 **Tests**: Teste de integração executando `run_experiment` seguido de `expml partition verify`, `expml run verify`, `expml stats compute` e `expml report export`, além de determinismo com instância `RandomForestRegressor()` sem `random_state` pré-definido.
 **Gate**: `.venv/bin/pytest tests/ -q`
