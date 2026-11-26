@@ -58,11 +58,11 @@ T7 (expml init classificação + validate_verification.py)
 **Gate**: `.venv/bin/pytest tests/unit/test_reporting_tables.py -v`
 
 ### T2: Filtrar `None` e `NaN` pairwise em colunas categóricas de `compute_correlation_ratio` e `compute_cramers_v` (`features/stats.py`)
-- [ ] Implement & test T2
-**Where**: `src/experimental_ml/features/stats.py`, `tests/unit/test_features_stats.py`
+- [x] Implement & test T2
+**Where**: `src/experimental_ml/features/stats.py`, `tests/unit/features/test_stats.py`
 **Depends on**: none
 **Tests**: Testes unitários com arrays `dtype=object` contendo `None` e `np.nan` misturados com strings em `compute_correlation_ratio` e `compute_cramers_v`.
-**Gate**: `.venv/bin/pytest tests/unit/test_features_stats.py -v`
+**Gate**: `.venv/bin/pytest tests/unit/features/test_stats.py -v`
 
 ### T3: Normalizar gravação/leitura de células para `cell_<m>__<s>__<f>.json` sem fallback legado (`AD-029` / `D2`), adicionar `scenarios_hash`/`models_hash` em `MatrixExecutionState` e proteger `_ACTIVE_INSTANCES` com `threading.Lock` (`orchestration/`, `models/execution.py`)
 - [ ] Implement & test T3
@@ -103,7 +103,7 @@ T7 (expml init classificação + validate_verification.py)
 
 ## Checks
 
-**Run m8_unit**: `.venv/bin/pytest tests/unit/test_reporting_tables.py tests/unit/test_features_stats.py tests/unit/test_orchestration_storage.py tests/unit/test_tuning_engine.py -v`
+**Run m8_unit**: `.venv/bin/pytest tests/unit/reporting/test_reporting_tables.py tests/unit/features/test_stats.py tests/unit/orchestration/test_cell_codecs.py tests/unit/orchestration/test_matrix_resume.py tests/unit/tuning/test_tuning_execution.py -v`
 **Run m8_e2e**: `.venv/bin/pytest tests/integration/ -v`
 
 **C1** - `tbl_family_a` e `tbl_family_g` contêm linhas reais a partir de `dataset_profile.json` e `runs/cells/*.json` (`M8-01`, `M8-02`, `AC-M8-01`)

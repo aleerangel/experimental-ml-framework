@@ -152,3 +152,31 @@ def test_exp_05_degeneracy_and_undefined_nan() -> None:
     r_empty, stat_empty = compute_pearson(np.array([1.0]), np.array([2.0]))
     assert math.isnan(r_empty)
     assert stat_empty == MetricStatus.UNDEFINED_NAN
+
+
+def test_categorical_stats_ignore_none_values() -> None:
+    """C2 (M8-03): compute_correlation_ratio and compute_cramers_v filter None/NaN pairwise without TypeError."""
+    cats_none = np.array(["A", "A", None, "B", "B"], dtype=object)
+    cont_vals = np.array([1.0, 1.0, 99.0, 5.0, 5.0])
+    eta, stat_eta = compute_correlation_ratio(cats_none, cont_vals)
+    assert stat_eta == MetricStatus.VALID
+    assert pytest.approx(eta, abs=1e-6) == 1.0
+
+    cats_nan = np.array(["A", float("nan"), "B", "B"], dtype=object)
+    eta_nan, stat_eta_nan = compute_correlation_ratio(cats_nan, np.array([1.0, 2.0, 5.0, 5.0]))
+    assert stat_eta_nan == MetricStatus.VALID
+    assert pytest.approx(eta_nan, abs=1e-6) == 1.0
+
+    cat_x = np.array(["yes", None, "no", "no", "yes"], dtype=object)
+    cat_y = np.array(["1", "1", "0", None, "1"], dtype=object)
+    v, stat_v = compute_cramers_v(cat_x, cat_y)
+    assert stat_v == MetricStatus.VALID
+    assert pytest.approx(v, abs=1e-6) == 1.0
+
+    # Filtering leaves < 2 valid rows -> UNDEFINED_NAN
+    v_deg, stat_deg = compute_cramers_v(
+        np.array(["yes", None, None], dtype=object),
+        np.array([None, "1", "0"], dtype=object),
+    )
+    assert math.isnan(v_deg)
+    assert stat_deg == MetricStatus.UNDEFINED_NAN
