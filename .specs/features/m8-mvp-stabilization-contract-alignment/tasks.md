@@ -51,7 +51,7 @@ T7 (expml init classificação + validate_verification.py)
 ## Task Breakdown
 
 ### T1: Corrigir extração da Tabela A (`dataset_profile["summary"]`) e carregar diagnósticos de células para Tabela G (`reporting/loader.py`, `reporting/tables.py`)
-- [ ] Implement & test T1
+- [x] Implement & test T1
 **Where**: `src/experimental_ml/reporting/loader.py`, `src/experimental_ml/reporting/tables.py`, `tests/unit/test_reporting_tables.py`
 **Depends on**: none
 **Tests**: Testes unitários para `tbl_family_a` com estrutura aninhada `"summary"` (preservando retrocompatibilidade plana) e `tbl_family_g` com diagnósticos carregados de `runs/cells/*.json`.

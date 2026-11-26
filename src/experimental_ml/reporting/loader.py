@@ -49,6 +49,22 @@ def load_experiment_artifacts_readonly(experiment_dir: Path | str) -> LoadedExpe
     models = _read_optional_json(exp_dir / MODELS_CATALOG_REL_PATH)
     exec_state = _read_optional_json(exp_dir / EXECUTION_STATE_REL_PATH)
 
+    cell_diags: list[dict[str, Any]] = []
+    cells_dir = exp_dir / "runs" / "cells"
+    if cells_dir.is_dir():
+        for cell_path in sorted(cells_dir.glob("cell_*.json")):
+            cell_raw = _read_optional_json(cell_path)
+            if isinstance(cell_raw, dict) and isinstance(cell_raw.get("diagnostics"), dict) and cell_raw["diagnostics"]:
+                cell_diags.append(
+                    {
+                        "cell_id": str(cell_raw.get("cell_id", cell_path.stem)),
+                        "model_id": str(cell_raw.get("model_id", "")),
+                        "scenario_id": str(cell_raw.get("scenario_id", "")),
+                        "fold_id": str(cell_raw.get("fold_id", "")),
+                        "diagnostics": cell_raw["diagnostics"],
+                    }
+                )
+
     return LoadedExperimentData(
         experiment_id=stats.consolidation.experiment_id,
         partition_plan_id=stats.consolidation.partition_plan_id,
@@ -59,6 +75,7 @@ def load_experiment_artifacts_readonly(experiment_dir: Path | str) -> LoadedExpe
         scenarios_catalog=scenarios,
         models_catalog=models,
         execution_state=exec_state,
+        cell_diagnostics=tuple(cell_diags),
     )
 
 

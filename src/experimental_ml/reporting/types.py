@@ -204,6 +204,7 @@ class LoadedExperimentData:
     scenarios_catalog: Mapping[str, Any] | None = None
     models_catalog: Mapping[str, Any] | None = None
     execution_state: Mapping[str, Any] | None = None
+    cell_diagnostics: tuple[Mapping[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         for attr in (
@@ -217,6 +218,14 @@ class LoadedExperimentData:
             val = getattr(self, attr)
             if val is not None and not isinstance(val, MappingProxyType):
                 object.__setattr__(self, attr, MappingProxyType(dict(val)))
+        object.__setattr__(
+            self,
+            "cell_diagnostics",
+            tuple(
+                d if isinstance(d, MappingProxyType) else MappingProxyType(dict(d))
+                for d in self.cell_diagnostics
+            ),
+        )
 
 
 @dataclass(frozen=True, slots=True)
