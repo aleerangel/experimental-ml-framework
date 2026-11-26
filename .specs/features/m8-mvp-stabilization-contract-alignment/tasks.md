@@ -86,7 +86,7 @@ T7 (expml init classificação + validate_verification.py)
 **Gate**: `.venv/bin/pytest tests/ -q`
 
 ### T6: Passar `n_total_candidates_per_config` para `consolidate_descriptive` em `cmd_stats.py` e `pipeline.py`, e ler `"pareto_objectives"` múltiplos em `cmd_stats.py`
-- [ ] Implement & test T6
+- [x] Implement & test T6
 **Where**: `src/experimental_ml/cli/cmd_stats.py`, `src/experimental_ml/pipeline.py`, `tests/unit/cli/test_cli_stats.py`
 **Depends on**: T5
 **Tests**: Teste verificando `mean_kuncheva == 1.0` (não `None`) quando $0 < k < N_{\text{total}}$ via CLI e fachada, e Pareto com 2 objetivos via `stats_config.json`.

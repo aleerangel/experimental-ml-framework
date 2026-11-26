@@ -342,9 +342,15 @@ def run_experiment(
     oof_records = list(oof_map.values())
     cells = [load_cell_artifacts(cid, run_dir)[0] for cid in run_state.cell_statuses]
 
+    n_total_candidates_per_config = {
+        (str(m.model_id), str(s.scenario_id)): len(view.candidate_feature_cols)
+        for m in model_specs
+        for s in scenarios_cat.scenarios
+    }
     cons = consolidate_descriptive(
         cells,
         total_folds_per_config=len(part_plan.folds),
+        n_total_candidates_per_config=n_total_candidates_per_config,
         oof_predictions=oof_records or None,
         experiment_id=run_state.experiment_id,
         partition_plan_id=part_plan.plan_id,

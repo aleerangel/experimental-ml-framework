@@ -169,3 +169,50 @@ def test_m64_03_cli_lazy_imports_purity() -> None:
     )
     proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert proc.returncode == 0, f"Lazy import check failed: {proc.stderr}"
+
+
+def test_cli_stats_kuncheva_and_multiobjective_pareto(tmp_path: Path) -> None:
+    """C5 (M8-06): expml stats run computes numeric mean_kuncheva from candidate_feature_cols and reads pareto_objectives."""
+    import json
+    from experimental_ml.core.storage import write_json_atomic
+
+    _populate_stage4_experiment(tmp_path)
+    write_json_atomic(
+        tmp_path / "data" / "sanitized_view.json",
+        {
+            "dataset_hash": "a" * 64,
+            "source_dataset_hash": "a" * 64,
+            "source_plan_digest": "b" * 64,
+            "n_observations": 12,
+            "candidate_feature_cols": ["x1", "x2", "x3", "x4"],
+            "dropped_observation_ids": [],
+            "target_label_mapping": None,
+            "deferred_rules": [],
+        },
+        overwrite=True,
+    )
+    stats_cfg = tmp_path / "stats_config.json"
+    write_json_atomic(
+        stats_cfg,
+        {
+            "metrics_of_interest": ["rmse"],
+            "pareto_objectives": [
+                {"metric": "rmse", "direction": "MINIMIZE", "source": "AGGREGATED_METRIC"},
+                {"metric": "fit_mean_s", "direction": "MINIMIZE", "source": "TIMING_MEAN", "field": "fit_mean_s"},
+            ],
+        },
+        overwrite=True,
+    )
+
+    rc = main(["stats", "run", "--experiment-dir", str(tmp_path), "--config", str(stats_cfg)])
+    assert rc == 0
+
+    desc = json.loads((tmp_path / "statistics" / "descriptive_consolidation.json").read_text(encoding="utf-8"))
+    for cfg in desc["configurations"]:
+        stab = cfg.get("feature_stability")
+        assert stab is not None
+        assert stab["mean_kuncheva"] is not None
+        assert abs(stab["mean_kuncheva"] - 1.0) < 1e-9
+
+    pareto = json.loads((tmp_path / "statistics" / "pareto_summary.json").read_text(encoding="utf-8"))
+    assert len(pareto["objectives"]) == 2
