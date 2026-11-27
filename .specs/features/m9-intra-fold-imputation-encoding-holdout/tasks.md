@@ -71,7 +71,7 @@ T5 (FINAL_HOLDOUT em matrix.py, execution.py, oof.py, stage_gates.py) --> T6 (ho
 **Gate**: `.venv/bin/pytest tests/unit/models/ -q`
 
 ### T4: Injetar `SanitizedDatasetView.deferred_rules` automaticamente na Etapa 4B e no Nested CV (`AD-031`)
-- [ ] Implement & test T4
+- [x] Implement & test T4
 **Where**: `src/experimental_ml/orchestration/execution.py`, `src/experimental_ml/tuning/engine.py`, `tests/integration/test_m9_deferred_preprocessing_e2e.py`
 **Depends on**: T3
 **Tests**: Teste E2E (Etapas 1 a 6) com dataset contendo `NaN` + coluna categórica em texto + `DEFER_INTRA_FOLD`, com seleção dinâmica e `GRID_SEARCH`, provando ausência de vazamento e execução completa.

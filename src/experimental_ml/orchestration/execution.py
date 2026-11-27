@@ -43,6 +43,91 @@ from experimental_ml.tuning.types import SearchStrategy
 from experimental_ml.validation.types import FoldPartition, PartitionPlan
 
 
+def resolve_deferred_preprocessing(
+    model_spec: ModelSpec,
+    deferred_rules: tuple[Any, ...],
+) -> ModelSpec:
+    """Inject Stage 1 DEFER_INTRA_FOLD rules into ModelSpec.preprocessing when not overridden (AD-031)."""
+    if not deferred_rules:
+        return model_spec
+
+    from experimental_ml.models.preprocessing.types import (
+        PreprocessingStepSpec,
+        TwoLayerPreprocessingSpec,
+    )
+
+    existing_l1 = list(model_spec.preprocessing.layer1_steps) if model_spec.preprocessing else []
+    existing_l2 = list(model_spec.preprocessing.layer2_steps) if model_spec.preprocessing else []
+    existing_l1_types = {s.transformer_type.upper().strip() for s in existing_l1}
+    scaler_types = {"STANDARD", "MINMAX", "MAXABS", "ROBUST", "ANGULAR"}
+    has_l2_scaler = any(s.transformer_type.upper().strip() in scaler_types for s in existing_l2)
+
+    injected_encoders: list[PreprocessingStepSpec] = []
+    injected_imputers: list[PreprocessingStepSpec] = []
+    injected_scalers: list[PreprocessingStepSpec] = []
+    seen_steps: set[tuple[str, str]] = set()
+
+    for rule in deferred_rules:
+        code = str(getattr(rule, "finding_code", ""))
+        params = getattr(rule, "parameters", {}) or {}
+        if code == "E1_CATEGORICAL_UNENCODED":
+            if not (existing_l1_types & {"ORDINAL_ENCODER", "FREQUENCY_ENCODER"}):
+                raw_enc = str(params.get("encoding_strategy", "ORDINAL_ENCODER")).upper().strip()
+                ttype = "FREQUENCY_ENCODER" if "FREQ" in raw_enc else "ORDINAL_ENCODER"
+                if (ttype, "") not in seen_steps:
+                    seen_steps.add((ttype, ""))
+                    injected_encoders.append(
+                        PreprocessingStepSpec(
+                            step_id=f"deferred_{ttype.lower()}",
+                            transformer_type=ttype,
+                        )
+                    )
+        elif code == "E1_FEATURE_MISSING":
+            if "IMPUTER" not in existing_l1_types:
+                strat = str(params.get("imputation_strategy", "MEDIAN")).upper().strip()
+                if ("IMPUTER", strat) not in seen_steps:
+                    seen_steps.add(("IMPUTER", strat))
+                    injected_imputers.append(
+                        PreprocessingStepSpec(
+                            step_id=f"deferred_imputer_{strat.lower()}",
+                            transformer_type="IMPUTER",
+                            parameters={"strategy": strat},
+                        )
+                    )
+        elif code == "E1_SCALE_DISPARITY":
+            if not has_l2_scaler:
+                strat = str(params.get("scaling_strategy", "STANDARD")).upper().strip()
+                if strat in scaler_types and ("SCALER", strat) not in seen_steps:
+                    seen_steps.add(("SCALER", strat))
+                    injected_scalers.append(
+                        PreprocessingStepSpec(
+                            step_id=f"deferred_scaler_{strat.lower()}",
+                            transformer_type=strat,
+                        )
+                    )
+
+    if not (injected_encoders or injected_imputers or injected_scalers):
+        return model_spec
+
+    new_prep = TwoLayerPreprocessingSpec(
+        layer1_steps=tuple(injected_encoders + injected_imputers + existing_l1),
+        layer2_steps=tuple(existing_l2 + injected_scalers),
+    )
+    return ModelSpec(
+        model_id=model_spec.model_id,
+        display_name=model_spec.display_name,
+        family=model_spec.family,
+        estimator_factory=model_spec.estimator_factory,
+        capabilities=model_spec.capabilities,
+        description=model_spec.description,
+        scientific_justification=model_spec.scientific_justification,
+        parameters=model_spec.parameters,
+        random_seed_policy=model_spec.random_seed_policy,
+        preprocessing=new_prep,
+        search_spec=model_spec.search_spec,
+    )
+
+
 def execute_single_cell(
     model_spec: ModelSpec,
     scenario: FeatureScenario,
@@ -94,7 +179,7 @@ def execute_single_cell(
     t_eval = 0.0
 
     selected_features_tuple: tuple[str, ...] = ()
-    effective_spec = model_spec
+    effective_spec = resolve_deferred_preprocessing(model_spec, getattr(sanitized_view, "deferred_rules", ()))
 
     try:
         # 1. DATA_EXTRACTION: Slice training and validation subsets from SanitizedDatasetView
@@ -126,14 +211,14 @@ def execute_single_cell(
 
         is_dynamic = getattr(getattr(scenario, "mode", None), "value", scenario.mode) == "DYNAMIC"
 
-        if model_spec.search_spec is not None and is_dynamic:
+        if effective_spec.search_spec is not None and is_dynamic:
             current_phase = CellPhase.HYPERPARAMETER_TUNING
             t_phase_start = time.perf_counter()
             cand_cols = list(X_train_cand.keys())
             X_train_cand_mat = np.column_stack([X_train_cand[col] for col in cand_cols])
             tuning_res = run_nested_tuning(
-                spec=model_spec.search_spec,
-                model_spec=model_spec,
+                spec=effective_spec.search_spec,
+                model_spec=effective_spec,
                 X_train=X_train_cand_mat,
                 y_train=y_train,
                 seed=cell_seed,
@@ -142,19 +227,19 @@ def execute_single_cell(
                 partition_strategy=part_strategy,
                 groups=groups_arr,
             )
-            merged_params = dict(model_spec.parameters)
+            merged_params = dict(effective_spec.parameters)
             merged_params.update(tuning_res.best_params)
             effective_spec = ModelSpec(
-                model_id=model_spec.model_id,
-                display_name=model_spec.display_name,
-                family=model_spec.family,
-                estimator_factory=model_spec.estimator_factory,
-                capabilities=model_spec.capabilities,
-                description=model_spec.description,
-                scientific_justification=model_spec.scientific_justification,
+                model_id=effective_spec.model_id,
+                display_name=effective_spec.display_name,
+                family=effective_spec.family,
+                estimator_factory=effective_spec.estimator_factory,
+                capabilities=effective_spec.capabilities,
+                description=effective_spec.description,
+                scientific_justification=effective_spec.scientific_justification,
                 parameters=merged_params,
-                random_seed_policy=model_spec.random_seed_policy,
-                preprocessing=model_spec.preprocessing,
+                random_seed_policy=effective_spec.random_seed_policy,
+                preprocessing=effective_spec.preprocessing,
                 search_spec=None,
             )
             t_tune = time.perf_counter() - t_phase_start
@@ -162,16 +247,37 @@ def execute_single_cell(
         current_phase = CellPhase.FEATURE_SELECTION
         t_phase_start = time.perf_counter()
 
+        # When DYNAMIC + Layer 1 (e.g. deferred encoders/imputers) are active, fit Layer 1 on outer
+        # X_train_cand before select_features_in_fold so relevance/redundancy stats see finite floats.
+        outer_l1_fitted = None
+        X_train_cand_fs = X_train_cand
+        X_val_cand_fs = X_val_cand
+        if is_dynamic and effective_spec.preprocessing is not None and effective_spec.preprocessing.layer1_steps:
+            from experimental_ml.models.preprocessing.types import TwoLayerPreprocessingSpec
+
+            cand_cols_fs = list(X_train_cand.keys())
+            l1_only_spec = TwoLayerPreprocessingSpec(
+                layer1_steps=effective_spec.preprocessing.layer1_steps,
+                layer2_steps=(),
+            )
+            l1_tr_mat = np.column_stack([X_train_cand[c] for c in cand_cols_fs])
+            l1_va_mat = np.column_stack([X_val_cand[c] for c in cand_cols_fs])
+            outer_l1_fitted = fit_two_layer_preprocessing(l1_only_spec, l1_tr_mat)
+            l1_tr_out = apply_two_layer_preprocessing(outer_l1_fitted, l1_tr_mat)
+            l1_va_out = apply_two_layer_preprocessing(outer_l1_fitted, l1_va_mat)
+            X_train_cand_fs = {c: l1_tr_out[:, i] for i, c in enumerate(cand_cols_fs)}
+            X_val_cand_fs = {c: l1_va_out[:, i] for i, c in enumerate(cand_cols_fs)}
+
         selection_res = select_features_in_fold(
-            X_train=X_train_cand,
+            X_train=X_train_cand_fs,
             y_train=y_train,
             scenario=scenario,
             random_state=cell_seed,
         )
         selected_features_tuple = tuple(selection_res.selected_features)
 
-        X_train_sel = apply_feature_selection(X_train_cand, selection_res)
-        X_val_sel = apply_feature_selection(X_val_cand, selection_res)
+        X_train_sel = apply_feature_selection(X_train_cand_fs, selection_res)
+        X_val_sel = apply_feature_selection(X_val_cand_fs, selection_res)
 
         X_train_matrix = np.column_stack([X_train_sel[col] for col in selected_features_tuple])
         X_val_matrix = np.column_stack([X_val_sel[col] for col in selected_features_tuple])
@@ -179,32 +285,32 @@ def execute_single_cell(
         t_fs = time.perf_counter() - t_phase_start
 
         # 3. HYPERPARAMETER_TUNING (FIXED scenario with search_spec)
-        if model_spec.search_spec is not None and not is_dynamic:
+        if effective_spec.search_spec is not None and not is_dynamic:
             current_phase = CellPhase.HYPERPARAMETER_TUNING
             t_phase_start = time.perf_counter()
             tuning_res = run_nested_tuning(
-                spec=model_spec.search_spec,
-                model_spec=model_spec,
+                spec=effective_spec.search_spec,
+                model_spec=effective_spec,
                 X_train=X_train_matrix,
                 y_train=y_train,
                 seed=cell_seed,
                 partition_strategy=part_strategy,
                 groups=groups_arr,
             )
-            merged_params = dict(model_spec.parameters)
+            merged_params = dict(effective_spec.parameters)
             merged_params.update(tuning_res.best_params)
 
             effective_spec = ModelSpec(
-                model_id=model_spec.model_id,
-                display_name=model_spec.display_name,
-                family=model_spec.family,
-                estimator_factory=model_spec.estimator_factory,
-                capabilities=model_spec.capabilities,
-                description=model_spec.description,
-                scientific_justification=model_spec.scientific_justification,
+                model_id=effective_spec.model_id,
+                display_name=effective_spec.display_name,
+                family=effective_spec.family,
+                estimator_factory=effective_spec.estimator_factory,
+                capabilities=effective_spec.capabilities,
+                description=effective_spec.description,
+                scientific_justification=effective_spec.scientific_justification,
                 parameters=merged_params,
-                random_seed_policy=model_spec.random_seed_policy,
-                preprocessing=model_spec.preprocessing,
+                random_seed_policy=effective_spec.random_seed_policy,
+                preprocessing=effective_spec.preprocessing,
                 search_spec=None,
             )
 
@@ -215,7 +321,16 @@ def execute_single_cell(
         t_phase_start = time.perf_counter()
 
         if effective_spec.preprocessing is not None:
-            prep_state = fit_two_layer_preprocessing(effective_spec.preprocessing, X_train_matrix)
+            if outer_l1_fitted is not None:
+                from experimental_ml.models.preprocessing.types import TwoLayerPreprocessingSpec
+
+                l2_only_spec = TwoLayerPreprocessingSpec(
+                    layer1_steps=(),
+                    layer2_steps=effective_spec.preprocessing.layer2_steps,
+                )
+                prep_state = fit_two_layer_preprocessing(l2_only_spec, X_train_matrix)
+            else:
+                prep_state = fit_two_layer_preprocessing(effective_spec.preprocessing, X_train_matrix)
             X_train_proc = apply_two_layer_preprocessing(prep_state, X_train_matrix)
             X_val_proc = apply_two_layer_preprocessing(prep_state, X_val_matrix)
         else:
