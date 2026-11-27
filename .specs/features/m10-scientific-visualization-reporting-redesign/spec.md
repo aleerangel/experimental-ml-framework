@@ -1,6 +1,7 @@
 # M10 — Redesenho do Subsistema de Visualização Científica e Relatórios
 
 - **Status**: Approved (`AD-033`, `AD-034`, `AD-035`, `AD-036`) — Fase TLC: **Specify**
+**Approved**: 2026-11-27 - user: "Pode"
 - **Milestone**: `M10` (`m10-scientific-visualization-reporting-redesign`)
 - **Branch**: `feat/m10-visualization-reporting`
 - **Related Validation Findings**: `VAL-BUG-006`, `VAL-QUAL-001`, `VAL-QUAL-002`, `VAL-ENH-001`

@@ -133,13 +133,13 @@ def test_m72_end_to_end_figures_and_report(tmp_path: Path) -> None:
 
 
 def test_m72_runtime_purity_xcut02() -> None:
-    """C8: Figure and report rendering run 100% without matplotlib/pillow/scipy."""
+    """C8 (M10 AD-033): Importing reporting and building PlotSpecification stay free of matplotlib/scipy/pandas; render_figure uses Agg."""
     code = (
         "import sys; "
-        "sys.modules['matplotlib'] = None; "
-        "sys.modules['PIL'] = None; "
         "sys.modules['scipy'] = None; "
+        "sys.modules['pandas'] = None; "
         "from experimental_ml.reporting import render_figure, PlotSpecification, PlotSeries, PlotType, ReportFamily, ArtifactProvenance; "
+        "assert 'matplotlib' not in sys.modules; "
         "prov = ArtifactProvenance('p1', 'figure', ReportFamily.D_PREDICTIVE_PERFORMANCE, 'e1', 'pp1', ('m1',), ('s1',), ('rmse',), ('statistics/descriptive_consolidation.json',), '2026-11-16T00:00:00Z'); "
         "ps = PlotSpecification('p1', ReportFamily.D_PREDICTIVE_PERFORMANCE, PlotType.BAR_COMPARISON, 'T', 'X', 'Y', (PlotSeries('s', ('a',), (1.0,)),), (), prov); "
         "assert render_figure(ps, 'png')[:4] == b'\\x89PNG'"

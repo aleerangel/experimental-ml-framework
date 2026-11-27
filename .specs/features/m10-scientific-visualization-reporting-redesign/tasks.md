@@ -2,6 +2,7 @@
 
 - **Feature**: `m10-scientific-visualization-reporting-redesign`
 - **Branch**: `feat/m10-visualization-reporting`
+**Approved**: 2026-11-27 - user: "Pode"
 
 ---
 
@@ -22,7 +23,7 @@ flowchart LR
 ## Execution Plan
 
 ### T1: Atualizar `pyproject.toml`, instalar `matplotlib`/`pandas` e revisar testes de `XCUT-02` (`AD-033`, `AD-034`, `AD-035`)
-- [ ] Implement & test T1
+- [x] Implement & test T1
 **Where**: `pyproject.toml`, `docs/engenharia_software/ESPECIFICACAO_REQUISITOS.md`, `tests/integration/test_mvp_audit_invariants.py`, `tests/integration/reporting/test_m71_integration.py`, `tests/integration/reporting/test_m72_integration.py`, `tests/integration/reporting/test_m73_integration.py`, `tests/integration/cli/test_run_e2e.py`
 **Depends on**: none
 **Tests**: `tests/integration/test_mvp_audit_invariants.py` valida que `matplotlib` só é importado em `features/visualization.py` e `reporting/figures.py` e `pandas` só em `reporting/tables.py` (+ `to_dataframe()`), mantendo núcleo 100% puro.
@@ -75,7 +76,7 @@ Build: none - pacote Python puro sem etapa de compilação separada; validação
 
 | Requisito | Tarefa | Teste(s) |
 | :--- | :--- | :--- |
-| M10-01 | T1 | `tests/integration/test_mvp_audit_invariants.py::test_xcut02_no_prohibited_external_dependencies` |
+| M10-01 | T1 | `tests/integration/test_mvp_audit_invariants.py::test_audit_xcut02_runtime_purity_ast` |
 | M10-02 | T4 | `tests/unit/reporting/test_reporting_figures.py::test_m10_figures_pareto_paired_parity_and_formats` |
 | M10-03 | T4 | `tests/unit/reporting/test_reporting_figures.py::test_m10_figures_pareto_paired_parity_and_formats` |
 | M10-04 | T3 | `tests/unit/features/test_exploratory_visualization.py::test_m10_exploratory_charts_matplotlib_utf8` |
@@ -91,7 +92,7 @@ Build: none - pacote Python puro sem etapa de compilação separada; validação
 **Run m10_e2e**: `.venv/bin/pytest tests/integration/reporting/test_m10_reporting_e2e.py -v`
 
 **C1** - Auditoria AST confirma revisão controlada de `XCUT-02`: `matplotlib` apenas em `visualization.py`/`figures.py` e `pandas` apenas em `tables.py` (+ `to_dataframe()`), com núcleo puro (`M10-01`)
-Proof: run m10_invariants | test_xcut02_no_prohibited_external_dependencies PASSED
+Proof: run m10_invariants | test_audit_xcut02_runtime_purity_ast PASSED
 
 **C2** - `reporting/figures.py` gera gráficos reais em `PNG`, `SVG` e `PDF` com `PARETO_TRADEOFF` em `(x, y)` numérico, `PAIRED_DIFF_CI` com `y=0`, `SCATTER_PARITY` e diagnósticos G (`M10-02`, `M10-03`)
 Proof: run m10_unit | test_m10_figures_pareto_paired_parity_and_formats PASSED
