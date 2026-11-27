@@ -3,8 +3,8 @@
 > **Documento de Registro de Estado da Engenharia**<br/>
 > **Data:** 27 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
-> **Estado Atual:** Marcos M1 a M8 Concluídos e Marco M9 Verificado (628 testes automatizados) — Aguardando Aceite M9 e Planejamento M10<br/>
-> **Próximo Marco:** Marco `M10` (Subsistema de Visualização Científica, Relatórios e Comparação Treino vs. Teste)<br/>
+> **Estado Atual:** Marcos M1 a M9 Concluídos e Marco M10 Verificado (632 testes automatizados) — Aguardando Aceite M10<br/>
+> **Próximo Marco:** Validação Contínua e Planejamento de `VAL-ENH-005` (Comparação Treino vs. Teste)<br/>
 > **Especificação de Requisitos (SRS v2.2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
 > **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)<br/>
@@ -25,7 +25,7 @@ flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
     Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(M1 a M7 Homologados — 581 testes)"]
-    Fase4 --> Fase5["Fase 5: M8 Aprovado & M9 Verificado<br/>(628 testes | Próximo: M10)"]
+    Fase4 --> Fase5["Fase 5: M8/M9 Aprovados & M10 Verificado<br/>(632 testes | Próximo: Aceite M10)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
     style Fase2 fill:#d4edda,stroke:#28a745

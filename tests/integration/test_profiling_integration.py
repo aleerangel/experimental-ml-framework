@@ -127,7 +127,7 @@ def test_architectural_import_direction_xcut_01() -> None:
 
 
 def test_single_runtime_dependency_xcut_02() -> None:
-    """XCUT-02: pyproject.toml must declare only numpy>=1.24.0 as runtime dependency."""
+    """XCUT-02 (AD-035): pyproject.toml declares only numpy, matplotlib, and pandas as runtime dependencies."""
     pyproject_path = os.path.join(os.path.dirname(__file__), "..", "..", "pyproject.toml")
     pyproject_path = os.path.abspath(pyproject_path)
 
@@ -135,8 +135,8 @@ def test_single_runtime_dependency_xcut_02() -> None:
         data = tomllib.load(f)
 
     deps = data.get("project", {}).get("dependencies", [])
-    assert len(deps) == 1, f"Expected exactly 1 runtime dependency, found {deps}"
-    assert deps[0].startswith("numpy"), f"Expected numpy runtime dependency, found {deps[0]}"
+    dep_names = {d.split(">=")[0].split("==")[0].strip().lower() for d in deps}
+    assert dep_names == {"numpy", "matplotlib", "pandas"}, f"Unexpected runtime dependencies: {deps}"
 
 
 def test_exported_symbols_count_xcut_04() -> None:

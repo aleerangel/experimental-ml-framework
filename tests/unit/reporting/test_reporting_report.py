@@ -129,17 +129,22 @@ def test_m72_02_three_sections_markdown_and_html(tmp_path: Path) -> None:
     )
 
     md = render_full_report(loaded, fmt="markdown", declarations=decl, figure_paths=("figures/fig_d.svg",))
-    assert "1. Researcher Declarations" in md
-    assert "2. Registered Computational Facts" in md
-    assert "3. Derived and Conditioned Interpretations" in md
+    assert "1. Declarações do Pesquisador" in md
+    assert "2. Fatos Computacionais Registrados" in md
+    assert "3. Interpretações Derivadas e Condicionadas" in md
+    assert "4. Glossário Estatístico" in md
     assert "Evaluate synthetic tabular generalization." in md
-    assert "figures/fig_d.svg" in md
+    assert "![Figura — figures/fig_d.svg](figures/fig_d.svg)" in md
 
     html_doc = render_full_report(loaded, fmt="html", declarations=decl, figure_paths=("figures/fig_d.svg",))
     assert "<!DOCTYPE html>" in html_doc
-    assert "1. Researcher Declarations" in html_doc
-    assert "2. Registered Computational Facts" in html_doc
-    assert "3. Derived and Conditioned Interpretations" in html_doc
+    assert '<html lang="pt-BR">' in html_doc
+    assert "1. Declarações do Pesquisador" in html_doc
+    assert "2. Fatos Computacionais Registrados" in html_doc
+    assert "3. Interpretações Derivadas e Condicionadas" in html_doc
+    assert "4. Glossário Estatístico" in html_doc
+    assert "@media print" in html_doc
+    assert '<img src="figures/fig_d.svg"' in html_doc
 
 
 def test_m72_02_html_offline_parity_and_no_hashes(tmp_path: Path) -> None:

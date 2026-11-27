@@ -176,7 +176,7 @@ As evoluções priorizadas foram organizadas em quatro marcos coesos e sequencia
 | **Problema que resolve** | Elimina os defeitos visuais e geométricos das figuras da Etapa 6 (`VAL-BUG-006`), supera as limitações da fonte bitmap 5×7 sem acentos da Etapa 2 (`VAL-QUAL-001`) e completa as Tabelas B e C e o relatório consolidado em português com glossário estatístico (`VAL-QUAL-002`, `VAL-ENH-001`). |
 | **Objetivo** | Entregar figuras (`PNG 300 DPI`, `SVG`, `PDF`) e relatórios (`report.md`, `report.html`, tabelas LaTeX/CSV/MD) com qualidade de publicação científica. |
 | **Escopo preliminar** | `features/visualization.py`, `reporting/figures.py`, `reporting/tables.py`, `reporting/report.py`, `pyproject.toml` e adição de ADR específico sobre a camada de apresentação (`XCUT-02`). |
-| **Dependências** | Aprovação pelo desenvolvedor da revisão controlada de `XCUT-02` (`AD-M10-01` e `AD-M10-02` na `spec.md` do `M10`) e conclusão de `M8`. |
+| **Dependências** | Aprovação de `AD-033`–`AD-036` e conclusão de `M8`/`M9` (já deliberadas — marco implementado e verificado em `feat/m10-visualization-reporting`, aguardando aceite). |
 | **Impacto arquitetural** | **Médio-Alto (Camada de Apresentação).** Introduz `matplotlib` na camada de renderização visual (Níveis 2-viz e 6), mantendo os módulos matemáticos e estatísticos 100% puros em Python + NumPy. |
 | **Complexidade estimada** | Média-Alta (7 a 9 tarefas atômicas TLC). |
 | **Prioridade** | **`P1`**. |

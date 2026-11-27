@@ -16,6 +16,11 @@ SRC_ROOT = REPO_ROOT / "src" / "experimental_ml"
 AUDIT_REPORT_PATH = REPO_ROOT / ".specs" / "features" / "pos-1-mega-auditoria-mvp" / "AUDIT_REPORT.md"
 
 ALLOWED_TOP_LEVEL_MODULES = set(sys.stdlib_module_names) | {"experimental_ml", "numpy"}
+MODULE_ALLOWED_EXTRAS: dict[str, set[str]] = {
+    "src/experimental_ml/features/visualization.py": {"matplotlib"},
+    "src/experimental_ml/reporting/figures.py": {"matplotlib"},
+    "src/experimental_ml/reporting/tables.py": {"pandas"},
+}
 
 
 def _collect_runtime_imports(py_file: Path) -> list[tuple[int, str]]:
@@ -96,8 +101,9 @@ def test_audit_xcut02_runtime_purity_ast() -> None:
     violations: list[str] = []
     for py_file in py_files:
         rel = py_file.relative_to(REPO_ROOT).as_posix()
+        allowed_for_file = ALLOWED_TOP_LEVEL_MODULES | MODULE_ALLOWED_EXTRAS.get(rel, set())
         for lineno, top_mod in _collect_runtime_imports(py_file):
-            if top_mod not in ALLOWED_TOP_LEVEL_MODULES:
+            if top_mod not in allowed_for_file:
                 violations.append(f"{rel}:{lineno} -> forbidden import '{top_mod}'")
 
     assert not violations, "XCUT-02 runtime purity violations:\n" + "\n".join(violations)

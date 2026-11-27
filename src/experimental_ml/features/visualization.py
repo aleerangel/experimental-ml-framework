@@ -1,6 +1,6 @@
-"""Stage 2 exploratory feature visualization: Markdown, print/PDF-ready HTML, CSVs, and labeled pure-NumPy PNGs.
+"""Stage 2 exploratory feature visualization: Markdown, print/PDF-ready HTML, CSVs, and Matplotlib PNGs.
 
-Complies with EXPLR-01..EXPLR-06, CA-E2-01, XCUT-02 (pure Python stdlib + numpy), and CLI-11.
+Complies with EXPLR-01..EXPLR-06, CA-E2-01, AD-033 (Matplotlib Agg lazy import), and CLI-11.
 """
 
 from __future__ import annotations
@@ -9,19 +9,13 @@ import csv
 import html
 import io
 import math
-import struct
-from typing import Sequence
-import unicodedata
-import zlib
+from typing import Any, Sequence
 
 import numpy as np
 
 from experimental_ml.core.enums import MetricStatus
 from experimental_ml.core.findings import ConfigurationError
 from experimental_ml.features.types import ExploratoryFeatureReport
-
-
-_DPI_300_PX_PER_METER = 11811  # round(300 / 0.0254)
 
 # Compact 5x7 bitmap font (each row is 5 bits, MSB on the left)
 _FONT_5X7: dict[str, tuple[int, ...]] = {
@@ -274,6 +268,61 @@ def _heat_color(abs_val: float) -> tuple[int, int, int]:
     return (r, g, b)
 
 
+def _prepare_target_chart_data(
+    report: ExploratoryFeatureReport,
+    top_n: int,
+) -> tuple[str, list[str], list[float], list[float], list[str]]:
+    """Pure data preparation for Stage 2 target association ranking chart."""
+    valid_entries, _ = report.ranked_target_features()
+    items = valid_entries[:top_n]
+    target_name = (
+        report.target_associations[0].target_name
+        if report.target_associations
+        else str(report.metadata.get("target_col", "alvo"))
+    )
+    labels: list[str] = []
+    mean_abs_vals: list[float] = []
+    signed_means: list[float] = []
+    annotations: list[str] = []
+    for feat_name, mean_abs, sub_items in items:
+        labels.append(feat_name)
+        mean_abs_vals.append(float(mean_abs))
+        signed_mean = sum(a.value for a in sub_items) / len(sub_items)
+        signed_means.append(float(signed_mean))
+        detail = " ".join(f"{a.metric_name[:1]}:{a.value:+.2f}" for a in sub_items)
+        annotations.append(f"{mean_abs:.3f} ({detail})")
+    return target_name, labels, mean_abs_vals, signed_means, annotations
+
+
+def _prepare_redundancy_heatmap_data(
+    report: ExploratoryFeatureReport,
+) -> tuple[list[str], np.ndarray]:
+    """Pure data preparation for Stage 2 Predictor x Predictor redundancy heatmap."""
+    features = list(report.pairwise_redundancy_matrix.keys())
+    n = len(features)
+    mat = np.full((n, n), np.nan, dtype=np.float64)
+    for i, fa in enumerate(features):
+        row = report.pairwise_redundancy_matrix.get(fa, {})
+        for j, fb in enumerate(features):
+            v = row.get(fb)
+            if v is not None and math.isfinite(v):
+                mat[i, j] = abs(float(v))
+    return features, mat
+
+
+def _fig_to_png_bytes(fig: Any) -> bytes:
+    buf = io.BytesIO()
+    fig.savefig(
+        buf,
+        format="png",
+        dpi=150,
+        bbox_inches="tight",
+        facecolor="white",
+        metadata={"Software": "experimental-ml-framework"},
+    )
+    return buf.getvalue()
+
+
 def render_exploratory_target_chart(
     report: ExploratoryFeatureReport,
     fmt: str = "png",
@@ -287,73 +336,60 @@ def render_exploratory_target_chart(
     if top_n < 1:
         raise ConfigurationError(f"top_n must be >= 1, got {top_n}")
 
-    valid_entries, _ = report.ranked_target_features()
-    items = valid_entries[:top_n]
-    target_name = (
-        report.target_associations[0].target_name
-        if report.target_associations
-        else str(report.metadata.get("target_col", "alvo"))
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
+
+    target_name, labels, mean_abs_vals, signed_means, annotations = _prepare_target_chart_data(report, top_n)
+
+    if not labels:
+        fig, ax = plt.subplots(figsize=(7.5, 2.6))
+        ax.axis("off")
+        ax.set_title(f"Ranking Único Atributo × Alvo ({target_name})", fontsize=12, fontweight="bold", loc="left")
+        ax.text(0.02, 0.5, "Nenhuma associação válida disponível.", fontsize=10, color="#6b7280", transform=ax.transAxes)
+        data = _fig_to_png_bytes(fig)
+        plt.close(fig)
+        return data
+
+    n_items = len(labels)
+    fig_h = max(3.2, 1.4 + 0.42 * n_items)
+    fig, ax = plt.subplots(figsize=(9.2, fig_h))
+    y_pos = np.arange(n_items)
+    colors = ["#2563eb" if s >= 0 else "#dc2626" for s in signed_means]
+    ax.barh(y_pos, mean_abs_vals, color=colors, height=0.62, edgecolor="#1e293b", linewidth=0.4)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+
+    max_val = max(mean_abs_vals) if mean_abs_vals else 1.0
+    x_lim = max(1.0, max_val * 1.38) if max_val <= 1.0 else max_val * 1.38
+    ax.set_xlim(0.0, x_lim)
+    ax.grid(axis="x", linestyle="--", alpha=0.35, color="#9ca3af")
+    ax.set_axisbelow(True)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    for y, val, ann in zip(y_pos, mean_abs_vals, annotations):
+        ax.text(val + x_lim * 0.015, y, ann, va="center", ha="left", fontsize=8, color="#374151")
+
+    ax.set_xlabel("Média |valor| de associação com o alvo", fontsize=9)
+    ax.set_title(
+        f"Ranking Único Atributo × Alvo ({target_name})\nEscopo: {report.scope} | Top {n_items} por Média |valor|",
+        fontsize=11,
+        fontweight="bold",
+        loc="left",
+        pad=10,
     )
-
-    max_feat_len = max((len(feat) for feat, _, _ in items), default=10)
-    left_margin = max(170, min(320, max_feat_len * 12 + 30))
-    bar_area_w = 340
-    right_margin = 340
-    width = left_margin + bar_area_w + right_margin
-    row_h = 34
-    top_pad = 86
-    height = max(210, top_pad + 36 + max(1, len(items)) * row_h)
-
-    canvas = np.full((height, width, 3), 255, dtype=np.uint8)
-    _fill_rect(canvas, 0, 0, width, 5, (37, 99, 235))
-
-    _draw_text(canvas, 22, 18, f"Ranking Unico Atributo x Alvo ({target_name})", (17, 24, 39), scale=2)
-    _draw_text(
-        canvas,
-        22,
-        42,
-        f"Escopo: {report.scope} | Top {len(items)} por Media |valor|",
-        (107, 114, 128),
-        scale=1,
-    )
-    # Legend
-    _fill_rect(canvas, 22, 58, 34, 68, (37, 99, 235))
-    _draw_text(canvas, 40, 59, "Sinal medio (+)", (55, 65, 81), scale=1)
-    _fill_rect(canvas, 165, 58, 177, 68, (220, 38, 38))
-    _draw_text(canvas, 183, 59, "Sinal medio (-)", (55, 65, 81), scale=1)
-
-    if not items:
-        _draw_text(canvas, 22, 110, "Nenhuma associacao valida disponivel.", (107, 114, 128), scale=2)
-        return _encode_rgb_png(canvas)
-
-    # Axis line & grid
-    _fill_rect(canvas, left_margin - 2, top_pad - 6, left_margin, top_pad + len(items) * row_h, (156, 163, 175))
-    max_abs = max(max(mean_abs for _, mean_abs, _ in items), 1e-9)
-    scale_max = 1.0 if max_abs <= 1.0 else max_abs
-
-    for tick in (0.25, 0.50, 0.75, 1.00):
-        tx = left_margin + int(round((tick / scale_max) * bar_area_w))
-        if tx <= left_margin + bar_area_w:
-            _fill_rect(canvas, tx, top_pad - 4, tx + 1, top_pad + len(items) * row_h, (243, 244, 246))
-            _draw_text(canvas, tx, top_pad + len(items) * row_h + 6, f"{tick:.2f}", (107, 114, 128), scale=1, align="center")
-
-    for idx, (feat_name, mean_abs, sub_items) in enumerate(items):
-        y0 = top_pad + idx * row_h
-        if idx % 2 == 1:
-            _fill_rect(canvas, 16, y0, width - 16, y0 + row_h - 2, (249, 250, 251))
-
-        _draw_text(canvas, left_margin - 10, y0 + 9, feat_name, (31, 41, 55), scale=2, align="right")
-
-        signed_mean = sum(a.value for a in sub_items) / len(sub_items)
-        bar_col = (37, 99, 235) if signed_mean >= 0 else (220, 38, 38)
-        bar_w = max(4, int(round((mean_abs / scale_max) * bar_area_w)))
-        _fill_rect(canvas, left_margin, y0 + 6, left_margin + bar_w, y0 + 26, bar_col)
-
-        detail = " ".join(f"{a.metric_name[:1]}:{a.value:+.2f}" for a in sub_items)
-        label = f"{mean_abs:.3f} ({detail})"
-        _draw_text(canvas, left_margin + bar_w + 10, y0 + 11, label, (55, 65, 81), scale=1, align="left")
-
-    return _encode_rgb_png(canvas)
+    legend_handles = [
+        Patch(facecolor="#2563eb", label="Sinal médio (+)"),
+        Patch(facecolor="#dc2626", label="Sinal médio (-)"),
+    ]
+    ax.legend(handles=legend_handles, loc="lower right", frameon=True, fontsize=8)
+    fig.tight_layout()
+    data = _fig_to_png_bytes(fig)
+    plt.close(fig)
+    return data
 
 
 def render_exploratory_redundancy_heatmap(
@@ -365,72 +401,58 @@ def render_exploratory_redundancy_heatmap(
     if fmt_norm != "png":
         raise ConfigurationError(f"Unsupported chart format '{fmt}'; only 'png' is supported.")
 
-    features = list(report.pairwise_redundancy_matrix.keys())
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    features, mat = _prepare_redundancy_heatmap_data(report)
     n = len(features)
     if n == 0:
-        canvas = np.full((180, 480, 3), 255, dtype=np.uint8)
-        _fill_rect(canvas, 0, 0, 480, 5, (37, 99, 235))
-        _draw_text(canvas, 20, 20, "Matriz de Redundancia Preditor x Preditor", (17, 24, 39), scale=2)
-        _draw_text(canvas, 20, 80, "Matriz vazia.", (107, 114, 128), scale=2)
-        return _encode_rgb_png(canvas)
+        fig, ax = plt.subplots(figsize=(6.5, 2.4))
+        ax.axis("off")
+        ax.set_title("Matriz de Redundância Preditor × Preditor", fontsize=12, fontweight="bold", loc="left")
+        ax.text(0.02, 0.5, "Matriz vazia.", fontsize=10, color="#6b7280", transform=ax.transAxes)
+        data = _fig_to_png_bytes(fig)
+        plt.close(fig)
+        return data
 
-    cell_px = 54 if n <= 8 else (42 if n <= 15 else (32 if n <= 24 else 22))
-    max_len = max(len(f) for f in features)
-    left_margin = max(130, min(260, max_len * 10 + 24))
-    top_margin = max(115, min(220, max_len * 7 + 84))
-    grid_side = n * cell_px
-    width = max(560, left_margin + grid_side + 40)
-    height = top_margin + grid_side + 60
+    side = max(4.8, min(12.0, 2.2 + 0.52 * n))
+    fig, ax = plt.subplots(figsize=(side + 1.4, side))
+    cmap = plt.get_cmap("YlOrRd").with_extremes(bad="#e5e7eb")
+    masked = np.ma.masked_invalid(mat)
+    im = ax.imshow(masked, cmap=cmap, vmin=0.0, vmax=1.0, aspect="equal")
 
-    canvas = np.full((height, width, 3), 255, dtype=np.uint8)
-    _fill_rect(canvas, 0, 0, width, 5, (37, 99, 235))
-    _draw_text(canvas, 20, 18, "Matriz de Redundancia Preditor x Preditor", (17, 24, 39), scale=2)
-    _draw_text(
-        canvas,
-        20,
-        42,
-        f"Escopo: {report.scope} | {n} x {n} preditores",
-        (107, 114, 128),
-        scale=1,
+    ax.set_xticks(np.arange(n))
+    ax.set_yticks(np.arange(n))
+    tick_fs = 9 if n <= 12 else (7.5 if n <= 24 else 6)
+    ax.set_xticklabels(features, rotation=45, ha="right", rotation_mode="anchor", fontsize=tick_fs)
+    ax.set_yticklabels(features, fontsize=tick_fs)
+
+    if n <= 20:
+        ann_fs = 8 if n <= 10 else 6.5
+        for i in range(n):
+            for j in range(n):
+                val = mat[i, j]
+                if not math.isfinite(val):
+                    txt, col = "N/A", "#4b5563"
+                else:
+                    txt = f"{val:.2f}"
+                    col = "white" if val >= 0.65 else "#111827"
+                ax.text(j, i, txt, ha="center", va="center", fontsize=ann_fs, color=col)
+
+    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("|Redundância| (0.00 a 1.00)", fontsize=8.5)
+    ax.set_title(
+        f"Matriz de Redundância Preditor × Preditor\nEscopo: {report.scope} | {n} × {n} preditores",
+        fontsize=11,
+        fontweight="bold",
+        loc="left",
+        pad=12,
     )
-
-    # Color bar legend
-    _draw_text(canvas, 20, 62, "0.00", (75, 85, 99), scale=1)
-    for k in range(120):
-        c = _heat_color(k / 119.0)
-        _fill_rect(canvas, 54 + k, 59, 55 + k, 71, c)
-    _draw_text(canvas, 182, 62, "1.00 (alta redundancia)", (75, 85, 99), scale=1)
-
-    # Vertical column headers
-    for j, feat in enumerate(features):
-        cx = left_margin + j * cell_px + cell_px // 2
-        _draw_text_vertical(canvas, cx, top_margin - 8, feat, (31, 41, 55), scale=1)
-
-    # Rows + cells
-    for i, fa in enumerate(features):
-        ry = top_margin + i * cell_px
-        _draw_text(canvas, left_margin - 8, ry + cell_px // 2 - 4, fa, (31, 41, 55), scale=1, align="right")
-        row = report.pairwise_redundancy_matrix.get(fa, {})
-        for j, fb in enumerate(features):
-            cx = left_margin + j * cell_px
-            v = row.get(fb)
-            if v is None or not math.isfinite(v):
-                col = (229, 231, 235)
-                txt = "N/A"
-                txt_col = (75, 85, 99)
-            elif fa == fb:
-                col = (241, 245, 249)
-                txt = f"{v:.2f}"
-                txt_col = (100, 116, 139)
-            else:
-                col = _heat_color(abs(v))
-                txt = f"{v:.2f}"
-                txt_col = (255, 255, 255) if abs(v) >= 0.65 else (17, 24, 39)
-            _fill_rect(canvas, cx + 1, ry + 1, cx + cell_px - 1, ry + cell_px - 1, col)
-            if cell_px >= 32:
-                _draw_text(canvas, cx + cell_px // 2, ry + cell_px // 2 - 4, txt, txt_col, scale=1, align="center")
-
-    return _encode_rgb_png(canvas)
+    fig.tight_layout()
+    data = _fig_to_png_bytes(fig)
+    plt.close(fig)
+    return data
 
 
 def render_exploratory_target_csv(report: ExploratoryFeatureReport) -> str:
