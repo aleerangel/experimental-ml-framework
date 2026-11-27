@@ -134,3 +134,39 @@ def test_exploratory_png_charts_labeled_and_no_svg() -> None:
         render_exploratory_target_chart(report, fmt="svg")
     with pytest.raises(ConfigurationError):
         render_exploratory_redundancy_heatmap(report, fmt="svg")
+
+
+def test_m10_exploratory_charts_matplotlib_utf8() -> None:
+    """C3 (M10): Stage 2 charts use Matplotlib Agg, preserve Portuguese UTF-8 accents, and handle long feature names."""
+    from experimental_ml.features.visualization import _prepare_target_chart_data, _prepare_redundancy_heatmap_data
+
+    long_name = "razão_média_de_atenuação_biométrica_longa_35chars"
+    report = ExploratoryFeatureReport(
+        scope=SCOPE_EXPLORATORY_FULL_DATA,
+        dataset_hash="b" * 64,
+        task_type=TaskType.REGRESSION,
+        target_associations=(
+            AssociationMeasure(long_name, "alvo_saúde", "PEARSON", 0.78, MetricStatus.VALID),
+            AssociationMeasure("pressão_sistólica", "alvo_saúde", "PEARSON", -0.42, MetricStatus.VALID),
+        ),
+        pairwise_redundancy_matrix={
+            long_name: {long_name: 1.0, "pressão_sistólica": 0.35},
+            "pressão_sistólica": {long_name: 0.35, "pressão_sistólica": 1.0},
+        },
+        high_redundancy_pairs=(),
+        warnings=("Aviso metodológico de teste",),
+    )
+
+    t_name, labels, vals, _, _ = _prepare_target_chart_data(report, top_n=10)
+    assert t_name == "alvo_saúde"
+    assert labels[0] == long_name
+    assert vals[0] == pytest.approx(0.78)
+
+    feats, mat = _prepare_redundancy_heatmap_data(report)
+    assert feats == [long_name, "pressão_sistólica"]
+    assert mat.shape == (2, 2)
+
+    png_bar = render_exploratory_target_chart(report, fmt="png")
+    png_hm = render_exploratory_redundancy_heatmap(report, fmt="png")
+    assert png_bar.startswith(b"\x89PNG\r\n\x1a\n")
+    assert png_hm.startswith(b"\x89PNG\r\n\x1a\n")

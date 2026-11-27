@@ -37,7 +37,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/reporting/ -q`
 
 ### T3: Migrar gráficos exploratórios da Etapa 2 para Matplotlib (`Agg`) (`M10-04`, `VAL-QUAL-001`)
-- [ ] Implement & test T3
+- [x] Implement & test T3
 **Where**: `src/experimental_ml/features/visualization.py`, `tests/unit/features/test_exploratory_visualization.py`
 **Depends on**: T1
 **Tests**: Testes verificando separação preparação→renderização, assinatura PNG válida, preservação de UTF-8 com acentos em português e ausência de truncamento com nomes de atributos longos.
