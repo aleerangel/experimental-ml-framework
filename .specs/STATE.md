@@ -293,15 +293,46 @@
 - **Date**: 2026-11-27
 - **Status**: active
 
+### AD-033: `matplotlib>=3.7` na camada de renderização gráfica (`M10`)
+- **Decision**: Autorizar `matplotlib>=3.7` (backend headless `Agg` via lazy import) exclusivamente na camada de renderização visual (`src/experimental_ml/features/visualization.py` e `src/experimental_ml/reporting/figures.py`), mantendo todo o núcleo científico e estatístico (`core`, `metrics`, `data`, `features/{stats,selection}`, `models`, `tuning`, `validation`, `orchestration`, `statistics`) 100% restrito a Python stdlib + NumPy.
+- **Reason**: Substituir rasterizadores bitmap manuais e streams PDF/SVG crus por gráficos de qualidade científica com UTF-8, ticks, legendas e coordenadas 2D reais (`VAL-BUG-006`, `VAL-QUAL-001`, `VAL-ENH-001`).
+- **Trade-off**: Revisão controlada da invariante `XCUT-02` e dos testes de auditoria AST (`test_mvp_audit_invariants.py`, `test_m71..m73`, `test_run_e2e.py`) para permitir `matplotlib` apenas nesses módulos de borda.
+- **Scope**: `src/experimental_ml/features/visualization.py`, `src/experimental_ml/reporting/figures.py`, testes de invariantes.
+- **Date**: 2026-11-27
+- **Status**: active
+
+### AD-034: `pandas>=2.0` restrito à preparação tabular de `reporting/tables` (`M10`)
+- **Decision**: Manter todas as entidades de domínio e contratos entre camadas centrais (`LoadedExperimentData`, `TableModel`, `PlotSpecification`, `DescriptiveConsolidation`) 100% independentes de `pandas`, permitindo `pandas` exclusivamente dentro de `reporting/tables.py` (via lazy import) para organização, junção, ordenação, agregação de diagnósticos por fold e preparação tabular, além de utilitário opcional `to_dataframe()` na borda.
+- **Reason**: Ganhar expressividade e robustez na montagem das Tabelas A–G sem acoplar o núcleo experimental a `DataFrame`.
+- **Trade-off**: Nenhum `pd.DataFrame` pode vazar nas assinaturas públicas do domínio.
+- **Scope**: `src/experimental_ml/reporting/tables.py`, `src/experimental_ml/pipeline.py` (opcional `to_dataframe()`).
+- **Date**: 2026-11-27
+- **Status**: active
+
+### AD-035: `matplotlib>=3.7` e `pandas>=2.0` como dependências obrigatórias em `pyproject.toml` (`M10`)
+- **Decision**: Adicionar `matplotlib>=3.7.0` e `pandas>=2.0.0` em `project.dependencies` no `pyproject.toml`, mantendo imports tardios (lazy imports) para preservar o tempo de startup da CLI (`CLI-10`).
+- **Reason**: Evitar duplicação de código de fallback em NumPy puro e garantir funcionamento out-of-the-box em `expml features explore`, `expml report` e `run_experiment`.
+- **Trade-off**: Instalação padrão passa a incluir `matplotlib` e `pandas`.
+- **Scope**: `pyproject.toml`, `docs/engenharia_software/ESPECIFICACAO_REQUISITOS.md` (`XCUT-02`).
+- **Date**: 2026-11-27
+- **Status**: active
+
+### AD-036: Relatório consolidado em `pt-BR` com glossário estatístico e `VAL-ENH-005` adiado (`M10`)
+- **Decision**: Padronizar `report.md` e `report.html` em português (`pt-BR`) com figuras embutidas por seção e glossário estatístico completo (`VAL-QUAL-002`); manter `VAL-ENH-005` (erro de treino `train_metrics` e comparação Treino vs. Teste) fora do escopo do `M10` para marco dedicado posterior.
+- **Reason**: Alinhar idioma e qualidade documental ao restante do framework e focar `M10` integralmente em visualização científica e relatórios.
+- **Trade-off**: Diagnóstico Treino vs. Teste permanece registrado em `VAL-ENH-005` para o próximo marco.
+- **Scope**: `src/experimental_ml/reporting/report.py`, `src/experimental_ml/pipeline.py`, `.specs/features/m10-scientific-visualization-reporting-redesign/`.
+- **Date**: 2026-11-27
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: Marco `M9` (`m9-intra-fold-imputation-encoding-holdout`) Implementado e Verificado (`PASS`)
-- **Phase / Task**: `M9` concluído (`T1`–`T6`, `628 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`. Próximo marco: `M10`.
+- **Feature**: Marco `M10` (`m10-scientific-visualization-reporting-redesign`) em fase `Specify/Design/Tasks`
+- **Phase / Task**: `M9` mergeado em `main` (`e372b22`); branch `feat/m10-visualization-reporting` criada e decisões `AD-033`–`AD-036` registradas.
 - **Completed**:
-  - `M8` (`T1`–`T7`) implementado, provado (`proofs.md`), verificado (`verification.md: PASS`), aprovado (`RESULTS.md: APROVADO`) e integrado em `main` (`0b77fd1`).
-  - `M9` (`T1`–`T6`) implementado (`fa7623c`, `04d17ad`, `4a2ae0a`, `94ace9a`, `f53d17d`, `31fefba`), provado (`proofs.md`) e verificado pelo Verificador Independente (`verification.md: PASS`, `C1`–`C4`), com `628 passed in 17.68s`.
-  - `VAL-BUG-001`, `VAL-BUG-008`, `VAL-ENH-002` e `VAL-ENH-003` atualizados para `VERIFICADO (M9)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
-- **In-progress**: Homologação/aceite do `M9` (`ACCEPTANCE.md`) pelo desenvolvedor e preparação do `M10`.
-- **Next step**: Push da branch `feat/m9-intra-fold-holdout`, aceite/merge do `M9` em `main` e início do Marco `M10` (subsistema de visualização científica + `VAL-ENH-005`).
+  - `M8` (`0b77fd1`) e `M9` (`e372b22`) integrados em `main`.
+  - Auditoria técnica de `reporting/`, `features/visualization.py` e `pyproject.toml` concluída.
+- **In-progress**: Elaboração e validação de `spec.md`, `design.md` e `tasks.md` do `M10`.
+- **Next step**: Validar `spec.md`, escrever `design.md` e `tasks.md` do `M10` e submeter `tasks.md` para aprovação antes de iniciar `T1`.
 - **Blockers**: none
-- **Branch**: feat/m9-intra-fold-holdout
+- **Branch**: feat/m10-visualization-reporting
