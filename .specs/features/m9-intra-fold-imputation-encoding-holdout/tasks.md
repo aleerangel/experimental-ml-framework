@@ -64,7 +64,7 @@ T5 (FINAL_HOLDOUT em matrix.py, execution.py, oof.py, stage_gates.py) --> T6 (ho
 **Gate**: `.venv/bin/pytest tests/unit/models/test_preprocessing_encoders.py -v`
 
 ### T3: Registrar `IMPUTER`, `ORDINAL_ENCODER` e `FREQUENCY_ENCODER` em `models/preprocessing/pipeline.py`
-- [ ] Implement & test T3
+- [x] Implement & test T3
 **Where**: `src/experimental_ml/models/preprocessing/pipeline.py`, `tests/unit/models/test_preprocessing_fit.py`
 **Depends on**: T1, T2
 **Tests**: Testes de `fit_two_layer_preprocessing` + `apply_two_layer_preprocessing` com Camada 1 (`ORDINAL_ENCODER` + `IMPUTER`) e Camada 2 (`STANDARD_SCALER`) sobre matrizes contendo texto e `NaN`, mantendo rejeição de `NaN` quando não há `IMPUTER`.

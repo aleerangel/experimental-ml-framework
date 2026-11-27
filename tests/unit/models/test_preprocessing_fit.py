@@ -66,3 +66,40 @@ def test_m42_03_03_fit_two_layer_preprocessing_invalid_inputs() -> None:
     # Non-finite values
     with pytest.raises(ContractViolationError, match="contains non-finite values"):
         fit_two_layer_preprocessing(spec, np.array([[1.0, float("nan")], [2.0, 3.0]]))
+
+
+def test_two_layer_pipeline_with_encoder_imputer_and_scaler() -> None:
+    """M9-01..03: Layer 1 ORDINAL_ENCODER + IMPUTER handles object/NaN inputs before Layer 2 scaler."""
+    from experimental_ml.models.preprocessing import (
+        PreprocessingStepSpec,
+        TwoLayerPreprocessingSpec,
+        apply_two_layer_preprocessing,
+    )
+
+    spec = TwoLayerPreprocessingSpec(
+        layer1_steps=(
+            PreprocessingStepSpec(step_id="enc", transformer_type="ORDINAL_ENCODER"),
+            PreprocessingStepSpec(step_id="imp", transformer_type="IMPUTER", parameters={"strategy": "MEDIAN"}),
+        ),
+        layer2_steps=(
+            PreprocessingStepSpec(step_id="scl", transformer_type="STANDARD"),
+        ),
+    )
+    X_tr = np.array(
+        [
+            [1.0, "a"],
+            [np.nan, "b"],
+            [3.0, None],
+            [5.0, "a"],
+        ],
+        dtype=object,
+    )
+    X_va = np.array([[np.nan, "unseen"]], dtype=object)
+
+    state = fit_two_layer_preprocessing(spec, X_tr)
+    tr_out = apply_two_layer_preprocessing(state, X_tr)
+    va_out = apply_two_layer_preprocessing(state, X_va)
+
+    assert tr_out.dtype == np.float64
+    assert np.all(np.isfinite(tr_out))
+    assert np.all(np.isfinite(va_out))
