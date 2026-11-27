@@ -57,7 +57,7 @@ T5 (FINAL_HOLDOUT em matrix.py, execution.py, oof.py, stage_gates.py) --> T6 (ho
 **Gate**: `.venv/bin/pytest tests/unit/models/test_preprocessing_imputers.py -v`
 
 ### T2: Implementar `OrdinalCategoryEncoder` e `FrequencyCategoryEncoder` 1:1 (`models/preprocessing/encoders.py`)
-- [ ] Implement & test T2
+- [x] Implement & test T2
 **Where**: `src/experimental_ml/models/preprocessing/encoders.py`, `src/experimental_ml/models/preprocessing/__init__.py`, `tests/unit/models/test_preprocessing_encoders.py`
 **Depends on**: none
 **Tests**: Testes unitários para `ORDINAL_ENCODER` (`-1.0` para categorias inéditas) e `FREQUENCY_ENCODER` (`0.0` para inéditas), preservando `NaN` para imputação posterior e mantendo dimensionalidade 1:1.
