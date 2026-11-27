@@ -116,8 +116,8 @@ O processo de aceite integra-se às fases do TLC:
 | **Pós-MVP (`EXPL-01..06`)** | `exploratory-features-visualization` | Concluída | 609/609 Aprovados | Sucedida por `AD-026` | Sucedida por `exploratory-visual-redesign` | **Substituído (`AD-026`)** |
 | **Pós-MVP (`EXPLR-01..06`)** | `exploratory-visual-redesign` | Concluída | 610/610 Aprovados | Aprovado (`PASS`) | Executada e verificada | **Aprovado** |
 | **Pós-MVP (`DIAG-01..03`)** | `sklearn-ensemble-diagnostics` | Concluída | 611/611 Aprovados | Aprovado (`PASS`) | Executada e verificada | **Aprovado** |
-| **Estabilização do MVP (`M8`)** | `m8-mvp-stabilization-contract-alignment` | Planejada (`Specify`) | — | — | Roteiro em `ACCEPTANCE.md` | **Pendente** |
+| **Estabilização do MVP (`M8`)** | `m8-mvp-stabilization-contract-alignment` | Concluída | 620/620 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **Intra-Fold e Holdout Final (`M9`)** | `m9-intra-fold-imputation-encoding-holdout` | Planejada (`Specify`) | — | — | Roteiro preliminar em `ACCEPTANCE.md` | **Pendente** |
 | **Visualização Científica e Relatórios (`M10`)** | `m10-scientific-visualization-reporting-redesign` | Planejada (`Specify`) | — | — | Roteiro preliminar em `ACCEPTANCE.md` | **Pendente** |
-| **Validação Contínua e Externa (`TA-POS.4` / `CA02`)** | [`PLANO_DE_VALIDACAO_DO_MVP.md`](./PLANO_DE_VALIDACAO_DO_MVP.md) / [`REGISTRO_DE_VALIDACAO_DO_MVP.md`](./REGISTRO_DE_VALIDACAO_DO_MVP.md) | Em andamento (Pesquisador) | 611/611 base | — | Em execução contínua em dados reais | **Em Validação** |
+| **Validação Contínua e Externa (`TA-POS.4` / `CA02`)** | [`PLANO_DE_VALIDACAO_DO_MVP.md`](./PLANO_DE_VALIDACAO_DO_MVP.md) / [`REGISTRO_DE_VALIDACAO_DO_MVP.md`](./REGISTRO_DE_VALIDACAO_DO_MVP.md) | Em andamento (Pesquisador) | 620/620 base | — | Em execução contínua em dados reais | **Em Validação** |
 

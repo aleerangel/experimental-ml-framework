@@ -2,8 +2,8 @@
 
 - **Marco:** `M8` (`m8-mvp-stabilization-contract-alignment`)
 - **Branch:** `feat/m8-stabilization`
-- **Status:** `VERIFICADO (PASS)` — Aguardando execução de `ACCEPTANCE.md` e homologação final pelo desenvolvedor
-- **Decisão:** `PENDENTE HOMOLOGAÇÃO DO DESENVOLVEDOR`
+- **Status:** `APROVADO` (Verificado com `PASS` e homologado pelo desenvolvedor em 2026-11-27)
+- **Decisão:** `APROVADO`
 
 ---
 

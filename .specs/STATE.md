@@ -271,13 +271,12 @@
 
 ## Handoff
 
-- **Feature**: Auditoria Geral, Validação Contínua do MVP e Planejamento de Evolução (`M8`, `M9`, `M10`)
-- **Phase / Task**: Auditoria documental/técnica commitada (`de37448`); decisões `D1` (`AD-028`) e `D2` (`AD-029`) registradas para o Marco `M8` (sem iniciar implementação).
+- **Feature**: Marco `M8` (`m8-mvp-stabilization-contract-alignment`) Concluído e Aprovado
+- **Phase / Task**: `M8` concluído (`620 passed`, `verification.md: PASS`). Próximos marcos em planejamento (`Specify`): `M9` e `M10`.
 - **Completed**:
-  - `sklearn-ensemble-diagnostics` implementada, provada (`proofs.md`) e verificada (`verification.md: PASS`, 611 testes).
-  - Documentos centrais de governança criados em `docs/engenharia_software/`: `AUDITORIA_TECNICA_DO_MVP.md`, `PLANO_DE_VALIDACAO_DO_MVP.md`, `REGISTRO_DE_VALIDACAO_DO_MVP.md` e `ROADMAP_EVOLUCAO.md`.
-  - Especificações preliminares TLC (`Specify` — Draft) criadas para `M8`, `M9` e `M10`; decisões `D1` e `D2` formalizadas em `AD-028`, `AD-029` e `M8/spec.md`.
+  - `M8` (`T1`–`T7`) implementado, provado (`proofs.md`), verificado (`verification.md: PASS`) e aprovado (`RESULTS.md: APROVADO`).
+  - `VAL-ENH-005` (comparação e visualização Treino vs. Teste) registrado em `REGISTRO_DE_VALIDACAO_DO_MVP.md` e alocado no `ROADMAP_EVOLUCAO.md` para `M10`.
 - **In-progress**: Validação contínua do MVP pelo desenvolvedor.
-- **Next step**: Autorização explícita do desenvolvedor para iniciar `M8` (`Design -> Tasks -> Execute`) ou decisões sobre `M9`/`M10`.
+- **Next step**: Deliberação sobre as decisões abertas do Marco `M9` (imputação/codificação intra-fold + `FINAL_HOLDOUT`) ou do Marco `M10` (subsistema de visualização científica + `VAL-ENH-005`).
 - **Blockers**: none
 - **Branch**: main
