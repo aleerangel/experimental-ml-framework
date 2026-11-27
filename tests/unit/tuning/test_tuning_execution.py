@@ -211,3 +211,59 @@ def test_aud_m4_03_run_nested_tuning_with_preprocessing_anti_leakage() -> None:
     assert result.best_score > 0.0
     assert all(t.status.value == "VALID" for t in result.trials)
 
+
+def test_nested_tuning_dynamic_selection_isolated_per_inner_fold(monkeypatch: pytest.MonkeyPatch) -> None:
+    """C3 (M8-04, AD-028): select_features_in_fold runs strictly on inner_train per sub-fold during Nested CV."""
+    from experimental_ml.core.types import ScenarioId
+    from experimental_ml.features.scenarios import FeatureScenario, ScenarioMode
+    import experimental_ml.features.selection as sel_mod
+
+    rng = np.random.default_rng(77)
+    n = 30
+    x_sig = rng.normal(size=n)
+    x_noise = rng.normal(size=n)
+    y = 3.0 * x_sig + 0.05 * rng.normal(size=n)
+    X_cand = {"x_sig": x_sig, "x_noise": x_noise}
+    X_mat = np.column_stack([x_sig, x_noise])
+
+    scenario = FeatureScenario(
+        scenario_id=ScenarioId("sc_dyn"),
+        name="Dynamic Top 1",
+        description="Dynamic top 1",
+        scientific_justification="Test ADR-003",
+        mode=ScenarioMode.DYNAMIC,
+        strategy_name="TOP_K_RELEVANCE",
+        strategy_params={"k": 1},
+    )
+
+    observed_train_sizes: list[int] = []
+    orig_select = sel_mod.select_features_in_fold
+
+    def _spy_select(X_train, y_train, scenario, random_state=42):
+        observed_train_sizes.append(len(y_train))
+        return orig_select(X_train=X_train, y_train=y_train, scenario=scenario, random_state=random_state)
+
+    monkeypatch.setattr(sel_mod, "select_features_in_fold", _spy_select)
+
+    spec = _make_dummy_model_spec()
+    tuning_spec = HyperparameterSearchSpec(
+        search_strategy=SearchStrategy.GRID_SEARCH,
+        param_grid={"alpha": (0.1, 1.0)},
+        optimization_metric="rmse",
+        direction=MetricDirection.MINIMIZE,
+        inner_cv_folds=3,
+    )
+    res = run_nested_tuning(
+        tuning_spec,
+        spec,
+        X_mat,
+        y,
+        seed=42,
+        X_train_cand=X_cand,
+        scenario=scenario,
+    )
+    assert len(res.trials) == 2
+    # 2 candidates * 3 inner folds = 6 inner selections, each strictly on 20 samples (< 30 outer samples)
+    assert len(observed_train_sizes) == 6
+    assert all(sz == 20 for sz in observed_train_sizes)
+

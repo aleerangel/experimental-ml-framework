@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import csv
 import io
 import math
@@ -103,11 +104,44 @@ def build_table_model(
         )
         rows: list[dict[str, Any]] = []
         if loaded_data.dataset_profile:
-            for k in sorted(loaded_data.dataset_profile.keys()):
+            dp = loaded_data.dataset_profile
+            seen_attrs: set[str] = set()
+
+            def _add_attr(attr_name: str, attr_val: Any) -> None:
+                if attr_name not in seen_attrs and not _is_technical_hash_field(attr_name):
+                    seen_attrs.add(attr_name)
+                    rows.append({"attribute": attr_name, "value": attr_val})
+
+            for k in sorted(dp.keys()):
                 if not _is_technical_hash_field(k):
-                    v = loaded_data.dataset_profile[k]
+                    v = dp[k]
                     if isinstance(v, (str, int, float, bool)) or v is None:
-                        rows.append({"attribute": k, "value": v})
+                        _add_attr(k, v)
+            summary_dict = dp.get("summary")
+            if isinstance(summary_dict, (dict, Mapping)):
+                for k in sorted(summary_dict.keys()):
+                    v = summary_dict[k]
+                    if isinstance(v, (str, int, float, bool)) or v is None:
+                        _add_attr(k, v)
+            columns_dict = dp.get("columns")
+            if isinstance(columns_dict, (dict, Mapping)):
+                _add_attr("n_columns_profiled", len(columns_dict))
+            dup_dict = dp.get("duplicate_rows")
+            if isinstance(dup_dict, (dict, Mapping)) and "n_duplicate_rows" in dup_dict:
+                _add_attr("n_duplicate_rows", dup_dict["n_duplicate_rows"])
+            target_dict = dp.get("target")
+            if isinstance(target_dict, (dict, Mapping)):
+                if "column_name" in target_dict:
+                    _add_attr("target_column", target_dict["column_name"])
+                if "task_type" in target_dict:
+                    _add_attr("task_type", target_dict["task_type"])
+            findings_list = dp.get("findings")
+            if isinstance(findings_list, (list, tuple)):
+                _add_attr("n_findings", len(findings_list))
+            groups_dict = dp.get("groups")
+            if isinstance(groups_dict, (dict, Mapping)) and "n_groups" in groups_dict:
+                _add_attr("n_groups", groups_dict["n_groups"])
+
         prov = _make_provenance("tbl_family_a", family, loaded_data, sel, ("data/dataset_profile.json",))
         return TableModel("tbl_family_a", family, "Data Characterization", "Dataset structural summary", cols, tuple(rows), (), prov)
 
@@ -247,7 +281,39 @@ def build_table_model(
             TableColumn("summary", "Summary", ColumnAlignment.LEFT),
         )
         rows = []
-        if loaded_data.models_catalog:
+        source_paths: list[str] = []
+        if loaded_data.cell_diagnostics:
+            grouped: dict[tuple[str, str, str], list[Any]] = {}
+            for entry in loaded_data.cell_diagnostics:
+                m_id = str(entry.get("model_id", ""))
+                sc_id = str(entry.get("scenario_id", ""))
+                if sel.model_ids and m_id not in sel.model_ids:
+                    continue
+                if sel.scenario_ids and sc_id not in sel.scenario_ids:
+                    continue
+                diags = entry.get("diagnostics", {})
+                if not isinstance(diags, (dict, Mapping)):
+                    continue
+                for k in sorted(diags.keys()):
+                    if _is_technical_hash_field(k) or diags[k] is None or k == "model_family":
+                        continue
+                    val = diags[k]
+                    if isinstance(val, (dict, Mapping)) and not val:
+                        continue
+                    grouped.setdefault((m_id, sc_id, str(k)), []).append(val)
+            for (m_id, sc_id, k), vals in sorted(grouped.items()):
+                first_val = vals[0]
+                if isinstance(first_val, (int, float)) and not isinstance(first_val, bool):
+                    mean_val = sum(float(v) for v in vals) / len(vals)
+                    summary_str = f"{sc_id}: mean={mean_val:.6g} (n={len(vals)})"
+                elif isinstance(first_val, (list, tuple)):
+                    summary_str = f"{sc_id}: len={len(first_val)}, sample={first_val[:5]}"
+                else:
+                    summary_str = f"{sc_id}: {first_val}"
+                rows.append({"model_id": m_id, "artifact_key": k, "summary": summary_str})
+            if rows:
+                source_paths.append("runs/cells")
+        elif loaded_data.models_catalog:
             for m in loaded_data.models_catalog.get("models", ()):
                 m_id = str(m.get("model_id", ""))
                 if sel.model_ids and m_id not in sel.model_ids:
@@ -255,7 +321,10 @@ def build_table_model(
                 for k in sorted(m.get("diagnostics", {}).keys()):
                     if not _is_technical_hash_field(k):
                         rows.append({"model_id": m_id, "artifact_key": k, "summary": str(m["diagnostics"][k])})
-        prov = _make_provenance("tbl_family_g", family, loaded_data, sel, ("configuration/models.json",))
+            source_paths.append("configuration/models.json")
+        if not source_paths:
+            source_paths.append("configuration/models.json")
+        prov = _make_provenance("tbl_family_g", family, loaded_data, sel, tuple(source_paths))
         notes = ("No model-specific adapter diagnostics exported.",) if not rows else ()
         return TableModel("tbl_family_g", family, "Model-Specific Artifacts", "Adapter-specific model diagnostics", cols, tuple(rows), notes, prov)
 

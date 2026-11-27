@@ -43,6 +43,11 @@ def run_nested_tuning(
     X_train: np.ndarray,
     y_train: np.ndarray,
     seed: int | None = None,
+    *,
+    X_train_cand: Any = None,
+    scenario: Any = None,
+    partition_strategy: str | None = None,
+    groups: np.ndarray | None = None,
 ) -> TuningResult:
     """Execute nested cross-validation hyperparameter search within outer training partition.
 
@@ -111,6 +116,9 @@ def run_nested_tuning(
         n_samples=n_samples_x,
         n_folds=spec.inner_cv_folds,
         seed=effective_seed,
+        y=y_train,
+        groups=groups,
+        strategy=partition_strategy,
     )
 
     metric_id = spec.optimization_metric.strip().lower()
@@ -136,8 +144,63 @@ def run_nested_tuning(
             )
 
             try:
-                # Intra-fold preprocessing without evaluation data leakage (AUD-M4-03, RF3.4, CA-E4B-01)
-                if model_spec.preprocessing is not None:
+                # Intra-fold preprocessing and optional dynamic feature selection (ADR-003, AD-028, AUD-M4-03)
+                if (
+                    scenario is not None
+                    and getattr(getattr(scenario, "mode", None), "value", scenario.mode) == "DYNAMIC"
+                    and X_train_cand is not None
+                ):
+                    from experimental_ml.features.selection import (
+                        apply_feature_selection,
+                        select_features_in_fold,
+                    )
+                    from experimental_ml.models.preprocessing.pipeline import (
+                        apply_two_layer_preprocessing,
+                        fit_two_layer_preprocessing,
+                    )
+                    from experimental_ml.models.preprocessing.types import TwoLayerPreprocessingSpec
+
+                    cand_cols = list(X_train_cand.keys())
+                    X_in_train_cand = {col: np.asarray(X_train_cand[col])[inner_train_idx] for col in cand_cols}
+                    X_in_val_cand = {col: np.asarray(X_train_cand[col])[inner_val_idx] for col in cand_cols}
+
+                    if model_spec.preprocessing is not None and model_spec.preprocessing.layer1_steps:
+                        l1_spec = TwoLayerPreprocessingSpec(
+                            layer1_steps=model_spec.preprocessing.layer1_steps,
+                            layer2_steps=(),
+                        )
+                        l1_in_mat = np.column_stack([X_in_train_cand[c] for c in cand_cols])
+                        l1_val_mat = np.column_stack([X_in_val_cand[c] for c in cand_cols])
+                        l1_state = fit_two_layer_preprocessing(l1_spec, l1_in_mat)
+                        l1_in_trans = apply_two_layer_preprocessing(l1_state, l1_in_mat)
+                        l1_val_trans = apply_two_layer_preprocessing(l1_state, l1_val_mat)
+                        X_in_train_cand = {c: l1_in_trans[:, i] for i, c in enumerate(cand_cols)}
+                        X_in_val_cand = {c: l1_val_trans[:, i] for i, c in enumerate(cand_cols)}
+
+                    in_sel = select_features_in_fold(
+                        X_train=X_in_train_cand,
+                        y_train=y_in_train,
+                        scenario=scenario,
+                        random_state=fold_seed if fold_seed is not None else 42,
+                    )
+                    sel_cols = tuple(in_sel.selected_features)
+                    X_in_train_sel = apply_feature_selection(X_in_train_cand, in_sel)
+                    X_in_val_sel = apply_feature_selection(X_in_val_cand, in_sel)
+                    X_in_train_sub = np.column_stack([X_in_train_sel[c] for c in sel_cols])
+                    X_in_val_sub = np.column_stack([X_in_val_sel[c] for c in sel_cols])
+
+                    if model_spec.preprocessing is not None and model_spec.preprocessing.layer2_steps:
+                        l2_spec = TwoLayerPreprocessingSpec(
+                            layer1_steps=(),
+                            layer2_steps=model_spec.preprocessing.layer2_steps,
+                        )
+                        l2_state = fit_two_layer_preprocessing(l2_spec, X_in_train_sub)
+                        X_in_train_trans = apply_two_layer_preprocessing(l2_state, X_in_train_sub)
+                        X_in_val_trans = apply_two_layer_preprocessing(l2_state, X_in_val_sub)
+                    else:
+                        X_in_train_trans = X_in_train_sub
+                        X_in_val_trans = X_in_val_sub
+                elif model_spec.preprocessing is not None:
                     from experimental_ml.models.preprocessing.pipeline import (
                         apply_two_layer_preprocessing,
                         fit_two_layer_preprocessing,

@@ -129,7 +129,7 @@ def test_m53_04_04_missing_cell_artifact_raises(tmp_path: Path) -> None:
 
     # Delete prediction file
     cid = "cell_ridge__sc1__fold_0"
-    pred_file = tmp_path / "predictions" / f"pred_{cid}.json"
+    pred_file = tmp_path / "predictions" / f"pred_{cid.removeprefix('cell_')}.json"
     pred_file.unlink()
 
     with pytest.raises(DataIntegrityError, match="Missing prediction artifact"):

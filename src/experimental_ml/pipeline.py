@@ -54,7 +54,11 @@ from experimental_ml.statistics import (
     ComparisonScope,
     ComparisonSpec,
     DescriptiveConsolidation,
+    MultiObjectiveSpec,
+    ObjectiveSource,
+    ObjectiveSpec,
     StructuredConclusion,
+    compute_pareto_frontier,
     consolidate_descriptive,
     evaluate_method_suitability,
     run_statistical_comparisons,
@@ -149,7 +153,14 @@ def _coerce_model_specs(
             elif hasattr(item, "predict"):
                 def _make_inst_factory(_inst: Any, _mid: str) -> Any:
                     def _factory(seed: int | None = None) -> Any:
-                        return copy.deepcopy(_inst)
+                        cloned = copy.deepcopy(_inst)
+                        if seed is not None and hasattr(cloned, "random_state") and getattr(cloned, "random_state") is None:
+                            try:
+                                cloned.random_state = seed
+                            except Exception:
+                                if hasattr(cloned, "set_params"):
+                                    cloned.set_params(random_state=seed)
+                        return cloned
                     cls = type(_inst)
                     mod = getattr(cls, "__module__", "")
                     qn = getattr(cls, "__qualname__", "")
@@ -320,10 +331,27 @@ def run_experiment(
     )
 
     # 5. Estatística (Etapa 5)
+    from experimental_ml.orchestration import consolidate_matrix_oof
+
+    oof_map = consolidate_matrix_oof(
+        run_dir,
+        task_type=resolved_schema.task_type,
+        target_observation_ids=view.observation_ids,
+        overwrite=force,
+    )
+    oof_records = list(oof_map.values())
     cells = [load_cell_artifacts(cid, run_dir)[0] for cid in run_state.cell_statuses]
+
+    n_total_candidates_per_config = {
+        (str(m.model_id), str(s.scenario_id)): len(view.candidate_feature_cols)
+        for m in model_specs
+        for s in scenarios_cat.scenarios
+    }
     cons = consolidate_descriptive(
         cells,
         total_folds_per_config=len(part_plan.folds),
+        n_total_candidates_per_config=n_total_candidates_per_config,
+        oof_predictions=oof_records or None,
         experiment_id=run_state.experiment_id,
         partition_plan_id=part_plan.plan_id,
     )
@@ -341,23 +369,120 @@ def run_experiment(
         ),
         suit,
     )
+    pareto = compute_pareto_frontier(
+        cons,
+        MultiObjectiveSpec(
+            objectives=(
+                ObjectiveSpec(primary_metric, metric_dirs[primary_metric]),
+                ObjectiveSpec("fit_mean_s", MetricDirection.MINIMIZE, ObjectiveSource.TIMING_MEAN, "fit_mean_s"),
+            )
+        ),
+    )
     conc = synthesize_conclusions(
         cons,
         suit,
         comp,
         primary_metric=primary_metric,
         primary_direction=metric_dirs[primary_metric],
+        multi_objective_summary=pareto,
     )
 
-    # Persistir metadados mínimos esperados por load_experiment_artifacts_readonly
-    from experimental_ml.data.codecs import dataset_profile_to_dict, preparation_plan_to_dict
+    # Persistir artefatos canônicos completos para interoperabilidade com CLI (M8-05)
+    from experimental_ml.data.codecs import (
+        dataset_descriptor_to_dict,
+        dataset_profile_to_dict,
+        preparation_plan_to_dict,
+        sanitized_view_descriptor_to_dict,
+    )
+    from experimental_ml.data.descriptors import DatasetDescriptor, SanitizedViewDescriptor
+    from experimental_ml.features.exploration import explore_features
+    from experimental_ml.features.visualization import render_exploratory_report
     from experimental_ml.models.catalog import models_catalog_to_dict, ModelsCatalog
     from experimental_ml.features.scenarios import save_scenarios
+    from experimental_ml.stages.stage_gates import (
+        EXPLORATORY_FEATURES_REL_PATH,
+        SANITIZED_VIEW_REL_PATH,
+        SPLITS_CSV_GZ_REL_PATH,
+        SPLITS_SCHEMA_REL_PATH,
+    )
     from experimental_ml.validation.codecs import partition_plan_to_dict
+    from experimental_ml.validation.storage import write_splits_csv_gz, write_splits_schema
+
+    schema_file = exp_dir / "configuration" / "schema.json"
+    schema_payload = {
+        "target_col": resolved_schema.target_col,
+        "task_type": resolved_schema.task_type.value,
+        "observation_id_col": resolved_schema.observation_id_col,
+        "group_col": resolved_schema.group_col,
+        "time_col": resolved_schema.time_col,
+        "column_semantic_types": {k: v.value for k, v in resolved_schema.column_semantic_types.items()},
+    }
+    write_json_atomic(schema_file, schema_payload, overwrite=force)
+    schema_out_path = str(schema_file)
+
+    if isinstance(data, (str, Path)):
+        raw_source_out_path = str(Path(data).resolve())
+        effective_csv_format = csv_format or CsvFormatSpec(
+            delimiter=delimiter,
+            decimal=decimal or ".",
+            encoding=encoding,
+            has_header=has_header,
+            column_names=tuple(column_names) if column_names is not None else None,
+            quotechar=quotechar,
+        )
+    else:
+        import csv as _csv
+
+        snapshot_csv = exp_dir / "data" / "source_snapshot.csv"
+        snapshot_csv.parent.mkdir(parents=True, exist_ok=True)
+        col_names = list(bundle.columns.keys())
+        include_obs_col = (
+            resolved_schema.observation_id_col is not None
+            and resolved_schema.observation_id_col not in bundle.columns
+        )
+        headers = ([resolved_schema.observation_id_col] if include_obs_col else []) + col_names
+        with snapshot_csv.open("w", encoding="utf-8", newline="") as fh:
+            writer = _csv.writer(fh)
+            writer.writerow(headers)
+            for idx in range(len(bundle.observation_ids)):
+                row_vals = ([str(bundle.observation_ids[idx])] if include_obs_col else []) + [
+                    bundle.columns[c][idx].item() if hasattr(bundle.columns[c][idx], "item") else bundle.columns[c][idx]
+                    for c in col_names
+                ]
+                writer.writerow(row_vals)
+        raw_source_out_path = str(snapshot_csv)
+        effective_csv_format = CsvFormatSpec(delimiter=",", decimal=".", encoding="utf-8")
+
+    desc_obj = DatasetDescriptor(
+        dataset_hash=bundle.dataset_hash,
+        raw_source_hash=getattr(bundle, "raw_source_hash", None),
+        raw_source_path=raw_source_out_path,
+        n_observations=len(bundle.observation_ids),
+        n_columns=len(bundle.columns),
+        column_names=tuple(bundle.columns.keys()),
+        column_types={col: str(bundle.columns[col].dtype) for col in bundle.columns},
+        target_col=resolved_schema.target_col,
+        task_type=resolved_schema.task_type.value,
+        group_col=resolved_schema.group_col,
+        time_col=resolved_schema.time_col,
+        schema_path=schema_out_path,
+        csv_format=effective_csv_format,
+    )
+    view_desc = SanitizedViewDescriptor(
+        dataset_hash=view.dataset_hash,
+        source_dataset_hash=view.source_dataset_hash,
+        source_plan_digest=view.source_plan_digest,
+        n_observations=len(view.observation_ids),
+        candidate_feature_cols=tuple(view.candidate_feature_cols),
+        dropped_observation_ids=tuple(view.dropped_observation_ids),
+        target_label_mapping=view.target_label_mapping,
+        deferred_rules=tuple(view.deferred_rules),
+    )
 
     write_json_atomic(exp_dir / DATASET_PROFILE_REL_PATH, dataset_profile_to_dict(profile), overwrite=force)
     write_json_atomic(exp_dir / PREPARATION_PLAN_REL_PATH, preparation_plan_to_dict(prep_plan), overwrite=force)
-    write_json_atomic(exp_dir / DATASET_DESCRIPTOR_REL_PATH, {"dataset_hash": bundle.dataset_hash}, overwrite=force)
+    write_json_atomic(exp_dir / DATASET_DESCRIPTOR_REL_PATH, dataset_descriptor_to_dict(desc_obj), overwrite=force)
+    write_json_atomic(exp_dir / SANITIZED_VIEW_REL_PATH, sanitized_view_descriptor_to_dict(view_desc), overwrite=force)
     save_scenarios(scenarios_cat, exp_dir / SCENARIOS_CATALOG_REL_PATH, overwrite=force)
     all_importable = all(
         not getattr(m.estimator_factory, "_factory_ref", "").startswith(("inline:", "__main__:"))
@@ -370,7 +495,16 @@ def run_experiment(
             overwrite=force,
         )
     write_json_atomic(exp_dir / PARTITION_PLAN_REL_PATH, partition_plan_to_dict(part_plan), overwrite=force)
-    save_statistics_artifacts(exp_dir / "statistics", cons, suit, comp, conc, force=force)
+    write_splits_csv_gz(exp_dir / SPLITS_CSV_GZ_REL_PATH, part_plan, overwrite=force)
+    write_splits_schema(exp_dir / SPLITS_SCHEMA_REL_PATH, part_plan, overwrite=force)
+
+    exp_report = explore_features(view)
+    write_json_atomic(exp_dir / EXPLORATORY_FEATURES_REL_PATH, exp_report.to_dict(), overwrite=force)
+    exp_md_path = exp_dir / "reports" / "exploratory_features.md"
+    exp_md_path.parent.mkdir(parents=True, exist_ok=True)
+    exp_md_path.write_text(render_exploratory_report(exp_report, fmt="markdown"), encoding="utf-8")
+
+    save_statistics_artifacts(exp_dir / "statistics", cons, suit, comp, conc, pareto=pareto, force=force)
 
     # 6. Relatórios (Etapa 6)
     loaded = load_experiment_artifacts_readonly(exp_dir)

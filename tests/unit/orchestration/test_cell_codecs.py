@@ -197,10 +197,10 @@ def test_m51_04_05_atomic_save_artifacts(tmp_path: Path):
     cell_file, pred_file = save_cell_artifacts(result, pred, run_dir)
 
     assert cell_file.exists()
-    assert cell_file.name == "cell_cell_alpha.json"
+    assert cell_file.name == "cell_alpha.json"
     assert pred_file is not None
     assert pred_file.exists()
-    assert pred_file.name == "pred_cell_alpha.json"
+    assert pred_file.name == "pred_alpha.json"
 
     # Reload and verify
     re_result, re_pred = load_cell_artifacts("cell_alpha", run_dir)
@@ -226,3 +226,22 @@ def test_m51_04_06_overwrite_protection(tmp_path: Path):
     # Second call with overwrite=True succeeds
     cell_file, pred_file = save_cell_artifacts(result, pred, run_dir, overwrite=True)
     assert cell_file.exists()
+
+
+def test_canonical_cell_filename_without_legacy_prefix(tmp_path: Path) -> None:
+    """C7 (M8-07, AD-029): Writes and reads cell_<m>__<s>__<f>.json only, without legacy cell_cell_ fallback."""
+    cid = "cell_m1__s1__fold_0"
+    result = _make_dummy_cell_result(cid)
+    pred = _make_dummy_prediction_record(cid)
+    run_dir = tmp_path / "run_canon"
+    cell_file, pred_file = save_cell_artifacts(result, pred, run_dir)
+
+    assert cell_file.name == "cell_m1__s1__fold_0.json"
+    assert pred_file is not None and pred_file.name == "pred_m1__s1__fold_0.json"
+
+    legacy_dir = tmp_path / "run_legacy"
+    (legacy_dir / "cells").mkdir(parents=True)
+    (legacy_dir / "predictions").mkdir(parents=True)
+    (legacy_dir / "cells" / f"cell_{cid}.json").write_text(cell_file.read_text(encoding="utf-8"), encoding="utf-8")
+    with pytest.raises(ConfigurationError):
+        load_cell_artifacts(cid, legacy_dir)

@@ -92,3 +92,85 @@ def test_python_facade_run_experiment_end_to_end(tmp_path: Path) -> None:
     assert "=== Resumo do Experimento ===" in resumo
     assert "Relatório Markdown:" in resumo
     assert json.loads((out_dir / "statistics" / "descriptive_consolidation.json").read_text(encoding="utf-8"))
+
+
+class _SeedAwareRegressor:
+    """Estimador com random_state=None para validar propagação determinística de seed."""
+
+    def __init__(self, random_state: int | None = None) -> None:
+        self.random_state = random_state
+        self.bias_: float = 0.0
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "_SeedAwareRegressor":
+        rng = np.random.default_rng(self.random_state)
+        self.bias_ = float(np.mean(y)) + float(rng.normal(0.0, 0.01))
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return np.full(len(X), self.bias_, dtype=float)
+
+
+def test_run_experiment_cli_interoperability_and_seed_propagation(tmp_path: Path) -> None:
+    """C4 (M8-05): run_experiment persists full CLI-compatible artifacts and propagates cell seed to instances."""
+    rng = np.random.default_rng(11)
+    x1 = rng.normal(0.0, 1.0, size=24)
+    y = 2.0 * x1 + 1.0
+    csv_path = tmp_path / "dados_interop.csv"
+    rows = ["x1,alvo"] + [f"{a:.4f},{c:.4f}" for a, c in zip(x1, y)]
+    csv_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+    out_1 = tmp_path / "exp_1"
+    out_2 = tmp_path / "exp_2"
+    res1 = run_experiment(
+        data=csv_path,
+        target="alvo",
+        task="regression",
+        models={
+            "Media": DummyBaselineModel(strategy="mean"),
+            "Stochastic": _SeedAwareRegressor(random_state=None),
+        },
+        output_dir=out_1,
+        cv_folds=3,
+        metrics=["rmse", "r2"],
+        master_seed=42,
+    )
+    res2 = run_experiment(
+        data=csv_path,
+        target="alvo",
+        task="regression",
+        models={
+            "Media": DummyBaselineModel(strategy="mean"),
+            "Stochastic": _SeedAwareRegressor(random_state=None),
+        },
+        output_dir=out_2,
+        cv_folds=3,
+        metrics=["rmse", "r2"],
+        master_seed=42,
+    )
+
+    assert res1.observed_leader == res2.observed_leader
+    assert (out_1 / "data" / "sanitized_view.json").is_file()
+    assert (out_1 / "partitions" / "splits.csv.gz").is_file()
+    assert (out_1 / "partitions" / "splits.schema.json").is_file()
+    assert (out_1 / "statistics" / "pareto_summary.json").is_file()
+    assert (out_1 / "reports" / "exploratory_features.json").is_file()
+
+    assert cli_main(["partition", "verify", "--experiment-dir", str(out_1)]) == 0
+    assert cli_main(["run", "verify", "--experiment-dir", str(out_1)]) == 0
+    assert cli_main(["report", "export", "--experiment-dir", str(out_1), "--output-dir", str(out_1 / "bundle"), "--force"]) == 0
+    assert (
+        res1.consolidation.configurations[("stochastic", "todas_features")].aggregated_metrics["rmse"].mean
+        == res2.consolidation.configurations[("stochastic", "todas_features")].aggregated_metrics["rmse"].mean
+    )
+
+
+def test_cli_init_classification_has_two_models_and_compares(tmp_path: Path) -> None:
+    """M8-07 (VAL-QUAL-003): expml init for classification generates 2 models enabling >= 1 paired comparison."""
+    proj_dir = tmp_path / "meu_exp_clf"
+    assert cli_main(["init", "--output-dir", str(proj_dir), "--task", "binary_classification"]) == 0
+    models_cfg = json.loads((proj_dir / "models.json").read_text(encoding="utf-8"))
+    assert len(models_cfg) == 2
+
+    assert cli_main(["quickrun", "--experiment-dir", str(proj_dir)]) == 0
+    comp_bundle = json.loads((proj_dir / "statistics" / "statistical_comparisons.json").read_text(encoding="utf-8"))
+    assert len(comp_bundle.get("comparisons", [])) >= 1

@@ -111,6 +111,24 @@ def compute_spearman(x: np.ndarray, y: np.ndarray) -> tuple[float, MetricStatus]
     return compute_pearson(rx, ry)
 
 
+def _is_missing_categorical(val: Any) -> bool:
+    """Return True when a categorical element represents a missing value (None or NaN)."""
+    if val is None:
+        return True
+    if isinstance(val, (float, np.floating)):
+        return bool(math.isnan(float(val)))
+    return False
+
+
+def _valid_categorical_mask(arr: np.ndarray) -> np.ndarray:
+    """Boolean mask identifying non-missing elements in a 1D categorical array."""
+    if arr.dtype.kind in ("U", "S", "i", "u", "b"):
+        return np.ones(len(arr), dtype=bool)
+    if arr.dtype.kind == "f":
+        return ~np.isnan(arr)
+    return np.fromiter((not _is_missing_categorical(v) for v in arr), dtype=bool, count=len(arr))
+
+
 def compute_correlation_ratio(
     categories: np.ndarray, continuous: np.ndarray
 ) -> tuple[float, MetricStatus]:
@@ -131,7 +149,7 @@ def compute_correlation_ratio(
     if len(cat_arr) != len(cont_arr) or len(cont_arr) < 2:
         return float("nan"), MetricStatus.UNDEFINED_NAN
 
-    valid_mask = ~np.isnan(cont_arr)
+    valid_mask = (~np.isnan(cont_arr)) & _valid_categorical_mask(cat_arr)
     if np.count_nonzero(valid_mask) < 2:
         return float("nan"), MetricStatus.UNDEFINED_NAN
 
@@ -182,8 +200,15 @@ def compute_cramers_v(cat_x: np.ndarray, cat_y: np.ndarray) -> tuple[float, Metr
     if len(x_arr) != len(y_arr) or len(x_arr) < 2:
         return float("nan"), MetricStatus.UNDEFINED_NAN
 
-    unique_x, inv_x = np.unique(x_arr, return_inverse=True)
-    unique_y, inv_y = np.unique(y_arr, return_inverse=True)
+    valid_mask = _valid_categorical_mask(x_arr) & _valid_categorical_mask(y_arr)
+    if np.count_nonzero(valid_mask) < 2:
+        return float("nan"), MetricStatus.UNDEFINED_NAN
+
+    x_clean = x_arr[valid_mask]
+    y_clean = y_arr[valid_mask]
+
+    unique_x, inv_x = np.unique(x_clean, return_inverse=True)
+    unique_y, inv_y = np.unique(y_clean, return_inverse=True)
 
     r = len(unique_x)
     c = len(unique_y)
@@ -193,7 +218,7 @@ def compute_cramers_v(cat_x: np.ndarray, cat_y: np.ndarray) -> tuple[float, Metr
         # Need at least 2 categories in both variables
         return float("nan"), MetricStatus.UNDEFINED_NAN
 
-    n = len(x_arr)
+    n = len(x_clean)
     # Build 2D contingency table
     contingency = np.zeros((r, c), dtype=np.float64)
     np.add.at(contingency, (inv_x, inv_y), 1.0)

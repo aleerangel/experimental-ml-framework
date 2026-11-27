@@ -235,3 +235,68 @@ def test_m71_03_renderers_csv_markdown_latex_booktabs(tmp_path: Path) -> None:
     assert "\\midrule" in tex_out
     assert "\\bottomrule" in tex_out
     assert "s\\_base" in tex_out  # underscore escaped for LaTeX
+
+
+def test_family_a_and_g_populated_from_real_artifacts(tmp_path: Path) -> None:
+    """C1 (M8-01, M8-02): Family A reads real dataset_profile.json (nested/summary/fields) and Family G reads cell diagnostics."""
+    exp_dir, legit_hex_id = _create_rich_experiment(tmp_path)
+
+    # Replace flat dataset_profile.json with real dataset_profile_to_dict-style structure + optional summary
+    write_json_atomic(
+        exp_dir / "data" / "dataset_profile.json",
+        {
+            "source_dataset_hash": "e" * 64,
+            "n_rows": 120,
+            "n_cols": 6,
+            "memory_bytes": 5760,
+            "columns": {
+                "x1": {"name": "x1", "semantic_type": "continuous"},
+                "x2": {"name": "x2", "semantic_type": "continuous"},
+                "y": {"name": "y", "semantic_type": "continuous"},
+            },
+            "duplicate_rows": {"n_duplicate_rows": 2},
+            "target": {"column_name": "y", "task_type": "regression"},
+            "findings": [{"code": "E1_HIGH_CORRELATION", "severity": "warning"}],
+            "summary": {"cleanliness_note": "ok"},
+        },
+        overwrite=True,
+    )
+
+    # Write real cell diagnostics in runs/cells/
+    cells_dir = exp_dir / "runs" / "cells"
+    cells_dir.mkdir(parents=True, exist_ok=True)
+    write_json_atomic(
+        cells_dir / f"cell_{legit_hex_id}__s_base__fold_0.json",
+        {
+            "cell_id": f"cell_{legit_hex_id}__s_base__fold_0",
+            "model_id": legit_hex_id,
+            "scenario_id": "s_base",
+            "fold_id": "fold_0",
+            "diagnostics": {
+                "model_family": "LINEAR",
+                "coefficients": [0.5, -0.25],
+                "oob_score": 0.91,
+                "extra_metadata": {"n_iter": 12},
+            },
+        },
+        overwrite=True,
+    )
+
+    loaded = load_experiment_artifacts_readonly(exp_dir)
+    tbl_a = build_table_model(ReportFamily.A_DATA_CHARACTERIZATION, loaded)
+    attrs_a = {r["attribute"]: r["value"] for r in tbl_a.rows}
+    assert len(tbl_a.rows) >= 5
+    assert attrs_a["n_rows"] == 120
+    assert attrs_a["n_cols"] == 6
+    assert attrs_a["n_columns_profiled"] == 3
+    assert attrs_a["n_duplicate_rows"] == 2
+    assert attrs_a["n_findings"] == 1
+    assert attrs_a["target_column"] == "y"
+    assert attrs_a["cleanliness_note"] == "ok"
+    assert "e" * 64 not in render_table_csv(tbl_a)
+
+    tbl_g = build_table_model(ReportFamily.G_MODEL_SPECIFIC_ARTIFACTS, loaded)
+    assert len(tbl_g.rows) >= 2
+    assert any(r["model_id"] == legit_hex_id and r["artifact_key"] == "coefficients" for r in tbl_g.rows)
+    assert any(r["model_id"] == legit_hex_id and r["artifact_key"] == "oob_score" for r in tbl_g.rows)
+    assert tbl_g.notes == ()

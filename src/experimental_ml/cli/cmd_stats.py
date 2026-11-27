@@ -17,7 +17,11 @@ def handle_stats_run(args: argparse.Namespace) -> int:
     from experimental_ml.orchestration.oof import load_oof_predictions
     from experimental_ml.orchestration.state import load_execution_state
     from experimental_ml.orchestration.storage import load_cell_artifacts
-    from experimental_ml.stages.stage_gates import PARTITION_PLAN_REL_PATH, verify_runs_gate
+    from experimental_ml.stages.stage_gates import (
+        PARTITION_PLAN_REL_PATH,
+        SANITIZED_VIEW_REL_PATH,
+        verify_runs_gate,
+    )
     from experimental_ml.statistics.comparisons import run_statistical_comparisons
     from experimental_ml.statistics.consolidation import (
         consolidate_descriptive,
@@ -33,6 +37,7 @@ def handle_stats_run(args: argparse.Namespace) -> int:
         IncompleteComparisonPolicy,
         MultiObjectiveSpec,
         MultiplicityMethod,
+        ObjectiveSource,
         ObjectiveSpec,
     )
     from experimental_ml.validation.codecs import partition_plan_from_dict
@@ -63,10 +68,19 @@ def handle_stats_run(args: argparse.Namespace) -> int:
             if (oof_dir / f"oof_{m_id}__{sc_id}.json").is_file():
                 oof_records.append(load_oof_predictions(m_id, sc_id, run_dir))
 
+    n_total_candidates_per_config: dict[tuple[str, str], int] | None = None
+    view_path = exp_dir / SANITIZED_VIEW_REL_PATH
+    if view_path.is_file():
+        view_raw = read_json(view_path)
+        cand_cols = view_raw.get("candidate_feature_cols")
+        if isinstance(cand_cols, list) and len(cand_cols) > 0:
+            n_total_candidates_per_config = {cfg: len(cand_cols) for cfg in configs}
+
     n_folds = max(1, len(partition_plan.folds))
     consol = consolidate_descriptive(
         cell_results,
         total_folds_per_config=n_folds,
+        n_total_candidates_per_config=n_total_candidates_per_config,
         oof_predictions=oof_records or None,
         experiment_id=str(exec_state.experiment_id),
         partition_plan_id=partition_plan.plan_id,
@@ -132,9 +146,23 @@ def handle_stats_run(args: argparse.Namespace) -> int:
 
     primary_metric = metrics[0]
     primary_dir = dirs[primary_metric]
+    raw_pareto_objs = cfg.get("pareto_objectives") if getattr(args, "config", None) else None
+    if isinstance(raw_pareto_objs, list) and len(raw_pareto_objs) > 0:
+        pareto_objs = tuple(
+            ObjectiveSpec(
+                str(obj["metric"]),
+                MetricDirection(str(obj["direction"])),
+                ObjectiveSource(str(obj.get("source", ObjectiveSource.AGGREGATED_METRIC.value))),
+                obj.get("field"),
+            )
+            for obj in raw_pareto_objs
+        )
+    else:
+        pareto_objs = (ObjectiveSpec(primary_metric, primary_dir),)
+
     pareto = compute_pareto_frontier(
         consol,
-        MultiObjectiveSpec(objectives=(ObjectiveSpec(primary_metric, primary_dir),)),
+        MultiObjectiveSpec(objectives=pareto_objs),
     )
     conclusion = synthesize_conclusions(
         consol, suit, comp_bundle, primary_metric, primary_dir, multi_objective_summary=pareto
