@@ -50,7 +50,7 @@ T5 (FINAL_HOLDOUT em matrix.py, execution.py, oof.py, stage_gates.py) --> T6 (ho
 ## Task Breakdown
 
 ### T1: Implementar `SimpleImputer` (`MEAN`, `MEDIAN`, `MODE`) em NumPy puro (`models/preprocessing/imputers.py`)
-- [ ] Implement & test T1
+- [x] Implement & test T1
 **Where**: `src/experimental_ml/models/preprocessing/imputers.py`, `src/experimental_ml/models/preprocessing/__init__.py`, `tests/unit/models/test_preprocessing_imputers.py`
 **Depends on**: none
 **Tests**: Testes unitários para `MEAN`, `MEDIAN` e `MODE` (inclusive com `dtype=object` misto), isolamento estrito de `X_val` (sem leakage) e `DataIntegrityError` quando coluna de `X_train` é 100% ausente.
