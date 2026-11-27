@@ -47,8 +47,11 @@ def handle_report_generate(args: argparse.Namespace) -> int:
     """Handle `expml report generate`."""
     from experimental_ml.core.findings import ContractViolationError
     from experimental_ml.reporting import (
+        ReportFamily,
         ResearcherDeclarations,
+        build_figure_spec,
         load_experiment_artifacts_readonly,
+        render_figure,
         render_full_report,
         select_report_content,
     )
@@ -73,9 +76,30 @@ def handle_report_generate(args: argparse.Namespace) -> int:
             if target_path.exists():
                 raise ContractViolationError(f"Destination report already exists (use --force): {target_path}")
 
+    figures_dir = out_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    fig_rel_paths: list[str] = []
+    for fam in (
+        ReportFamily.D_PREDICTIVE_PERFORMANCE,
+        ReportFamily.E_STATISTICAL_COMPARISONS,
+        ReportFamily.F_STABILITY_COST_PARETO,
+        ReportFamily.G_MODEL_SPECIFIC_ARTIFACTS,
+    ):
+        if fam in sel.families:
+            fig_spec = build_figure_spec(fam, loaded, sel)
+            fig_file = figures_dir / f"{fig_spec.plot_id}.png"
+            fig_file.write_bytes(render_figure(fig_spec, "png"))
+            fig_rel_paths.append(f"figures/{fig_file.name}")
+
     written: list[str] = []
     for render_fmt, target_path in targets:
-        content = render_full_report(loaded, fmt=render_fmt, selection=sel, declarations=declarations)
+        content = render_full_report(
+            loaded,
+            fmt=render_fmt,
+            selection=sel,
+            declarations=declarations,
+            figure_paths=tuple(fig_rel_paths),
+        )
         _write_text_atomic(target_path, content, overwrite=force)
         written.append(target_path.name)
 

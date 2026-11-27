@@ -58,7 +58,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/reporting/ -q`
 
 ### T6: Alinhar `pipeline.py` (`run_experiment`) e `cli/cmd_report.py` com artefatos visuais das Etapas 2 e 6 (`M10-06`)
-- [ ] Implement & test T6
+- [x] Implement & test T6
 **Where**: `src/experimental_ml/pipeline.py`, `src/experimental_ml/cli/cmd_report.py`, `tests/integration/reporting/test_m10_reporting_e2e.py`
 **Depends on**: T3, T4, T5
 **Tests**: Teste E2E verificando geração de `exploratory_features.{md,html}` + PNGs na Etapa 2, figuras e tabelas vinculadas ao `report.{md,html}` na Etapa 6 e suíte completa verde.

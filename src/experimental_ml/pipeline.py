@@ -38,7 +38,10 @@ from experimental_ml.orchestration import load_cell_artifacts, run_experiment_ma
 from experimental_ml.reporting import (
     ReportAudience,
     ReportContentSelection,
+    ReportFamily,
+    build_figure_spec,
     load_experiment_artifacts_readonly,
+    render_figure,
     render_full_report,
     select_report_content,
 )
@@ -505,21 +508,55 @@ def run_experiment(
 
     exp_report = explore_features(view)
     write_json_atomic(exp_dir / EXPLORATORY_FEATURES_REL_PATH, exp_report.to_dict(), overwrite=force)
-    exp_md_path = exp_dir / "reports" / "exploratory_features.md"
-    exp_md_path.parent.mkdir(parents=True, exist_ok=True)
-    exp_md_path.write_text(render_exploratory_report(exp_report, fmt="markdown"), encoding="utf-8")
+    reports_dir = exp_dir / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    from experimental_ml.features.visualization import (
+        render_exploratory_redundancy_heatmap,
+        render_exploratory_target_chart,
+    )
+
+    (reports_dir / "exploratory_target.png").write_bytes(render_exploratory_target_chart(exp_report, fmt="png"))
+    (reports_dir / "exploratory_redundancy.png").write_bytes(render_exploratory_redundancy_heatmap(exp_report, fmt="png"))
+    exp_fig_paths = ("exploratory_target.png", "exploratory_redundancy.png")
+    (reports_dir / "exploratory_features.md").write_text(
+        render_exploratory_report(exp_report, fmt="markdown", figure_paths=exp_fig_paths),
+        encoding="utf-8",
+    )
+    (reports_dir / "exploratory_features.html").write_text(
+        render_exploratory_report(exp_report, fmt="html", figure_paths=exp_fig_paths),
+        encoding="utf-8",
+    )
 
     save_statistics_artifacts(exp_dir / "statistics", cons, suit, comp, conc, pareto=pareto, force=force)
 
-    # 6. Relatórios (Etapa 6)
+    # 6. Relatórios e Figuras (Etapa 6)
     loaded = load_experiment_artifacts_readonly(exp_dir)
     sel = select_report_content(loaded, ReportContentSelection(audience=ReportAudience.FULL_LAB))
-    reports_dir = exp_dir / "reports"
-    reports_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir = reports_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    fig_rel_paths: list[str] = []
+    for fam in (
+        ReportFamily.D_PREDICTIVE_PERFORMANCE,
+        ReportFamily.E_STATISTICAL_COMPARISONS,
+        ReportFamily.F_STABILITY_COST_PARETO,
+        ReportFamily.G_MODEL_SPECIFIC_ARTIFACTS,
+    ):
+        if fam in sel.families:
+            fig_spec = build_figure_spec(fam, loaded, sel)
+            fig_file = figures_dir / f"{fig_spec.plot_id}.png"
+            fig_file.write_bytes(render_figure(fig_spec, "png"))
+            fig_rel_paths.append(f"figures/{fig_file.name}")
+
     md_path = reports_dir / "report.md"
     html_path = reports_dir / "report.html"
-    md_path.write_text(render_full_report(loaded, fmt="markdown", selection=sel), encoding="utf-8")
-    html_path.write_text(render_full_report(loaded, fmt="html", selection=sel), encoding="utf-8")
+    md_path.write_text(
+        render_full_report(loaded, fmt="markdown", selection=sel, figure_paths=tuple(fig_rel_paths)),
+        encoding="utf-8",
+    )
+    html_path.write_text(
+        render_full_report(loaded, fmt="html", selection=sel, figure_paths=tuple(fig_rel_paths)),
+        encoding="utf-8",
+    )
 
     return ExperimentRunSummary(
         experiment_dir=exp_dir,
