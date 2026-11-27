@@ -300,3 +300,92 @@ def test_family_a_and_g_populated_from_real_artifacts(tmp_path: Path) -> None:
     assert any(r["model_id"] == legit_hex_id and r["artifact_key"] == "coefficients" for r in tbl_g.rows)
     assert any(r["model_id"] == legit_hex_id and r["artifact_key"] == "oob_score" for r in tbl_g.rows)
     assert tbl_g.notes == ()
+
+
+def test_m10_tables_pandas_prep_and_enriched_metadata(tmp_path: Path) -> None:
+    """C4 (M10): Pandas prepares tables A-G internally, returns immutable TableModel, enriches B/C/E/G, and supports table_to_dataframe."""
+    from types import MappingProxyType
+    import pandas as pd
+    from experimental_ml.reporting.tables import table_to_dataframe
+    from experimental_ml.reporting.types import ReportAudience, ReportContentSelection
+
+    exp_dir, legit_hex_id = _create_rich_experiment(tmp_path)
+    loaded = load_experiment_artifacts_readonly(exp_dir)
+    real_sc_id = next(iter(loaded.statistics.consolidation.configurations.keys()))[1]
+    # Enrich loaded catalogs and cell_diagnostics
+    enriched = type(loaded)(
+        experiment_id=loaded.experiment_id,
+        partition_plan_id=loaded.partition_plan_id,
+        statistics=loaded.statistics,
+        dataset_profile=loaded.dataset_profile,
+        preparation_plan=loaded.preparation_plan,
+        partition_plan=loaded.partition_plan,
+        scenarios_catalog={
+            "scenarios": (
+                {
+                    "scenario_id": real_sc_id,
+                    "mode": "DYNAMIC",
+                    "dynamic_method": "TOP_K_RELEVANCE",
+                    "top_k": 5,
+                    "candidate_features": ("f1", "f2", "f3", "f4", "f5"),
+                    "scientific_justification": "Seleção por relevância univariada.",
+                },
+            ),
+        },
+        models_catalog={
+            "models": (
+                {
+                    "model_id": legit_hex_id,
+                    "display_name": "Ridge Regressor",
+                    "family": "LINEAR",
+                    "capabilities": {"supported_task_types": ("REGRESSION",)},
+                    "preprocessing": {"layer2_steps": ({"name": "STANDARD_SCALER"},)},
+                    "default_hyperparameters": {"alpha": 1.0},
+                },
+                {
+                    "model_id": "m2",
+                    "display_name": "RF Regressor",
+                    "family": "TREE_ENSEMBLE",
+                    "task_type": "REGRESSION",
+                },
+            ),
+        },
+        execution_state=loaded.execution_state,
+        cell_diagnostics=(
+            {"model_id": legit_hex_id, "scenario_id": real_sc_id, "diagnostics": {"feature_importances": {"f1": 0.6, "f2": 0.4}}},
+            {"model_id": legit_hex_id, "scenario_id": real_sc_id, "diagnostics": {"feature_importances": {"f1": 0.8, "f2": 0.2}}},
+        ),
+    )
+
+    tbl_b = build_table_model(ReportFamily.B_FEATURE_SCENARIOS, enriched)
+    assert isinstance(tbl_b.rows[0], MappingProxyType)
+    assert tbl_b.rows[0]["n_features"] == 5
+    assert "TOP_K_RELEVANCE" in tbl_b.rows[0]["strategy"]
+    assert "Seleção" in tbl_b.rows[0]["scientific_justification"]
+
+    tbl_c = build_table_model(ReportFamily.C_MODELS_CONFIG, enriched)
+    row_m1 = next(r for r in tbl_c.rows if r["model_id"] == legit_hex_id)
+    assert row_m1["display_name"] == "Ridge Regressor"
+    assert row_m1["task_type"] == "REGRESSION"
+    assert "STANDARD_SCALER" in row_m1["preprocessing"]
+    assert "alpha=1.0" in row_m1["hyperparameters"]
+
+    # Table E filtering by model_ids
+    sel_only_m1 = ReportContentSelection(
+        audience=ReportAudience.CUSTOM,
+        families=(ReportFamily.E_STATISTICAL_COMPARISONS,),
+        model_ids=(legit_hex_id,),
+        scenario_ids=(real_sc_id,),
+        metric_ids=("rmse",),
+    )
+    tbl_e_filtered = build_table_model(ReportFamily.E_STATISTICAL_COMPARISONS, enriched, sel_only_m1)
+    assert len(tbl_e_filtered.rows) == 0
+
+    # Table G numeric dict aggregation across folds
+    tbl_g = build_table_model(ReportFamily.G_MODEL_SPECIFIC_ARTIFACTS, enriched)
+    assert "f1=0.7000" in tbl_g.rows[0]["summary"]
+
+    # Boundary conversion
+    df_c = table_to_dataframe(tbl_c)
+    assert isinstance(df_c, pd.DataFrame)
+    assert len(df_c) == 1

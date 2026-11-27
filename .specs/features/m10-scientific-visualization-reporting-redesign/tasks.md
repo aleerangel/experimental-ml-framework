@@ -30,7 +30,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/integration/test_mvp_audit_invariants.py tests/integration/reporting/ -q`
 
 ### T2: Enriquecer contratos em `reporting/types.py` e preparar Tabelas A–G com Pandas em `reporting/tables.py` (`AD-034`, `M10-05`)
-- [ ] Implement & test T2
+- [x] Implement & test T2
 **Where**: `src/experimental_ml/reporting/types.py`, `src/experimental_ml/reporting/tables.py`, `tests/unit/reporting/test_reporting_types.py`, `tests/unit/reporting/test_reporting_tables.py`
 **Depends on**: T1
 **Tests**: Testes unitários verificando `TableModel` imutável (sem `DataFrame`), `to_dataframe()` opcional, metadados completos em Tabelas B e C, filtro `model_ids`/`scenario_ids` na Tabela E e agregação numérica por atributo/fold na Tabela G.

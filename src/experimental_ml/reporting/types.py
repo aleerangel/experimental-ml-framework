@@ -160,12 +160,14 @@ class PlotSeries:
     x_values: tuple[Any, ...]
     y_values: tuple[float, ...]
     y_err: tuple[float, ...] | None = None
+    point_labels: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "x_values", tuple(self.x_values))
         object.__setattr__(self, "y_values", tuple(float(y) for y in self.y_values))
         if self.y_err is not None:
             object.__setattr__(self, "y_err", tuple(float(e) for e in self.y_err))
+        object.__setattr__(self, "point_labels", tuple(str(lbl) for lbl in self.point_labels))
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,6 +183,10 @@ class PlotSpecification:
     series: tuple[PlotSeries, ...]
     notes: tuple[str, ...]
     provenance: ArtifactProvenance
+    subtitle: str = ""
+    reference_y: float | None = None
+    reference_label: str = ""
+    metric_direction: str = ""
 
     def __post_init__(self) -> None:
         if not isinstance(self.family, ReportFamily):

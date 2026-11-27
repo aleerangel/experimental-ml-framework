@@ -87,6 +87,38 @@ def _make_provenance(
     )
 
 
+def _prepare_rows_with_pandas(
+    records: list[dict[str, Any]],
+    *,
+    sort_by: list[str] | None = None,
+    ascending: list[bool] | bool = True,
+) -> tuple[dict[str, Any], ...]:
+    """Organize and deterministically sort tabular records using pandas internally (AD-034)."""
+    if not records:
+        return ()
+    import pandas as pd
+
+    df = pd.DataFrame.from_records(records)
+    if sort_by:
+        valid_cols = [c for c in sort_by if c in df.columns]
+        if valid_cols:
+            asc = ascending[: len(valid_cols)] if isinstance(ascending, list) else ascending
+            df = df.sort_values(by=valid_cols, ascending=asc, kind="mergesort", na_position="last")
+    # Preserve exact original Python values (distinguishing None vs float('nan'))
+    return tuple(records[int(idx)] for idx in df.index)
+
+
+def table_to_dataframe(table: TableModel) -> Any:
+    """Convert an immutable TableModel into a pandas.DataFrame at the reporting boundary (AD-034)."""
+    import pandas as pd
+
+    col_keys = [c.key for c in table.columns]
+    if not table.rows:
+        return pd.DataFrame(columns=col_keys)
+    records = [{k: row.get(k) for k in col_keys} for row in table.rows]
+    return pd.DataFrame.from_records(records, columns=col_keys)
+
+
 def build_table_model(
     family: ReportFamily,
     loaded_data: LoadedExperimentData,
@@ -149,32 +181,78 @@ def build_table_model(
         cols = (
             TableColumn("scenario_id", "Scenario", ColumnAlignment.LEFT),
             TableColumn("mode", "Selection Mode", ColumnAlignment.LEFT),
+            TableColumn("strategy", "Strategy", ColumnAlignment.LEFT),
             TableColumn("n_features", "Features", ColumnAlignment.RIGHT),
+            TableColumn("scientific_justification", "Justification", ColumnAlignment.LEFT),
         )
         rows = []
         if loaded_data.scenarios_catalog:
             for sc in loaded_data.scenarios_catalog.get("scenarios", ()):
                 sc_id = str(sc.get("scenario_id", ""))
                 if not sel.scenario_ids or sc_id in sel.scenario_ids:
+                    mode = str(sc.get("mode", "N/A"))
                     feats = sc.get("selected_features", sc.get("features", sc.get("candidate_features", ())))
-                    rows.append(_sanitize_row_dict({"scenario_id": sc_id, "mode": sc.get("mode", "N/A"), "n_features": len(feats)}))
+                    cand_feats = sc.get("candidate_features", ())
+                    n_feats = len(feats) if feats else len(cand_feats)
+                    strategy = str(sc.get("dynamic_method") or sc.get("strategy") or ("FIXED_LIST" if mode == "FIXED" else "N/A"))
+                    if sc.get("top_k") is not None:
+                        strategy = f"{strategy} (k={sc['top_k']})"
+                    elif sc.get("variance_threshold") is not None:
+                        strategy = f"{strategy} (var>={sc['variance_threshold']})"
+                    just = str(sc.get("scientific_justification") or sc.get("description") or "N/A")
+                    rows.append(_sanitize_row_dict({
+                        "scenario_id": sc_id,
+                        "mode": mode,
+                        "strategy": strategy,
+                        "n_features": n_feats,
+                        "scientific_justification": just,
+                    }))
+        prepared_rows = _prepare_rows_with_pandas(rows, sort_by=["scenario_id"])
         prov = _make_provenance("tbl_family_b", family, loaded_data, sel, ("configuration/scenarios.json",))
-        return TableModel("tbl_family_b", family, "Feature Scenarios", "Declared feature scenarios", cols, tuple(rows), (), prov)
+        return TableModel("tbl_family_b", family, "Feature Scenarios", "Declared feature scenarios", cols, prepared_rows, (), prov)
 
     if family == ReportFamily.C_MODELS_CONFIG:
         cols = (
             TableColumn("model_id", "Model ID", ColumnAlignment.LEFT),
+            TableColumn("display_name", "Display Name", ColumnAlignment.LEFT),
             TableColumn("family", "Model Family", ColumnAlignment.LEFT),
             TableColumn("task_type", "Task Type", ColumnAlignment.LEFT),
+            TableColumn("preprocessing", "Preprocessing", ColumnAlignment.LEFT),
+            TableColumn("hyperparameters", "Hyperparameters", ColumnAlignment.LEFT),
         )
         rows = []
         if loaded_data.models_catalog:
             for m in loaded_data.models_catalog.get("models", ()):
                 m_id = str(m.get("model_id", ""))
                 if not sel.model_ids or m_id in sel.model_ids:
-                    rows.append(_sanitize_row_dict({"model_id": m_id, "family": m.get("family", "N/A"), "task_type": m.get("task_type", "N/A")}))
+                    caps = m.get("capabilities", {})
+                    task_type = m.get("task_type")
+                    if not task_type and isinstance(caps, Mapping):
+                        tasks = caps.get("supported_task_types") or caps.get("supported_tasks")
+                        if tasks:
+                            task_type = ", ".join(str(t) for t in tasks)
+                    prep = m.get("preprocessing", {})
+                    prep_parts: list[str] = []
+                    if isinstance(prep, Mapping):
+                        l1 = prep.get("layer1_steps") or ()
+                        l2 = prep.get("layer2_steps") or ()
+                        if l1:
+                            prep_parts.append("L1:" + "+".join(str(s.get("name", s)) if isinstance(s, Mapping) else str(s) for s in l1))
+                        if l2:
+                            prep_parts.append("L2:" + "+".join(str(s.get("name", s)) if isinstance(s, Mapping) else str(s) for s in l2))
+                    hp = m.get("default_hyperparameters") or m.get("hyperparameters") or {}
+                    hp_str = ", ".join(f"{k}={v}" for k, v in sorted(hp.items())) if isinstance(hp, Mapping) and hp else "default"
+                    rows.append(_sanitize_row_dict({
+                        "model_id": m_id,
+                        "display_name": str(m.get("display_name") or m_id),
+                        "family": m.get("family", "N/A"),
+                        "task_type": task_type or "N/A",
+                        "preprocessing": "; ".join(prep_parts) if prep_parts else "none",
+                        "hyperparameters": hp_str,
+                    }))
+        prepared_rows = _prepare_rows_with_pandas(rows, sort_by=["model_id"])
         prov = _make_provenance("tbl_family_c", family, loaded_data, sel, ("configuration/models.json",))
-        return TableModel("tbl_family_c", family, "Models Configuration", "Registered models catalog", cols, tuple(rows), (), prov)
+        return TableModel("tbl_family_c", family, "Models Configuration", "Registered models catalog", cols, prepared_rows, (), prov)
 
     if family == ReportFamily.D_PREDICTIVE_PERFORMANCE:
         consol = loaded_data.statistics.consolidation
@@ -225,8 +303,9 @@ def build_table_model(
                         else hmv.value
                     )
                 rows.append(row_dict)
+        prepared_rows = _prepare_rows_with_pandas(rows, sort_by=["metric", "model_id", "scenario_id"])
         prov = _make_provenance("tbl_family_d", family, loaded_data, sel, ("statistics/descriptive_consolidation.json",))
-        return TableModel("tbl_family_d", family, "Predictive Performance", "Cross-validation descriptive performance", cols, tuple(rows), (), prov)
+        return TableModel("tbl_family_d", family, "Predictive Performance", "Cross-validation descriptive performance", cols, prepared_rows, (), prov)
 
     if family == ReportFamily.E_STATISTICAL_COMPARISONS:
         cols = (
@@ -244,6 +323,10 @@ def build_table_model(
         for cmp_res in loaded_data.statistics.comparisons.comparisons:
             if sel.metric_ids and cmp_res.metric_name not in sel.metric_ids:
                 continue
+            if sel.model_ids and (cmp_res.config_a[0] not in sel.model_ids or cmp_res.config_b[0] not in sel.model_ids):
+                continue
+            if sel.scenario_ids and (cmp_res.config_a[1] not in sel.scenario_ids or cmp_res.config_b[1] not in sel.scenario_ids):
+                continue
             rows.append({
                 "config_a": f"{cmp_res.config_a[0]}/{cmp_res.config_a[1]}",
                 "config_b": f"{cmp_res.config_b[0]}/{cmp_res.config_b[1]}",
@@ -255,8 +338,9 @@ def build_table_model(
                 "cohens_d": cmp_res.effect_size.cohens_d,
                 "practical_relevance": cmp_res.practical_relevance.value,
             })
+        prepared_rows = _prepare_rows_with_pandas(rows, sort_by=["metric", "nadeau_bengio_adjusted_p", "config_a", "config_b"])
         prov = _make_provenance("tbl_family_e", family, loaded_data, sel, ("statistics/statistical_comparisons.json",))
-        return TableModel("tbl_family_e", family, "Statistical Comparisons", "Paired comparisons and multiplicity adjustments", cols, tuple(rows), (), prov)
+        return TableModel("tbl_family_e", family, "Statistical Comparisons", "Paired comparisons and multiplicity adjustments", cols, prepared_rows, (), prov)
 
     if family == ReportFamily.F_STABILITY_COST_PARETO:
         cols = (
@@ -319,12 +403,27 @@ def build_table_model(
                         continue
                     grouped.setdefault((m_id, sc_id, str(k)), []).append(val)
             for (m_id, sc_id, k), vals in sorted(grouped.items()):
+                import pandas as pd
+
                 first_val = vals[0]
                 if isinstance(first_val, (int, float)) and not isinstance(first_val, bool):
-                    mean_val = sum(float(v) for v in vals) / len(vals)
-                    summary_str = f"{sc_id}: mean={mean_val:.6g} (n={len(vals)})"
-                elif isinstance(first_val, (list, tuple)):
-                    summary_str = f"{sc_id}: len={len(first_val)}, sample={first_val[:5]}"
+                    s = pd.Series([float(v) for v in vals], dtype=float)
+                    std_val = float(s.std(ddof=1)) if len(s) > 1 else 0.0
+                    summary_str = f"{sc_id}: mean={float(s.mean()):.4g} ± {std_val:.4g} (n={len(vals)})"
+                elif isinstance(first_val, Mapping):
+                    df_diag = pd.DataFrame.from_records([dict(v) for v in vals if isinstance(v, Mapping)])
+                    if not df_diag.empty:
+                        means = df_diag.mean(numeric_only=True).sort_values(ascending=False)
+                        stds = df_diag.std(numeric_only=True, ddof=1).fillna(0.0)
+                        top_parts = [f"{col}={means[col]:.4f}±{stds.get(col, 0.0):.4f}" for col in list(means.index)[:5]]
+                        summary_str = f"{sc_id}: " + ", ".join(top_parts) if top_parts else f"{sc_id}: {first_val}"
+                    else:
+                        summary_str = f"{sc_id}: {first_val}"
+                elif isinstance(first_val, (list, tuple)) and first_val and all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in first_val):
+                    df_vec = pd.DataFrame([list(v) for v in vals if isinstance(v, (list, tuple))])
+                    means = df_vec.mean(axis=0)
+                    top_parts = [f"[{idx}]={val:.4f}" for idx, val in list(means.items())[:5]]
+                    summary_str = f"{sc_id} (len={len(first_val)}): " + ", ".join(top_parts)
                 else:
                     summary_str = f"{sc_id}: {first_val}"
                 rows.append({"model_id": m_id, "artifact_key": k, "summary": summary_str})
