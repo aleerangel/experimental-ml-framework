@@ -269,6 +269,30 @@
 - **Date**: 2026-11-24
 - **Status**: active
 
+### AD-030
+- **Decision**: Decisão D1 do Marco `M9` (`VAL-BUG-001` / `VAL-ENH-002`): adotar `ORDINAL_ENCODING` (mapeamento determinístico por ordem lexicográfica em `X_train`, mapeando categorias inéditas em `X_val` para `-1.0`) e `FREQUENCY_ENCODING` (proporção observada em `X_train`, `0.0` para inéditas) como estratégias de codificação categórica intra-fold, mantendo dimensionalidade 1:1 com `feature_names`.
+- **Reason**: Preservar correspondência direta entre `feature_names`, seleção de atributos e diagnósticos de coeficientes/importâncias sem expansão dinâmica de colunas entre folds.
+- **Trade-off**: `ONE_HOT_ENCODING` intra-fold com expansão dinâmica fica fora do escopo do `M9`.
+- **Scope**: `src/experimental_ml/models/preprocessing/`, `src/experimental_ml/orchestration/execution.py`, `src/experimental_ml/tuning/engine.py`.
+- **Date**: 2026-11-27
+- **Status**: active
+
+### AD-031
+- **Decision**: Decisão D2 do Marco `M9`: quando `SanitizedDatasetView.deferred_rules` contém regras `DEFER_INTRA_FOLD` (`E1_FEATURE_MISSING`, `E1_CATEGORICAL_UNENCODED`, `E1_SCALE_DISPARITY`), injetá-las automaticamente na Camada 1 (e `E1_SCALE_DISPARITY` na Camada 2 se o modelo não declarar scaler próprio) nos modelos que não declararem passo equivalente explícito em `ModelSpec.preprocessing`.
+- **Reason**: Garantir que o fluxo `data prepare` -> `run execute` funcione de ponta a ponta sem exigir duplicação manual de regras em cada `ModelSpec`.
+- **Trade-off**: Modelos que já declararem `IMPUTER` ou encoder explícito mantêm precedência sobre a regra diferida correspondente.
+- **Scope**: `src/experimental_ml/orchestration/execution.py`, `src/experimental_ml/models/preprocessing/pipeline.py`.
+- **Date**: 2026-11-27
+- **Status**: active
+
+### AD-032
+- **Decision**: Decisão D3 do Marco `M9` (`VAL-BUG-008` / `VAL-ENH-003`): sob `CV_AND_HOLDOUT`, quando um modelo possui `search_spec`, a célula `FINAL_HOLDOUT` executa `run_nested_tuning` sobre `development_ids` antes de ajustar o modelo final e avaliar em `holdout_ids`.
+- **Reason**: Manter rigor metodológico idêntico ao protocolo de desenvolvimento, sem depender de heurística modal entre folds.
+- **Trade-off**: Custo computacional adicional de um tuning sobre `development_ids` na célula `FINAL_HOLDOUT`.
+- **Scope**: `src/experimental_ml/orchestration/{matrix.py,execution.py}`, `src/experimental_ml/statistics/consolidation.py`.
+- **Date**: 2026-11-27
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: Marco `M8` (`m8-mvp-stabilization-contract-alignment`) Concluído e Aprovado

@@ -1,6 +1,7 @@
-# M9 — Imputação e Codificação Categórica Intra-Fold e Execução de Holdout Final (Specification — Draft)
+# M9 — Imputação e Codificação Categórica Intra-Fold e Execução de Holdout Final (Specification)
 
-- **Status**: Draft — Pending Developer Approval (Fase TLC: **Specify / Proposta Preliminar**)
+- **Status**: Approved (Fase TLC: **Specify** concluída)
+**Approved**: 2026-11-27 - user: "D1: Opção A; D2: Sim; D3: Opção A"
 - **Milestone**: `M9` (`m9-intra-fold-imputation-encoding-holdout`)
 - **Related Validation Findings**: `VAL-BUG-001`, `VAL-BUG-008`, `VAL-ENH-002`, `VAL-ENH-003`
 
@@ -16,35 +17,69 @@ Duas capacidades estruturais previstas nos requisitos da Onda 1 (`RF1.2`, `RF3.2
 ## Goals
 
 - [ ] Implementar o transformador `SimpleImputer` (`MEAN`, `MEDIAN`, `MODE`) na Camada 1 de `models/preprocessing/`, ajustado estritamente em `X_train` de cada fold (interno e externo).
-- [ ] Implementar codificação intra-fold para colunas categóricas diferidas via `DEFER_INTRA_FOLD` sem vazamento de categorias ou estatísticas do conjunto de validação.
-- [ ] Integrar `SanitizedDatasetView.deferred_rules` ao pipeline intra-fold da Etapa 4B (`orchestration/execution.py` e `tuning/engine.py`).
-- [ ] Gerar, executar e persistir células `FINAL_HOLDOUT` (treino em `development_ids`, avaliação em `holdout_ids`) sob o regime `CV_AND_HOLDOUT`, mantendo suas métricas separadas da agregação de Nadeau-Bengio dos $K$ folds de `DEVELOPMENT_CV` nas Etapas 5 e 6.
+- [ ] Implementar codificação categórica intra-fold (`ORDINAL_ENCODING` e `FREQUENCY_ENCODING`) preservando dimensionalidade 1:1 com `feature_names` (`AD-030`).
+- [ ] Injetar automaticamente `SanitizedDatasetView.deferred_rules` na Camada 1/2 quando não houver passo equivalente no `ModelSpec` (`AD-031`), integrando ao pipeline intra-fold da Etapa 4B e do Nested CV.
+- [ ] Gerar, executar, persistir e consolidar separadamente células `FINAL_HOLDOUT` (treino em `development_ids`, avaliação em `holdout_ids`, com `run_nested_tuning` quando `search_spec` estiver ativo — `AD-032`) sob o regime `CV_AND_HOLDOUT`.
+
+## Out of Scope
+
+- `ONE_HOT_ENCODING` intra-fold com expansão dinâmica de colunas (`AD-030`).
+- Redesenho dos renderizadores gráficos das Etapas 2 e 6 ou comparação visual Treino vs. Teste (`M10` / `VAL-ENH-005`).
 
 ---
 
-## Open Questions for Developer Decision (Before Closing Specify)
+## User Stories
 
-Para concluir a fase **Specify** deste marco, o desenvolvedor deverá definir três decisões de design:
-
-1. **[Decisão D1 — Estratégias de Codificação Categórica Intra-Fold]:** Para variáveis categóricas com `DEFER_INTRA_FOLD`, quais estratégias devem compor o escopo do Marco `M9`?
-   - **(Opção A — Recomendada para manter dimensionalidade 1:1 com `feature_names`):** `ORDINAL_ENCODING` (mapeamento determinístico ordenado por frequência ou ordem lexicográfica em `X_train`, mapeando categorias inéditas de `X_val` para `-1.0`) e `FREQUENCY_ENCODING` (proporção observada em `X_train`); ou
-   - **(Opção B — Com expansão de colunas):** Incluir também `ONE_HOT_ENCODING` intra-fold (o que altera dinamicamente o número e os nomes das colunas entre a Camada 1 e a seleção de atributos / diagnósticos de coeficientes)?
-2. **[Decisão D2 — Precedência entre `deferred_rules` da Etapa 1 e `ModelSpec.preprocessing` da Etapa 3]:** Quando `SanitizedDatasetView.deferred_rules` contém uma regra `DEFER_INTRA_FOLD` (ex.: `imputation_strategy="MEDIAN"`), ela deve ser injetada automaticamente como o primeiro passo da Camada 1 para todos os modelos que não declararem um `IMPUTER` explícito próprio?
-3. **[Decisão D3 — Política de Hiperparâmetros na Célula `FINAL_HOLDOUT`]:** Quando um modelo possui `search_spec` (tuning) sob o regime `CV_AND_HOLDOUT`, a célula `FINAL_HOLDOUT` (treinada em todos os `development_ids`) deve:
-   - **(Opção A — Padrão metodológico):** Executar `run_nested_tuning` (ou CV interna) sobre `development_ids` para escolher o hiperparâmetro final antes de avaliar em `holdout_ids`; ou
-   - **(Opção B):** Reutilizar o hiperparâmetro modal/vencedor dos $K$ folds de `DEVELOPMENT_CV`?
+- **US-01 (Pesquisador / Dados Reais com Missing e Categóricos):** Como pesquisador, quero declarar `DEFER_INTRA_FOLD` na Etapa 1 para valores ausentes e variáveis categóricas e executar toda a matriz na Etapa 4B sem `NaN`/`object` crashes e sem vazamento entre treino e validação.
+- **US-02 (Pesquisador / Protocolo `CV_AND_HOLDOUT`):** Como pesquisador, quero que o regime `CV_AND_HOLDOUT` execute tanto os $K$ folds de desenvolvimento quanto a avaliação final no conjunto `holdout_ids`, reportando as métricas do Holdout Final separadamente da inferência estatística de Nadeau-Bengio.
 
 ---
 
-## Preliminary Requirements (EARS Notation)
+## Assumptions & Open Questions
 
-### R1 — Transformador `IMPUTER` na Camada 1 (`VAL-BUG-001`, `VAL-ENH-002`)
-- **WHEN** um passo de Camada 1 com `transformer_type="IMPUTER"` e `strategy` em `{"MEAN", "MEDIAN", "MODE"}` é ajustado sobre `X_train`, **THE SYSTEM SHALL** calcular a estatística de imputação de cada coluna exclusivamente a partir dos valores não-ausentes de `X_train` e substituir todos os `NaN` em `X_train` e `X_val` por esses valores ajustados.
-- **IF** uma coluna de `X_train` em um fold contiver 100% de valores `NaN`, **THEN THE SYSTEM SHALL** lançar `DataIntegrityError` (ou aplicar valor de fallback explícito `0.0` conforme configuração) com mensagem identificando a coluna e o fold.
+Open questions: none (Decisões D1, D2 e D3 resolvidas pelo desenvolvedor em 2026-11-27 e registradas em `AD-030`, `AD-031`, `AD-032`).
 
-### R2 — Consumo Automático de `SanitizedDatasetView.deferred_rules` (`VAL-BUG-001`)
-- **WHEN** `SanitizedDatasetView.deferred_rules` contiver regras `DEFER_INTRA_FOLD` aprovadas no gate da Etapa 1, **THE SYSTEM SHALL** converter essas regras em passos de Camada 1 aplicados automaticamente dentro de cada fold na Etapa 4B antes da seleção dinâmica de atributos e antes da Camada 2 de escalonamento.
+### Decisões Registradas (`AD-030`, `AD-031`, `AD-032`)
+1. **D1 (`AD-030`):** Estratégias categóricas intra-fold: `ORDINAL_ENCODING` e `FREQUENCY_ENCODING` (dimensionalidade 1:1 com `feature_names`).
+2. **D2 (`AD-031`):** Regras `DEFER_INTRA_FOLD` são injetadas automaticamente nos modelos que não declararem `IMPUTER`/encoder/scaler equivalente em `ModelSpec.preprocessing`.
+3. **D3 (`AD-032`):** Sob `CV_AND_HOLDOUT` com `search_spec`, a célula `FINAL_HOLDOUT` executa `run_nested_tuning` sobre `development_ids` antes de avaliar `holdout_ids`.
 
-### R3 — Execução e Isolamento de Células `FINAL_HOLDOUT` (`VAL-BUG-008`, `VAL-ENH-003`)
-- **WHEN** `PartitionPlan.outer_scheme == OuterScheme.CV_AND_HOLDOUT`, **THE SYSTEM SHALL** gerar na matriz de execução as $K \times M \times C$ células de `DEVELOPMENT_CV` e mais $M \times C$ células de `FINAL_HOLDOUT` (onde o treino utiliza `development_ids` e a avaliação utiliza `holdout_ids`).
-- **WHEN** a Etapa 5 consolida as métricas de um experimento `CV_AND_HOLDOUT`, **THE SYSTEM SHALL** calcular média, desvio-padrão, IC de Nadeau-Bengio e testes pareados exclusivamente sobre os $K$ folds de `DEVELOPMENT_CV`, reportando o desempenho de `FINAL_HOLDOUT` em seção e colunas dedicadas sem misturá-lo como um $(K+1)$-ésimo fold.
+---
+
+## Requirements (EARS Notation)
+
+### M9-01 — Transformador `IMPUTER` na Camada 1 (`VAL-BUG-001`, `VAL-ENH-002`)
+- **WHEN** um passo de Camada 1 com `transformer_type="IMPUTER"` e `strategy` em `{"MEAN", "MEDIAN", "MODE"}` é ajustado sobre `X_train`, **THE SYSTEM SHALL** calcular a estatística de imputação de cada coluna exclusivamente a partir dos valores não-ausentes de `X_train` e substituir todos os valores ausentes (`NaN`/`None`) em `X_train` e `X_val` por esses valores ajustados.
+- **IF** uma coluna de `X_train` em um fold contiver 100% de valores ausentes, **THEN THE SYSTEM SHALL** lançar `DataIntegrityError` identificando a coluna/índice e o fold.
+
+### M9-02 — Codificação Categórica Intra-Fold 1:1 (`VAL-BUG-001`, `AD-030`)
+- **WHEN** um passo de Camada 1 com `transformer_type` em `{"ORDINAL_ENCODER", "FREQUENCY_ENCODER"}` (ou regra `DEFER_INTRA_FOLD` de `E1_CATEGORICAL_UNENCODED`) é ajustado sobre `X_train`, **THE SYSTEM SHALL** aprender o mapeamento categórico exclusivamente em `X_train` e transformar `X_train` e `X_val` para `float64` mantendo o mesmo número e ordem de colunas, mapeando categorias inéditas em `X_val` para `-1.0` (`ORDINAL_ENCODER`) ou `0.0` (`FREQUENCY_ENCODER`).
+
+### M9-03 — Consumo Automático de `SanitizedDatasetView.deferred_rules` (`VAL-BUG-001`, `AD-031`)
+- **WHEN** `SanitizedDatasetView.deferred_rules` contiver regras `DEFER_INTRA_FOLD` aprovadas no gate da Etapa 1, **THE SYSTEM SHALL** injetar os passos correspondentes de Camada 1 (`ORDINAL_ENCODER`/`FREQUENCY_ENCODER`, `IMPUTER`) e Camada 2 (`E1_SCALE_DISPARITY`) no pipeline efetivo de pré-processamento do modelo quando este não declarar passo equivalente, executando-os intra-fold (inclusive nos sub-folds internos do Nested CV) antes da seleção dinâmica de atributos e do escalonamento final.
+
+### M9-04 — Execução e Consolidação Separada de Células `FINAL_HOLDOUT` (`VAL-BUG-008`, `VAL-ENH-003`, `AD-032`)
+- **WHEN** `PartitionPlan.regime == EvaluationRegime.CV_AND_HOLDOUT` e `PartitionPlan.holdout_ids` não é vazio, **THE SYSTEM SHALL** gerar na matriz de execução as $K \times M \times C$ células de `DEV_CV` e mais $M \times C$ células com `phase="FINAL_HOLDOUT"` (treino em `development_ids`, avaliação em `holdout_ids`, executando `run_nested_tuning` sobre `development_ids` quando `search_spec` estiver ativo).
+- **WHEN** a Etapa 5 consolida métricas e realiza inferência estatística sobre células contendo `phase="FINAL_HOLDOUT"`, **THE SYSTEM SHALL** calcular estatísticas descritivas, IC de Nadeau-Bengio e testes pareados exclusivamente sobre as células de `DEV_CV`, armazenando e reportando os resultados de `FINAL_HOLDOUT` separadamente sem contaminar os $K$ folds de CV.
+
+---
+
+## Acceptance Criteria Summary
+
+| ID | Criterion | Verification Method |
+| :--- | :--- | :--- |
+| `AC-M9-01` | `IMPUTER` (`MEAN`, `MEDIAN`, `MODE`) calcula estatísticas apenas em `X_train` (sem vazamento de `X_val`) e lança `DataIntegrityError` em coluna 100% ausente. | Teste unitário anti-leakage (`pytest`). |
+| `AC-M9-02` | `ORDINAL_ENCODER` e `FREQUENCY_ENCODER` aprendem categorias apenas em `X_train` e tratam categorias inéditas em `X_val` sem erro (`-1.0` / `0.0`). | Teste unitário (`pytest`). |
+| `AC-M9-03` | Experimento com `NaN` + coluna categórica em texto + `DEFER_INTRA_FOLD` executa da Etapa 1 à Etapa 6 com sucesso e sem vazamento. | Teste de integração E2E (`pytest`). |
+| `AC-M9-04` | Sob `CV_AND_HOLDOUT`, células `FINAL_HOLDOUT` são geradas e executadas sobre `(development_ids, holdout_ids)`, e `consolidate_descriptive` / `report.md` reportam `FINAL_HOLDOUT` separado de `DEV_CV`. | Teste unitário e integração (`pytest`). |
+
+---
+
+## Requirement Traceability
+
+| Requirement ID | Origin / Finding | Acceptance Criteria |
+| :--- | :--- | :--- |
+| M9-01 | `VAL-BUG-001`, `VAL-ENH-002` | `AC-M9-01` |
+| M9-02 | `VAL-BUG-001`, `AD-030` | `AC-M9-02` |
+| M9-03 | `VAL-BUG-001`, `AD-031` | `AC-M9-03` |
+| M9-04 | `VAL-BUG-008`, `VAL-ENH-003`, `AD-032` | `AC-M9-04` |
