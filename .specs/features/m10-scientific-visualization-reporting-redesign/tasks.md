@@ -51,7 +51,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/reporting/ -q`
 
 ### T5: Padronizar `report.md` e `report.html` em `pt-BR` com figuras embutidas e Glossário Estatístico (`M10-06`, `VAL-QUAL-002`)
-- [ ] Implement & test T5
+- [x] Implement & test T5
 **Where**: `src/experimental_ml/reporting/report.py`, `tests/unit/reporting/test_reporting_report.py`
 **Depends on**: T2, T4
 **Tests**: Testes verificando `<html lang="pt-BR">`, títulos/seções em português, imagens embutidas em MD/HTML, `@media print` e seção de Glossário Estatístico.
