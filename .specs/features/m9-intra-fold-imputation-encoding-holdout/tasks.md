@@ -85,7 +85,7 @@ T5 (FINAL_HOLDOUT em matrix.py, execution.py, oof.py, stage_gates.py) --> T6 (ho
 **Gate**: `.venv/bin/pytest tests/ -q`
 
 ### T6: Consolidar `holdout_metrics` separadamente de `DEV_CV` na Etapa 5 e exibir na Tabela D da Etapa 6
-- [ ] Implement & test T6
+- [x] Implement & test T6
 **Where**: `src/experimental_ml/statistics/types.py`, `src/experimental_ml/statistics/consolidation.py`, `src/experimental_ml/statistics/storage.py`, `src/experimental_ml/reporting/tables.py`, `tests/unit/statistics/test_consolidation.py`
 **Depends on**: T5
 **Tests**: Testes verificando que células `FINAL_HOLDOUT` não alteram `mean`, `std`, `ci_lower`/`ci_upper` de Nadeau-Bengio nem testes pareados de `DEV_CV`, que `holdout_metrics` é persistido/recarregado em JSON e exibido na Tabela D.

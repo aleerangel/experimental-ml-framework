@@ -261,6 +261,9 @@ def _consolidation_to_dict(c: DescriptiveConsolidation) -> dict[str, Any]:
                 "pooled_oof_metrics": {
                     m: _metric_value_to_dict(mv) for m, mv in s.pooled_oof_metrics.items()
                 },
+                "holdout_metrics": {
+                    m: _metric_value_to_dict(mv) for m, mv in s.holdout_metrics.items()
+                },
                 "aggregated_timing": _timing_to_dict(s.aggregated_timing),
                 "feature_stability": _stability_to_dict(s.feature_stability),
             }
@@ -299,6 +302,9 @@ def _consolidation_from_dict(d: dict[str, Any]) -> DescriptiveConsolidation:
             },
             pooled_oof_metrics={
                 m: _metric_value_from_dict(mv) for m, mv in item["pooled_oof_metrics"].items()
+            },
+            holdout_metrics={
+                m: _metric_value_from_dict(mv) for m, mv in item.get("holdout_metrics", {}).items()
             },
             aggregated_timing=_timing_from_dict(item["aggregated_timing"]),
             feature_stability=_stability_from_dict(item["feature_stability"]),

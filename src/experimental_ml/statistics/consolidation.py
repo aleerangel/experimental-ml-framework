@@ -155,15 +155,18 @@ def consolidate_descriptive(
     configurations_summary: dict[tuple[str, str], ConfigurationSummary] = {}
 
     for (m_id, sc_id), cells in grouped.items():
-        # Determine total folds for this configuration
+        dev_cells = [c for c in cells if c.phase != "FINAL_HOLDOUT"]
+        holdout_cells = [c for c in cells if c.phase == "FINAL_HOLDOUT"]
+
+        # Determine total folds for this configuration (DEV_CV only)
         if isinstance(total_folds_per_config, Mapping):
-            k_total = total_folds_per_config.get((m_id, sc_id), len(cells) or 1)
+            k_total = total_folds_per_config.get((m_id, sc_id), len(dev_cells) or 1)
         else:
             k_total = int(total_folds_per_config)
 
-        completed_cells = [c for c in cells if c.status == ExecutionStatus.COMPLETED]
-        failed_cells = [c for c in cells if c.status == ExecutionStatus.FAILED]
-        cancelled_cells = [c for c in cells if c.status == ExecutionStatus.CANCELLED]
+        completed_cells = [c for c in dev_cells if c.status == ExecutionStatus.COMPLETED]
+        failed_cells = [c for c in dev_cells if c.status == ExecutionStatus.FAILED]
+        cancelled_cells = [c for c in dev_cells if c.status == ExecutionStatus.CANCELLED]
 
         completed_fold_ids = tuple(c.fold_id for c in completed_cells)
         failed_fold_ids = tuple(c.fold_id for c in failed_cells)
@@ -306,6 +309,12 @@ def consolidate_descriptive(
         if (m_id, sc_id) in oof_by_config:
             pooled_oof = dict(oof_by_config[(m_id, sc_id)].pooled_metrics)
 
+        # Final holdout metrics (isolated from DEV_CV aggregation & inferential tests)
+        holdout_metrics: dict[str, MetricValue] = {}
+        completed_holdouts = [c for c in holdout_cells if c.status == ExecutionStatus.COMPLETED]
+        if completed_holdouts:
+            holdout_metrics = dict(completed_holdouts[-1].metrics)
+
         cfg_summary = ConfigurationSummary(
             model_id=m_id,
             scenario_id=sc_id,
@@ -321,6 +330,7 @@ def consolidate_descriptive(
             fold_metrics=fold_metrics,
             aggregated_metrics=aggregated_metrics,
             pooled_oof_metrics=pooled_oof,
+            holdout_metrics=holdout_metrics,
             aggregated_timing=aggregated_timing,
             feature_stability=feature_stability,
         )
