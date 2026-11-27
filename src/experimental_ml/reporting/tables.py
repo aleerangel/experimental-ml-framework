@@ -177,7 +177,14 @@ def build_table_model(
         return TableModel("tbl_family_c", family, "Models Configuration", "Registered models catalog", cols, tuple(rows), (), prov)
 
     if family == ReportFamily.D_PREDICTIVE_PERFORMANCE:
-        cols = (
+        consol = loaded_data.statistics.consolidation
+        has_holdout = any(
+            summary.holdout_metrics
+            for (m_id, sc_id), summary in consol.configurations.items()
+            if (not sel.model_ids or m_id in sel.model_ids)
+            and (not sel.scenario_ids or sc_id in sel.scenario_ids)
+        )
+        base_cols = [
             TableColumn("model_id", "Model", ColumnAlignment.LEFT),
             TableColumn("scenario_id", "Scenario", ColumnAlignment.LEFT),
             TableColumn("metric", "Metric", ColumnAlignment.LEFT),
@@ -187,9 +194,11 @@ def build_table_model(
             TableColumn("median", "Median", ColumnAlignment.RIGHT, "{:.4f}"),
             TableColumn("iqr", "IQR", ColumnAlignment.RIGHT, "{:.4f}"),
             TableColumn("coverage", "Coverage", ColumnAlignment.RIGHT, "{:.2%}"),
-        )
+        ]
+        if has_holdout:
+            base_cols.append(TableColumn("holdout_mean", "Holdout", ColumnAlignment.RIGHT, "{:.4f}"))
+        cols = tuple(base_cols)
         rows = []
-        consol = loaded_data.statistics.consolidation
         for (m_id, sc_id), summary in sorted(consol.configurations.items()):
             if (sel.model_ids and m_id not in sel.model_ids) or (sel.scenario_ids and sc_id not in sel.scenario_ids):
                 continue
@@ -197,7 +206,7 @@ def build_table_model(
                 if sel.metric_ids and met_name not in sel.metric_ids:
                     continue
                 mean_val = float("nan") if agg.status == MetricStatus.UNDEFINED_NAN else agg.mean
-                rows.append({
+                row_dict: dict[str, Any] = {
                     "model_id": m_id,
                     "scenario_id": sc_id,
                     "metric": met_name,
@@ -207,7 +216,15 @@ def build_table_model(
                     "median": agg.median,
                     "iqr": agg.iqr,
                     "coverage": summary.coverage,
-                })
+                }
+                if has_holdout:
+                    hmv = summary.holdout_metrics.get(met_name)
+                    row_dict["holdout_mean"] = (
+                        float("nan")
+                        if (hmv is None or hmv.status == MetricStatus.UNDEFINED_NAN)
+                        else hmv.value
+                    )
+                rows.append(row_dict)
         prov = _make_provenance("tbl_family_d", family, loaded_data, sel, ("statistics/descriptive_consolidation.json",))
         return TableModel("tbl_family_d", family, "Predictive Performance", "Cross-validation descriptive performance", cols, tuple(rows), (), prov)
 

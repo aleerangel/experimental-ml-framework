@@ -161,3 +161,39 @@ def test_m52_01_05_derive_cell_seed_dispersion():
 
     seeds = {s1, s2, s3, s4}
     assert len(seeds) == 4
+
+
+def test_build_cell_matrix_cv_and_holdout_adds_final_holdout() -> None:
+    """M9-04 (AD-032): CV_AND_HOLDOUT generates both DEV_CV fold cells and FINAL_HOLDOUT cells."""
+    models, scenarios, base_plan = _create_test_entities()
+    dev_ids = ("o1", "o2", "o3", "o4")
+    holdout_ids = ("o5", "o6")
+    cv_holdout_plan = PartitionPlan(
+        plan_id=PartitionPlanId("plan_cv_hold"),
+        source_dataset_hash=base_plan.source_dataset_hash,
+        regime=EvaluationRegime.CV_AND_HOLDOUT,
+        strategy=PartitionStrategy.KFOLD,
+        development_ids=dev_ids,
+        holdout_ids=holdout_ids,
+        folds=(
+            FoldPartition(fold_index=0, train_ids=dev_ids[2:], val_ids=dev_ids[:2]),
+            FoldPartition(fold_index=1, train_ids=dev_ids[:2], val_ids=dev_ids[2:]),
+        ),
+        config=PartitionConfig(
+            strategy=PartitionStrategy.KFOLD,
+            regime=EvaluationRegime.CV_AND_HOLDOUT,
+            n_splits=2,
+            holdout_fraction=0.33,
+            master_seed=42,
+        ),
+    )
+
+    matrix = build_cell_matrix(models, scenarios, cv_holdout_plan, master_seed=42)
+    # 2 models * 2 scenarios * (2 DEV_CV + 1 FINAL_HOLDOUT) = 12 cells
+    assert len(matrix) == 12
+    holdout_cells = [c for c in matrix if c.phase == "FINAL_HOLDOUT"]
+    assert len(holdout_cells) == 4
+    for hc in holdout_cells:
+        assert str(hc.cell_id).endswith("__final_holdout")
+        assert hc.fold.train_ids == dev_ids
+        assert hc.fold.val_ids == holdout_ids

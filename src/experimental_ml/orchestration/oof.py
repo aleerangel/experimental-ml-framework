@@ -569,6 +569,8 @@ def consolidate_matrix_oof(
         config_key = (m_id, sc_id)
         try:
             cell_res, pred_rec = load_cell_artifacts(cid, run_path)
+            if cell_res.phase == "FINAL_HOLDOUT":
+                continue
             config_cells.setdefault(config_key, []).append(cell_res)
             if pred_rec is not None:
                 config_preds.setdefault(config_key, []).append(pred_rec)

@@ -105,7 +105,13 @@ def run_nested_tuning(
             f"Sample count mismatch: X_train has {n_samples_x}, y_train has {n_samples_y}"
         )
 
-    if not np.all(np.isfinite(X_train)):
+    from experimental_ml.models.preprocessing.pipeline import _layer1_allows_raw_missing_or_categorical
+
+    allows_raw = (
+        model_spec.preprocessing is not None
+        and _layer1_allows_raw_missing_or_categorical(model_spec.preprocessing)
+    )
+    if not allows_raw and not np.all(np.isfinite(X_train)):
         raise ContractViolationError("X_train contains NaN or Inf values")
     if not np.all(np.isfinite(y_train)):
         raise ContractViolationError("y_train contains NaN or Inf values")

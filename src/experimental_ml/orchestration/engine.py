@@ -189,6 +189,7 @@ def run_experiment_matrix(
                 error_policy=error_policy,
                 cell_seed=desc.cell_seed,
                 cell_id=desc.cell_id,
+                phase=desc.phase,
             )
         except Exception as exc:
             with state_lock:
@@ -422,6 +423,7 @@ def resume_experiment_matrix(
                 error_policy=error_policy,
                 cell_seed=desc.cell_seed,
                 cell_id=desc.cell_id,
+                phase=desc.phase,
             )
         except Exception as exc:
             with state_lock:

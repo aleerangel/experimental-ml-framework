@@ -20,6 +20,7 @@ def _make_cell(
     metrics: dict[str, MetricValue] | None = None,
     timing: TimingBreakdown | None = None,
     selected_features: tuple[str, ...] = ("feat_a", "feat_b"),
+    phase: str = "DEV_CV",
 ) -> CellResultRecord:
     cid = CellId(f"cell_{model_id}_{scenario_id}_{fold_id}")
     return CellResultRecord(
@@ -33,6 +34,7 @@ def _make_cell(
         status=status,
         selected_features=selected_features,
         metrics=metrics or {},
+        phase=phase,
     )
 
 
@@ -323,3 +325,56 @@ def test_consolidate_descriptive_feature_stability() -> None:
     stab_empty = consol_empty.configurations[("ridge", "empty_sc")].feature_stability
     assert stab_empty is not None
     assert stab_empty.mean_jaccard == pytest.approx(1.0)
+
+
+def test_final_holdout_isolated_from_dev_cv_consolidation() -> None:
+    """C4 (M9): FINAL_HOLDOUT cells are isolated from DEV_CV stats, persisted in JSON, and shown in Table D."""
+    from types import SimpleNamespace
+    from experimental_ml.reporting.tables import build_table_model
+    from experimental_ml.reporting.types import ReportContentSelection, ReportFamily
+    from experimental_ml.statistics.storage import _consolidation_from_dict, _consolidation_to_dict
+
+    cells = [
+        _make_cell("ridge", "sc1", "fold_0", metrics={"rmse": _make_metric(1.0)}, phase="DEV_CV"),
+        _make_cell("ridge", "sc1", "fold_1", metrics={"rmse": _make_metric(3.0)}, phase="DEV_CV"),
+        _make_cell("ridge", "sc1", "final_holdout", metrics={"rmse": _make_metric(99.0)}, phase="FINAL_HOLDOUT"),
+    ]
+    consol = consolidate_descriptive(
+        cell_results=cells,
+        total_folds_per_config={("ridge", "sc1"): 2},
+        experiment_id="exp_test",
+        partition_plan_id="plan_test",
+    )
+    summary = consol.configurations[("ridge", "sc1")]
+    # DEV_CV metrics must NOT include 99.0 from FINAL_HOLDOUT
+    assert summary.completed_folds == 2
+    assert summary.completed_fold_ids == ("fold_0", "fold_1")
+    assert summary.aggregated_metrics["rmse"].mean == pytest.approx(2.0)
+    assert summary.aggregated_metrics["rmse"].std == pytest.approx(np.std([1.0, 3.0], ddof=1))
+    assert "final_holdout" not in summary.fold_metrics
+    assert summary.holdout_metrics["rmse"].value == pytest.approx(99.0)
+
+    # JSON round-trip
+    reloaded = _consolidation_from_dict(_consolidation_to_dict(consol))
+    assert reloaded.configurations[("ridge", "sc1")].holdout_metrics["rmse"].value == pytest.approx(99.0)
+
+    # Table D display
+    fake_loaded = SimpleNamespace(
+        experiment_id="exp_test",
+        partition_plan_id="plan_test",
+        statistics=SimpleNamespace(consolidation=reloaded),
+        dataset_profile=None,
+        scenarios_catalog=None,
+        models_catalog=None,
+        split_plan=None,
+        run_manifest=None,
+    )
+    tbl_d = build_table_model(
+        ReportFamily.D_PREDICTIVE_PERFORMANCE,
+        fake_loaded,  # type: ignore[arg-type]
+        ReportContentSelection(),
+    )
+    col_keys = [c.key for c in tbl_d.columns]
+    assert "holdout_mean" in col_keys
+    assert tbl_d.rows[0]["mean"] == pytest.approx(2.0)
+    assert tbl_d.rows[0]["holdout_mean"] == pytest.approx(99.0)

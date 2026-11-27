@@ -12,6 +12,11 @@ from typing import Any, Set
 import numpy as np
 
 from experimental_ml.core.findings import ConfigurationError, ContractViolationError
+from experimental_ml.models.preprocessing.encoders import (
+    FrequencyCategoryEncoder,
+    OrdinalCategoryEncoder,
+)
+from experimental_ml.models.preprocessing.imputers import SimpleImputer
 from experimental_ml.models.preprocessing.kernel import PrecomputedKernelAdapter
 from experimental_ml.models.preprocessing.scalers import (
     AngularScaler,
@@ -40,9 +45,18 @@ _SCALER_TYPES: Set[str] = {
 _KNOWN_TRANSFORMER_TYPES: Set[str] = _SCALER_TYPES | {
     "PRECOMPUTED_KERNEL",
     "IMPUTER",
+    "ORDINAL_ENCODER",
+    "FREQUENCY_ENCODER",
     "PASSTHROUGH",
     "CUSTOM",
 }
+
+
+def _layer1_allows_raw_missing_or_categorical(spec: TwoLayerPreprocessingSpec) -> bool:
+    return any(
+        step.transformer_type.upper().strip() in {"IMPUTER", "ORDINAL_ENCODER", "FREQUENCY_ENCODER"}
+        for step in spec.layer1_steps
+    )
 
 
 def validate_two_layer_preprocessing(
@@ -148,6 +162,13 @@ def _instantiate_step_transformer(step: PreprocessingStepSpec) -> Any:
                 f"PRECOMPUTED_KERNEL step '{step.step_id}' requires callable 'kernel_func' parameter"
             )
         return PrecomputedKernelAdapter(kernel_func=kfunc)
+    elif ttype == "IMPUTER":
+        strat = params.get("strategy", params.get("imputation_strategy", "MEDIAN"))
+        return SimpleImputer(strategy=str(strat), column_indices=params.get("column_indices"))
+    elif ttype == "ORDINAL_ENCODER":
+        return OrdinalCategoryEncoder(column_indices=params.get("column_indices"))
+    elif ttype == "FREQUENCY_ENCODER":
+        return FrequencyCategoryEncoder(column_indices=params.get("column_indices"))
     elif ttype == "PASSTHROUGH":
         return None
     elif ttype == "CUSTOM":
@@ -196,10 +217,15 @@ def fit_two_layer_preprocessing(
         )
     if X_train.shape[0] == 0 or X_train.shape[1] == 0:
         raise ContractViolationError(f"X_train must not be empty, got shape {X_train.shape}")
-    if not np.all(np.isfinite(X_train)):
-        raise ContractViolationError("X_train contains non-finite values (NaN or Inf)")
 
-    current_X = X_train.astype(float, copy=True)
+    allows_raw = _layer1_allows_raw_missing_or_categorical(spec)
+    if not allows_raw:
+        if not np.all(np.isfinite(X_train)):
+            raise ContractViolationError("X_train contains non-finite values (NaN or Inf)")
+        current_X = X_train.astype(float, copy=True)
+    else:
+        current_X = X_train.copy()
+
     layer1_fitted: list[Any] = []
 
     # 1. Fit & Transform Layer 1 steps
@@ -209,6 +235,11 @@ def fit_two_layer_preprocessing(
             transformer.fit(current_X)
             current_X = transformer.transform(current_X)
         layer1_fitted.append(transformer)
+
+    if allows_raw:
+        current_X = np.asarray(current_X, dtype=float)
+        if not np.all(np.isfinite(current_X)):
+            raise ContractViolationError("X_train contains non-finite values (NaN or Inf) after Layer 1")
 
     # 2. Fit & Transform Layer 2 steps on intermediate representation X_inter
     layer2_fitted: list[Any] = []
@@ -258,10 +289,14 @@ def apply_two_layer_preprocessing(
         )
     if X_eval.shape[0] == 0 or X_eval.shape[1] == 0:
         raise ContractViolationError(f"X_eval must not be empty, got shape {X_eval.shape}")
-    if not np.all(np.isfinite(X_eval)):
-        raise ContractViolationError("X_eval contains non-finite values (NaN or Inf)")
 
-    current_X = X_eval.astype(float, copy=True)
+    allows_raw = _layer1_allows_raw_missing_or_categorical(state.spec)
+    if not allows_raw:
+        if not np.all(np.isfinite(X_eval)):
+            raise ContractViolationError("X_eval contains non-finite values (NaN or Inf)")
+        current_X = X_eval.astype(float, copy=True)
+    else:
+        current_X = X_eval.copy()
 
     # 1. Project through Layer 1 steps
     for transformer in state.layer1_fitted_state:
@@ -273,6 +308,11 @@ def apply_two_layer_preprocessing(
                         f"got {current_X.shape[1]}"
                     )
             current_X = transformer.transform(current_X)
+
+    if allows_raw:
+        current_X = np.asarray(current_X, dtype=float)
+        if not np.all(np.isfinite(current_X)):
+            raise ContractViolationError("X_eval contains non-finite values (NaN or Inf) after Layer 1")
 
     # 2. Project through Layer 2 steps
     for transformer in state.layer2_fitted_state:

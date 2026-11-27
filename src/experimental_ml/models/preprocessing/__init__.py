@@ -5,6 +5,13 @@ Complies with PRE-01 to PRE-07, ADR-002, RF3.4, and XCUT-02.
 
 from __future__ import annotations
 
+from experimental_ml.models.preprocessing.encoders import (
+    FrequencyCategoryEncoder,
+    OrdinalCategoryEncoder,
+)
+from experimental_ml.models.preprocessing.imputers import (
+    SimpleImputer,
+)
 from experimental_ml.models.preprocessing.kernel import (
     PrecomputedKernelAdapter,
 )
@@ -37,6 +44,9 @@ __all__ = [
     "MaxAbsScaler",
     "RobustScaler",
     "AngularScaler",
+    "SimpleImputer",
+    "OrdinalCategoryEncoder",
+    "FrequencyCategoryEncoder",
     "PrecomputedKernelAdapter",
     "validate_two_layer_preprocessing",
     "fit_two_layer_preprocessing",

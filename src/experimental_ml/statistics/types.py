@@ -107,6 +107,7 @@ class ConfigurationSummary:
     fold_metrics: Mapping[str, Mapping[str, MetricValue]] = field(default_factory=dict)
     aggregated_metrics: Mapping[str, AggregatedMetricStats] = field(default_factory=dict)
     pooled_oof_metrics: Mapping[str, MetricValue] = field(default_factory=dict)
+    holdout_metrics: Mapping[str, MetricValue] = field(default_factory=dict)
     aggregated_timing: AggregatedTimingStats | None = None
     feature_stability: SelectionStabilityReport | None = None
 
@@ -140,6 +141,13 @@ class ConfigurationSummary:
                 self,
                 "pooled_oof_metrics",
                 MappingProxyType(dict(self.pooled_oof_metrics)),
+            )
+
+        if not isinstance(self.holdout_metrics, MappingProxyType):
+            object.__setattr__(
+                self,
+                "holdout_metrics",
+                MappingProxyType(dict(self.holdout_metrics)),
             )
 
 
