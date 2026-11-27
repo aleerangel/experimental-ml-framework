@@ -295,12 +295,13 @@
 
 ## Handoff
 
-- **Feature**: Marco `M8` (`m8-mvp-stabilization-contract-alignment`) Concluído e Aprovado
-- **Phase / Task**: `M8` concluído (`620 passed`, `verification.md: PASS`). Próximos marcos em planejamento (`Specify`): `M9` e `M10`.
+- **Feature**: Marco `M9` (`m9-intra-fold-imputation-encoding-holdout`) Implementado e Verificado (`PASS`)
+- **Phase / Task**: `M9` concluído (`T1`–`T6`, `628 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`. Próximo marco: `M10`.
 - **Completed**:
-  - `M8` (`T1`–`T7`) implementado, provado (`proofs.md`), verificado (`verification.md: PASS`) e aprovado (`RESULTS.md: APROVADO`).
-  - `VAL-ENH-005` (comparação e visualização Treino vs. Teste) registrado em `REGISTRO_DE_VALIDACAO_DO_MVP.md` e alocado no `ROADMAP_EVOLUCAO.md` para `M10`.
-- **In-progress**: Validação contínua do MVP pelo desenvolvedor.
-- **Next step**: Deliberação sobre as decisões abertas do Marco `M9` (imputação/codificação intra-fold + `FINAL_HOLDOUT`) ou do Marco `M10` (subsistema de visualização científica + `VAL-ENH-005`).
+  - `M8` (`T1`–`T7`) implementado, provado (`proofs.md`), verificado (`verification.md: PASS`), aprovado (`RESULTS.md: APROVADO`) e integrado em `main` (`0b77fd1`).
+  - `M9` (`T1`–`T6`) implementado (`fa7623c`, `04d17ad`, `4a2ae0a`, `94ace9a`, `f53d17d`, `31fefba`), provado (`proofs.md`) e verificado pelo Verificador Independente (`verification.md: PASS`, `C1`–`C4`), com `628 passed in 17.68s`.
+  - `VAL-BUG-001`, `VAL-BUG-008`, `VAL-ENH-002` e `VAL-ENH-003` atualizados para `VERIFICADO (M9)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
+- **In-progress**: Homologação/aceite do `M9` (`ACCEPTANCE.md`) pelo desenvolvedor e preparação do `M10`.
+- **Next step**: Push da branch `feat/m9-intra-fold-holdout`, aceite/merge do `M9` em `main` e início do Marco `M10` (subsistema de visualização científica + `VAL-ENH-005`).
 - **Blockers**: none
-- **Branch**: main
+- **Branch**: feat/m9-intra-fold-holdout

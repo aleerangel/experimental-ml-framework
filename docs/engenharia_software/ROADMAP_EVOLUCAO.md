@@ -158,7 +158,7 @@ As evoluções priorizadas foram organizadas em quatro marcos coesos e sequencia
 | **Problema que resolve** | Conecta as regras `DEFER_INTRA_FOLD` da Etapa 1 ao motor de execução da Etapa 4B, implementa o transformador `IMPUTER` (`MEAN`, `MEDIAN`, `MODE`) e codificação categórica intra-fold na Camada 1 (`VAL-BUG-001`, `VAL-ENH-002`), e executa/consolida as células `FINAL_HOLDOUT` no regime `CV_AND_HOLDOUT` (`VAL-BUG-008`, `VAL-ENH-003`). |
 | **Objetivo** | Permitir que o pesquisador execute experimentos diretamente sobre datasets reais contendo valores faltantes e variáveis categóricas com tratamento intra-fold à prova de vazamento, além de suportar o protocolo completo `CV_AND_HOLDOUT`. |
 | **Escopo preliminar** | `models/preprocessing/imputers.py` (novo), `models/preprocessing/encoders.py` (novo), `models/preprocessing/pipeline.py`, `orchestration/matrix.py`, `orchestration/execution.py`, `statistics/consolidation.py` e `reporting/tables.py`. |
-| **Dependências** | Conclusão do Marco `M8` e decisão do desenvolvedor sobre as questões `D1`, `D2` e `D3` na `spec.md` do `M9`. |
+| **Dependências** | Conclusão do Marco `M8` e decisões `AD-030`, `AD-031` e `AD-032` (já deliberadas — marco implementado e verificado em `feat/m9-intra-fold-holdout`, aguardando aceite). |
 | **Impacto arquitetural** | **Médio.** Estende a Camada 1 de pré-processamento e adiciona separação explícita entre células `DEVELOPMENT_CV` e `FINAL_HOLDOUT` na consolidação estatística da Etapa 5. |
 | **Complexidade estimada** | Média-Alta (6 a 8 tarefas atômicas TLC). |
 | **Prioridade** | **`P1` (Logo após a estabilização de `M8`)**. |

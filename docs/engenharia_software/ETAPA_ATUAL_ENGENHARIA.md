@@ -3,8 +3,8 @@
 > **Documento de Registro de Estado da Engenharia**<br/>
 > **Data:** 27 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
-> **Estado Atual:** Marcos M1 a M8 Concluídos (620 testes automatizados) — Em Validação Contínua do MVP e Planejamento M9–M10<br/>
-> **Próximo Marco:** Marco `M9` (Imputação/Codificação Intra-Fold e `FINAL_HOLDOUT`) ou Marco `M10` (Subsistema de Visualização Científica)<br/>
+> **Estado Atual:** Marcos M1 a M8 Concluídos e Marco M9 Verificado (628 testes automatizados) — Aguardando Aceite M9 e Planejamento M10<br/>
+> **Próximo Marco:** Marco `M10` (Subsistema de Visualização Científica, Relatórios e Comparação Treino vs. Teste)<br/>
 > **Especificação de Requisitos (SRS v2.2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
 > **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)<br/>
@@ -25,7 +25,7 @@ flowchart LR
     Fase1["Fase 1: Auditoria Técnica<br/>(Concluída)"] --> Fase2["Fase 2: Requisitos das 6 Etapas<br/>(Concluída — SRS v2.2.0)"]
     Fase2 --> Fase3["Fase 3: Arquitetura, Contratos & MVP<br/>(Concluída)"]
     Fase3 --> Fase4["Fase 4: Implementação TDD do MVP<br/>(M1 a M7 Homologados — 581 testes)"]
-    Fase4 --> Fase5["Fase 5: M8 Concluído & Evoluções Contínuas<br/>(620 testes | Próximo: M9 / M10)"]
+    Fase4 --> Fase5["Fase 5: M8 Aprovado & M9 Verificado<br/>(628 testes | Próximo: M10)"]
     
     style Fase1 fill:#d4edda,stroke:#28a745
     style Fase2 fill:#d4edda,stroke:#28a745
@@ -253,4 +253,6 @@ Todo marco segue o processo de governança estabelecido em [`PROCESSO_DE_ACEITE_
    * **Configuração e Detecção Automática de CSV (`csv-format-configuration` — Concluída e Aceita):** Contrato `CsvFormatSpec`, suporte a `decimal` (`"."`, `","`, `"auto"`), `quotechar`, `encoding` (`"utf-8-sig"` / `"auto"`), flags CLI em `data profile` e `quickrun`, bloco `"csv_format"` em `schema.json`, persistência em `DatasetDescriptor` e exposição em `run_experiment` (604 testes aprovados).
    * **Redesenho Visual e Ranking Único da Etapa 2 (`exploratory-visual-redesign` — Concluída):** Agregação única por atributo (`mean(|valor|)`) em `ExploratoryFeatureReport.summary()`, relatórios limpos `exploratory_features.{md,html}` (HTML pronto para impressão A4/PDF), tabelas CSV e gráficos PNG rotulados em Python/NumPy puro (`XCUT-02`, sem SVGs), integrados em `expml features explore`.
    * **Compatibilidade de Diagnósticos com Ensembles Scikit-Learn (`sklearn-ensemble-diagnostics` — Concluída):** Sumarização imutável de sub-estimadores (`estimators_`, `estimator_`, arrays/coleções aninhadas) pelo nome da classe em `extract_model_diagnostics`, preservando `ContractViolationError` (`AC-M41-06-03`) para objetos mutáveis arbitrários (**611 testes aprovados**).
+   * **Estabilização do MVP e Alinhamento de Contratos (`M8` — Concluída e Aceita):** Correção dos achados críticos/altos da auditoria (`tbl_family_a`, `tbl_family_g`, `compute_correlation_ratio`/`compute_cramers_v`, seleção dinâmica dentro do Nested CV `ADR-003`, `run_experiment`, `cli/cmd_stats.py` e `MatrixExecutionState`), consolidando **620 testes aprovados**.
+   * **Imputação/Codificação Intra-Fold e Holdout Final (`M9` — Implementada e Verificada `PASS`, Aguardando Aceite):** `SimpleImputer` (`MEAN`, `MEDIAN`, `MODE`), `OrdinalCategoryEncoder`, `FrequencyCategoryEncoder`, resolução automática de `DEFER_INTRA_FOLD` na Camada 1/2 (incluindo Nested CV), geração/execução de células `FINAL_HOLDOUT` sob `CV_AND_HOLDOUT` e isolamento de `holdout_metrics` na consolidação e Tabela D (**628 testes aprovados**).
    * **Homologação Científica Externa (`TA-POS.4` / `CA02` — Pendente):** Execução do pipeline completo sobre estudo de caso experimental real pelo pesquisador fora do repositório.
