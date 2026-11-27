@@ -327,12 +327,13 @@
 
 ## Handoff
 
-- **Feature**: Marco `M10` (`m10-scientific-visualization-reporting-redesign`) em fase `Specify/Design/Tasks`
-- **Phase / Task**: `M9` mergeado em `main` (`e372b22`); branch `feat/m10-visualization-reporting` criada e decisões `AD-033`–`AD-036` registradas.
+- **Feature**: Marco `M10` (`m10-scientific-visualization-reporting-redesign`) Implementado e Verificado (`PASS`)
+- **Phase / Task**: `M10` concluído (`T1`–`T6`, `632 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`.
 - **Completed**:
   - `M8` (`0b77fd1`) e `M9` (`e372b22`) integrados em `main`.
-  - Auditoria técnica de `reporting/`, `features/visualization.py` e `pyproject.toml` concluída.
-- **In-progress**: Elaboração e validação de `spec.md`, `design.md` e `tasks.md` do `M10`.
-- **Next step**: Validar `spec.md`, escrever `design.md` e `tasks.md` do `M10` e submeter `tasks.md` para aprovação antes de iniciar `T1`.
+  - `M10` (`T1`–`T6`: `5fc348c`, `a935d27`, `79a806e`, `36c795d`, `e0fcab8`, `decf35b`) implementado, provado (`proofs.md`) e verificado (`verification.md: PASS`, `C1`–`C5`) com `632 passed in 66.10s`.
+  - `VAL-BUG-006`, `VAL-QUAL-001`, `VAL-QUAL-002` e `VAL-ENH-001` atualizados para `VERIFICADO (M10)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
+- **In-progress**: Homologação/aceite do `M10` (`ACCEPTANCE.md`) e validação contínua do pesquisador.
+- **Next step**: Push da branch `feat/m10-visualization-reporting`, aceite/merge do `M10` em `main` e eventual planejamento de `VAL-ENH-005` (Treino vs. Teste).
 - **Blockers**: none
 - **Branch**: feat/m10-visualization-reporting
