@@ -43,6 +43,7 @@ Conforme exigido pelo processo de engenharia, as evoluções mapeadas dividem-se
 ### 2.4. Categoria 4 — Novas Funcionalidades
 1. **Exportação Automática de Tabelas e Figuras no `expml quickrun` e `run_experiment` (`VAL-QUAL-003`):** Opção integrada para exportar `reports/tables/*.{csv,md,tex}` e `reports/figures/*.{png,svg,pdf}` ao final da execução rápida.
 2. **Especificação Declarativa de Múltiplos Objetivos de Pareto em `stats_config.json` (`VAL-ENH-004`):** Permitir ao usuário configurar 2 ou mais objetivos (ex.: erro preditivo vs. tempo de treino vs. número de atributos) diretamente na CLI.
+3. **Teste Kolmogorov-Smirnov (1 e 2 amostras / Lilliefors), Detecção de *Dataset Shift* e Q-Q Plot (`VAL-ENH-006`):** Implementação em NumPy puro (`XCUT-02`) do teste KS de 2 amostras (Kolmogorov 1933; Smirnov 1948; Quiñonero-Candela et al. 2009) para detectar *covariate/target shift* entre `DEV` e `HOLDOUT`/splits temporais, teste de aderência com correção de Lilliefors (1967) / Stephens (1974) e gráficos de resíduos + Q-Q Plot na Etapa 6 (`M11`).
 
 ### 2.5. Categoria 5 — Melhorias de Desempenho
 1. **Cache Intra-Célula de Pré-processamento de Camada 1 no Nested CV:** Ao executar `GRID_SEARCH` com dezenas de candidatos de hiperparâmetros do modelo sobre os mesmos folds internos, reutilizar a matriz transformada pela Camada 1 e pela seleção dinâmica em cada sub-fold interno sem recalculá-la para cada ponto da grade de hiperparâmetros do estimador.

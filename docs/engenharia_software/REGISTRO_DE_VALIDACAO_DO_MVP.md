@@ -95,7 +95,8 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 | [`VAL-ENH-002`](#val-enh-002) | Pipeline completo de Imputação (`MEAN`, `MEDIAN`, `MODE`) e Codificação Categórica (`ONE_HOT`, `ORDINAL`) Intra-Fold | `ENHANCEMENT` | `P1` | `models/preprocessing/`, `orchestration/execution.py`, `data/preparation.py` | Marco `M9` | `VERIFICADO (M9 — 4a2ae0a)` |
 | [`VAL-ENH-003`](#val-enh-003) | Execução, persistência e consolidação estatística de células `FINAL_HOLDOUT` no regime `CV_AND_HOLDOUT` | `ENHANCEMENT` | `P1` | `orchestration/`, `statistics/`, `reporting/` | Marco `M9` | `VERIFICADO (M9 — 31fefba)` |
 | [`VAL-ENH-004`](#val-enh-004) | Suporte a múltiplos objetivos de Pareto e `planned_pairs` em `stats_config.json` na CLI e na fachada `run_experiment` | `ENHANCEMENT` | `P2` | `cli/cmd_stats.py`, `pipeline.py`, `statistics/comparisons.py` | Marco `M8` / `M10` | `PLANEJADO (Aguardando Aprovação de Escopo)` |
-| [`VAL-ENH-005`](#val-enh-005) | Avaliação de erro em treino (`train_metrics`) e visualização/comparação Treino vs. Teste (diagnóstico de overfitting) | `ENHANCEMENT` | `P1` | `orchestration/types.py`, `orchestration/execution.py`, `statistics/`, `reporting/` | Marco `M10` (ou `M9` + `M10`) | `IDENTIFICADO (Aguardando Decisão)` |
+| [`VAL-ENH-005`](#val-enh-005) | Avaliação de erro em treino (`train_metrics`) e visualização/comparação Treino vs. Teste (diagnóstico de overfitting) | `ENHANCEMENT` | `P1` | `orchestration/types.py`, `orchestration/execution.py`, `statistics/`, `reporting/` | Marco `M11` | `IDENTIFICADO (Aguardando Decisão)` |
+| [`VAL-ENH-006`](#val-enh-006) | Teste Kolmogorov-Smirnov (1 e 2 amostras / Lilliefors), detecção de *drift* entre partições e diagnóstico de resíduos (Q-Q Plot) | `ENHANCEMENT` | `P1` | `data/profiling.py`, `validation/`, `statistics/`, `reporting/` | Marco `M11` | `IDENTIFICADO (Aguardando Decisão)` |
 
 ---
 
@@ -516,9 +517,35 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 - **Impacto:** Alto para análise científica e diagnóstico de viés-variância (*overfitting* vs. *underfitting*) em experimentos de Iniciação Científica.
 - **Prioridade:** `P1`
 - **Dependências:** A visualização gráfica depende do subsistema de figuras da Etapa 6 (`VAL-ENH-001` / Marco `M10`), podendo a coleta de `train_metrics` na Etapa 4B ser preparada em `M9` ou `M10`.
-- **Destino:** Marco `M10` (`m10-scientific-visualization-reporting-redesign`, com coleta de `train_metrics` em `orchestration`).
+- **Destino:** Marco `M11` (coleta de `train_metrics` em `orchestration` e visualização comparativa em `reporting`).
 - **Status:** `IDENTIFICADO (Aguardando Decisão)`
-- **Decisão e justificativa:** Classificado como `ENHANCEMENT` (funcionalidade não prevista nos contratos originais da Onda 1, não se tratando de bug do MVP). Recomendado alocar no Marco `M10` (ou dividir a coleta em `M9` e a visualização em `M10`) sem atrasar a estabilização do Marco `M8`.
+- **Decisão e justificativa:** Classificado como `ENHANCEMENT` (funcionalidade não prevista nos contratos originais da Onda 1, não se tratando de bug do MVP). Adiado do `M10` por decisão do desenvolvedor (`AD-036`) para marco dedicado posterior (`M11`).
+
+---
+
+### `VAL-ENH-006`
+- **Identificador único:** `VAL-ENH-006`
+- **Título:** Teste Kolmogorov-Smirnov (1 e 2 amostras / Lilliefors), detecção de *dataset shift* entre partições e diagnóstico de resíduos (Q-Q Plot)
+- **Categoria:** `ENHANCEMENT`
+- **Data de identificação:** 2026-11-27
+- **Módulo afetado:** `data/profiling.py`, `validation/`, `statistics/`, `reporting/figures.py`
+- **Descrição:** Estender o diagnóstico estatístico em NumPy puro (`XCUT-02`) com: (1) teste KS de duas amostras (`ks_2samp`) para detectar *covariate shift* / *target shift* entre partições (`development_ids` vs. `holdout_ids` em `CV_AND_HOLDOUT` e splits em `TEMPORAL`); (2) teste de aderência à normalidade com correção de Lilliefors para triagem heurística na Etapa 1 e diagnóstico de resíduos OOF na Etapa 5/6; e (3) gráfico Q-Q Plot / Resíduos vs. Preditos na Etapa 6. Reportar sempre a estatística de discrepância $D_{\text{KS}} \in [0, 1]$ junto ao $p$-valor (evitando interpretações baseadas apenas em $p$-valor em amostras grandes).
+- **Referências científicas:**
+  - Kolmogorov, A. N. (1933). *Sulla determinazione empirica di una legge di distribuzione*. Giornale dell'Istituto Italiano degli Attuari, 4, 83–91.
+  - Smirnov, N. (1948). *Table for estimating the goodness of fit of empirical distributions*. Annals of Mathematical Statistics, 19(2), 279–281.
+  - Massey, F. J. (1951). *The Kolmogorov-Smirnov test for goodness of fit*. Journal of the American Statistical Association, 46(253), 68–78.
+  - Lilliefors, H. W. (1967). *On the Kolmogorov-Smirnov test for normality with mean and variance unknown*. Journal of the American Statistical Association, 62(318), 399–402.
+  - Stephens, M. A. (1974). *EDF statistics for goodness of fit and some comparisons*. Journal of the American Statistical Association, 69(347), 730–737.
+  - Quiñonero-Candela, J., Sugiyama, M., Schwaighofer, A., & Lawrence, N. D. (Eds.). (2009). *Dataset Shift in Machine Learning*. MIT Press.
+- **Comportamento observado:** Hoje `data/profiling.py` calcula apenas momentos descritivos (média, desvio, mediana, IQR, assimetria, curtose) e `validation/` / `statistics/` não medem divergência distribucional entre desenvolvimento e holdout/validação.
+- **Comportamento esperado:** Disponibilizar testes KS (1 e 2 amostras) em NumPy puro com alertas de *shift* entre partições e diagnósticos visuais de resíduos/Q-Q Plot na Etapa 6.
+- **Evidências:** `src/experimental_ml/data/profiling.py:L173-L248`, `src/experimental_ml/statistics/`, `src/experimental_ml/reporting/figures.py`.
+- **Impacto:** Alto para rigor metodológico em validação temporal, `CV_AND_HOLDOUT` e verificação de pressupostos de resíduos em Iniciação Científica.
+- **Prioridade:** `P1`
+- **Dependências:** Subsistema visual Matplotlib (`M10`).
+- **Destino:** Marco `M11` (junto com `VAL-ENH-005`).
+- **Status:** `IDENTIFICADO (Aguardando Decisão)`
+- **Decisão e justificativa:** Proposto e aprovado pelo desenvolvedor para registro no roadmap com fundamentação bibliográfica explícita, para planejamento no próximo ciclo (`M11`).
 
 ---
 
