@@ -1,11 +1,12 @@
-"""Deterministic pure-Python/NumPy figure builders and SVG/PNG/PDF renderers (REP-04, XCUT-02)."""
+"""Scientific figure builders and Matplotlib (Agg) renderers for PNG (300 DPI), SVG, and PDF (REP-04, AD-033)."""
 
 from __future__ import annotations
 
+import io
 import math
 import struct
-from xml.sax.saxutils import escape as xml_escape
 import zlib
+from typing import Any
 
 import numpy as np
 
@@ -53,18 +54,20 @@ def build_figure_spec(
     selection: ReportContentSelection | None = None,
     metric_name: str | None = None,
 ) -> PlotSpecification:
-    """Build an immutable PlotSpecification from LoadedExperimentData (CA-E6-01, REP-04)."""
+    """Build an immutable PlotSpecification from LoadedExperimentData (CA-E6-01, REP-04, M10-02)."""
     if not isinstance(family, ReportFamily):
         family = ReportFamily(family)
     sel = select_report_content(loaded_data, selection)
     target_metric = metric_name or (sel.metric_ids[0] if sel.metric_ids else "metric")
-
     notes: list[str] = []
 
     if family == ReportFamily.D_PREDICTIVE_PERFORMANCE:
         x_vals: list[str] = []
         y_vals: list[float] = []
         y_errs: list[float] = []
+        holdout_vals: list[float] = []
+        has_holdout = False
+
         for (m_id, sc_id), summary in sorted(loaded_data.statistics.consolidation.configurations.items()):
             if (sel.model_ids and m_id not in sel.model_ids) or (sel.scenario_ids and sc_id not in sel.scenario_ids):
                 continue
@@ -75,16 +78,27 @@ def build_figure_spec(
             x_vals.append(f"{m_id}/{sc_id}")
             y_vals.append(float(agg.mean))
             y_errs.append(float(agg.std) if agg.std is not None and math.isfinite(agg.std) else 0.0)
-        series = (PlotSeries(name=target_metric, x_values=tuple(x_vals), y_values=tuple(y_vals), y_err=tuple(y_errs)),)
+            hmv = summary.holdout_metrics.get(target_metric)
+            if hmv is not None and hmv.status != MetricStatus.UNDEFINED_NAN and math.isfinite(hmv.value):
+                holdout_vals.append(float(hmv.value))
+                has_holdout = True
+            else:
+                holdout_vals.append(float("nan"))
+
+        series_list = [PlotSeries(name=f"{target_metric} (DEV_CV)", x_values=tuple(x_vals), y_values=tuple(y_vals), y_err=tuple(y_errs))]
+        if has_holdout:
+            series_list.append(PlotSeries(name=f"{target_metric} (Holdout)", x_values=tuple(x_vals), y_values=tuple(holdout_vals)))
+
         prov = _make_fig_provenance("fig_family_d", family, loaded_data, sel, ("statistics/descriptive_consolidation.json",))
         return PlotSpecification(
             plot_id="fig_family_d",
             family=family,
             plot_type=PlotType.BAR_COMPARISON,
-            title=f"Predictive Performance ({target_metric})",
-            x_label="Configuration",
+            title=f"Desempenho Preditivo ({target_metric})",
+            subtitle="Média ± desvio padrão entre folds (DEV_CV)",
+            x_label="Configuração",
             y_label=target_metric,
-            series=series,
+            series=tuple(series_list),
             notes=tuple(notes),
             provenance=prov,
         )
@@ -96,59 +110,79 @@ def build_figure_spec(
         for cmp_res in loaded_data.statistics.comparisons.comparisons:
             if cmp_res.metric_name != target_metric:
                 continue
+            if sel.model_ids and (cmp_res.config_a[0] not in sel.model_ids or cmp_res.config_b[0] not in sel.model_ids):
+                continue
+            if sel.scenario_ids and (cmp_res.config_a[1] not in sel.scenario_ids or cmp_res.config_b[1] not in sel.scenario_ids):
+                continue
             diff = cmp_res.observed_difference
             ci_lo, ci_hi = cmp_res.nadeau_bengio.confidence_interval
             if not (math.isfinite(diff) and math.isfinite(ci_lo) and math.isfinite(ci_hi)):
                 notes.append(f"Excluded comparison {cmp_res.comparison_id} due to non-finite difference/CI.")
                 continue
-            x_vals.append(f"{cmp_res.config_a[0]} vs {cmp_res.config_b[0]}")
+            x_vals.append(f"{cmp_res.config_a[0]}/{cmp_res.config_a[1]} vs {cmp_res.config_b[0]}/{cmp_res.config_b[1]}")
             y_vals.append(float(diff))
             y_errs.append(0.5 * abs(float(ci_hi) - float(ci_lo)))
-        series = (PlotSeries(name=f"{target_metric} diff", x_values=tuple(x_vals), y_values=tuple(y_vals), y_err=tuple(y_errs)),)
+
+        series = (PlotSeries(name=f"Diferença ({target_metric})", x_values=tuple(x_vals), y_values=tuple(y_vals), y_err=tuple(y_errs)),)
         prov = _make_fig_provenance("fig_family_e", family, loaded_data, sel, ("statistics/statistical_comparisons.json",))
         return PlotSpecification(
             plot_id="fig_family_e",
             family=family,
             plot_type=PlotType.PAIRED_DIFF_CI,
-            title=f"Paired Differences & 95% CI ({target_metric})",
-            x_label="Comparison",
-            y_label=f"Delta ({target_metric})",
+            title=f"Diferenças Pareadas e IC 95% ({target_metric})",
+            subtitle="Teste t corrigido de Nadeau-Bengio",
+            x_label="Comparação",
+            y_label=f"Δ ({target_metric})",
             series=series,
             notes=tuple(notes),
             provenance=prov,
+            reference_y=0.0,
+            reference_label="Δ = 0 (equivalência)",
         )
 
     if family == ReportFamily.F_STABILITY_COST_PARETO:
         pareto_x: list[float] = []
         pareto_y: list[float] = []
+        pareto_labels: list[str] = []
         dom_x: list[float] = []
         dom_y: list[float] = []
+        dom_labels: list[str] = []
         pareto = loaded_data.statistics.pareto
         if pareto is not None and len(pareto.objectives) >= 2:
             o1, o2 = pareto.objectives[0].name, pareto.objectives[1].name
             for pt in pareto.pareto_frontier:
                 pareto_x.append(float(pt.objective_values[o1]))
                 pareto_y.append(float(pt.objective_values[o2]))
+                pareto_labels.append(f"{pt.config_id[0]}/{pt.config_id[1]}")
             for pt in pareto.dominated_configurations:
                 dom_x.append(float(pt.objective_values[o1]))
                 dom_y.append(float(pt.objective_values[o2]))
+                dom_labels.append(f"{pt.config_id[0]}/{pt.config_id[1]}")
             x_lbl, y_lbl = o1, o2
         else:
-            x_lbl, y_lbl = "Configuration", target_metric
+            x_lbl, y_lbl = "Tempo médio por célula (s)", target_metric
             for (m_id, sc_id), summary in sorted(loaded_data.statistics.consolidation.configurations.items()):
+                if (sel.model_ids and m_id not in sel.model_ids) or (sel.scenario_ids and sc_id not in sel.scenario_ids):
+                    continue
                 agg = summary.aggregated_metrics.get(target_metric)
                 if agg is not None and agg.mean is not None and math.isfinite(agg.mean):
-                    pareto_x.append(float(len(pareto_x) + 1))
+                    t_val = summary.aggregated_timing.total_cell_mean_s if summary.aggregated_timing else float(len(pareto_x) + 1)
+                    pareto_x.append(float(t_val))
                     pareto_y.append(float(agg.mean))
-        series_list = [PlotSeries("Pareto Frontier", tuple(pareto_x), tuple(pareto_y))]
+                    pareto_labels.append(f"{m_id}/{sc_id}")
+
+        series_list = [
+            PlotSeries("Fronteira de Pareto", tuple(pareto_x), tuple(pareto_y), point_labels=tuple(pareto_labels)),
+        ]
         if dom_x:
-            series_list.append(PlotSeries("Dominated", tuple(dom_x), tuple(dom_y)))
+            series_list.append(PlotSeries("Dominadas", tuple(dom_x), tuple(dom_y), point_labels=tuple(dom_labels)))
         prov = _make_fig_provenance("fig_family_f", family, loaded_data, sel, ("statistics/pareto_summary.json",))
         return PlotSpecification(
             plot_id="fig_family_f",
             family=family,
             plot_type=PlotType.PARETO_TRADEOFF,
-            title="Multi-Objective Pareto Trade-off",
+            title="Trade-off Multiobjetivo e Fronteira de Pareto",
+            subtitle="Coordenadas numéricas reais dos objetivos",
             x_label=x_lbl,
             y_label=y_lbl,
             series=tuple(series_list),
@@ -156,213 +190,219 @@ def build_figure_spec(
             provenance=prov,
         )
 
-    # Generic summary PlotSpecification for Families A, B, C, G
+    if family == ReportFamily.G_MODEL_SPECIFIC_ARTIFACTS and loaded_data.cell_diagnostics:
+        feat_vals: dict[str, list[float]] = {}
+        for entry in loaded_data.cell_diagnostics:
+            m_id = str(entry.get("model_id", ""))
+            sc_id = str(entry.get("scenario_id", ""))
+            if sel.model_ids and m_id not in sel.model_ids:
+                continue
+            if sel.scenario_ids and sc_id not in sel.scenario_ids:
+                continue
+            diags = entry.get("diagnostics", {})
+            if not isinstance(diags, dict):
+                continue
+            for key in ("feature_importances", "importances", "coefficients"):
+                val = diags.get(key)
+                if isinstance(val, dict):
+                    for f_name, f_val in val.items():
+                        if isinstance(f_val, (int, float)) and math.isfinite(float(f_val)):
+                            feat_vals.setdefault(str(f_name), []).append(abs(float(f_val)))
+        if feat_vals:
+            ranked = sorted(
+                ((f, float(np.mean(vs)), float(np.std(vs, ddof=1)) if len(vs) > 1 else 0.0) for f, vs in feat_vals.items()),
+                key=lambda item: (-item[1], item[0]),
+            )[:15]
+            prov = _make_fig_provenance("fig_family_g", family, loaded_data, sel, ("runs/cells",))
+            return PlotSpecification(
+                plot_id="fig_family_g",
+                family=family,
+                plot_type=PlotType.BAR_COMPARISON,
+                title="Diagnósticos de Modelo — Importância Média de Atributos",
+                subtitle="Média ± desvio padrão entre folds",
+                x_label="Atributo",
+                y_label="Importância |valor|",
+                series=(
+                    PlotSeries(
+                        "Importância média",
+                        tuple(r[0] for r in ranked),
+                        tuple(r[1] for r in ranked),
+                        y_err=tuple(r[2] for r in ranked),
+                    ),
+                ),
+                notes=tuple(notes),
+                provenance=prov,
+            )
+
+    # Fallback summary for A, B, C, or G without numeric diagnostics
     prov = _make_fig_provenance(f"fig_{family.value.lower()}", family, loaded_data, sel, ("statistics/statistics_manifest.json",))
     return PlotSpecification(
         plot_id=f"fig_{family.value.lower()}",
         family=family,
         plot_type=PlotType.BAR_COMPARISON,
-        title=f"Summary ({family.value})",
+        title=f"Resumo ({family.value})",
         x_label="Item",
-        y_label="Value",
-        series=(PlotSeries("Summary", ("total_configs",), (float(loaded_data.statistics.consolidation.total_configurations),)),),
+        y_label="Quantidade",
+        series=(PlotSeries("Resumo", ("total_configs",), (float(loaded_data.statistics.consolidation.total_configurations),)),),
         notes=tuple(notes),
         provenance=prov,
     )
 
 
-def _compute_y_bounds(spec: PlotSpecification) -> tuple[float, float]:
-    vals: list[float] = []
-    for s in spec.series:
-        for idx, y in enumerate(s.y_values):
-            if math.isfinite(y):
-                err = s.y_err[idx] if (s.y_err is not None and idx < len(s.y_err) and math.isfinite(s.y_err[idx])) else 0.0
-                vals.append(y - err)
-                vals.append(y + err)
-    if not vals:
-        return 0.0, 1.0
-    ymin, ymax = min(vals), max(vals)
-    if ymin > 0.0 and spec.plot_type == PlotType.BAR_COMPARISON:
-        ymin = 0.0
-    if ymax == ymin:
-        ymax = ymin + 1.0
-    pad = 0.1 * (ymax - ymin)
-    return ymin - (pad if ymin != 0.0 else 0.0), ymax + pad
+def _ensure_png_300dpi_phys(png_bytes: bytes) -> bytes:
+    """Ensure PNG bytes contain deterministic pHYs chunk at 300 DPI (11811 px/m)."""
+    phys_data = struct.pack(">IIB", _DPI_300_PX_PER_METER, _DPI_300_PX_PER_METER, 1)
+    phys_chunk = struct.pack(">I", len(phys_data)) + b"pHYs" + phys_data + struct.pack(">I", zlib.crc32(b"pHYs" + phys_data) & 0xFFFFFFFF)
+    if b"pHYs" in png_bytes:
+        idx = png_bytes.index(b"pHYs")
+        chunk_start = idx - 4
+        chunk_len = struct.unpack(">I", png_bytes[chunk_start:idx])[0]
+        chunk_end = idx + 4 + chunk_len + 4
+        return png_bytes[:chunk_start] + phys_chunk + png_bytes[chunk_end:]
+    ihdr_end = 8 + 4 + 4 + 13 + 4
+    return png_bytes[:ihdr_end] + phys_chunk + png_bytes[ihdr_end:]
 
 
-def _render_svg(spec: PlotSpecification) -> bytes:
-    w, h = 800, 500
-    ml, mr, mt, mb = 80, 40, 60, 80
-    pw, ph = w - ml - mr, h - mt - mb
-    ymin, ymax = _compute_y_bounds(spec)
+def _draw_matplotlib_figure(spec: PlotSpecification) -> Any:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
 
-    lines = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">',
-        f'  <rect width="{w}" height="{h}" fill="#ffffff"/>',
-        f'  <text x="{w // 2}" y="34" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2937">{xml_escape(spec.title)}</text>',
-        f'  <line x1="{ml}" y1="{mt}" x2="{ml}" y2="{mt + ph}" stroke="#374151" stroke-width="1.5"/>',
-        f'  <line x1="{ml}" y1="{mt + ph}" x2="{ml + pw}" y2="{mt + ph}" stroke="#374151" stroke-width="1.5"/>',
-        f'  <text x="{ml + pw // 2}" y="{h - 20}" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">{xml_escape(spec.x_label)}</text>',
-        f'  <text x="22" y="{mt + ph // 2}" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151" transform="rotate(-90 22 {mt + ph // 2})">{xml_escape(spec.y_label)}</text>',
-    ]
+    plt.rcParams["svg.hashsalt"] = "experimental-ml-framework"
 
-    def _y_px(val: float) -> float:
-        return mt + ph - ((val - ymin) / (ymax - ymin)) * ph
+    fig, ax = plt.subplots(figsize=(8.4, 4.8))
+    palette = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed"]
 
-    palette = ("#2563eb", "#dc2626", "#16a34a", "#d97706")
-    for s_idx, s in enumerate(spec.series):
-        color = palette[s_idx % len(palette)]
-        n = len(s.y_values)
-        if n == 0:
-            continue
-        step = pw / max(1, n)
-        for i, y in enumerate(s.y_values):
-            cx = ml + (i + 0.5) * step
-            cy = _y_px(y)
-            if spec.plot_type == PlotType.BAR_COMPARISON:
-                bar_w = max(8.0, min(60.0, step * 0.55))
-                y0 = _y_px(max(ymin, 0.0))
-                top = min(cy, y0)
-                bh = max(1.0, abs(y0 - cy))
-                lines.append(
-                    f'  <rect x="{cx - bar_w / 2:.1f}" y="{top:.1f}" width="{bar_w:.1f}" height="{bh:.1f}" fill="{color}" opacity="0.85"/>'
+    if spec.plot_type == PlotType.BAR_COMPARISON:
+        n_series = max(1, len(spec.series))
+        first_x = spec.series[0].x_values if spec.series else ()
+        n_cats = len(first_x)
+        x_idx = np.arange(n_cats, dtype=float)
+        bar_w = 0.72 / n_series
+        for s_idx, s in enumerate(spec.series):
+            offset = (s_idx - (n_series - 1) / 2.0) * bar_w
+            y_arr = np.array(s.y_values, dtype=float)
+            valid_mask = np.isfinite(y_arr)
+            if np.any(valid_mask):
+                yerr_arr = np.array(s.y_err, dtype=float) if s.y_err else None
+                ax.bar(
+                    x_idx[valid_mask] + offset,
+                    y_arr[valid_mask],
+                    width=bar_w * 0.92,
+                    yerr=yerr_arr[valid_mask] if yerr_arr is not None else None,
+                    capsize=3.5,
+                    color=palette[s_idx % len(palette)],
+                    edgecolor="#1e293b",
+                    linewidth=0.4,
+                    label=s.name,
                 )
-            else:
-                lines.append(f'  <circle cx="{cx:.1f}" cy="{cy:.1f}" r="5" fill="{color}"/>')
+        ax.set_xticks(x_idx)
+        rot = 30 if n_cats > 4 or any(len(str(x)) > 14 for x in first_x) else 0
+        ax.set_xticklabels([str(x) for x in first_x], rotation=rot, ha="right" if rot else "center", fontsize=8.5)
 
-            if s.y_err is not None and i < len(s.y_err) and s.y_err[i] > 0.0:
-                y_hi = _y_px(y + s.y_err[i])
-                y_lo = _y_px(y - s.y_err[i])
-                lines.append(f'  <line x1="{cx:.1f}" y1="{y_hi:.1f}" x2="{cx:.1f}" y2="{y_lo:.1f}" stroke="#111827" stroke-width="1.5"/>')
+    elif spec.plot_type == PlotType.PAIRED_DIFF_CI:
+        for s_idx, s in enumerate(spec.series):
+            x_idx = np.arange(len(s.x_values), dtype=float)
+            ax.errorbar(
+                x_idx,
+                s.y_values,
+                yerr=s.y_err,
+                fmt="o",
+                color=palette[s_idx % len(palette)],
+                ecolor="#334155",
+                elinewidth=1.4,
+                capsize=4,
+                markersize=6,
+                label=s.name,
+            )
+            ax.set_xticks(x_idx)
+            rot = 25 if len(s.x_values) > 3 or any(len(str(x)) > 16 for x in s.x_values) else 0
+            ax.set_xticklabels([str(x) for x in s.x_values], rotation=rot, ha="right" if rot else "center", fontsize=8.5)
+        ref_y = 0.0 if spec.reference_y is None else spec.reference_y
+        ax.axhline(ref_y, color="#dc2626", linestyle="--", linewidth=1.1, label=spec.reference_label or f"y = {ref_y}")
 
-            if s_idx == 0 and i < len(s.x_values):
-                lbl = xml_escape(str(s.x_values[i]))
-                lines.append(
-                    f'  <text x="{cx:.1f}" y="{mt + ph + 20}" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#4b5563">{lbl}</text>'
-                )
+    elif spec.plot_type in (PlotType.PARETO_TRADEOFF, PlotType.SCATTER_PARITY):
+        all_x: list[float] = []
+        all_y: list[float] = []
+        for s_idx, s in enumerate(spec.series):
+            xs = [float(v) for v in s.x_values]
+            ys = [float(v) for v in s.y_values]
+            all_x.extend(xs)
+            all_y.extend(ys)
+            marker = "*" if s_idx == 0 and spec.plot_type == PlotType.PARETO_TRADEOFF else "o"
+            size = 110 if marker == "*" else 55
+            ax.scatter(xs, ys, s=size, marker=marker, color=palette[s_idx % len(palette)], edgecolor="#1e293b", linewidth=0.5, label=s.name, zorder=3)
+            if s.point_labels:
+                for px, py, lbl in zip(xs, ys, s.point_labels):
+                    ax.annotate(lbl, (px, py), textcoords="offset points", xytext=(5, 5), fontsize=7.5, color="#334155")
+        if spec.plot_type == PlotType.SCATTER_PARITY and all_x and all_y:
+            lo = min(min(all_x), min(all_y))
+            hi = max(max(all_x), max(all_y))
+            ax.plot([lo, hi], [lo, hi], linestyle="--", color="#64748b", linewidth=1.0, label="Identidade (y = x)")
 
-    lines.append("</svg>\n")
-    return "\n".join(lines).encode("utf-8")
+    elif spec.plot_type == PlotType.HEATMAP:
+        if spec.series:
+            mat = np.array([list(s.y_values) for s in spec.series], dtype=float)
+            im = ax.imshow(mat, cmap="YlOrRd", aspect="auto")
+            fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+            ax.set_yticks(np.arange(len(spec.series)))
+            ax.set_yticklabels([s.name for s in spec.series], fontsize=8.5)
+            x_lbls = spec.series[0].x_values
+            ax.set_xticks(np.arange(len(x_lbls)))
+            ax.set_xticklabels([str(x) for x in x_lbls], rotation=35, ha="right", fontsize=8.5)
 
+    elif spec.plot_type == PlotType.LINE_LEARNING:
+        for s_idx, s in enumerate(spec.series):
+            xs = [float(v) for v in s.x_values] if all(isinstance(v, (int, float)) for v in s.x_values) else np.arange(len(s.y_values), dtype=float)
+            ys = np.array(s.y_values, dtype=float)
+            col = palette[s_idx % len(palette)]
+            ax.plot(xs, ys, marker="o", color=col, linewidth=1.6, label=s.name)
+            if s.y_err is not None:
+                err = np.array(s.y_err, dtype=float)
+                ax.fill_between(xs, ys - err, ys + err, color=col, alpha=0.18)
 
-def _png_chunk(tag: bytes, data: bytes) -> bytes:
-    crc = zlib.crc32(tag + data) & 0xFFFFFFFF
-    return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc)
+    ax.grid(True, linestyle="--", alpha=0.35, color="#9ca3af")
+    ax.set_axisbelow(True)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_xlabel(spec.x_label, fontsize=9.5)
+    ax.set_ylabel(spec.y_label, fontsize=9.5)
 
+    full_title = f"{spec.title}\n{spec.subtitle}" if spec.subtitle else spec.title
+    ax.set_title(full_title, fontsize=11, fontweight="bold", loc="left", pad=10)
 
-def _render_png_300dpi(spec: PlotSpecification) -> bytes:
-    w, h = 800, 500
-    ml, mr, mt, mb = 80, 40, 60, 80
-    pw, ph = w - ml - mr, h - mt - mb
-    ymin, ymax = _compute_y_bounds(spec)
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend(handles, labels, frameon=True, fontsize=8.2, loc="best")
 
-    img = np.full((h, w, 3), 255, dtype=np.uint8)
-    # Draw axes (dark gray)
-    img[mt : mt + ph + 1, ml : ml + 2] = (55, 65, 81)
-    img[mt + ph : mt + ph + 2, ml : ml + pw + 1] = (55, 65, 81)
+    if spec.notes:
+        note_txt = "Nota: " + "; ".join(spec.notes[:2])
+        fig.text(0.01, 0.01, note_txt, fontsize=7.5, color="#6b7280")
 
-    def _y_px(val: float) -> int:
-        y = int(round(mt + ph - ((val - ymin) / (ymax - ymin)) * ph))
-        return max(mt, min(mt + ph, y))
-
-    colors = ((37, 99, 235), (220, 38, 38), (22, 163, 74))
-    for s_idx, s in enumerate(spec.series):
-        col = colors[s_idx % len(colors)]
-        n = len(s.y_values)
-        if n == 0:
-            continue
-        step = pw / max(1, n)
-        for i, y in enumerate(s.y_values):
-            cx = int(round(ml + (i + 0.5) * step))
-            cy = _y_px(y)
-            if spec.plot_type == PlotType.BAR_COMPARISON:
-                half_w = int(max(4, min(28, step * 0.25)))
-                y0 = _y_px(max(ymin, 0.0))
-                top, bot = min(cy, y0), max(cy, y0)
-                img[top : bot + 1, max(ml, cx - half_w) : min(ml + pw, cx + half_w)] = col
-            else:
-                img[max(0, cy - 4) : min(h, cy + 5), max(0, cx - 4) : min(w, cx + 5)] = col
-
-            if s.y_err is not None and i < len(s.y_err) and s.y_err[i] > 0.0:
-                y_hi = _y_px(y + s.y_err[i])
-                y_lo = _y_px(y - s.y_err[i])
-                img[min(y_hi, y_lo) : max(y_hi, y_lo) + 1, cx : cx + 2] = (17, 24, 39)
-
-    raw_rows = b"".join(b"\x00" + img[row].tobytes() for row in range(h))
-    compressed = zlib.compress(raw_rows, level=9)
-
-    ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
-    phys = struct.pack(">IIB", _DPI_300_PX_PER_METER, _DPI_300_PX_PER_METER, 1)
-    return (
-        b"\x89PNG\r\n\x1a\n"
-        + _png_chunk(b"IHDR", ihdr)
-        + _png_chunk(b"pHYs", phys)
-        + _png_chunk(b"IDAT", compressed)
-        + _png_chunk(b"IEND", b"")
-    )
-
-
-def _render_pdf(spec: PlotSpecification) -> bytes:
-    w, h = 800, 500
-    ml, mr, mt, mb = 80, 40, 60, 80
-    pw, ph = w - ml - mr, h - mt - mb
-    ymin, ymax = _compute_y_bounds(spec)
-
-    def _y_pt(val: float) -> float:
-        return mb + ((val - ymin) / (ymax - ymin)) * ph
-
-    safe_title = spec.title.replace("(", "[").replace(")", "]").replace("\\", "/")
-    cmds = [
-        "0.2 0.25 0.32 RG 1.5 w",
-        f"{ml} {mb} m {ml} {mb + ph} l S",
-        f"{ml} {mb} m {ml + pw} {mb} l S",
-        f"BT /F1 14 Tf {ml} {h - 36} Td ({safe_title}) Tj ET",
-    ]
-    for s in spec.series:
-        n = len(s.y_values)
-        if n == 0:
-            continue
-        step = pw / max(1, n)
-        cmds.append("0.15 0.39 0.92 rg")
-        for i, y in enumerate(s.y_values):
-            cx = ml + (i + 0.5) * step
-            cy = _y_pt(y)
-            y0 = _y_pt(max(ymin, 0.0))
-            bar_w = max(8.0, min(50.0, step * 0.5))
-            cmds.append(f"{cx - bar_w / 2:.2f} {min(y0, cy):.2f} {bar_w:.2f} {max(1.0, abs(cy - y0)):.2f} re f")
-
-    stream_bytes = "\n".join(cmds).encode("latin-1", errors="replace")
-    objs = [
-        b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
-        b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
-        f"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {w} {h}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n".encode("ascii"),
-        b"4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
-        f"5 0 obj\n<< /Length {len(stream_bytes)} >>\nstream\n".encode("ascii") + stream_bytes + b"\nendstream\nendobj\n",
-    ]
-
-    buf = bytearray(b"%PDF-1.4\n")
-    offsets: list[int] = []
-    for obj in objs:
-        offsets.append(len(buf))
-        buf.extend(obj)
-
-    xref_pos = len(buf)
-    buf.extend(f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode("ascii"))
-    for off in offsets:
-        buf.extend(f"{off:010d} 00000 n \n".encode("ascii"))
-    buf.extend(
-        f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF\n".encode("ascii")
-    )
-    return bytes(buf)
+    fig.tight_layout(rect=(0.0, 0.03 if spec.notes else 0.0, 1.0, 1.0))
+    return fig
 
 
 def render_figure(plot_spec: PlotSpecification, fmt: str = "svg") -> bytes:
-    """Render PlotSpecification deterministically to 'svg', 'png' (300 DPI), or 'pdf' (REP-04, XCUT-02)."""
+    """Render PlotSpecification deterministically to 'svg', 'png' (300 DPI), or 'pdf' (REP-04, AD-033)."""
     fmt_norm = fmt.strip().lower()
-    if fmt_norm == "svg":
-        return _render_svg(plot_spec)
-    if fmt_norm == "png":
-        return _render_png_300dpi(plot_spec)
-    if fmt_norm == "pdf":
-        return _render_pdf(plot_spec)
-    raise ConfigurationError(f"Unsupported figure format '{fmt}'; expected 'svg', 'png', or 'pdf'.")
+    if fmt_norm not in ("svg", "png", "pdf"):
+        raise ConfigurationError(f"Unsupported figure format '{fmt}'; expected 'svg', 'png', or 'pdf'.")
+
+    import matplotlib.pyplot as plt
+
+    fig = _draw_matplotlib_figure(plot_spec)
+    buf = io.BytesIO()
+    try:
+        if fmt_norm == "svg":
+            fig.savefig(buf, format="svg", bbox_inches="tight", facecolor="white", metadata={"Date": None, "Creator": "experimental-ml-framework"})
+            svg_text = buf.getvalue().decode("utf-8")
+            idx = svg_text.find("<svg ")
+            return (svg_text[idx:] if idx >= 0 else svg_text).encode("utf-8")
+        if fmt_norm == "png":
+            fig.savefig(buf, format="png", dpi=300, bbox_inches="tight", facecolor="white", metadata={"Software": "experimental-ml-framework"})
+            return _ensure_png_300dpi_phys(buf.getvalue())
+        fig.savefig(buf, format="pdf", bbox_inches="tight", facecolor="white", metadata={"CreationDate": None, "Creator": "experimental-ml-framework"})
+        return buf.getvalue()
+    finally:
+        plt.close(fig)

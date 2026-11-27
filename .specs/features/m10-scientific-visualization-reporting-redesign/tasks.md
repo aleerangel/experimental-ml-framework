@@ -44,7 +44,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/features/ -q`
 
 ### T4: Reestruturar `reporting/figures.py` com Matplotlib (`PNG 300 DPI`, `SVG`, `PDF`) e gráficos reais A–G (`M10-02`, `M10-03`, `VAL-BUG-006`)
-- [ ] Implement & test T4
+- [x] Implement & test T4
 **Where**: `src/experimental_ml/reporting/figures.py`, `src/experimental_ml/reporting/packaging.py`, `tests/unit/reporting/test_reporting_figures.py`
 **Depends on**: T2
 **Tests**: Testes verificando coordenadas 2D reais em `PARETO_TRADEOFF`, linha `y=0` em `PAIRED_DIFF_CI`, `SCATTER_PARITY`, `HEATMAP`, `LINE_LEARNING`, diagnósticos da Família G e geração válida/determinística em `PNG`, `SVG` e `PDF`.

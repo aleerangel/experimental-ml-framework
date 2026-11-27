@@ -166,3 +166,45 @@ def test_m72_01_unsupported_format_raises(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigurationError):
         render_figure(plot_d, "bmp")
+
+
+def test_m10_figures_pareto_paired_parity_and_formats(tmp_path: Path) -> None:
+    """C2 (M10): Figures use real numeric (x, y) in Pareto, y=0 in PAIRED_DIFF_CI, SCATTER_PARITY, and valid PNG/SVG/PDF."""
+    from experimental_ml.reporting.types import PlotSeries, PlotSpecification, PlotType
+
+    _create_fig_experiment(tmp_path)
+    loaded = load_experiment_artifacts_readonly(tmp_path)
+
+    # 1. PAIRED_DIFF_CI has reference_y=0.0 and renders SVG with reference line
+    plot_e = build_figure_spec(ReportFamily.E_STATISTICAL_COMPARISONS, loaded, metric_name="rmse")
+    assert plot_e.plot_type == PlotType.PAIRED_DIFF_CI
+    assert plot_e.reference_y == 0.0
+    svg_e = render_figure(plot_e, "svg").decode("utf-8")
+    assert "Δ = 0" in svg_e
+
+    # 2. PARETO_TRADEOFF preserves real numeric x_values (not index 0..n-1) and point_labels
+    plot_f = build_figure_spec(ReportFamily.F_STABILITY_COST_PARETO, loaded, metric_name="rmse")
+    assert plot_f.plot_type == PlotType.PARETO_TRADEOFF
+    assert all(isinstance(x, float) for x in plot_f.series[0].x_values)
+    assert len(plot_f.series[0].point_labels) == len(plot_f.series[0].x_values)
+    assert render_figure(plot_f, "png")[:8] == b"\x89PNG\r\n\x1a\n"
+    assert render_figure(plot_f, "pdf").startswith(b"%PDF-1.4")
+
+    # 3. SCATTER_PARITY renders cleanly in all 3 formats
+    from experimental_ml.reporting.types import PlotSeries, PlotSpecification
+
+    prov = plot_e.provenance
+    parity_spec = PlotSpecification(
+        plot_id="fig_parity",
+        family=ReportFamily.D_PREDICTIVE_PERFORMANCE,
+        plot_type=PlotType.SCATTER_PARITY,
+        title="Paridade Predito vs. Observado",
+        x_label="Observado",
+        y_label="Predito",
+        series=(PlotSeries("OOF", (1.0, 2.0, 3.0), (1.1, 1.9, 3.05)),),
+        notes=(),
+        provenance=prov,
+    )
+    assert render_figure(parity_spec, "svg").decode("utf-8").startswith("<svg ")
+    assert render_figure(parity_spec, "png")[:8] == b"\x89PNG\r\n\x1a\n"
+    assert render_figure(parity_spec, "pdf").startswith(b"%PDF-1.4")
