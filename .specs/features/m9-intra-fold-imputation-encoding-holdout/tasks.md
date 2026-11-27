@@ -78,8 +78,8 @@ T5 (FINAL_HOLDOUT em matrix.py, execution.py, oof.py, stage_gates.py) --> T6 (ho
 **Gate**: `.venv/bin/pytest tests/ -q`
 
 ### T5: Gerar, executar e validar células `FINAL_HOLDOUT` sob `CV_AND_HOLDOUT` (`AD-032`)
-- [ ] Implement & test T5
-**Where**: `src/experimental_ml/orchestration/matrix.py`, `src/experimental_ml/orchestration/execution.py`, `src/experimental_ml/orchestration/oof.py`, `src/experimental_ml/stages/stage_gates.py`, `tests/unit/orchestration/test_matrix_builder.py`
+- [x] Implement & test T5
+**Where**: `src/experimental_ml/orchestration/matrix.py`, `src/experimental_ml/orchestration/execution.py`, `src/experimental_ml/orchestration/engine.py`, `src/experimental_ml/orchestration/oof.py`, `src/experimental_ml/pipeline.py`, `tests/unit/orchestration/test_matrix_builder.py`
 **Depends on**: none
 **Tests**: Testes unitários e de integração verificando criação de `cell_<m>__<s>__final_holdout`, treino sobre `development_ids`, avaliação sobre `holdout_ids` (inclusive com `run_nested_tuning`), preservação de OOF apenas de `DEV_CV` e aprovação no `verify_runs_gate`.
 **Gate**: `.venv/bin/pytest tests/ -q`

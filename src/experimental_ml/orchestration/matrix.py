@@ -13,7 +13,7 @@ from experimental_ml.core.findings import ConfigurationError
 from experimental_ml.features.scenarios import FeatureScenario
 from experimental_ml.models.spec import ModelSpec
 from experimental_ml.orchestration.types import CellId
-from experimental_ml.validation.types import FoldPartition, PartitionPlan
+from experimental_ml.validation.types import EvaluationRegime, FoldPartition, PartitionPlan
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +25,7 @@ class CellDescriptor:
     scenario: FeatureScenario
     fold: FoldPartition
     cell_seed: int
+    phase: str = "DEV_CV"
 
     def __post_init__(self) -> None:
         if not isinstance(self.cell_id, CellId):
@@ -123,6 +124,35 @@ def build_cell_matrix(
                         scenario=scenario,
                         fold=fold,
                         cell_seed=cell_seed,
+                        phase="DEV_CV",
+                    )
+                )
+
+            if (
+                getattr(partition_plan, "regime", None) == EvaluationRegime.CV_AND_HOLDOUT
+                and getattr(partition_plan, "holdout_ids", ())
+                and getattr(partition_plan, "development_ids", ())
+            ):
+                holdout_fold = FoldPartition(
+                    fold_index=len(sorted_folds),
+                    train_ids=partition_plan.development_ids,
+                    val_ids=partition_plan.holdout_ids,
+                )
+                holdout_cell_id = CellId(f"cell_{model.model_id}__{scenario.scenario_id}__final_holdout")
+                holdout_seed = derive_cell_seed(
+                    master_seed,
+                    str(model.model_id),
+                    str(scenario.scenario_id),
+                    "final_holdout",
+                )
+                descriptors.append(
+                    CellDescriptor(
+                        cell_id=holdout_cell_id,
+                        model_spec=model,
+                        scenario=scenario,
+                        fold=holdout_fold,
+                        cell_seed=holdout_seed,
+                        phase="FINAL_HOLDOUT",
                     )
                 )
 

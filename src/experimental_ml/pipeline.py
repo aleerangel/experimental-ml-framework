@@ -333,10 +333,15 @@ def run_experiment(
     # 5. Estatística (Etapa 5)
     from experimental_ml.orchestration import consolidate_matrix_oof
 
+    oof_target_ids = (
+        part_plan.development_ids
+        if getattr(part_plan, "regime", None) == EvaluationRegime.CV_AND_HOLDOUT and part_plan.development_ids
+        else view.observation_ids
+    )
     oof_map = consolidate_matrix_oof(
         run_dir,
         task_type=resolved_schema.task_type,
-        target_observation_ids=view.observation_ids,
+        target_observation_ids=oof_target_ids,
         overwrite=force,
     )
     oof_records = list(oof_map.values())

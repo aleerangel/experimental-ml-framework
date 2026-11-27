@@ -138,6 +138,7 @@ def execute_single_cell(
     error_policy: ErrorPolicy = ErrorPolicy.FAULT_TOLERANT,
     cell_seed: int | None = None,
     cell_id: CellId | None = None,
+    phase: str = "DEV_CV",
 ) -> tuple[CellResultRecord, PredictionRecord | None]:
     """Execute a single experimental cell (m, c, f) under strict anti-leakage isolation.
 
@@ -161,7 +162,11 @@ def execute_single_cell(
     Raises:
         Exception: If error_policy is FAIL_FAST and an exception occurs.
     """
-    fold_id = getattr(fold, "fold_id", None) or f"fold_{getattr(fold, 'fold_index', 0)}"
+    fold_id = (
+        "final_holdout"
+        if phase == "FINAL_HOLDOUT"
+        else (getattr(fold, "fold_id", None) or f"fold_{getattr(fold, 'fold_index', 0)}")
+    )
     plan_id = getattr(partition_plan, "partition_plan_id", None) or getattr(partition_plan, "plan_id", "default_plan")
     if cell_id is None:
         cell_id = CellId(f"cell_{model_spec.model_id}__{scenario.scenario_id}__{fold_id}")
@@ -428,6 +433,7 @@ def execute_single_cell(
             model_id=ModelId(str(model_spec.model_id)),
             scenario_id=ScenarioId(str(scenario.scenario_id)),
             fold_id=str(fold_id),
+            phase=phase,
             status=ExecutionStatus.COMPLETED,
             selected_features=selected_features_tuple,
             effective_parameters=effective_spec.parameters,
