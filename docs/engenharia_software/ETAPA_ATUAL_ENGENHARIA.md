@@ -3,9 +3,9 @@
 > **Documento de Registro de Estado da Engenharia**<br/>
 > **Data:** 28 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
-> **Fase Atual:** **Validação Contínua do MVP (Onda 1)** — identificando correções/melhorias (`M11`) e definindo o escopo da **Segunda Onda do MVP (`Onda 2`: `M12`–`M14`)**<br/>
+> **Fase Atual:** **Validação Contínua do MVP (Onda 1)** — identificando correções/melhorias na Onda 1 e definindo o escopo da **Segunda Onda do MVP (`Onda 2`)**<br/>
 > **Estado Técnico:** Marcos M1 a M9 Concluídos e M10 Verificado (`632 testes automatizados`) — Aguardando validação prática e aceite do `M10`<br/>
-> **Próximo Marco:** `M11` (Fechamento Diagnóstico da Onda 1: Treino vs. Teste, KS/Drift/Resíduos e Caracterização Estatística) seguido pela `Onda 2` (`M12`–`M14`)<br/>
+> **Próximos Passos:** Correções/evoluções diagnósticas da Onda 1 (conforme demanda da validação) e posterior entrada na `Onda 2`<br/>
 > **Especificação de Requisitos (SRS v2.2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>
 > **Governança de Validação e Aceite:** [`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)<br/>
@@ -15,7 +15,7 @@
 
 ## 1. Etapa Atual no Ciclo de Vida da Engenharia
 
-O projeto encontra-se na **Fase 5: Validação Contínua do MVP (Onda 1), Identificação de Correções/Melhorias (`M11`) e Definição de Escopo da Segunda Onda (`Onda 2`: `M12`–`M14`)**, incluindo a **Homologação Científica Externa (`CA02`)**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) e o processo de validação contínua ([`REGISTRO_DE_VALIDACAO_DO_MVP.md`](./REGISTRO_DE_VALIDACAO_DO_MVP.md)) integrados à skill `tlc-spec-driven`.
+O projeto encontra-se na **Fase 5: Validação Contínua do MVP (Onda 1), Identificação de Correções/Melhorias e Definição de Escopo da Segunda Onda (`Onda 2`)**, incluindo a **Homologação Científica Externa (`CA02`)**, seguindo o processo de aceite de marcos ([`PROCESSO_DE_ACEITE_DE_MARCOS.md`](./PROCESSO_DE_ACEITE_DE_MARCOS.md)) e o processo de validação contínua ([`REGISTRO_DE_VALIDACAO_DO_MVP.md`](./REGISTRO_DE_VALIDACAO_DO_MVP.md)) integrados à skill `tlc-spec-driven`.
 
 As entregas dos **Marcos M1 (`m1-1` a `m1-5`)**, **M2 (`m2-diagnostics-partitioning` e `m2-2` a `m2-5` com hardening `REV-M2`)**, **M3 (`m3-1` a `m3-4`)**, **M4 (`m4-1` a `m4-4`)**, **M5 (`m5-1` a `m5-4` com auditoria independente e correção de achados P1 `ACH-M5-01` a `ACH-M5-03`)**, **M6 (`m6-1` a `m6-4` com auditoria estatística/técnica e verificação independente TLC)** e **M7 (`m7-1` a `m7-4` com verificação independente TLC)** foram formalmente aceitas com aprovação em **581 testes automatizados**, expandidos nas entregas pós-MVP (**`TA-POS.1`**, **`TA-POS.2`**, **`pos-2b`**, **`TA-POS.3`**, **`csv-format-configuration`**, **`exploratory-visual-redesign`** e **`sklearn-ensemble-diagnostics`**) para **611 testes automatizados** 100% aprovados.
 

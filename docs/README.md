@@ -2,7 +2,7 @@
 
 Bem-vindo ao portal oficial do **Experimental ML Framework (`experimental-ml`)**, um framework científico com núcleo em Python puro e NumPy (`XCUT-02`) e camada de apresentação em Matplotlib/Pandas, projetado para democratizar experimentos rigorosos, reprodutíveis e livres de *data leakage* (vazamento de dados).
 
-> **Fase Atual do Projeto:** **Validação Contínua do MVP (Onda 1)** — identificando correções e melhorias em uso real para fechamento no **`M11`** e definindo o escopo da **Segunda Onda do MVP (`Onda 2`: `M12`–`M14`)**. Acompanhe em [Estado Atual](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md), [Plano de Validação](engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md), [Registro de Achados](engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md) e [Roadmap de Evolução](engenharia_software/ROADMAP_EVOLUCAO.md).
+> **Fase Atual do Projeto:** **Validação Contínua do MVP (Onda 1)** — identificando correções e melhorias em uso real e definindo o escopo da **Segunda Onda do MVP (`Onda 2`)**. Acompanhe em [Estado Atual](engenharia_software/ETAPA_ATUAL_ENGENHARIA.md), [Plano de Validação](engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md), [Registro de Achados](engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md) e [Roadmap de Evolução](engenharia_software/ROADMAP_EVOLUCAO.md).
 
 ---
 

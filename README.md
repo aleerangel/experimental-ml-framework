@@ -13,7 +13,7 @@ Um dos principais objetivos do framework é **democratizar o acesso à pesquisa 
 
 ## Fase Atual do Projeto
 > **Status:** **Validação Contínua do MVP (Onda 1)** — identificando correções/melhorias e definindo o escopo da **Segunda Onda (`Onda 2`)**.
-Após os marcos `M1`–`M10` (**632 testes aprovados**), atuamos em três frentes: (1) validação prática em dados reais ([Plano de Validação](docs/engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md) e [Registro de Achados](docs/engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md)); (2) fechamento diagnóstico da Onda 1 no **`M11`** (Treino vs. Teste, KS/Lilliefors/*shift*/resíduos e caracterização estatística ampliada); e (3) definição de escopo da **Segunda Onda (`Onda 2`: `M12`–`M14`)** com estatística multi-dataset, *Meta-Learning*, MLE multi-distribuição, Predição Conforme e QML ([Roadmap](docs/engenharia_software/ROADMAP_EVOLUCAO.md) | [Estado Atual](docs/engenharia_software/ETAPA_ATUAL_ENGENHARIA.md)).
+Após os marcos `M1`–`M10` (**632 testes aprovados**), atuamos em três frentes: (1) validação prática em dados reais para identificar correções e melhorias ([Plano de Validação](docs/engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md) | [Registro de Achados](docs/engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md)); (2) evolução diagnóstica da Onda 1 (Treino vs. Teste, KS/*shift*/resíduos e caracterização estatística ampliada, além de novos marcos de correção se necessários); e (3) definição de escopo da **Segunda Onda (`Onda 2`)** após homologação da Onda 1 (estatística multi-dataset, *Meta-Learning*, MLE multi-distribuição, Predição Conforme e QML — [Roadmap](docs/engenharia_software/ROADMAP_EVOLUCAO.md) | [Estado Atual](docs/engenharia_software/ETAPA_ATUAL_ENGENHARIA.md)).
 
 ---
 
@@ -110,7 +110,7 @@ expml report export --experiment-dir exp_dir --mode full_package --output-dir pa
 - **[Auditoria Técnica do MVP](docs/engenharia_software/AUDITORIA_TECNICA_DO_MVP.md):** Inventário documental e diagnóstico técnico das 6 etapas.
 - **[Plano de Validação do MVP](docs/engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md):** Roteiro prático de testes funcionais, metodológicos e exploratórios.
 - **[Registro de Validação do MVP](docs/engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md):** Processo contínuo e catálogo vivo de achados (`BUG`, `QUALITY`, `ENHANCEMENT`).
-- **[Roadmap de Evolução](docs/engenharia_software/ROADMAP_EVOLUCAO.md):** Planejamento do fechamento da Onda 1 (`M8`–`M11`) e escopo da Segunda Onda (`Onda 2`: `M12`–`M14`).
+- **[Roadmap de Evolução](docs/engenharia_software/ROADMAP_EVOLUCAO.md):** Planejamento evolutivo da Onda 1 e escopo da Segunda Onda (`Onda 2`).
 - **[Referências e Fundamentação](docs/REFERENCIAS_E_FUNDAMENTACAO.md):** Base bibliográfica, decisões arquiteturais (ADRs) e estatística.
 
 ---
