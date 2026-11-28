@@ -351,11 +351,13 @@
 
 ## Handoff
 
-- **Feature**: Submarco `M11.1` (`m11-1-train-test-diagnostics` — `VAL-ENH-005`) em fase `Specify`
-- **Phase / Task**: Branch `feat/m11-1-train-test-diagnostics` criada; decisões `AD-037`–`AD-039` registradas; `spec.md` do `M11.1` elaborada para aprovação.
+- **Feature**: Submarco `M11.1` (`m11-1-train-test-diagnostics` — `VAL-ENH-005`) Implementado e Verificado (`PASS`)
+- **Phase / Task**: `M11.1` concluído (`T1`–`T4`, `637 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`. Próximo submarco: `M11.2` (`VAL-ENH-006`).
 - **Completed**:
-  - `M8`, `M9`, `M10` e documentação de planejamento da Onda 1 / Onda 2 integrados em `main` (`cf3451e`).
-- **In-progress**: Especificação (`Specify`) do `M11.1`.
-- **Next step**: Aprovação da `spec.md` do `M11.1` pelo desenvolvedor para seguir para `Design`/`Tasks`.
+  - `M8`, `M9`, `M10` e planejamento de Onda 1 / Onda 2 integrados em `main` (`cf3451e`).
+  - `M11.1` (`T1`–`T4`: `e0bc947`, `52c8576`, `f4bec8e`, `33ffe60`) implementado, provado (`proofs.md`) e verificado (`verification.md: PASS`, `C1`–`C3`), com `637 passed`.
+  - `VAL-ENH-005` atualizado para `VERIFICADO (M11.1)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
+- **In-progress**: Homologação/aceite do `M11.1` (`ACCEPTANCE.md`) pelo desenvolvedor.
+- **Next step**: Push/merge da branch `feat/m11-1-train-test-diagnostics` e início da rodada TLC do submarco `M11.2` (`VAL-ENH-006`: KS, *dataset shift* e análise de resíduos OOF).
 - **Blockers**: none
 - **Branch**: feat/m11-1-train-test-diagnostics
