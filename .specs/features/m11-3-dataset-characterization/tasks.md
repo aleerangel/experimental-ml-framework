@@ -18,7 +18,7 @@ flowchart LR
 ## Execution Plan
 
 ### T1: Métricas leves e perfil estrutural opt-in em `data/profiling.py` (`M113-01`)
-- [ ] Implement & test T1
+- [x] Implement & test T1
 **Where**: `src/experimental_ml/data/profiling.py`, `src/experimental_ml/data/codecs.py`, `tests/unit/data/test_profiling.py`
 **Depends on**: none
 **Tests**: Testes unitários verificando `skewness`, excesso de `kurtosis` (Fisher), `outlier_rate_iqr` e `profile_dataset(..., extended_stats=True/False)` com `samples_to_features_ratio`, `intrinsic_dim_ratio_95` e `target_entropy_norm`.

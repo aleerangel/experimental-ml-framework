@@ -219,6 +219,9 @@ def _numeric_stats_to_dict(stats: NumericDistributionStats | None) -> dict[str, 
         "max": _sanitize_float(stats.max),
         "range": _sanitize_float(stats.range),
         "iqr": _sanitize_float(stats.iqr),
+        "skewness": _sanitize_float(stats.skewness),
+        "kurtosis": _sanitize_float(stats.kurtosis),
+        "outlier_rate_iqr": _sanitize_float(stats.outlier_rate_iqr),
     }
 
 
@@ -235,6 +238,9 @@ def _numeric_stats_from_dict(d: dict[str, Any] | None) -> NumericDistributionSta
         max=d["max"],
         range=d["range"],
         iqr=d["iqr"],
+        skewness=d.get("skewness"),
+        kurtosis=d.get("kurtosis"),
+        outlier_rate_iqr=d.get("outlier_rate_iqr"),
     )
 
 
@@ -348,6 +354,9 @@ def dataset_profile_to_dict(profile: DatasetProfile) -> dict[str, Any]:
         "target": target_dict,
         "groups": groups_dict,
         "findings": findings_list,
+        "samples_to_features_ratio": _sanitize_float(profile.samples_to_features_ratio),
+        "intrinsic_dim_ratio_95": _sanitize_float(profile.intrinsic_dim_ratio_95),
+        "target_entropy_norm": _sanitize_float(profile.target_entropy_norm),
     }
 
 
@@ -429,6 +438,9 @@ def dataset_profile_from_dict(d: dict[str, Any]) -> DatasetProfile:
         target=target_profile,
         groups=group_profile,
         findings=findings,
+        samples_to_features_ratio=d.get("samples_to_features_ratio"),
+        intrinsic_dim_ratio_95=d.get("intrinsic_dim_ratio_95"),
+        target_entropy_norm=d.get("target_entropy_norm"),
     )
 
 
