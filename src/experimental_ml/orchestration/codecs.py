@@ -163,6 +163,9 @@ def cell_result_to_dict(result: CellResultRecord) -> dict[str, Any]:
     metrics_serialized = {
         k: metric_value_to_dict(v) for k, v in result.metrics.items()
     }
+    train_metrics_serialized = {
+        k: metric_value_to_dict(v) for k, v in result.train_metrics.items()
+    }
     diag_serialized = (
         model_diagnostics_to_dict(result.diagnostics)
         if result.diagnostics is not None
@@ -182,6 +185,7 @@ def cell_result_to_dict(result: CellResultRecord) -> dict[str, Any]:
         "selected_features": list(result.selected_features),
         "effective_parameters": dict(result.effective_parameters),
         "metrics": metrics_serialized,
+        "train_metrics": train_metrics_serialized,
         "diagnostics": diag_serialized,
         "error_phase": result.error_phase.value if result.error_phase is not None else None,
         "error_type": result.error_type,
@@ -197,6 +201,9 @@ def cell_result_from_dict(d: dict[str, Any]) -> CellResultRecord:
 
     metrics_reconstructed = {
         k: metric_value_from_dict(v) for k, v in d.get("metrics", {}).items()
+    }
+    train_metrics_reconstructed = {
+        k: metric_value_from_dict(v) for k, v in d.get("train_metrics", {}).items()
     }
 
     raw_diag = d.get("diagnostics")
@@ -215,6 +222,7 @@ def cell_result_from_dict(d: dict[str, Any]) -> CellResultRecord:
         selected_features=tuple(d.get("selected_features", ())),
         effective_parameters=dict(d.get("effective_parameters", {})),
         metrics=metrics_reconstructed,
+        train_metrics=train_metrics_reconstructed,
         diagnostics=diagnostics,
         error_phase=error_phase,
         error_type=d.get("error_type"),

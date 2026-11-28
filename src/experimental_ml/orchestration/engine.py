@@ -99,6 +99,7 @@ def run_experiment_matrix(
     run_id: str | None = None,
     overwrite: bool = False,
     auto_consolidate_oof: bool = True,
+    collect_train_metrics: bool = False,
 ) -> MatrixExecutionState:
     """Execute the full experimental cell matrix with atomic incremental checkpointing.
 
@@ -190,6 +191,7 @@ def run_experiment_matrix(
                 cell_seed=desc.cell_seed,
                 cell_id=desc.cell_id,
                 phase=desc.phase,
+                collect_train_metrics=collect_train_metrics,
             )
         except Exception as exc:
             with state_lock:
@@ -279,6 +281,7 @@ def resume_experiment_matrix(
     progress_callback: MatrixProgressCallback | None = None,
     cancellation_check: Callable[[], bool] | None = None,
     auto_consolidate_oof: bool = True,
+    collect_train_metrics: bool = False,
 ) -> MatrixExecutionState:
     """Resume an existing experiment matrix execution, skipping verified completed cells.
 
@@ -424,6 +427,7 @@ def resume_experiment_matrix(
                 cell_seed=desc.cell_seed,
                 cell_id=desc.cell_id,
                 phase=desc.phase,
+                collect_train_metrics=collect_train_metrics,
             )
         except Exception as exc:
             with state_lock:

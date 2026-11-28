@@ -208,3 +208,34 @@ def test_m10_figures_pareto_paired_parity_and_formats(tmp_path: Path) -> None:
     assert render_figure(parity_spec, "svg").decode("utf-8").startswith("<svg ")
     assert render_figure(parity_spec, "png")[:8] == b"\x89PNG\r\n\x1a\n"
     assert render_figure(parity_spec, "pdf").startswith(b"%PDF-1.4")
+
+
+def test_m11_1_figure_d_train_vs_test_series(tmp_path: Path) -> None:
+    """M11.1 (T3): Figure D includes Treino series alongside DEV_CV and renders SVG/PNG/PDF."""
+    from dataclasses import replace
+    from experimental_ml.core.enums import MetricStatus
+    from experimental_ml.statistics.types import AggregatedMetricStats
+
+    _create_fig_experiment(tmp_path)
+    loaded = load_experiment_artifacts_readonly(tmp_path)
+    cfg_key = ("m1", "s1")
+    orig_summary = loaded.statistics.consolidation.configurations[cfg_key]
+    updated_summary = replace(
+        orig_summary,
+        aggregated_train_metrics={
+            "rmse": AggregatedMetricStats(n_valid=2, n_total=2, status=MetricStatus.VALID, mean=0.2, std=0.02)
+        },
+    )
+    new_configs = dict(loaded.statistics.consolidation.configurations)
+    new_configs[cfg_key] = updated_summary
+    new_consol = replace(loaded.statistics.consolidation, configurations=new_configs)
+    new_stats = replace(loaded.statistics, consolidation=new_consol)
+    loaded_with_train = replace(loaded, statistics=new_stats)
+
+    spec_d = build_figure_spec(ReportFamily.D_PREDICTIVE_PERFORMANCE, loaded_with_train, metric_name="rmse")
+    series_names = [s.name for s in spec_d.series]
+    assert "rmse (Treino)" in series_names
+    assert "rmse (DEV_CV)" in series_names
+    assert render_figure(spec_d, "svg").decode("utf-8").startswith("<svg ")
+    assert render_figure(spec_d, "png")[:8] == b"\x89PNG\r\n\x1a\n"
+    assert render_figure(spec_d, "pdf").startswith(b"%PDF-1.4")

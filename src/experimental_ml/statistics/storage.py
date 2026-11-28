@@ -258,6 +258,9 @@ def _consolidation_to_dict(c: DescriptiveConsolidation) -> dict[str, Any]:
                 "aggregated_metrics": {
                     m: _agg_metric_to_dict(am) for m, am in s.aggregated_metrics.items()
                 },
+                "aggregated_train_metrics": {
+                    m: _agg_metric_to_dict(am) for m, am in s.aggregated_train_metrics.items()
+                },
                 "pooled_oof_metrics": {
                     m: _metric_value_to_dict(mv) for m, mv in s.pooled_oof_metrics.items()
                 },
@@ -299,6 +302,9 @@ def _consolidation_from_dict(d: dict[str, Any]) -> DescriptiveConsolidation:
             },
             aggregated_metrics={
                 m: _agg_metric_from_dict(am) for m, am in item["aggregated_metrics"].items()
+            },
+            aggregated_train_metrics={
+                m: _agg_metric_from_dict(am) for m, am in item.get("aggregated_train_metrics", {}).items()
             },
             pooled_oof_metrics={
                 m: _metric_value_from_dict(mv) for m, mv in item["pooled_oof_metrics"].items()

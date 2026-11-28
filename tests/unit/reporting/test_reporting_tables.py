@@ -389,3 +389,33 @@ def test_m10_tables_pandas_prep_and_enriched_metadata(tmp_path: Path) -> None:
     df_c = table_to_dataframe(tbl_c)
     assert isinstance(df_c, pd.DataFrame)
     assert len(df_c) == 1
+
+
+def test_m11_1_table_d_includes_train_mean(tmp_path: Path) -> None:
+    """M11.1 (T3): Table D includes Train Mean when aggregated_train_metrics is populated."""
+    from dataclasses import replace
+    import pytest
+    from experimental_ml.core.enums import MetricStatus
+    from experimental_ml.statistics.types import AggregatedMetricStats
+
+    exp_dir, legit_hex_id = _create_rich_experiment(tmp_path)
+    loaded = load_experiment_artifacts_readonly(exp_dir)
+    cfg_key = next(iter(loaded.statistics.consolidation.configurations.keys()))
+    orig_summary = loaded.statistics.consolidation.configurations[cfg_key]
+    updated_summary = replace(
+        orig_summary,
+        aggregated_train_metrics={
+            "rmse": AggregatedMetricStats(n_valid=2, n_total=2, status=MetricStatus.VALID, mean=0.25, std=0.05)
+        },
+    )
+    new_configs = dict(loaded.statistics.consolidation.configurations)
+    new_configs[cfg_key] = updated_summary
+    new_consol = replace(loaded.statistics.consolidation, configurations=new_configs)
+    new_stats = replace(loaded.statistics, consolidation=new_consol)
+    loaded_with_train = replace(loaded, statistics=new_stats)
+
+    tbl_d = build_table_model(ReportFamily.D_PREDICTIVE_PERFORMANCE, loaded_with_train)
+    col_keys = [c.key for c in tbl_d.columns]
+    assert "train_mean" in col_keys
+    row = next(r for r in tbl_d.rows if r["model_id"] == cfg_key[0] and r["metric"] == "rmse")
+    assert row["train_mean"] == pytest.approx(0.25)

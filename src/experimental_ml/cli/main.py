@@ -93,6 +93,12 @@ def build_parser() -> argparse.ArgumentParser:
     qr_p.add_argument("--experiment-dir", "--exp-dir", dest="experiment_dir", required=True, help="Path to initialized experiment directory.")
     qr_p.add_argument("--data", default=None, help="Optional custom CSV path (default: <experiment-dir>/dados_exemplo.csv).")
     qr_p.add_argument("--metrics", nargs="+", default=None, help="Optional list of metric IDs to evaluate.")
+    qr_p.add_argument(
+        "--collect-train-metrics",
+        action="store_true",
+        default=False,
+        help="Opt-in: evaluate training metrics per fold for Train vs. Test diagnostics.",
+    )
     qr_p.add_argument("--force", action="store_true", default=True, help="Overwrite existing outputs (default: True).")
     _add_csv_format_args(qr_p)
 
@@ -193,6 +199,12 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="+",
         default=None,
         help="Optional list of metric IDs from METRICS_CATALOG (defaults to task-appropriate metrics).",
+    )
+    run_start_p.add_argument(
+        "--collect-train-metrics",
+        action="store_true",
+        default=False,
+        help="Opt-in: evaluate training metrics per fold for Train vs. Test diagnostics.",
     )
     run_start_p.add_argument("--force", action="store_true", help="Overwrite existing execution directory if present.")
 

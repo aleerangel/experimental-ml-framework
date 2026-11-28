@@ -4,7 +4,7 @@
 > **Data:** 28 de Novembro de 2026<br/>
 > **Repositório:** `experimental-ml-framework`<br/>
 > **Fase Atual:** **Validação Contínua do MVP (Onda 1)** — identificando correções/melhorias na Onda 1 e definindo o escopo da **Segunda Onda do MVP (`Onda 2`)**<br/>
-> **Estado Técnico:** Marcos M1 a M9 Concluídos e M10 Verificado (`632 testes automatizados`) — Aguardando validação prática e aceite do `M10`<br/>
+> **Estado Técnico:** Marcos M1 a M10 Concluídos e Submarco M11.1 Verificado (`637 testes automatizados`) — Em Validação Contínua do MVP<br/>
 > **Próximos Passos:** Correções/evoluções diagnósticas da Onda 1 (conforme demanda da validação) e posterior entrada na `Onda 2`<br/>
 > **Especificação de Requisitos (SRS v2.2.0):** [`ESPECIFICACAO_REQUISITOS.md`](./ESPECIFICACAO_REQUISITOS.md)<br/>
 > **Arquitetura, Contratos e Modelo de Dados:** [`ARQUITETURA_E_CONTRATOS.md`](./ARQUITETURA_E_CONTRATOS.md)<br/>

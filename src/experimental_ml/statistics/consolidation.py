@@ -190,70 +190,73 @@ def consolidate_descriptive(
         for c in completed_cells:
             fold_metrics[c.fold_id] = dict(c.metrics)
 
-        # Aggregate metrics across completed folds
-        aggregated_metrics: dict[str, AggregatedMetricStats] = {}
+        def _aggregate_metrics_attr(attr_name: str) -> dict[str, AggregatedMetricStats]:
+            agg_out: dict[str, AggregatedMetricStats] = {}
+            all_metric_ids: set[str] = set()
+            for c in completed_cells:
+                all_metric_ids.update(getattr(c, attr_name).keys())
 
-        # Collect all metric IDs observed in completed cells
-        all_metric_ids: set[str] = set()
-        for c in completed_cells:
-            all_metric_ids.update(c.metrics.keys())
+            for met_id in sorted(all_metric_ids):
+                mvs = [getattr(c, attr_name)[met_id] for c in completed_cells if met_id in getattr(c, attr_name)]
+                valid_mvs = [
+                    mv for mv in mvs
+                    if mv.status == MetricStatus.VALID and math.isfinite(mv.value)
+                ]
+                n_valid = len(valid_mvs)
 
-        for met_id in sorted(all_metric_ids):
-            mvs = [c.metrics[met_id] for c in completed_cells if met_id in c.metrics]
-            valid_mvs = [
-                mv for mv in mvs
-                if mv.status == MetricStatus.VALID and math.isfinite(mv.value)
-            ]
-            n_valid = len(valid_mvs)
+                if n_valid == 0:
+                    agg_stat = AggregatedMetricStats(
+                        n_valid=0,
+                        n_total=k_total,
+                        status=MetricStatus.UNDEFINED_NAN,
+                        mean=None,
+                        std=None,
+                        median=None,
+                        iqr=None,
+                        q25=None,
+                        q75=None,
+                        min_value=None,
+                        max_value=None,
+                    )
+                elif n_valid == 1:
+                    val = float(valid_mvs[0].value)
+                    status = MetricStatus.VALID if n_valid == k_total else MetricStatus.PARTIAL_COVERAGE
+                    agg_stat = AggregatedMetricStats(
+                        n_valid=1,
+                        n_total=k_total,
+                        status=status,
+                        mean=val,
+                        std=None,
+                        median=val,
+                        iqr=0.0,
+                        q25=val,
+                        q75=val,
+                        min_value=val,
+                        max_value=val,
+                    )
+                else:
+                    arr = np.array([float(mv.value) for mv in valid_mvs], dtype=np.float64)
+                    status = MetricStatus.VALID if n_valid == k_total else MetricStatus.PARTIAL_COVERAGE
+                    q75, q25 = np.percentile(arr, [75, 25])
+                    agg_stat = AggregatedMetricStats(
+                        n_valid=n_valid,
+                        n_total=k_total,
+                        status=status,
+                        mean=float(np.mean(arr)),
+                        std=float(np.std(arr, ddof=1)),
+                        median=float(np.median(arr)),
+                        iqr=float(q75 - q25),
+                        q25=float(q25),
+                        q75=float(q75),
+                        min_value=float(np.min(arr)),
+                        max_value=float(np.max(arr)),
+                    )
+                agg_out[met_id] = agg_stat
+            return agg_out
 
-            if n_valid == 0:
-                agg_stat = AggregatedMetricStats(
-                    n_valid=0,
-                    n_total=k_total,
-                    status=MetricStatus.UNDEFINED_NAN,
-                    mean=None,
-                    std=None,
-                    median=None,
-                    iqr=None,
-                    q25=None,
-                    q75=None,
-                    min_value=None,
-                    max_value=None,
-                )
-            elif n_valid == 1:
-                val = float(valid_mvs[0].value)
-                status = MetricStatus.VALID if n_valid == k_total else MetricStatus.PARTIAL_COVERAGE
-                agg_stat = AggregatedMetricStats(
-                    n_valid=1,
-                    n_total=k_total,
-                    status=status,
-                    mean=val,
-                    std=None,
-                    median=val,
-                    iqr=0.0,
-                    q25=val,
-                    q75=val,
-                    min_value=val,
-                    max_value=val,
-                )
-            else:
-                arr = np.array([float(mv.value) for mv in valid_mvs], dtype=np.float64)
-                status = MetricStatus.VALID if n_valid == k_total else MetricStatus.PARTIAL_COVERAGE
-                q75, q25 = np.percentile(arr, [75, 25])
-                agg_stat = AggregatedMetricStats(
-                    n_valid=n_valid,
-                    n_total=k_total,
-                    status=status,
-                    mean=float(np.mean(arr)),
-                    std=float(np.std(arr, ddof=1)),
-                    median=float(np.median(arr)),
-                    iqr=float(q75 - q25),
-                    q25=float(q25),
-                    q75=float(q75),
-                    min_value=float(np.min(arr)),
-                    max_value=float(np.max(arr)),
-                )
-            aggregated_metrics[met_id] = agg_stat
+        # Aggregate validation/test and optional train metrics across completed DEV_CV folds
+        aggregated_metrics = _aggregate_metrics_attr("metrics")
+        aggregated_train_metrics = _aggregate_metrics_attr("train_metrics")
 
         # Aggregate timing breakdown across completed cells
         aggregated_timing: AggregatedTimingStats | None = None
@@ -329,6 +332,7 @@ def consolidate_descriptive(
             cancelled_fold_ids=cancelled_fold_ids,
             fold_metrics=fold_metrics,
             aggregated_metrics=aggregated_metrics,
+            aggregated_train_metrics=aggregated_train_metrics,
             pooled_oof_metrics=pooled_oof,
             holdout_metrics=holdout_metrics,
             aggregated_timing=aggregated_timing,

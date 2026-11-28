@@ -171,6 +171,7 @@ class CellResultRecord:
     selected_features: tuple[str, ...] = field(default_factory=tuple)
     effective_parameters: Mapping[str, Any] = field(default_factory=dict)
     metrics: Mapping[str, MetricValue] = field(default_factory=dict)
+    train_metrics: Mapping[str, MetricValue] = field(default_factory=dict)
     diagnostics: ModelDiagnostics | None = None
     error_type: str | None = None
     error_message: str | None = None
@@ -204,6 +205,13 @@ class CellResultRecord:
                 self,
                 "metrics",
                 MappingProxyType(dict(self.metrics)),
+            )
+
+        if not isinstance(self.train_metrics, MappingProxyType):
+            object.__setattr__(
+                self,
+                "train_metrics",
+                MappingProxyType(dict(self.train_metrics)),
             )
 
         if not isinstance(self.status, ExecutionStatus):

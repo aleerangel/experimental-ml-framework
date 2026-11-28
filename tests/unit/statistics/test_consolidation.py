@@ -378,3 +378,38 @@ def test_final_holdout_isolated_from_dev_cv_consolidation() -> None:
     assert "holdout_mean" in col_keys
     assert tbl_d.rows[0]["mean"] == pytest.approx(2.0)
     assert tbl_d.rows[0]["holdout_mean"] == pytest.approx(99.0)
+
+
+def test_m11_1_train_metrics_consolidated_isolated_from_dev_cv() -> None:
+    """C2 (M11.1): aggregated_train_metrics consolidates train_metrics without altering DEV_CV stats or pairwise tests."""
+    from dataclasses import replace
+    from experimental_ml.statistics.storage import _consolidation_from_dict, _consolidation_to_dict
+
+    cells = [
+        replace(
+            _make_cell("ridge", "sc1", "fold_0", metrics={"rmse": _make_metric(2.0)}),
+            train_metrics={"rmse": _make_metric(0.4)},
+        ),
+        replace(
+            _make_cell("ridge", "sc1", "fold_1", metrics={"rmse": _make_metric(4.0)}),
+            train_metrics={"rmse": _make_metric(0.6)},
+        ),
+    ]
+    consol = consolidate_descriptive(
+        cell_results=cells,
+        total_folds_per_config={("ridge", "sc1"): 2},
+        experiment_id="exp_train_test",
+        partition_plan_id="plan_train_test",
+    )
+    summary = consol.configurations[("ridge", "sc1")]
+    assert summary.aggregated_metrics["rmse"].mean == pytest.approx(3.0)
+    assert summary.aggregated_train_metrics["rmse"].mean == pytest.approx(0.5)
+    assert summary.fold_metrics["fold_0"]["rmse"].value == pytest.approx(2.0)
+
+    # JSON round-trip & legacy backward-compatibility
+    encoded = _consolidation_to_dict(consol)
+    reloaded = _consolidation_from_dict(encoded)
+    assert reloaded.configurations[("ridge", "sc1")].aggregated_train_metrics["rmse"].mean == pytest.approx(0.5)
+
+    encoded["configurations"][0].pop("aggregated_train_metrics", None)
+    assert len(_consolidation_from_dict(encoded).configurations[("ridge", "sc1")].aggregated_train_metrics) == 0

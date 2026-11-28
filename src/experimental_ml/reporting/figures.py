@@ -65,6 +65,9 @@ def build_figure_spec(
         x_vals: list[str] = []
         y_vals: list[float] = []
         y_errs: list[float] = []
+        train_vals: list[float] = []
+        train_errs: list[float] = []
+        has_train = False
         holdout_vals: list[float] = []
         has_holdout = False
 
@@ -78,6 +81,16 @@ def build_figure_spec(
             x_vals.append(f"{m_id}/{sc_id}")
             y_vals.append(float(agg.mean))
             y_errs.append(float(agg.std) if agg.std is not None and math.isfinite(agg.std) else 0.0)
+
+            t_agg = summary.aggregated_train_metrics.get(target_metric)
+            if t_agg is not None and t_agg.status != MetricStatus.UNDEFINED_NAN and t_agg.mean is not None and math.isfinite(t_agg.mean):
+                train_vals.append(float(t_agg.mean))
+                train_errs.append(float(t_agg.std) if t_agg.std is not None and math.isfinite(t_agg.std) else 0.0)
+                has_train = True
+            else:
+                train_vals.append(float("nan"))
+                train_errs.append(0.0)
+
             hmv = summary.holdout_metrics.get(target_metric)
             if hmv is not None and hmv.status != MetricStatus.UNDEFINED_NAN and math.isfinite(hmv.value):
                 holdout_vals.append(float(hmv.value))
@@ -85,7 +98,10 @@ def build_figure_spec(
             else:
                 holdout_vals.append(float("nan"))
 
-        series_list = [PlotSeries(name=f"{target_metric} (DEV_CV)", x_values=tuple(x_vals), y_values=tuple(y_vals), y_err=tuple(y_errs))]
+        series_list: list[PlotSeries] = []
+        if has_train:
+            series_list.append(PlotSeries(name=f"{target_metric} (Treino)", x_values=tuple(x_vals), y_values=tuple(train_vals), y_err=tuple(train_errs)))
+        series_list.append(PlotSeries(name=f"{target_metric} (DEV_CV)", x_values=tuple(x_vals), y_values=tuple(y_vals), y_err=tuple(y_errs)))
         if has_holdout:
             series_list.append(PlotSeries(name=f"{target_metric} (Holdout)", x_values=tuple(x_vals), y_values=tuple(holdout_vals)))
 
