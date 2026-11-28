@@ -73,3 +73,11 @@ Por transparência metodológica, o framework **não** calcula métricas sobre o
 - **Via CLI (`expml`):** adicione `--collect-train-metrics` em `expml run start` ou `expml quickrun`.
 
 Quando ativada, a Tabela D exibe a coluna `Train Mean` ao lado de `Mean` (`DEV_CV`) e a Figura D plota barras comparativas `Treino` vs. `DEV_CV`, mantendo os testes pareados (`Nadeau-Bengio` / `Wilcoxon`) estritamente isolados sobre os folds de validação.
+
+---
+
+## Diagnósticos Opcionais de Distribuição: Dataset Shift (KS) e Resíduos OOF (`VAL-ENH-006`)
+
+Seguindo o mesmo princípio de transparência (nenhum teste extra oculto), você pode ativar explicitamente em `run_experiment(...)`:
+- **`check_ks_drift=True`** *(recomendado em regimes `CV_AND_HOLDOUT` e `TEMPORAL`)*: aplica o teste Kolmogorov-Smirnov de 2 amostras entre `DEV` e `FINAL_HOLDOUT` (ou janelas temporais) para detectar *covariate/target shift*, gravando `statistics/ks_drift_report.json` e exibindo a tabela de *drift* no relatório.
+- **`analyze_oof_residuals=True`** *(recomendado em regressão)*: avalia os resíduos *out-of-fold* com Lilliefors (normalidade), compara AIC Normal vs. Student-$t$ (caudas pesadas) e gera o gráfico `Resíduos vs. Predito + Q-Q Plot` (`figures/fig_oof_residuals_qq.png`).

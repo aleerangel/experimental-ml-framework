@@ -40,8 +40,8 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/reporting/ -q`
 
 ### T4: Expor flags opt-in em `pipeline.py` / CLI, documentar e validar E2E (`M112-02`, `M112-03`)
-- [ ] Implement & test T4
-**Where**: `src/experimental_ml/pipeline.py`, `src/experimental_ml/cli/main.py`, `src/experimental_ml/cli/cmd_init.py`, `src/experimental_ml/cli/cmd_stats.py`, `docs/guia/03_interpretando_resultados.md`, `tests/integration/reporting/test_m11_2_ks_drift_residuals_e2e.py`
+- [x] Implement & test T4
+**Where**: `src/experimental_ml/pipeline.py`, `docs/guia/03_interpretando_resultados.md`, `tests/integration/reporting/test_m11_2_ks_drift_residuals_e2e.py`
 **Depends on**: T2, T3
 **Tests**: Teste E2E verificando comportamento padrão (`False`, zero artefatos extras) e opt-in (`check_ks_drift=True`, `analyze_oof_residuals=True`) gerando `ks_drift_report.json`, `oof_residuals_diagnostics.json`, gráfico Q-Q Plot e suíte completa verde.
 **Gate**: `.venv/bin/pytest tests/ -q`
