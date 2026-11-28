@@ -5,11 +5,13 @@ Complies with ORCH-11, ORCH-12, ORCH-13, ORCH-14, STORE-01, and XCUT-02.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+import copyreg
 from datetime import datetime, timezone
 from pathlib import Path
 import threading
-from typing import Callable, Sequence
+from types import MappingProxyType
+from typing import Any, Callable, Sequence
 
 from experimental_ml.core.findings import ConfigurationError, DataIntegrityError
 from experimental_ml.core.hashing import config_hash
@@ -76,6 +78,51 @@ from experimental_ml.orchestration.types import (
 from experimental_ml.validation.types import PartitionPlan
 
 
+def _rebuild_mapping_proxy(data: dict[Any, Any]) -> MappingProxyType[Any, Any]:
+    """Reconstruct MappingProxyType after unpickling in ProcessPoolExecutor."""
+    return MappingProxyType(data)
+
+
+def _reduce_mapping_proxy(m: MappingProxyType[Any, Any]) -> tuple[Callable[[dict[Any, Any]], MappingProxyType[Any, Any]], tuple[dict[Any, Any]]]:
+    """Allow MappingProxyType instances in immutable dataclasses to be pickled by ProcessPoolExecutor."""
+    return (_rebuild_mapping_proxy, (dict(m),))
+
+
+copyreg.pickle(MappingProxyType, _reduce_mapping_proxy)
+
+
+def _run_cell_in_subprocess(
+    desc: CellDescriptor,
+    sanitized_view: SanitizedDatasetView,
+    partition_plan: PartitionPlan,
+    metrics: Sequence[str],
+    error_policy: ErrorPolicy,
+    dest_run_dir: Path,
+    collect_train_metrics: bool,
+) -> CellResultRecord:
+    """Top-level picklable worker executing and saving a single cell for ProcessPoolExecutor."""
+    cell_result, pred_record = execute_single_cell(
+        model_spec=desc.model_spec,
+        scenario=desc.scenario,
+        fold=desc.fold,
+        sanitized_view=sanitized_view,
+        partition_plan=partition_plan,
+        metrics=metrics,
+        error_policy=error_policy,
+        cell_seed=desc.cell_seed,
+        cell_id=desc.cell_id,
+        phase=desc.phase,
+        collect_train_metrics=collect_train_metrics,
+    )
+    save_cell_artifacts(
+        cell_result=cell_result,
+        prediction_record=pred_record,
+        run_dir=dest_run_dir,
+        overwrite=True,
+    )
+    return cell_result
+
+
 def _generate_run_id() -> str:
     """Generate a default unique run ID with UTC timestamp."""
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -100,6 +147,7 @@ def run_experiment_matrix(
     overwrite: bool = False,
     auto_consolidate_oof: bool = True,
     collect_train_metrics: bool = False,
+    execution_backend: str = "thread",
 ) -> MatrixExecutionState:
     """Execute the full experimental cell matrix with atomic incremental checkpointing.
 
@@ -127,6 +175,10 @@ def run_experiment_matrix(
         ConfigurationError: If run_dir exists and overwrite=False, or arguments invalid.
         Exception: If error_policy is FAIL_FAST and a cell fails.
     """
+    if execution_backend not in ("thread", "process"):
+        raise ConfigurationError(
+            f"Unsupported execution_backend {execution_backend!r}; expected 'thread' or 'process'."
+        )
     dest_run_dir = Path(run_dir).resolve()
     cells_dir = dest_run_dir / "cells"
     preds_dir = dest_run_dir / "predictions"
@@ -234,6 +286,39 @@ def run_experiment_matrix(
                 callback.on_matrix_completed(state)
                 return state
             _execute_single_cell_worker(desc)
+    elif execution_backend == "process":
+        with ProcessPoolExecutor(max_workers=outer_n_jobs) as executor:
+            future_to_desc = {
+                executor.submit(
+                    _run_cell_in_subprocess,
+                    desc,
+                    sanitized_view,
+                    partition_plan,
+                    tuple(metrics),
+                    error_policy,
+                    dest_run_dir,
+                    collect_train_metrics,
+                ): desc
+                for desc in descriptors
+            }
+            for future in as_completed(future_to_desc):
+                desc = future_to_desc[future]
+                try:
+                    cell_result = future.result()
+                except Exception as exc:
+                    state = state.with_cell_update(desc.cell_id, ExecutionStatus.FAILED)
+                    save_execution_state(state, dest_run_dir, overwrite=True)
+                    if error_policy == ErrorPolicy.FAIL_FAST:
+                        for f in future_to_desc:
+                            f.cancel()
+                        raise exc
+                    continue
+                state = state.with_cell_update(desc.cell_id, cell_result.status)
+                save_execution_state(state, dest_run_dir, overwrite=True)
+                if cell_result.status == ExecutionStatus.COMPLETED:
+                    callback.on_cell_completed(cell_result)
+                else:
+                    callback.on_cell_failed(cell_result)
     else:
         with ThreadPoolExecutor(max_workers=outer_n_jobs) as executor:
             future_to_desc = {
@@ -282,6 +367,7 @@ def resume_experiment_matrix(
     cancellation_check: Callable[[], bool] | None = None,
     auto_consolidate_oof: bool = True,
     collect_train_metrics: bool = False,
+    execution_backend: str = "thread",
 ) -> MatrixExecutionState:
     """Resume an existing experiment matrix execution, skipping verified completed cells.
 
@@ -307,6 +393,10 @@ def resume_experiment_matrix(
     Raises:
         ConfigurationError: If execution_state.json does not exist.
     """
+    if execution_backend not in ("thread", "process"):
+        raise ConfigurationError(
+            f"Unsupported execution_backend {execution_backend!r}; expected 'thread' or 'process'."
+        )
     dest_run_dir = Path(run_dir).resolve()
     state_file = dest_run_dir / "execution_state.json"
     if not state_file.exists():
@@ -470,6 +560,39 @@ def resume_experiment_matrix(
                 callback.on_matrix_completed(state)
                 return state
             _execute_single_cell_worker(desc)
+    elif execution_backend == "process":
+        with ProcessPoolExecutor(max_workers=outer_n_jobs) as executor:
+            future_to_desc = {
+                executor.submit(
+                    _run_cell_in_subprocess,
+                    desc,
+                    sanitized_view,
+                    partition_plan,
+                    tuple(metrics),
+                    error_policy,
+                    dest_run_dir,
+                    collect_train_metrics,
+                ): desc
+                for desc in cells_to_run
+            }
+            for future in as_completed(future_to_desc):
+                desc = future_to_desc[future]
+                try:
+                    cell_result = future.result()
+                except Exception as exc:
+                    state = state.with_cell_update(desc.cell_id, ExecutionStatus.FAILED)
+                    save_execution_state(state, dest_run_dir, overwrite=True)
+                    if error_policy == ErrorPolicy.FAIL_FAST:
+                        for f in future_to_desc:
+                            f.cancel()
+                        raise exc
+                    continue
+                state = state.with_cell_update(desc.cell_id, cell_result.status)
+                save_execution_state(state, dest_run_dir, overwrite=True)
+                if cell_result.status == ExecutionStatus.COMPLETED:
+                    callback.on_cell_completed(cell_result)
+                else:
+                    callback.on_cell_failed(cell_result)
     else:
         with ThreadPoolExecutor(max_workers=outer_n_jobs) as executor:
             future_to_desc = {

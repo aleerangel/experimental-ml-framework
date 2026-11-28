@@ -263,7 +263,58 @@ def test_nested_tuning_dynamic_selection_isolated_per_inner_fold(monkeypatch: py
         scenario=scenario,
     )
     assert len(res.trials) == 2
-    # 2 candidates * 3 inner folds = 6 inner selections, each strictly on 20 samples (< 30 outer samples)
-    assert len(observed_train_sizes) == 6
+    # 3 inner folds cached across 2 candidates = 3 inner selections, each strictly on 20 samples (< 30 outer samples)
+    assert len(observed_train_sizes) == 3
     assert all(sz == 20 for sz in observed_train_sizes)
+
+
+def test_m11_4_nested_cv_caches_inner_fold_preprocessing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """M114-02: execute_nested_cv cacheia pré-processamento por fold interno sem alterar resultados."""
+    from experimental_ml.models.preprocessing.types import (
+        PreprocessingStepSpec,
+        TwoLayerPreprocessingSpec,
+    )
+    import experimental_ml.models.preprocessing.pipeline as preproc_mod
+
+    rng = np.random.default_rng(11)
+    X_mat = rng.normal(size=(24, 3))
+    y = 2.0 * X_mat[:, 0] + rng.normal(scale=0.1, size=24)
+
+    fit_calls = 0
+    orig_fit = preproc_mod.fit_two_layer_preprocessing
+
+    def _spy_fit(spec, x_arr):
+        nonlocal fit_calls
+        fit_calls += 1
+        return orig_fit(spec, x_arr)
+
+    monkeypatch.setattr(preproc_mod, "fit_two_layer_preprocessing", _spy_fit)
+
+    from dataclasses import replace
+
+    base_spec = _make_dummy_model_spec()
+    spec = replace(
+        base_spec,
+        preprocessing=TwoLayerPreprocessingSpec(
+            layer1_steps=(
+                PreprocessingStepSpec(
+                    step_id="s1",
+                    transformer_type="STANDARD",
+                ),
+            ),
+            layer2_steps=(),
+        ),
+    )
+    tuning_spec = HyperparameterSearchSpec(
+        search_strategy=SearchStrategy.GRID_SEARCH,
+        param_grid={"alpha": (0.1, 1.0, 10.0)},
+        optimization_metric="rmse",
+        direction=MetricDirection.MINIMIZE,
+        inner_cv_folds=3,
+    )
+    res = run_nested_tuning(tuning_spec, spec, X_mat, y, seed=42)
+    assert len(res.trials) == 3
+    # 3 candidatos * 3 folds internos -> pré-processamento ajustado apenas 3 vezes (1x por fold)
+    assert fit_calls == 3
+
 

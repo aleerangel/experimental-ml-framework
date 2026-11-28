@@ -131,6 +131,7 @@ def run_nested_tuning(
     metric_entry = METRICS_CATALOG[metric_id]
 
     trials: list[TuningTrialRecord] = []
+    inner_fold_cache: dict[int, tuple[np.ndarray, np.ndarray]] = {}
 
     for trial_idx, candidate_params in enumerate(candidates):
         fold_scores: list[float] = []
@@ -138,9 +139,7 @@ def run_nested_tuning(
         trial_error: str | None = None
 
         for fold_idx, (inner_train_idx, inner_val_idx) in enumerate(inner_splits):
-            X_in_train = X_train[inner_train_idx]
             y_in_train = y_train[inner_train_idx]
-            X_in_val = X_train[inner_val_idx]
             y_in_val = y_train[inner_val_idx]
 
             fold_seed = (
@@ -150,74 +149,85 @@ def run_nested_tuning(
             )
 
             try:
-                # Intra-fold preprocessing and optional dynamic feature selection (ADR-003, AD-028, AUD-M4-03)
-                if (
-                    scenario is not None
-                    and getattr(getattr(scenario, "mode", None), "value", scenario.mode) == "DYNAMIC"
-                    and X_train_cand is not None
-                ):
-                    from experimental_ml.features.selection import (
-                        apply_feature_selection,
-                        select_features_in_fold,
-                    )
-                    from experimental_ml.models.preprocessing.pipeline import (
-                        apply_two_layer_preprocessing,
-                        fit_two_layer_preprocessing,
-                    )
-                    from experimental_ml.models.preprocessing.types import TwoLayerPreprocessingSpec
-
-                    cand_cols = list(X_train_cand.keys())
-                    X_in_train_cand = {col: np.asarray(X_train_cand[col])[inner_train_idx] for col in cand_cols}
-                    X_in_val_cand = {col: np.asarray(X_train_cand[col])[inner_val_idx] for col in cand_cols}
-
-                    if model_spec.preprocessing is not None and model_spec.preprocessing.layer1_steps:
-                        l1_spec = TwoLayerPreprocessingSpec(
-                            layer1_steps=model_spec.preprocessing.layer1_steps,
-                            layer2_steps=(),
-                        )
-                        l1_in_mat = np.column_stack([X_in_train_cand[c] for c in cand_cols])
-                        l1_val_mat = np.column_stack([X_in_val_cand[c] for c in cand_cols])
-                        l1_state = fit_two_layer_preprocessing(l1_spec, l1_in_mat)
-                        l1_in_trans = apply_two_layer_preprocessing(l1_state, l1_in_mat)
-                        l1_val_trans = apply_two_layer_preprocessing(l1_state, l1_val_mat)
-                        X_in_train_cand = {c: l1_in_trans[:, i] for i, c in enumerate(cand_cols)}
-                        X_in_val_cand = {c: l1_val_trans[:, i] for i, c in enumerate(cand_cols)}
-
-                    in_sel = select_features_in_fold(
-                        X_train=X_in_train_cand,
-                        y_train=y_in_train,
-                        scenario=scenario,
-                        random_state=fold_seed if fold_seed is not None else 42,
-                    )
-                    sel_cols = tuple(in_sel.selected_features)
-                    X_in_train_sel = apply_feature_selection(X_in_train_cand, in_sel)
-                    X_in_val_sel = apply_feature_selection(X_in_val_cand, in_sel)
-                    X_in_train_sub = np.column_stack([X_in_train_sel[c] for c in sel_cols])
-                    X_in_val_sub = np.column_stack([X_in_val_sel[c] for c in sel_cols])
-
-                    if model_spec.preprocessing is not None and model_spec.preprocessing.layer2_steps:
-                        l2_spec = TwoLayerPreprocessingSpec(
-                            layer1_steps=(),
-                            layer2_steps=model_spec.preprocessing.layer2_steps,
-                        )
-                        l2_state = fit_two_layer_preprocessing(l2_spec, X_in_train_sub)
-                        X_in_train_trans = apply_two_layer_preprocessing(l2_state, X_in_train_sub)
-                        X_in_val_trans = apply_two_layer_preprocessing(l2_state, X_in_val_sub)
-                    else:
-                        X_in_train_trans = X_in_train_sub
-                        X_in_val_trans = X_in_val_sub
-                elif model_spec.preprocessing is not None:
-                    from experimental_ml.models.preprocessing.pipeline import (
-                        apply_two_layer_preprocessing,
-                        fit_two_layer_preprocessing,
-                    )
-
-                    preproc_state = fit_two_layer_preprocessing(model_spec.preprocessing, X_in_train)
-                    X_in_train_trans = apply_two_layer_preprocessing(preproc_state, X_in_train)
-                    X_in_val_trans = apply_two_layer_preprocessing(preproc_state, X_in_val)
+                if fold_idx in inner_fold_cache:
+                    X_in_train_trans, X_in_val_trans = inner_fold_cache[fold_idx]
                 else:
-                    X_in_train_trans = X_in_train
-                    X_in_val_trans = X_in_val
+                    X_in_train = X_train[inner_train_idx]
+                    X_in_val = X_train[inner_val_idx]
+                    # Intra-fold preprocessing and optional dynamic feature selection (ADR-003, AD-028, AUD-M4-03)
+                    if (
+                        scenario is not None
+                        and getattr(getattr(scenario, "mode", None), "value", scenario.mode) == "DYNAMIC"
+                        and X_train_cand is not None
+                    ):
+                        from experimental_ml.features.selection import (
+                            apply_feature_selection,
+                            select_features_in_fold,
+                        )
+                        from experimental_ml.models.preprocessing.pipeline import (
+                            apply_two_layer_preprocessing,
+                            fit_two_layer_preprocessing,
+                        )
+                        from experimental_ml.models.preprocessing.types import TwoLayerPreprocessingSpec
+
+                        cand_cols = list(X_train_cand.keys())
+                        X_in_train_cand = {col: np.asarray(X_train_cand[col])[inner_train_idx] for col in cand_cols}
+                        X_in_val_cand = {col: np.asarray(X_train_cand[col])[inner_val_idx] for col in cand_cols}
+
+                        if model_spec.preprocessing is not None and model_spec.preprocessing.layer1_steps:
+                            l1_spec = TwoLayerPreprocessingSpec(
+                                layer1_steps=model_spec.preprocessing.layer1_steps,
+                                layer2_steps=(),
+                            )
+                            l1_in_mat = np.column_stack([X_in_train_cand[c] for c in cand_cols])
+                            l1_val_mat = np.column_stack([X_in_val_cand[c] for c in cand_cols])
+                            l1_state = fit_two_layer_preprocessing(l1_spec, l1_in_mat)
+                            l1_in_trans = apply_two_layer_preprocessing(l1_state, l1_in_mat)
+                            l1_val_trans = apply_two_layer_preprocessing(l1_state, l1_val_mat)
+                            X_in_train_cand = {c: l1_in_trans[:, i] for i, c in enumerate(cand_cols)}
+                            X_in_val_cand = {c: l1_val_trans[:, i] for i, c in enumerate(cand_cols)}
+
+                        sel_seed = (
+                            (effective_seed + fold_idx) % (2**31 - 1)
+                            if effective_seed is not None
+                            else 42
+                        )
+                        in_sel = select_features_in_fold(
+                            X_train=X_in_train_cand,
+                            y_train=y_in_train,
+                            scenario=scenario,
+                            random_state=sel_seed,
+                        )
+                        sel_cols = tuple(in_sel.selected_features)
+                        X_in_train_sel = apply_feature_selection(X_in_train_cand, in_sel)
+                        X_in_val_sel = apply_feature_selection(X_in_val_cand, in_sel)
+                        X_in_train_sub = np.column_stack([X_in_train_sel[c] for c in sel_cols])
+                        X_in_val_sub = np.column_stack([X_in_val_sel[c] for c in sel_cols])
+
+                        if model_spec.preprocessing is not None and model_spec.preprocessing.layer2_steps:
+                            l2_spec = TwoLayerPreprocessingSpec(
+                                layer1_steps=(),
+                                layer2_steps=model_spec.preprocessing.layer2_steps,
+                            )
+                            l2_state = fit_two_layer_preprocessing(l2_spec, X_in_train_sub)
+                            X_in_train_trans = apply_two_layer_preprocessing(l2_state, X_in_train_sub)
+                            X_in_val_trans = apply_two_layer_preprocessing(l2_state, X_in_val_sub)
+                        else:
+                            X_in_train_trans = X_in_train_sub
+                            X_in_val_trans = X_in_val_sub
+                    elif model_spec.preprocessing is not None:
+                        from experimental_ml.models.preprocessing.pipeline import (
+                            apply_two_layer_preprocessing,
+                            fit_two_layer_preprocessing,
+                        )
+
+                        preproc_state = fit_two_layer_preprocessing(model_spec.preprocessing, X_in_train)
+                        X_in_train_trans = apply_two_layer_preprocessing(preproc_state, X_in_train)
+                        X_in_val_trans = apply_two_layer_preprocessing(preproc_state, X_in_val)
+                    else:
+                        X_in_train_trans = X_in_train
+                        X_in_val_trans = X_in_val
+                    inner_fold_cache[fold_idx] = (X_in_train_trans, X_in_val_trans)
 
                 # Instantiate fresh unshared model instance (CA-E3-01)
                 instance = instantiate_fresh_model(model_spec, seed=fold_seed)

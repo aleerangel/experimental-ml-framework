@@ -24,8 +24,8 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/integration/reporting/test_m11_4_wave1_polish_e2e.py -q`
 
 ### T2: Cache intra-célula no Nested CV e `execution_backend="process"` opt-in (`M114-02`)
-- [ ] Implement & test T2
-**Where**: `src/experimental_ml/tuning/engine.py`, `src/experimental_ml/orchestration/engine.py`, `tests/unit/tuning/test_tuning_engine.py`, `tests/unit/orchestration/test_engine.py`
+- [x] Implement & test T2
+**Where**: `src/experimental_ml/tuning/engine.py`, `src/experimental_ml/orchestration/engine.py`, `tests/unit/tuning/test_tuning_execution.py`, `tests/unit/orchestration/test_matrix_engine_parallel.py`
 **Depends on**: none
 **Tests**: Testes unitários provando que `select_features_in_fold` / `fit_two_layer_preprocessing` executam 1x por sub-fold interno (mesmo resultado com múltiplos candidatos) e que `execution_backend="process"` conclui matriz via `ProcessPoolExecutor`.
 **Gate**: `.venv/bin/pytest tests/unit/tuning/ tests/unit/orchestration/ -q`
@@ -50,7 +50,7 @@ Build: none - pacote Python puro sem etapa de compilação separada; validação
 | Requisito | Tarefa | Teste(s) |
 | :--- | :--- | :--- |
 | M114-01 | T1 | `tests/integration/reporting/test_m11_4_wave1_polish_e2e.py::test_m11_4_run_experiment_planned_pairs_and_pareto` |
-| M114-02 | T2 | `tests/unit/tuning/test_tuning_engine.py::test_m11_4_nested_cv_caches_inner_fold_preprocessing`, `tests/unit/orchestration/test_engine.py::test_m11_4_process_pool_backend` |
+| M114-02 | T2 | `tests/unit/tuning/test_tuning_execution.py::test_m11_4_nested_cv_caches_inner_fold_preprocessing`, `tests/unit/orchestration/test_matrix_engine_parallel.py::test_m11_4_process_pool_backend` |
 | M114-03 | T3 | `tests/integration/reporting/test_m11_4_wave1_polish_e2e.py::test_m11_4_docs_symbols_synced` |
 
 ---
@@ -58,7 +58,7 @@ Build: none - pacote Python puro sem etapa de compilação separada; validação
 ## Checks
 
 **Run m11_4_e2e**: `.venv/bin/pytest tests/integration/reporting/test_m11_4_wave1_polish_e2e.py -v`
-**Run m11_4_perf**: `.venv/bin/pytest tests/unit/tuning/test_tuning_engine.py tests/unit/orchestration/test_engine.py -k m11_4 -v`
+**Run m11_4_perf**: `.venv/bin/pytest tests/unit/tuning/test_tuning_execution.py tests/unit/orchestration/test_matrix_engine_parallel.py -k m11_4 -v`
 
 **C1** - `run_experiment` respeita `comparison_scope`, `planned_pairs` e `pareto_objectives` customizados (`M114-01`)
 Proof: run m11_4_e2e | test_m11_4_run_experiment_planned_pairs_and_pareto PASSED

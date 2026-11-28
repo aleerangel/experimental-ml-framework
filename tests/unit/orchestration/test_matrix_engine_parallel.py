@@ -283,3 +283,71 @@ def test_m52_04_04_parallel_cell_failure_handling(tmp_path: Path):
     loaded = load_execution_state(run_dir)
     assert loaded.completed_cells == 3
     assert loaded.failed_cells == 3
+
+
+class _PicklableMeanRegressor:
+    def __init__(self, seed: int | None = None) -> None:
+        self.mean_ = 0.0
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "_PicklableMeanRegressor":
+        self.mean_ = float(np.mean(y))
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return np.full(X.shape[0], self.mean_, dtype=np.float64)
+
+
+def test_m11_4_process_pool_backend(tmp_path: Path) -> None:
+    """M114-02: execution_backend='process' executa células via ProcessPoolExecutor mantendo persistência."""
+    from experimental_ml.validation import PartitionConfig, PartitionStrategy, build_partition_plan
+
+    data = {
+        "x1": np.linspace(0.0, 1.0, 12),
+        "y": np.linspace(1.0, 2.0, 12),
+    }
+    schema = DatasetSchemaSpec(target_col="y", task_type=TaskType.REGRESSION)
+    bundle = load_dataset(data, schema=schema)
+    profile = profile_dataset(bundle)
+    prep = create_preparation_plan(profile, ())
+    view = sanitize_dataset(bundle, profile, prep)
+    plan = build_partition_plan(
+        view,
+        PartitionConfig(
+            strategy=PartitionStrategy.KFOLD,
+            n_splits=3,
+            regime=EvaluationRegime.CV_ONLY,
+        ),
+    )
+    model = ModelSpec(
+        model_id=ModelId("proc_mean"),
+        display_name="Picklable Mean",
+        family=ModelFamily.BASELINE,
+        estimator_factory=_PicklableMeanRegressor,
+        capabilities=ModelCapabilities(requires_fit=True, supports_predict=True),
+        description="Mean",
+        scientific_justification="Test ProcessPool",
+    )
+    scenario = FeatureScenario(
+        scenario_id=ScenarioId("all_features"),
+        name="All Features",
+        description="All",
+        scientific_justification="Base",
+        mode=ScenarioMode.FIXED,
+        selected_features=("x1",),
+    )
+    run_dir = tmp_path / "proc_run"
+    state = run_experiment_matrix(
+        model_specs=[model],
+        scenarios=[scenario],
+        partition_plan=plan,
+        sanitized_view=view,
+        run_dir=run_dir,
+        metrics=("rmse",),
+        outer_n_jobs=2,
+        error_policy=ErrorPolicy.FAIL_FAST,
+        execution_backend="process",
+    )
+    assert state.total_cells == 3
+    assert state.completed_cells == 3
+    assert state.failed_cells == 0
+
