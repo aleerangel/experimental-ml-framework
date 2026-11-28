@@ -325,15 +325,37 @@
 - **Date**: 2026-11-27
 - **Status**: active
 
+### AD-037: Divisão do ciclo diagnóstico em 4 submarcos TLC (`M11.1` a `M11.4`)
+- **Decision**: Executar o pacote diagnóstico da Onda 1 em 4 submarcos independentes, cada um com sua própria branch e rodada completa TLC (`Specify → Design → Tasks → Execute → Verify`): `M11.1` (`VAL-ENH-005` Treino vs. Teste), `M11.2` (`VAL-ENH-006` KS/Drift/Resíduos OOF), `M11.3` (`VAL-ENH-007` Caracterização Estatística + `dataset_meta_features`) e `M11.4` (`VAL-ENH-004` Pareto/planned_pairs CLI).
+- **Reason**: Garantir entregas atômicas, verificação independente focada por domínio e rastreabilidade clara por submarco.
+- **Trade-off**: 4 ciclos TLC sequenciais em vez de um único PR grande.
+- **Scope**: `.specs/features/m11-*`, `orchestration/`, `data/`, `features/`, `statistics/`, `reporting/`, `cli/`, `pipeline.py`.
+- **Date**: 2026-11-28
+- **Status**: active
+
+### AD-038: Coleta explícita (opt-in) de `train_metrics` isolada da inferência `DEV_CV` (`M11.1` / `VAL-ENH-005`)
+- **Decision**: Expor `collect_train_metrics: bool = False` (opt-in explícito, documentado como recomendado para diagnóstico de *overfitting*) em `execute_single_cell`, `run_experiment_matrix`, `run_experiment` e CLI (`--collect-train-metrics`). Quando ativado pelo pesquisador, avalia `train_metrics` pós-`fit_model` e consolida em `ConfigurationSummary.aggregated_train_metrics`, estritamente isolado de `aggregated_metrics` e dos testes pareados (`Nadeau-Bengio` / `Wilcoxon`).
+- **Reason**: Garantir transparência total sem coletas ou custos computacionais ocultos; toda coleta diagnóstica deve ser escolhida explicitamente pelo pesquisador.
+- **Trade-off**: Pesquisador precisa ativar `--collect-train-metrics` / `collect_train_metrics=True` quando desejar comparar Treino vs. Teste.
+- **Scope**: `orchestration/{types,execution,engine,storage}.py`, `statistics/{types,consolidation,storage}.py`, `reporting/{tables,figures}.py`, `pipeline.py`, `cli/{cmd_run,cmd_quickrun}.py`.
+- **Date**: 2026-11-28
+- **Status**: active
+
+### AD-039: Princípio de transparência e opt-in explícito em `M11.2` e `M11.3`
+- **Decision**: Em `M11.2` (`VAL-ENH-006`) e `M11.3` (`VAL-ENH-007`), testes KS (`ks_2samp` em `DEV` vs. `HOLDOUT`/`TEMPORAL`), análise de resíduos/Q-Q Plot (Normal vs. Student-$t$ / Lilliefors) e métricas estendidas / `dataset_meta_features` devem ser documentados como disponíveis e recomendados conforme o caso, mas **sempre acionados por escolha explícita do pesquisador** (parâmetros/flags explícitos), sem execuções ocultas.
+- **Reason**: Cobrir detecção de *dataset shift*, pressupostos de resíduos e caracterização estrutural completa de datasets.
+- **Trade-off**: Escopo definido antecipadamente para `M11.2` e `M11.3`.
+- **Scope**: `data/profiling.py`, `features/stats.py`, `validation/`, `statistics/`, `reporting/`.
+- **Date**: 2026-11-28
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: Marco `M10` (`m10-scientific-visualization-reporting-redesign`) Implementado e Verificado (`PASS`)
-- **Phase / Task**: `M10` concluído (`T1`–`T6`, `632 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`.
+- **Feature**: Submarco `M11.1` (`m11-1-train-test-diagnostics` — `VAL-ENH-005`) em fase `Specify`
+- **Phase / Task**: Branch `feat/m11-1-train-test-diagnostics` criada; decisões `AD-037`–`AD-039` registradas; `spec.md` do `M11.1` elaborada para aprovação.
 - **Completed**:
-  - `M8` (`0b77fd1`) e `M9` (`e372b22`) integrados em `main`.
-  - `M10` (`T1`–`T6`: `5fc348c`, `a935d27`, `79a806e`, `36c795d`, `e0fcab8`, `decf35b`) implementado, provado (`proofs.md`) e verificado (`verification.md: PASS`, `C1`–`C5`) com `632 passed in 66.10s`.
-  - `VAL-BUG-006`, `VAL-QUAL-001`, `VAL-QUAL-002` e `VAL-ENH-001` atualizados para `VERIFICADO (M10)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
-- **In-progress**: Homologação/aceite do `M10` (`ACCEPTANCE.md`) e validação contínua do pesquisador.
-- **Next step**: Push da branch `feat/m10-visualization-reporting`, aceite/merge do `M10` em `main` e eventual planejamento de `VAL-ENH-005` (Treino vs. Teste).
+  - `M8`, `M9`, `M10` e documentação de planejamento da Onda 1 / Onda 2 integrados em `main` (`cf3451e`).
+- **In-progress**: Especificação (`Specify`) do `M11.1`.
+- **Next step**: Aprovação da `spec.md` do `M11.1` pelo desenvolvedor para seguir para `Design`/`Tasks`.
 - **Blockers**: none
-- **Branch**: feat/m10-visualization-reporting
+- **Branch**: feat/m11-1-train-test-diagnostics
