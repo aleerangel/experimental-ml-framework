@@ -211,6 +211,8 @@ class LoadedExperimentData:
     models_catalog: Mapping[str, Any] | None = None
     execution_state: Mapping[str, Any] | None = None
     cell_diagnostics: tuple[Mapping[str, Any], ...] = ()
+    ks_drift_report: Mapping[str, Any] | None = None
+    oof_residuals_diagnostics: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         for attr in (
@@ -220,6 +222,8 @@ class LoadedExperimentData:
             "scenarios_catalog",
             "models_catalog",
             "execution_state",
+            "ks_drift_report",
+            "oof_residuals_diagnostics",
         ):
             val = getattr(self, attr)
             if val is not None and not isinstance(val, MappingProxyType):

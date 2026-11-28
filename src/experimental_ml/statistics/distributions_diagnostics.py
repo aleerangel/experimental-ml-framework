@@ -204,3 +204,147 @@ def compare_normal_vs_student_t(values: Sequence[float] | np.ndarray) -> Residua
         preferred_family=preferred,
         heavy_tails_detected=heavy_tails,
     )
+
+
+def compute_partition_ks_drift(
+    sanitized_view: Any,
+    partition_plan: Any,
+    *,
+    alpha: float = 0.05,
+    d_threshold: float = 0.15,
+) -> PartitionDriftReport:
+    """Detect covariate and target shift across partitions using 2-sample KS (Quiñonero-Candela et al., 2009)."""
+    from experimental_ml.validation.types import EvaluationRegime, PartitionStrategy
+
+    regime_val = getattr(partition_plan, "regime", EvaluationRegime.CV_ONLY)
+    strategy_val = getattr(partition_plan, "strategy", getattr(partition_plan, "splitting_strategy", None))
+    folds = tuple(getattr(partition_plan, "folds", ()))
+
+    if regime_val == EvaluationRegime.CV_AND_HOLDOUT and getattr(partition_plan, "holdout_ids", ()):
+        ref_ids = set(partition_plan.development_ids)
+        cmp_ids = set(partition_plan.holdout_ids)
+        ref_lbl, cmp_lbl = "DEV", "FINAL_HOLDOUT"
+    elif strategy_val == PartitionStrategy.TEMPORAL and len(folds) >= 2:
+        ref_ids = set(folds[0].train_ids)
+        cmp_ids = set(folds[-1].val_ids)
+        ref_lbl, cmp_lbl = "TEMPORAL_INICIAL", "TEMPORAL_FINAL"
+    elif folds:
+        ref_ids = set(folds[0].train_ids)
+        cmp_ids = set(folds[0].val_ids)
+        ref_lbl, cmp_lbl = "FOLD_0_TRAIN", "FOLD_0_VAL"
+    else:
+        return PartitionDriftReport(
+            regime=str(getattr(regime_val, "value", regime_val)),
+            reference_label="NONE",
+            comparison_label="NONE",
+            alpha=alpha,
+            d_threshold=d_threshold,
+            features=(),
+            n_drifted_features=0,
+        )
+
+    obs_ids = tuple(sanitized_view.observation_ids)
+    ref_idx = np.array([i for i, oid in enumerate(obs_ids) if oid in ref_ids], dtype=np.intp)
+    cmp_idx = np.array([i for i, oid in enumerate(obs_ids) if oid in cmp_ids], dtype=np.intp)
+    target_col = sanitized_view.schema.target_col
+
+    records: list[FeatureDriftRecord] = []
+    for col_name in sorted(sanitized_view.columns.keys()):
+        col_arr = np.asarray(sanitized_view.columns[col_name])
+        if not np.issubdtype(col_arr.dtype, np.number) or np.issubdtype(col_arr.dtype, np.bool_):
+            continue
+        res = ks_2samp(col_arr[ref_idx], col_arr[cmp_idx])
+        drifted = bool(res.status == "VALID" and res.p_value < alpha and res.statistic >= d_threshold)
+        records.append(
+            FeatureDriftRecord(
+                feature_name=col_name,
+                is_target=(col_name == target_col),
+                ks_statistic=res.statistic,
+                p_value=res.p_value,
+                n_ref=res.n_a,
+                n_cmp=res.n_b or 0,
+                drift_detected=drifted,
+                status=res.status,
+            )
+        )
+
+    return PartitionDriftReport(
+        regime=str(getattr(regime_val, "value", regime_val)),
+        reference_label=ref_lbl,
+        comparison_label=cmp_lbl,
+        alpha=alpha,
+        d_threshold=d_threshold,
+        features=tuple(records),
+        n_drifted_features=sum(1 for r in records if r.drift_detected),
+    )
+
+
+def analyze_oof_residuals_map(
+    oof_by_config: Mapping[tuple[str, str], Any],
+) -> tuple[OofResidualsDiagnosticEntry, ...]:
+    """Analyze regression OOF residuals per configuration via Lilliefors and Normal vs. Student-t AIC."""
+    entries: list[OofResidualsDiagnosticEntry] = []
+    for (m_id, sc_id), oof_rec in sorted(oof_by_config.items()):
+        y_true = np.asarray(oof_rec.y_true, dtype=np.float64)
+        y_pred = np.asarray(oof_rec.y_pred_mean, dtype=np.float64) if hasattr(oof_rec, "y_pred_mean") else np.asarray(oof_rec.y_pred, dtype=np.float64)
+        residuals = y_true - y_pred
+        if len(_finite_float_array(residuals)) < 5:
+            continue
+        fit = compare_normal_vs_student_t(residuals)
+        entries.append(OofResidualsDiagnosticEntry(model_id=m_id, scenario_id=sc_id, fit=fit))
+    return tuple(entries)
+
+
+def partition_drift_to_dict(report: PartitionDriftReport) -> dict[str, Any]:
+    return {
+        "regime": report.regime,
+        "reference_label": report.reference_label,
+        "comparison_label": report.comparison_label,
+        "alpha": report.alpha,
+        "d_threshold": report.d_threshold,
+        "n_drifted_features": report.n_drifted_features,
+        "features": [
+            {
+                "feature_name": f.feature_name,
+                "is_target": f.is_target,
+                "ks_statistic": None if math.isnan(f.ks_statistic) else f.ks_statistic,
+                "p_value": None if math.isnan(f.p_value) else f.p_value,
+                "n_ref": f.n_ref,
+                "n_cmp": f.n_cmp,
+                "drift_detected": f.drift_detected,
+                "status": f.status,
+            }
+            for f in report.features
+        ],
+    }
+
+
+def oof_residuals_to_dict(
+    entries: Sequence[OofResidualsDiagnosticEntry],
+    oof_samples: Mapping[tuple[str, str], tuple[Sequence[float], Sequence[float]]] | None = None,
+) -> dict[str, Any]:
+    configs: list[dict[str, Any]] = []
+    for e in entries:
+        item: dict[str, Any] = {
+            "model_id": e.model_id,
+            "scenario_id": e.scenario_id,
+            "n_samples": e.fit.n_samples,
+            "mean": e.fit.mean,
+            "std": e.fit.std,
+            "lilliefors_d": e.fit.lilliefors_d,
+            "lilliefors_p": e.fit.lilliefors_p,
+            "normal_loglik": e.fit.normal_loglik,
+            "normal_aic": e.fit.normal_aic,
+            "student_t_nu": e.fit.student_t_nu,
+            "student_t_loglik": e.fit.student_t_loglik,
+            "student_t_aic": e.fit.student_t_aic,
+            "preferred_family": e.fit.preferred_family,
+            "heavy_tails_detected": e.fit.heavy_tails_detected,
+        }
+        if oof_samples and (e.model_id, e.scenario_id) in oof_samples:
+            yp, res = oof_samples[(e.model_id, e.scenario_id)]
+            item["y_pred"] = [float(v) for v in yp]
+            item["residuals"] = [float(v) for v in res]
+        configs.append(item)
+    return {"configurations": configs}
+

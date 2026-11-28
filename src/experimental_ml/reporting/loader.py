@@ -48,6 +48,8 @@ def load_experiment_artifacts_readonly(experiment_dir: Path | str) -> LoadedExpe
     scenarios = _read_optional_json(exp_dir / SCENARIOS_CATALOG_REL_PATH)
     models = _read_optional_json(exp_dir / MODELS_CATALOG_REL_PATH)
     exec_state = _read_optional_json(exp_dir / EXECUTION_STATE_REL_PATH)
+    ks_drift = _read_optional_json(exp_dir / "statistics" / "ks_drift_report.json")
+    oof_res_diag = _read_optional_json(exp_dir / "statistics" / "oof_residuals_diagnostics.json")
 
     cell_diags: list[dict[str, Any]] = []
     cells_dir = exp_dir / "runs" / "cells"
@@ -76,6 +78,8 @@ def load_experiment_artifacts_readonly(experiment_dir: Path | str) -> LoadedExpe
         models_catalog=models,
         execution_state=exec_state,
         cell_diagnostics=tuple(cell_diags),
+        ks_drift_report=ks_drift,
+        oof_residuals_diagnostics=oof_res_diag,
     )
 
 

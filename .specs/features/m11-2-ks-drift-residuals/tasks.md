@@ -26,7 +26,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/statistics/test_ks_diagnostics.py -v`
 
 ### T2: Implementar detecção de *dataset shift* pós-split e análise de resíduos OOF + persistência (`M112-02`, `M112-03`)
-- [ ] Implement & test T2
+- [x] Implement & test T2
 **Where**: `src/experimental_ml/statistics/distributions_diagnostics.py`, `src/experimental_ml/statistics/storage.py`, `src/experimental_ml/reporting/types.py`, `src/experimental_ml/reporting/loader.py`, `tests/unit/statistics/test_ks_diagnostics.py`
 **Depends on**: T1
 **Tests**: Testes verificando detecção de *shift* em `CV_AND_HOLDOUT` e `TEMPORAL`, análise de resíduos OOF e round-trip JSON opcional sem quebrar experimentos antigos.
