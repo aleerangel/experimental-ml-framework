@@ -280,14 +280,19 @@ def compute_partition_ks_drift(
 
 
 def analyze_oof_residuals_map(
-    oof_by_config: Mapping[tuple[str, str], Any],
+    oof_by_config: Mapping[Any, Any],
 ) -> tuple[OofResidualsDiagnosticEntry, ...]:
     """Analyze regression OOF residuals per configuration via Lilliefors and Normal vs. Student-t AIC."""
     entries: list[OofResidualsDiagnosticEntry] = []
-    for (m_id, sc_id), oof_rec in sorted(oof_by_config.items()):
-        y_true = np.asarray(oof_rec.y_true, dtype=np.float64)
-        y_pred = np.asarray(oof_rec.y_pred_mean, dtype=np.float64) if hasattr(oof_rec, "y_pred_mean") else np.asarray(oof_rec.y_pred, dtype=np.float64)
-        residuals = y_true - y_pred
+    for key, oof_rec in sorted(oof_by_config.items(), key=lambda kv: str(kv[0])):
+        m_id = str(getattr(oof_rec, "model_id", key[0] if isinstance(key, tuple) else key))
+        sc_id = str(getattr(oof_rec, "scenario_id", key[1] if isinstance(key, tuple) else ""))
+        if getattr(oof_rec, "residuals", None) is not None:
+            residuals = np.asarray(oof_rec.residuals, dtype=np.float64)
+        else:
+            y_true = np.asarray(oof_rec.y_true, dtype=np.float64)
+            y_pred = np.asarray(oof_rec.y_pred_mean, dtype=np.float64) if hasattr(oof_rec, "y_pred_mean") else np.asarray(oof_rec.y_pred, dtype=np.float64)
+            residuals = y_true - y_pred
         if len(_finite_float_array(residuals)) < 5:
             continue
         fit = compare_normal_vs_student_t(residuals)
