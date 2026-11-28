@@ -11,7 +11,7 @@ from typing import Any, Tuple
 
 import numpy as np
 
-from experimental_ml.core.enums import MetricStatus
+from experimental_ml.core.enums import MetricStatus, TaskType
 
 
 def _rank_data(a: np.ndarray) -> np.ndarray:
@@ -243,9 +243,145 @@ def compute_cramers_v(cat_x: np.ndarray, cat_y: np.ndarray) -> tuple[float, Metr
     return float(v), MetricStatus.VALID
 
 
+def compute_vif(X: np.ndarray) -> tuple[np.ndarray, MetricStatus]:
+    """Compute Variance Inflation Factor (VIF) per numeric column using np.linalg.pinv."""
+    x_arr = np.asarray(X, dtype=np.float64)
+    if x_arr.ndim != 2 or x_arr.shape[0] < 3 or x_arr.shape[1] < 1:
+        return np.empty(0, dtype=np.float64), MetricStatus.UNDEFINED_NAN
+
+    valid_rows = np.all(np.isfinite(x_arr), axis=1)
+    x_clean = x_arr[valid_rows]
+    if x_clean.shape[0] < 3:
+        return np.full(x_arr.shape[1], float("nan"), dtype=np.float64), MetricStatus.UNDEFINED_NAN
+
+    p = x_clean.shape[1]
+    if p == 1:
+        return np.ones(1, dtype=np.float64), MetricStatus.VALID
+
+    means = np.mean(x_clean, axis=0)
+    stds = np.std(x_clean, axis=0, ddof=0)
+    non_const = stds > 1e-12
+    vifs = np.full(p, float("nan"), dtype=np.float64)
+    if np.count_nonzero(non_const) < 2:
+        if np.count_nonzero(non_const) == 1:
+            vifs[non_const] = 1.0
+            return vifs, MetricStatus.VALID
+        return vifs, MetricStatus.UNDEFINED_NAN
+
+    z = (x_clean[:, non_const] - means[non_const]) / stds[non_const]
+    corr = (z.T @ z) / float(z.shape[0])
+    inv_corr = np.linalg.pinv(corr, rcond=1e-12)
+    diag = np.maximum(1.0, np.diag(inv_corr))
+    vifs[non_const] = diag
+    return vifs, MetricStatus.VALID
+
+
+def compute_distance_correlation(
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    max_samples: int = 2000,
+) -> tuple[float, MetricStatus]:
+    """Compute Distance Correlation (Szekely et al., 2007) in pure NumPy."""
+    x_arr = np.asarray(x, dtype=np.float64).ravel()
+    y_arr = np.asarray(y, dtype=np.float64).ravel()
+    if len(x_arr) != len(y_arr) or len(x_arr) < 3:
+        return float("nan"), MetricStatus.UNDEFINED_NAN
+
+    valid = np.isfinite(x_arr) & np.isfinite(y_arr)
+    if np.count_nonzero(valid) < 3:
+        return float("nan"), MetricStatus.UNDEFINED_NAN
+
+    xc = x_arr[valid]
+    yc = y_arr[valid]
+    if len(xc) > max_samples:
+        idx = np.linspace(0, len(xc) - 1, max_samples, dtype=int)
+        xc = xc[idx]
+        yc = yc[idx]
+
+    a = np.abs(xc[:, None] - xc[None, :])
+    b = np.abs(yc[:, None] - yc[None, :])
+    a_c = a - a.mean(axis=0, keepdims=True) - a.mean(axis=1, keepdims=True) + a.mean()
+    b_c = b - b.mean(axis=0, keepdims=True) - b.mean(axis=1, keepdims=True) + b.mean()
+
+    dcov2_xx = float(np.mean(a_c * a_c))
+    dcov2_yy = float(np.mean(b_c * b_c))
+    if dcov2_xx <= 1e-15 or dcov2_yy <= 1e-15:
+        return float("nan"), MetricStatus.UNDEFINED_NAN
+
+    dcov2_xy = float(np.mean(a_c * b_c))
+    dcor = math.sqrt(max(0.0, dcov2_xy) / math.sqrt(dcov2_xx * dcov2_yy))
+    return float(max(0.0, min(1.0, dcor))), MetricStatus.VALID
+
+
+def compute_linearity_score(
+    X: np.ndarray,
+    y: np.ndarray,
+    task_type: TaskType,
+) -> tuple[float, MetricStatus]:
+    """Compute exploratory linearity score: OLS R^2 for regression, Ridge/LDA balanced accuracy for classification."""
+    x_arr = np.asarray(X, dtype=np.float64)
+    y_arr = np.asarray(y).ravel()
+    if x_arr.ndim != 2 or x_arr.shape[0] != len(y_arr) or x_arr.shape[0] < 4 or x_arr.shape[1] < 1:
+        return float("nan"), MetricStatus.UNDEFINED_NAN
+
+    valid_x = np.all(np.isfinite(x_arr), axis=1)
+    if task_type == TaskType.REGRESSION:
+        y_float = np.asarray(y_arr, dtype=np.float64)
+        valid = valid_x & np.isfinite(y_float)
+        if np.count_nonzero(valid) < 4:
+            return float("nan"), MetricStatus.UNDEFINED_NAN
+        xc = x_arr[valid]
+        yc = y_float[valid]
+        stds = np.std(xc, axis=0, ddof=0)
+        keep = stds > 1e-12
+        if not np.any(keep):
+            return float("nan"), MetricStatus.UNDEFINED_NAN
+        z = (xc[:, keep] - np.mean(xc[:, keep], axis=0)) / stds[keep]
+        x_aug = np.column_stack([np.ones(z.shape[0], dtype=np.float64), z])
+        coef, *_ = np.linalg.lstsq(x_aug, yc, rcond=None)
+        preds = x_aug @ coef
+        ss_res = float(np.sum((yc - preds) ** 2))
+        ss_tot = float(np.sum((yc - np.mean(yc)) ** 2))
+        if ss_tot <= 1e-15:
+            return float("nan"), MetricStatus.UNDEFINED_NAN
+        r2 = max(0.0, min(1.0, 1.0 - ss_res / ss_tot))
+        return float(r2), MetricStatus.VALID
+
+    valid_y = np.array([not _is_missing_categorical(v) for v in y_arr], dtype=bool)
+    valid = valid_x & valid_y
+    if np.count_nonzero(valid) < 4:
+        return float("nan"), MetricStatus.UNDEFINED_NAN
+    xc = x_arr[valid]
+    yc = y_arr[valid]
+    classes, y_idx = np.unique(yc, return_inverse=True)
+    if len(classes) < 2:
+        return float("nan"), MetricStatus.UNDEFINED_NAN
+    stds = np.std(xc, axis=0, ddof=0)
+    keep = stds > 1e-12
+    if not np.any(keep):
+        return float("nan"), MetricStatus.UNDEFINED_NAN
+    z = (xc[:, keep] - np.mean(xc[:, keep], axis=0)) / stds[keep]
+    x_aug = np.column_stack([np.ones(z.shape[0], dtype=np.float64), z])
+    y_oh = np.eye(len(classes), dtype=np.float64)[y_idx]
+    reg = 1e-4 * np.eye(x_aug.shape[1], dtype=np.float64)
+    reg[0, 0] = 0.0
+    w = np.linalg.pinv(x_aug.T @ x_aug + reg) @ (x_aug.T @ y_oh)
+    pred_idx = np.argmax(x_aug @ w, axis=1)
+    recalls = [
+        float(np.mean(pred_idx[y_idx == c] == c))
+        for c in range(len(classes))
+        if np.any(y_idx == c)
+    ]
+    return float(np.mean(recalls)), MetricStatus.VALID
+
+
 __all__ = [
     "compute_pearson",
     "compute_spearman",
     "compute_correlation_ratio",
     "compute_cramers_v",
+    "compute_vif",
+    "compute_distance_correlation",
+    "compute_linearity_score",
 ]

@@ -180,3 +180,43 @@ def test_categorical_stats_ignore_none_values() -> None:
     )
     assert math.isnan(v_deg)
     assert stat_deg == MetricStatus.UNDEFINED_NAN
+
+
+def test_m11_3_vif_distance_corr_and_linearity() -> None:
+    """M113-02: compute_vif, compute_distance_correlation e compute_linearity_score em NumPy puro."""
+    from experimental_ml.core.enums import TaskType
+    from experimental_ml.features.stats import (
+        compute_distance_correlation,
+        compute_linearity_score,
+        compute_vif,
+    )
+
+    rng = np.random.default_rng(42)
+    x1 = rng.normal(size=100)
+    x2 = 2.0 * x1 + rng.normal(scale=0.05, size=100)  # alta colinearidade com x1
+    x3 = rng.normal(size=100)
+    vifs, vif_stat = compute_vif(np.column_stack([x1, x2, x3]))
+    assert vif_stat == MetricStatus.VALID
+    assert vifs[0] > 10.0 and vifs[1] > 10.0
+    assert vifs[2] < 2.0
+
+    # Relação quadrática não-linear: Pearson ~ 0, mas Distance Correlation > 0.4
+    x_quad = np.linspace(-2.0, 2.0, 120)
+    y_quad = x_quad ** 2
+    dcor, dcor_stat = compute_distance_correlation(x_quad, y_quad)
+    assert dcor_stat == MetricStatus.VALID
+    assert dcor > 0.4
+
+    # Linearidade OLS R^2 em regressão
+    y_lin = 3.0 * x1 - 1.5 * x3 + 2.0
+    r2_lin, lin_stat = compute_linearity_score(np.column_stack([x1, x3]), y_lin, TaskType.REGRESSION)
+    assert lin_stat == MetricStatus.VALID
+    assert r2_lin > 0.99
+
+    # Separabilidade linear em classificação
+    x_clf = np.vstack([rng.normal(-2.0, 0.3, size=(30, 2)), rng.normal(2.0, 0.3, size=(30, 2))])
+    y_clf = np.array(["A"] * 30 + ["B"] * 30, dtype=object)
+    bal_acc, clf_stat = compute_linearity_score(x_clf, y_clf, TaskType.BINARY_CLASSIFICATION)
+    assert clf_stat == MetricStatus.VALID
+    assert bal_acc > 0.95
+

@@ -25,7 +25,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/data/test_profiling.py -q`
 
 ### T2: Implementar VIF, *Distance Correlation* e linearidade em NumPy puro (`M113-02`)
-- [ ] Implement & test T2
+- [x] Implement & test T2
 **Where**: `src/experimental_ml/features/stats.py`, `src/experimental_ml/features/exploration.py`, `tests/unit/features/test_stats.py`, `tests/unit/features/test_exploration.py`
 **Depends on**: none
 **Tests**: Testes verificando `compute_vif`, `compute_distance_correlation`, `compute_linearity_score` (regressão OLS $R^2$ e classificação Ridge/LDA) e `explore_features(..., extended_stats=True/False)` sob `EXPLORATORY_FULL_DATA`.

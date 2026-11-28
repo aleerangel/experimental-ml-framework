@@ -175,3 +175,27 @@ def test_classification_feature_associations() -> None:
 
     assert metrics_by_feat["cat_feat"].metric_name == "CRAMERS_V"
     assert metrics_by_feat["cat_feat"].value > 0.0
+
+
+def test_m11_3_explore_features_extended_opt_in() -> None:
+    """M113-02: explore_features mantém extended_diagnostics=None por padrão e preenche quando extended_stats=True."""
+    rng = np.random.default_rng(7)
+    x1 = rng.normal(size=50)
+    x2 = 3.0 * x1 + rng.normal(scale=0.05, size=50)
+    y = 2.0 * x1 + 1.0
+    view = _make_dummy_sanitized_view(
+        columns={"x1": x1, "x2": x2, "target": y},
+        target_col="target",
+        task_type=TaskType.REGRESSION,
+    )
+
+    rep_default = explore_features(view)
+    assert rep_default.extended_diagnostics is None
+
+    rep_ext = explore_features(view, extended_stats=True)
+    assert rep_ext.extended_diagnostics is not None
+    assert rep_ext.extended_diagnostics["scope"] == "EXPLORATORY_FULL_DATA"
+    assert rep_ext.extended_diagnostics["max_vif"] > 10.0
+    assert rep_ext.extended_diagnostics["linearity_score"] > 0.95
+    assert rep_ext.extended_diagnostics["mean_distance_correlation_target"] > 0.8
+
