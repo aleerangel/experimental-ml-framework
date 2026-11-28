@@ -39,7 +39,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/reporting/test_reporting_report.py -q`
 
 ### T4: Expor flags opt-in em `pipeline.py`, documentar e validar E2E (`M113-03`)
-- [ ] Implement & test T4
+- [x] Implement & test T4
 **Where**: `src/experimental_ml/pipeline.py`, `docs/guia/03_interpretando_resultados.md`, `tests/integration/reporting/test_m11_3_dataset_characterization_e2e.py`
 **Depends on**: T3
 **Tests**: Teste E2E verificando padrão (`False`, sem `dataset_meta_features.json`) e opt-in (`export_meta_features=True`, gravando `dataset_meta_features.json` e renderizando tabela no relatório) + suíte completa verde.

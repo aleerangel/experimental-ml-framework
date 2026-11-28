@@ -81,3 +81,12 @@ Quando ativada, a Tabela D exibe a coluna `Train Mean` ao lado de `Mean` (`DEV_C
 Seguindo o mesmo princípio de transparência (nenhum teste extra oculto), você pode ativar explicitamente em `run_experiment(...)`:
 - **`check_ks_drift=True`** *(recomendado em regimes `CV_AND_HOLDOUT` e `TEMPORAL`)*: aplica o teste Kolmogorov-Smirnov de 2 amostras entre `DEV` e `FINAL_HOLDOUT` (ou janelas temporais) para detectar *covariate/target shift*, gravando `statistics/ks_drift_report.json` e exibindo a tabela de *drift* no relatório.
 - **`analyze_oof_residuals=True`** *(recomendado em regressão)*: avalia os resíduos *out-of-fold* com Lilliefors (normalidade), compara AIC Normal vs. Student-$t$ (caudas pesadas) e gera o gráfico `Resíduos vs. Predito + Q-Q Plot` (`figures/fig_oof_residuals_qq.png`).
+
+---
+
+## Caracterização Estatística Ampliada e `dataset_meta_features` (`VAL-ENH-007`)
+
+O perfil básico já registra momentos leves (`skewness`, excesso de `kurtosis` de Fisher e `outlier_rate_iqr`) por coluna numérica. As métricas estruturais mais custosas permanecem **opt-in** (`False` por padrão) em `run_experiment(...)`:
+- **`extended_stats=True`** *(recomendado quando houver suspeita de colinearidade ou relações não-lineares)*: calcula razão $n/p$, dimensionalidade intrínseca via SVD ($\ge 95\%$ da variância), entropia normalizada do alvo, VIF, *Distance Correlation* e indicador exploratório de linearidade sob `EXPLORATORY_FULL_DATA`.
+- **`export_meta_features=True`** *(recomendado para catalogação estrutural e futuros estudos multi-dataset)*: ativa `extended_stats=True`, grava `dataset_meta_features.json` na raiz do experimento e exibe a tabela `Caracterização Estatística Ampliada (Meta-Features)` no relatório.
+
