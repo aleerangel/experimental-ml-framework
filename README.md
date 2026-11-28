@@ -12,14 +12,8 @@ Um dos principais objetivos do framework é **democratizar o acesso à pesquisa 
 ---
 
 ## Fase Atual do Projeto
-
-> **Status:** **Validação Contínua do MVP (Onda 1) e Definição de Escopo da Segunda Onda (`Onda 2`)**
-
-Após a entrega dos marcos `M1`–`M10` (**632 testes automatizados aprovados**), o projeto encontra-se em fase ativa de **validação prática do MVP** com dados reais, com três frentes simultâneas:
-
-1. **Identificação e registro de correções e melhorias:** execução do [Plano de Validação do MVP](docs/engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md) e catalogação contínua de achados (`BUG`, `QUALITY`, `ENHANCEMENT`) no [Registro de Validação do MVP](docs/engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md).
-2. **Fechamento diagnóstico da Onda 1 (`M11` planejado):** comparação Treino vs. Teste (`VAL-ENH-005`), testes KS / Lilliefors / *dataset shift* e resíduos (`VAL-ENH-006`), caracterização estatística ampliada dos datasets (`VAL-ENH-007`) e Pareto multi-objetivo via CLI (`VAL-ENH-004`).
-3. **Definição de escopo da Segunda Onda do MVP (`Onda 2`: `M12`–`M14`):** estatística multi-dataset (Friedman/Nemenyi), *Meta-Learning / Algorithm Selection* e MLE multi-distribuição (`M12`), Predição Conforme (`M13`) e Aprendizado de Máquina Quântico — QML (`M14`), detalhados no [Roadmap de Evolução](docs/engenharia_software/ROADMAP_EVOLUCAO.md) e no [Estado Atual de Engenharia](docs/engenharia_software/ETAPA_ATUAL_ENGENHARIA.md).
+> **Status:** **Validação Contínua do MVP (Onda 1)** — identificando correções/melhorias e definindo o escopo da **Segunda Onda (`Onda 2`)**.
+Após os marcos `M1`–`M10` (**632 testes aprovados**), atuamos em três frentes: (1) validação prática em dados reais ([Plano de Validação](docs/engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md) e [Registro de Achados](docs/engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md)); (2) fechamento diagnóstico da Onda 1 no **`M11`** (Treino vs. Teste, KS/Lilliefors/*shift*/resíduos e caracterização estatística ampliada); e (3) definição de escopo da **Segunda Onda (`Onda 2`: `M12`–`M14`)** com estatística multi-dataset, *Meta-Learning*, MLE multi-distribuição, Predição Conforme e QML ([Roadmap](docs/engenharia_software/ROADMAP_EVOLUCAO.md) | [Estado Atual](docs/engenharia_software/ETAPA_ATUAL_ENGENHARIA.md)).
 
 ---
 
