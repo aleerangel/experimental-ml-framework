@@ -1,13 +1,25 @@
 # Experimental ML Framework 
 
 ![Python](https://img.shields.io/badge/Python-%3E%3D3.10-blue)
-![NumPy](https://img.shields.io/badge/Runtime-Pure%20Python%20%2B%20NumPy-green)
+![Core](https://img.shields.io/badge/Core-Pure%20Python%20%2B%20NumPy-green)
 ![Version](https://img.shields.io/badge/Version-0.1.0.dev0-informational)
-![Status](https://img.shields.io/badge/MVP-Auditado%20%26%20Congelado-brightgreen)
+![Status](https://img.shields.io/badge/Fase%20Atual-Valida%C3%A7%C3%A3o%20do%20MVP%20%26%20Escopo%20Onda%202-yellow)
 
-Framework científico agnóstico para condução, auditoria e publicação de experimentos em Aprendizado de Máquina (*Machine Learning* — ML) sobre dados tabulares. Projetado em Python padrão e NumPy (`XCUT-02`), o projeto prioriza a integridade metodológica, o determinismo numérico e a reprodutibilidade integral de resultados científicos.
+Framework científico agnóstico para condução, auditoria e publicação de experimentos em Aprendizado de Máquina (*Machine Learning* — ML) sobre dados tabulares. Projetado com núcleo científico em Python padrão e NumPy (`XCUT-02`) e camada de apresentação em Matplotlib/Pandas (`M10`), o projeto prioriza a integridade metodológica, o determinismo numérico e a reprodutibilidade integral de resultados científicos.
 
 Um dos principais objetivos do framework é **democratizar o acesso à pesquisa científica rigorosa para novos pesquisadores, especialmente alunos de Iniciação Científica (IC)**, reduzindo barreiras técnicas e prevenindo armadilhas metodológicas comuns. Este projeto foi desenvolvido durante a Iniciação Científica na **Universidade Federal do Espírito Santo (UFES)**, no âmbito do **Projeto QUAIS (*Quantum Artificial Intelligence for Science*)**, em parceria com o **Instituto Kunumi**.
+
+---
+
+## Fase Atual do Projeto
+
+> **Status:** **Validação Contínua do MVP (Onda 1) e Definição de Escopo da Segunda Onda (`Onda 2`)**
+
+Após a entrega dos marcos `M1`–`M10` (**632 testes automatizados aprovados**), o projeto encontra-se em fase ativa de **validação prática do MVP** com dados reais, com três frentes simultâneas:
+
+1. **Identificação e registro de correções e melhorias:** execução do [Plano de Validação do MVP](docs/engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md) e catalogação contínua de achados (`BUG`, `QUALITY`, `ENHANCEMENT`) no [Registro de Validação do MVP](docs/engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md).
+2. **Fechamento diagnóstico da Onda 1 (`M11` planejado):** comparação Treino vs. Teste (`VAL-ENH-005`), testes KS / Lilliefors / *dataset shift* e resíduos (`VAL-ENH-006`), caracterização estatística ampliada dos datasets (`VAL-ENH-007`) e Pareto multi-objetivo via CLI (`VAL-ENH-004`).
+3. **Definição de escopo da Segunda Onda do MVP (`Onda 2`: `M12`–`M14`):** estatística multi-dataset (Friedman/Nemenyi), *Meta-Learning / Algorithm Selection* e MLE multi-distribuição (`M12`), Predição Conforme (`M13`) e Aprendizado de Máquina Quântico — QML (`M14`), detalhados no [Roadmap de Evolução](docs/engenharia_software/ROADMAP_EVOLUCAO.md) e no [Estado Atual de Engenharia](docs/engenharia_software/ETAPA_ATUAL_ENGENHARIA.md).
 
 ---
 
@@ -104,7 +116,7 @@ expml report export --experiment-dir exp_dir --mode full_package --output-dir pa
 - **[Auditoria Técnica do MVP](docs/engenharia_software/AUDITORIA_TECNICA_DO_MVP.md):** Inventário documental e diagnóstico técnico das 6 etapas.
 - **[Plano de Validação do MVP](docs/engenharia_software/PLANO_DE_VALIDACAO_DO_MVP.md):** Roteiro prático de testes funcionais, metodológicos e exploratórios.
 - **[Registro de Validação do MVP](docs/engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md):** Processo contínuo e catálogo vivo de achados (`BUG`, `QUALITY`, `ENHANCEMENT`).
-- **[Roadmap de Evolução](docs/engenharia_software/ROADMAP_EVOLUCAO.md):** Planejamento dos marcos futuros (`M8`–`M10` e `Onda 2`) e avaliação de visualização científica.
+- **[Roadmap de Evolução](docs/engenharia_software/ROADMAP_EVOLUCAO.md):** Planejamento do fechamento da Onda 1 (`M8`–`M11`) e escopo da Segunda Onda (`Onda 2`: `M12`–`M14`).
 - **[Referências e Fundamentação](docs/REFERENCIAS_E_FUNDAMENTACAO.md):** Base bibliográfica, decisões arquiteturais (ADRs) e estatística.
 
 ---
