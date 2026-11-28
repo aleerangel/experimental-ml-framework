@@ -17,7 +17,7 @@ flowchart LR
 ## Execution Plan
 
 ### T1: Expor `comparison_scope`, `planned_pairs` e `pareto_objectives` em `run_experiment` (`M114-01`)
-- [ ] Implement & test T1
+- [x] Implement & test T1
 **Where**: `src/experimental_ml/pipeline.py`, `tests/integration/reporting/test_m11_4_wave1_polish_e2e.py`
 **Depends on**: none
 **Tests**: Teste validando `run_experiment` com `ComparisonScope.PLANNED_PAIRS` + `planned_pairs` e `pareto_objectives` customizados (ex.: incluindo `n_selected_features` / `fit_mean_s`).
