@@ -394,11 +394,11 @@ Gerar e validar o plano de particionamento independente, garantir que todas as c
 #### Saídas e Funções Modulares (Contratos)
 1. **`PartitionPlan` (`build_partition_plan` e `validate_partition_plan`):**
    * `partition_plan_id` (derivado deterministicamente do `dataset_hash` da `SanitizedDatasetView`, da configuração de validação, da semente mestre e das listas de `observation_id` por partição, ignorando *timestamps* voláteis).
-   * `evaluation_regime`:
-     * `CROSS_VALIDATION_ONLY`
+   * `evaluation_regime` (`EvaluationRegime`):
+     * `CV_ONLY`
      * `HOLDOUT_ONLY`
-     * `DEVELOPMENT_CV_PLUS_FINAL_HOLDOUT`
-   * `cv_strategy`: `K_FOLD`, `STRATIFIED_K_FOLD`, `GROUP_K_FOLD` (exigindo número de grupos distintos $G \ge K$), `STRATIFIED_GROUP_K_FOLD`, `BOOTSTRAP` ($B$ reamostragens com reposição sobre o treino para estimativa de métricas e barras de erro preditivas $\hat{\sigma}_i$), `TEMPORAL_SPLIT`, etc.
+     * `CV_AND_HOLDOUT`
+   * `cv_strategy` (`PartitionStrategy`): `KFOLD`, `STRATIFIED_KFOLD`, `GROUP_KFOLD` (exigindo número de grupos distintos $G \ge K$), `STRATIFIED_GROUP_K_FOLD`, `BOOTSTRAP`, `TEMPORAL`, `HOLDOUT`.
    * `folds`: lista de partições contendo os `observation_id` exatos de `train` e `val` para cada `fold_id`.
    * `holdout_ids` *(quando aplicável)*: conjunto de `observation_id` estritamente isolado durante toda a exploração, seleção de atributos e ajuste de hiperparâmetros (respeitando também o isolamento por grupos quando `group_col` estiver ativo).
    * **Reprodutibilidade Determinística (`CA-E4A-02`):** sob a mesma `SanitizedDatasetView` (mesmo `dataset_hash` e ordem de `observation_ids`), mesma `ValidationConfig` e mesma semente mestre, `build_partition_plan` produz exatamente o mesmo `partition_plan_id` e as mesmas partições (`train`, `val` e `holdout_ids`).
@@ -612,7 +612,7 @@ Cada experimento é organizado em um diretório autocontido com referências exc
 
 ```text
 experiments/run_<experiment_id>/
-├── manifest.json                 # Identificação do experimento, objetivo, autor, timestamps e nível de reprodutibilidade
+├── dataset_meta_features.json    # (Opcional, opt-in) Meta-features estruturais do dataset (Rivolli et al., 2022)
 ├── data/
 │   ├── dataset_descriptor.json   # Esquema, papéis das colunas, hash SHA-256, procedência e política de licença/privacidade
 │   └── dataset_profile.json      # Resultado completo do diagnóstico exploratório da Etapa 1

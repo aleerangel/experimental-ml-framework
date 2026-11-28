@@ -232,6 +232,9 @@ def run_experiment(
     analyze_oof_residuals: bool = False,
     extended_stats: bool = False,
     export_meta_features: bool = False,
+    comparison_scope: ComparisonScope = ComparisonScope.ALL_PAIRWISE,
+    planned_pairs: Sequence[tuple[tuple[str, str], tuple[str, str]]] = (),
+    pareto_objectives: Sequence[ObjectiveSpec] | None = None,
 ) -> ExperimentRunSummary:
     """Executa ponta a ponta as Etapas 1 a 6 de forma segura e reproduzível.
 
@@ -379,19 +382,23 @@ def run_experiment(
         ComparisonSpec(
             metrics_of_interest=selected_metrics,
             metric_directions=metric_dirs,
-            comparison_scope=ComparisonScope.ALL_PAIRWISE,
+            comparison_scope=comparison_scope,
+            planned_pairs=tuple(planned_pairs),
             alpha=alpha,
         ),
         suit,
     )
+    resolved_pareto_objs = (
+        tuple(pareto_objectives)
+        if pareto_objectives
+        else (
+            ObjectiveSpec(primary_metric, metric_dirs[primary_metric]),
+            ObjectiveSpec("fit_mean_s", MetricDirection.MINIMIZE, ObjectiveSource.TIMING_MEAN, "fit_mean_s"),
+        )
+    )
     pareto = compute_pareto_frontier(
         cons,
-        MultiObjectiveSpec(
-            objectives=(
-                ObjectiveSpec(primary_metric, metric_dirs[primary_metric]),
-                ObjectiveSpec("fit_mean_s", MetricDirection.MINIMIZE, ObjectiveSource.TIMING_MEAN, "fit_mean_s"),
-            )
-        ),
+        MultiObjectiveSpec(objectives=resolved_pareto_objs),
     )
     conc = synthesize_conclusions(
         cons,
