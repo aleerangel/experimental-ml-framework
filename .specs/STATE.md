@@ -349,6 +349,14 @@
 - **Date**: 2026-11-28
 - **Status**: active
 
+### AD-040: Escopo de ativação e definição operacional em `M11.3` (`VAL-ENH-007`)
+- **Decision**: (1) Métricas leves (`skewness`, excesso de `kurtosis` de Fisher, `outlier_rate_iqr`) são calculadas no perfil básico de `NumericDistributionStats` em `data/profiling.py`; (2) Métricas estruturais pesadas (`VIF`, *Distance Correlation*, `intrinsic_dim_ratio_95` via SVD em matriz padronizada >=95% variância / $p_{\text{num}}$, `linearity_score` via OLS $R^2$ em regressão e separabilidade linear Ridge/LDA NumPy em classificação, `samples_to_features_ratio` e `target_entropy_norm`) e a exportação de `dataset_meta_features.json` são estritamente **opt-in (`False` por padrão)** via `extended_stats: bool = False` e `export_meta_features: bool = False`; (3) Quando `export_meta_features=True`, gravar `dataset_meta_features.json` e exibir tabela resumida em `report.md`/`report.html`.
+- **Reason**: Preservar desempenho e transparência sem cálculos pesados ocultos, mantendo o núcleo 100% NumPy puro (`XCUT-02`) e sem *data leakage* (`EXPLORATORY_FULL_DATA`).
+- **Trade-off**: Pesquisador ativa `extended_stats=True` / `export_meta_features=True` quando desejar caracterização estrutural completa.
+- **Scope**: `data/profiling.py`, `features/stats.py`, `features/exploration.py`, `reporting/`, `pipeline.py`, `docs/`.
+- **Date**: 2026-11-28
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: Submarco `M11.2` (`m11-2-ks-drift-residuals` — `VAL-ENH-006`) Implementado e Verificado (`PASS`)
