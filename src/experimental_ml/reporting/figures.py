@@ -422,3 +422,93 @@ def render_figure(plot_spec: PlotSpecification, fmt: str = "svg") -> bytes:
         return buf.getvalue()
     finally:
         plt.close(fig)
+
+
+def _norm_ppf_approx(p: np.ndarray) -> np.ndarray:
+    """Acklam rational approximation for standard normal inverse CDF (pure NumPy)."""
+    a = (-3.969683028665376e01, 2.209460984245205e02, -2.759285104469687e02, 1.383577518672690e02, -3.066479806614716e01, 2.506628277459239e00)
+    b = (-5.447609879822406e01, 1.615858368580409e02, -1.556989798598866e02, 6.680131188771972e01, -1.328068155288572e01)
+    c = (-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e00, -2.549732539343734e00, 4.374664141464968e00, 2.938163982698783e00)
+    d = (7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e00, 3.754408661907416e00)
+    p_low, p_high = 0.02425, 1.0 - 0.02425
+    out = np.empty_like(p, dtype=np.float64)
+    for idx, val in enumerate(p):
+        if val < p_low:
+            q = math.sqrt(-2.0 * math.log(val))
+            out[idx] = (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0)
+        elif val <= p_high:
+            q = val - 0.5
+            r = q * q
+            out[idx] = (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1.0)
+        else:
+            q = math.sqrt(-2.0 * math.log(1.0 - val))
+            out[idx] = -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0)
+    return out
+
+
+def render_residuals_diagnostic_figure(oof_diagnostics: dict[str, Any], fmt: str = "png") -> bytes:
+    """Render dual-panel OOF Residuals vs. Predicted and Normal Q-Q Plot in PNG/SVG/PDF (VAL-ENH-006)."""
+    fmt_norm = fmt.strip().lower()
+    if fmt_norm not in ("svg", "png", "pdf"):
+        raise ConfigurationError(f"Unsupported figure format '{fmt}'; expected 'svg', 'png', or 'pdf'.")
+
+    configs = oof_diagnostics.get("configurations", [])
+    target_cfg = next((c for c in configs if c.get("residuals") and c.get("y_pred")), None)
+    if target_cfg is None:
+        raise ConfigurationError("OOF residuals diagnostic payload does not contain 'y_pred' and 'residuals'.")
+
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    plt.rcParams["svg.hashsalt"] = "experimental-ml-framework"
+    y_pred = np.asarray(target_cfg["y_pred"], dtype=np.float64)
+    res = np.asarray(target_cfg["residuals"], dtype=np.float64)
+    mask = np.isfinite(y_pred) & np.isfinite(res)
+    y_pred, res = y_pred[mask], res[mask]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.4))
+    ax1.scatter(y_pred, res, s=28, color="#2563eb", alpha=0.75, edgecolor="#1e293b", linewidth=0.35)
+    ax1.axhline(0.0, color="#dc2626", linestyle="--", linewidth=1.1)
+    ax1.set_title("Resíduos OOF vs. Predito", fontsize=10.5, fontweight="bold", loc="left")
+    ax1.set_xlabel("Valor Predito", fontsize=9)
+    ax1.set_ylabel("Resíduo (y - ŷ)", fontsize=9)
+    ax1.grid(True, linestyle="--", alpha=0.35)
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+
+    n = len(res)
+    sorted_res = np.sort(res)
+    probs = (np.arange(1, n + 1, dtype=np.float64) - 0.5) / float(n)
+    theo_q = _norm_ppf_approx(probs)
+    mu_r, std_r = float(np.mean(sorted_res)), max(float(np.std(sorted_res, ddof=1)), 1e-12)
+    ax2.scatter(theo_q, sorted_res, s=28, color="#059669", alpha=0.75, edgecolor="#1e293b", linewidth=0.35)
+    ax2.plot([theo_q[0], theo_q[-1]], [mu_r + std_r * theo_q[0], mu_r + std_r * theo_q[-1]], color="#dc2626", linestyle="--", linewidth=1.1, label="Referência Normal")
+    ax2.set_title("Q-Q Plot Normal (Resíduos OOF)", fontsize=10.5, fontweight="bold", loc="left")
+    ax2.set_xlabel("Quantis Teóricos N(0, 1)", fontsize=9)
+    ax2.set_ylabel("Quantis Amostrais dos Resíduos", fontsize=9)
+    ax2.grid(True, linestyle="--", alpha=0.35)
+    ax2.spines["top"].set_visible(False)
+    ax2.spines["right"].set_visible(False)
+    ax2.legend(fontsize=8, frameon=True)
+
+    cfg_lbl = f"{target_cfg.get('model_id', '')}/{target_cfg.get('scenario_id', '')}"
+    lill_p = float(target_cfg.get("lilliefors_p", float("nan")))
+    pref = str(target_cfg.get("preferred_family", "N/A"))
+    fig.suptitle(f"Diagnóstico de Resíduos OOF — {cfg_lbl} (Lilliefors p={lill_p:.4f} | AIC: {pref})", fontsize=11, fontweight="bold")
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.94))
+
+    buf = io.BytesIO()
+    try:
+        if fmt_norm == "svg":
+            fig.savefig(buf, format="svg", bbox_inches="tight", facecolor="white", metadata={"Date": None, "Creator": "experimental-ml-framework"})
+            svg_text = buf.getvalue().decode("utf-8")
+            idx = svg_text.find("<svg ")
+            return (svg_text[idx:] if idx >= 0 else svg_text).encode("utf-8")
+        if fmt_norm == "png":
+            fig.savefig(buf, format="png", dpi=300, bbox_inches="tight", facecolor="white", metadata={"Software": "experimental-ml-framework"})
+            return _ensure_png_300dpi_phys(buf.getvalue())
+        fig.savefig(buf, format="pdf", bbox_inches="tight", facecolor="white", metadata={"CreationDate": None, "Creator": "experimental-ml-framework"})
+        return buf.getvalue()
+    finally:
+        plt.close(fig)

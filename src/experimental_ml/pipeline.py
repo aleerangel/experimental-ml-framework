@@ -228,6 +228,8 @@ def run_experiment(
     quotechar: str = '"',
     csv_format: CsvFormatSpec | None = None,
     collect_train_metrics: bool = False,
+    check_ks_drift: bool = False,
+    analyze_oof_residuals: bool = False,
 ) -> ExperimentRunSummary:
     """Executa ponta a ponta as Etapas 1 a 6 de forma segura e reproduzível.
 
@@ -531,6 +533,40 @@ def run_experiment(
 
     save_statistics_artifacts(exp_dir / "statistics", cons, suit, comp, conc, pareto=pareto, force=force)
 
+    if check_ks_drift:
+        from experimental_ml.statistics.distributions_diagnostics import (
+            compute_partition_ks_drift,
+            partition_drift_to_dict,
+        )
+
+        drift_rep = compute_partition_ks_drift(view, part_plan, alpha=alpha)
+        write_json_atomic(exp_dir / "statistics" / "ks_drift_report.json", partition_drift_to_dict(drift_rep), overwrite=force)
+
+    if analyze_oof_residuals and resolved_schema.task_type == TaskType.REGRESSION and oof_map:
+        from experimental_ml.statistics.distributions_diagnostics import (
+            analyze_oof_residuals_map,
+            oof_residuals_to_dict,
+        )
+
+        res_entries = analyze_oof_residuals_map(oof_map)
+        if res_entries:
+            oof_samples = {}
+            for key, oof_rec in oof_map.items():
+                m_id = str(getattr(oof_rec, "model_id", key[0] if isinstance(key, tuple) else key))
+                sc_id = str(getattr(oof_rec, "scenario_id", key[1] if isinstance(key, tuple) else ""))
+                yp_seq = oof_rec.y_pred_mean if hasattr(oof_rec, "y_pred_mean") else oof_rec.y_pred
+                yp_list = [float(v) for v in yp_seq]
+                if getattr(oof_rec, "residuals", None) is not None:
+                    res_list = [float(v) for v in oof_rec.residuals]
+                else:
+                    res_list = [float(yt - yp) for yt, yp in zip(oof_rec.y_true, yp_list)]
+                oof_samples[(m_id, sc_id)] = (yp_list, res_list)
+            write_json_atomic(
+                exp_dir / "statistics" / "oof_residuals_diagnostics.json",
+                oof_residuals_to_dict(res_entries, oof_samples=oof_samples),
+                overwrite=force,
+            )
+
     # 6. Relatórios e Figuras (Etapa 6)
     loaded = load_experiment_artifacts_readonly(exp_dir)
     sel = select_report_content(loaded, ReportContentSelection(audience=ReportAudience.FULL_LAB))
@@ -548,6 +584,16 @@ def run_experiment(
             fig_file = figures_dir / f"{fig_spec.plot_id}.png"
             fig_file.write_bytes(render_figure(fig_spec, "png"))
             fig_rel_paths.append(f"figures/{fig_file.name}")
+
+    if loaded.oof_residuals_diagnostics and any(
+        c.get("residuals") and c.get("y_pred")
+        for c in loaded.oof_residuals_diagnostics.get("configurations", ())
+    ):
+        from experimental_ml.reporting.figures import render_residuals_diagnostic_figure
+
+        qq_file = figures_dir / "fig_oof_residuals_qq.png"
+        qq_file.write_bytes(render_residuals_diagnostic_figure(dict(loaded.oof_residuals_diagnostics), "png"))
+        fig_rel_paths.append(f"figures/{qq_file.name}")
 
     md_path = reports_dir / "report.md"
     html_path = reports_dir / "report.html"

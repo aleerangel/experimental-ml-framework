@@ -122,6 +122,33 @@ def render_full_report(
         lines.extend(["", "## 2. Fatos Computacionais Registrados", ""])
         for tbl in tables:
             lines.append(render_table_markdown(tbl))
+        if loaded_data.ks_drift_report:
+            dr = loaded_data.ks_drift_report
+            lines.extend([
+                f"### Diagnóstico de Dataset Shift (KS 2 Amostras: {dr.get('reference_label')} vs. {dr.get('comparison_label')})",
+                "",
+                "| Variável | Tipo | D_KS | p-valor | Drift Detectado |",
+                "| :--- | :--- | ---: | ---: | :---: |",
+            ])
+            for feat in dr.get("features", ()):
+                d_s = f"{feat['ks_statistic']:.4f}" if feat.get("ks_statistic") is not None else "N/A"
+                p_s = f"{feat['p_value']:.4f}" if feat.get("p_value") is not None else "N/A"
+                tipo = "Alvo" if feat.get("is_target") else "Atributo"
+                lines.append(f"| {feat['feature_name']} | {tipo} | {d_s} | {p_s} | {'Sim' if feat.get('drift_detected') else 'Não'} |")
+            lines.append("")
+        if loaded_data.oof_residuals_diagnostics:
+            lines.extend([
+                "### Diagnóstico de Resíduos OOF (Lilliefors & Normal vs. Student-t)",
+                "",
+                "| Configuração | n | Lilliefors D | Lilliefors p | AIC Normal | AIC Student-t | Preferida |",
+                "| :--- | ---: | ---: | ---: | ---: | ---: | :---: |",
+            ])
+            for cfg in loaded_data.oof_residuals_diagnostics.get("configurations", ()):
+                lines.append(
+                    f"| {cfg['model_id']}/{cfg['scenario_id']} | {cfg['n_samples']} | {cfg['lilliefors_d']:.4f} | "
+                    f"{cfg['lilliefors_p']:.4f} | {cfg['normal_aic']:.2f} | {cfg['student_t_aic']:.2f} | {cfg['preferred_family']} |"
+                )
+            lines.append("")
         if figure_paths:
             lines.extend(["### Figuras Científicas", ""])
             for fp in figure_paths:
@@ -191,6 +218,26 @@ def render_full_report(
     parts.append("<h2>2. Fatos Computacionais Registrados</h2>")
     for tbl in tables:
         parts.append(_render_html_table(tbl))
+    if loaded_data.ks_drift_report:
+        dr = loaded_data.ks_drift_report
+        parts.append(f"<h3>Diagnóstico de Dataset Shift (KS 2 Amostras: {html.escape(str(dr.get('reference_label')))} vs. {html.escape(str(dr.get('comparison_label')))})</h3>")
+        parts.append("<table><thead><tr><th>Variável</th><th>Tipo</th><th>D_KS</th><th>p-valor</th><th>Drift</th></tr></thead><tbody>")
+        for feat in dr.get("features", ()):
+            d_s = f"{feat['ks_statistic']:.4f}" if feat.get("ks_statistic") is not None else "N/A"
+            p_s = f"{feat['p_value']:.4f}" if feat.get("p_value") is not None else "N/A"
+            tipo = "Alvo" if feat.get("is_target") else "Atributo"
+            parts.append(f"<tr><td>{html.escape(str(feat['feature_name']))}</td><td>{tipo}</td><td>{d_s}</td><td>{p_s}</td><td>{'Sim' if feat.get('drift_detected') else 'Não'}</td></tr>")
+        parts.append("</tbody></table>")
+    if loaded_data.oof_residuals_diagnostics:
+        parts.append("<h3>Diagnóstico de Resíduos OOF (Lilliefors &amp; Normal vs. Student-t)</h3>")
+        parts.append("<table><thead><tr><th>Configuração</th><th>n</th><th>Lilliefors D</th><th>Lilliefors p</th><th>AIC Normal</th><th>AIC Student-t</th><th>Preferida</th></tr></thead><tbody>")
+        for cfg in loaded_data.oof_residuals_diagnostics.get("configurations", ()):
+            parts.append(
+                f"<tr><td>{html.escape(str(cfg['model_id']))}/{html.escape(str(cfg['scenario_id']))}</td>"
+                f"<td>{cfg['n_samples']}</td><td>{cfg['lilliefors_d']:.4f}</td><td>{cfg['lilliefors_p']:.4f}</td>"
+                f"<td>{cfg['normal_aic']:.2f}</td><td>{cfg['student_t_aic']:.2f}</td><td>{html.escape(str(cfg['preferred_family']))}</td></tr>"
+            )
+        parts.append("</tbody></table>")
     if figure_paths:
         parts.append("<h3>Figuras Científicas</h3>")
         for fp in figure_paths:

@@ -8,6 +8,16 @@ sequential acquisition scoring (Submodule 5B), and structured synthesis (Submodu
 
 from experimental_ml.statistics.acquisition import score_candidate_acquisition
 from experimental_ml.statistics.comparisons import run_statistical_comparisons
+from experimental_ml.statistics.distributions_diagnostics import (
+    FeatureDriftRecord,
+    KSTestResult,
+    OofResidualsDiagnosticEntry,
+    PartitionDriftReport,
+    ResidualDistributionFit,
+    compare_normal_vs_student_t,
+    ks_2samp,
+    ks_normal_lilliefors,
+)
 from experimental_ml.statistics.consolidation import (
     consolidate_descriptive,
     validate_stage5_entry,
