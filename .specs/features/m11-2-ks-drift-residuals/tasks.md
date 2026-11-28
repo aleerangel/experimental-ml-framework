@@ -33,7 +33,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/statistics/ tests/unit/reporting/ -q`
 
 ### T3: Renderizar gráfico `Resíduos vs. Predito + Q-Q Plot` e exibir diagnósticos no relatório `pt-BR` (`M112-03`)
-- [ ] Implement & test T3
+- [x] Implement & test T3
 **Where**: `src/experimental_ml/reporting/figures.py`, `src/experimental_ml/reporting/report.py`, `tests/unit/reporting/test_reporting_figures.py`, `tests/unit/reporting/test_reporting_report.py`
 **Depends on**: T2
 **Tests**: Testes verificando geração do gráfico diagnóstico de resíduos + Q-Q Plot em `PNG`, `SVG` e `PDF`, e exibição da seção diagnóstica em `report.md` e `report.html`.

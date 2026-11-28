@@ -239,3 +239,28 @@ def test_m11_1_figure_d_train_vs_test_series(tmp_path: Path) -> None:
     assert render_figure(spec_d, "svg").decode("utf-8").startswith("<svg ")
     assert render_figure(spec_d, "png")[:8] == b"\x89PNG\r\n\x1a\n"
     assert render_figure(spec_d, "pdf").startswith(b"%PDF-1.4")
+
+
+def test_m11_2_residuals_qq_plot_formats() -> None:
+    """M11.2 (T3): render_residuals_diagnostic_figure outputs PNG, SVG, and PDF."""
+    import numpy as np
+    from experimental_ml.reporting.figures import render_residuals_diagnostic_figure
+
+    rng = np.random.default_rng(10)
+    y_pred = rng.normal(10.0, 2.0, 50)
+    res = rng.normal(0.0, 0.5, 50)
+    payload = {
+        "configurations": [
+            {
+                "model_id": "ridge",
+                "scenario_id": "sc1",
+                "lilliefors_p": 0.42,
+                "preferred_family": "NORMAL",
+                "y_pred": y_pred.tolist(),
+                "residuals": res.tolist(),
+            }
+        ]
+    }
+    assert render_residuals_diagnostic_figure(payload, "png")[:8] == b"\x89PNG\r\n\x1a\n"
+    assert render_residuals_diagnostic_figure(payload, "svg").decode("utf-8").startswith("<svg ")
+    assert render_residuals_diagnostic_figure(payload, "pdf").startswith(b"%PDF-1.4")

@@ -166,3 +166,39 @@ def test_m72_02_invalid_report_format_raises(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigurationError):
         render_full_report(loaded, fmt="docx")
+
+
+def test_m11_2_report_includes_ks_drift_and_residuals(tmp_path: Path) -> None:
+    """M11.2 (T3): render_full_report renders KS dataset-shift and OOF residuals tables in pt-BR."""
+    from dataclasses import replace
+
+    _create_report_experiment(tmp_path)
+    loaded = load_experiment_artifacts_readonly(tmp_path)
+    enriched = replace(
+        loaded,
+        ks_drift_report={
+            "reference_label": "DEV",
+            "comparison_label": "FINAL_HOLDOUT",
+            "features": [{"feature_name": "x1", "is_target": False, "ks_statistic": 0.45, "p_value": 0.002, "drift_detected": True}],
+        },
+        oof_residuals_diagnostics={
+            "configurations": [
+                {
+                    "model_id": "m1",
+                    "scenario_id": "s1",
+                    "n_samples": 40,
+                    "lilliefors_d": 0.09,
+                    "lilliefors_p": 0.35,
+                    "normal_aic": 120.5,
+                    "student_t_aic": 122.1,
+                    "preferred_family": "NORMAL",
+                }
+            ]
+        },
+    )
+    md = render_full_report(enriched, fmt="markdown")
+    html_doc = render_full_report(enriched, fmt="html")
+    assert "Diagnóstico de Dataset Shift" in md
+    assert "Diagnóstico de Resíduos OOF" in md
+    assert "Diagnóstico de Dataset Shift" in html_doc
+    assert "Diagnóstico de Resíduos OOF" in html_doc
