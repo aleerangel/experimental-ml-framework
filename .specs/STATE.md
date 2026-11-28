@@ -351,13 +351,13 @@
 
 ## Handoff
 
-- **Feature**: Submarco `M11.1` (`m11-1-train-test-diagnostics` — `VAL-ENH-005`) Implementado e Verificado (`PASS`)
-- **Phase / Task**: `M11.1` concluído (`T1`–`T4`, `637 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`. Próximo submarco: `M11.2` (`VAL-ENH-006`).
+- **Feature**: Submarco `M11.2` (`m11-2-ks-drift-residuals` — `VAL-ENH-006`) Implementado e Verificado (`PASS`)
+- **Phase / Task**: `M11.2` concluído (`T1`–`T4`, `642 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`. Próximo submarco: `M11.3`.
 - **Completed**:
-  - `M8`, `M9`, `M10` e planejamento de Onda 1 / Onda 2 integrados em `main` (`cf3451e`).
-  - `M11.1` (`T1`–`T4`: `e0bc947`, `52c8576`, `f4bec8e`, `33ffe60`) implementado, provado (`proofs.md`) e verificado (`verification.md: PASS`, `C1`–`C3`), com `637 passed`.
-  - `VAL-ENH-005` atualizado para `VERIFICADO (M11.1)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
-- **In-progress**: Homologação/aceite do `M11.1` (`ACCEPTANCE.md`) pelo desenvolvedor.
-- **Next step**: Push/merge da branch `feat/m11-1-train-test-diagnostics` e início da rodada TLC do submarco `M11.2` (`VAL-ENH-006`: KS, *dataset shift* e análise de resíduos OOF).
+  - `M8`, `M9`, `M10`, planejamento de Onda 1 / Onda 2 e `M11.1` integrados em `main` (`9d9f8f3`).
+  - `M11.2` (`T1`–`T4` + fix `79b91ce`: `f0ab8f8`, `a70bef8`, `e29f822`, `282f650`, `79b91ce`) implementado, provado (`proofs.md`) e verificado (`verification.md: PASS`, `C1`–`C3`), com `642 passed`.
+  - `VAL-ENH-006` atualizado para `VERIFICADO (M11.2)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
+- **In-progress**: Homologação/aceite do `M11.2` (`ACCEPTANCE.md`) pelo desenvolvedor.
+- **Next step**: Push/merge da branch `feat/m11-2-ks-drift-residuals` e início da rodada TLC do submarco `M11.3`.
 - **Blockers**: none
-- **Branch**: feat/m11-1-train-test-diagnostics
+- **Branch**: feat/m11-2-ks-drift-residuals

@@ -119,6 +119,7 @@ O processo de aceite integra-se às fases do TLC:
 | **Estabilização do MVP (`M8`)** | `m8-mvp-stabilization-contract-alignment` | Concluída | 620/620 Aprovados | Aprovado (`PASS`) | Executada e aprovada | **Aprovado** |
 | **Intra-Fold e Holdout Final (`M9`)** | `m9-intra-fold-imputation-encoding-holdout` | Concluída (`e372b22`) | 628/628 Aprovados | Aprovado (`PASS`) | Executada e integrada em `main` | **Aprovado** |
 | **Visualização Científica e Relatórios (`M10`)** | `m10-scientific-visualization-reporting-redesign` | Concluída (`9a04409`) | 632/632 Aprovados | Aprovado (`PASS`) | Executada e integrada em `main` | **Aprovado** |
-| **Treino vs. Teste (`M11.1`)** | `m11-1-train-test-diagnostics` | Verificada (`T1`–`T4`) | 637/637 Aprovados | Aprovado (`PASS`) | Executada (`verification.md: PASS`; `ACCEPTANCE.md` pendente) | **Verificado (Aguardando Aceite)** |
-| **Validação Contínua e Externa (`TA-POS.4` / `CA02`)** | [`PLANO_DE_VALIDACAO_DO_MVP.md`](./PLANO_DE_VALIDACAO_DO_MVP.md) / [`REGISTRO_DE_VALIDACAO_DO_MVP.md`](./REGISTRO_DE_VALIDACAO_DO_MVP.md) | Em andamento (Pesquisador) | 637/637 base | — | Em execução contínua em dados reais | **Em Validação** |
+| **Treino vs. Teste (`M11.1`)** | `m11-1-train-test-diagnostics` | Verificada (`T1`–`T4`) | 637/637 Aprovados | Aprovado (`PASS`) | Executada (`main`: `9d9f8f3`) | **Aprovado** |
+| **KS, *Dataset Shift* e Resíduos (`M11.2`)** | `m11-2-ks-drift-residuals` | Verificada (`T1`–`T4`) | 642/642 Aprovados | Aprovado (`PASS`) | Executada (`verification.md: PASS`; `ACCEPTANCE.md` pendente) | **Verificado (Aguardando Aceite)** |
+| **Validação Contínua e Externa (`TA-POS.4` / `CA02`)** | [`PLANO_DE_VALIDACAO_DO_MVP.md`](./PLANO_DE_VALIDACAO_DO_MVP.md) / [`REGISTRO_DE_VALIDACAO_DO_MVP.md`](./REGISTRO_DE_VALIDACAO_DO_MVP.md) | Em andamento (Pesquisador) | 642/642 base | — | Em execução contínua em dados reais | **Em Validação** |
 
