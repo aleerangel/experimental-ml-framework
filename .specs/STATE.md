@@ -359,13 +359,13 @@
 
 ## Handoff
 
-- **Feature**: Submarco `M11.3` (`m11-3-dataset-characterization` — `VAL-ENH-007`) Implementado e Verificado (`PASS`)
-- **Phase / Task**: `M11.3` concluído (`T1`–`T4`, `647 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`.
+- **Feature**: Submarco `M11.4` (`m11-4-wave1-polish` — `VAL-ENH-004`, `VAL-QUAL-004`, Desempenho) Implementado e Verificado (`PASS`)
+- **Phase / Task**: `M11.4` concluído (`T1`–`T3`, `651 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`.
 - **Completed**:
-  - `M8`, `M9`, `M10`, `M11.1` e `M11.2` integrados em `main` (`5c01f90`).
-  - `M11.3` (`T1`–`T4`: `cafd596`, `52e8974`, `871811d`, `bc994e5`) implementado, provado (`proofs.md`) e verificado (`verification.md: PASS`, `C1`–`C3`), com `647 passed`.
-  - `VAL-ENH-007` atualizado para `VERIFICADO (M11.3)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
-- **In-progress**: Homologação/aceite do `M11.3` (`ACCEPTANCE.md`) pelo desenvolvedor.
-- **Next step**: Push/merge da branch `feat/m11-3-dataset-characterization` e decisão sobre próximos itens em aberto (`VAL-ENH-004`, `VAL-QUAL-004` ou fechamento da Onda 1).
+  - `M8`, `M9`, `M10`, `M11.1`, `M11.2` e `M11.3` integrados em `main` (`6a8394f`).
+  - `M11.4` (`T1`–`T3`: `e22b431`, `47d7448`, `5ebc6ec`) implementado, provado (`proofs.md`) e verificado (`verification.md: PASS`, `C1`–`C3`), com `651 passed`.
+  - `VAL-ENH-004` e `VAL-QUAL-004` atualizados para `VERIFICADO (M11.4)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
+- **In-progress**: Homologação/aceite do `M11.4` (`ACCEPTANCE.md`) pelo desenvolvedor.
+- **Next step**: Push/merge da branch `feat/m11-4-wave1-polish` e validação experimental contínua da Onda 1 pelo pesquisador antes da Onda 2.
 - **Blockers**: none
-- **Branch**: feat/m11-3-dataset-characterization
+- **Branch**: feat/m11-4-wave1-polish
