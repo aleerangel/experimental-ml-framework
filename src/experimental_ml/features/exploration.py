@@ -23,8 +23,11 @@ from experimental_ml.data.preparation import SanitizedDatasetView
 from experimental_ml.features.stats import (
     compute_correlation_ratio,
     compute_cramers_v,
+    compute_distance_correlation,
+    compute_linearity_score,
     compute_pearson,
     compute_spearman,
+    compute_vif,
 )
 from experimental_ml.features.types import (
     METHODOLOGICAL_WARNINGS,
@@ -47,6 +50,7 @@ def explore_features(
     view: SanitizedDatasetView,
     *,
     redundancy_threshold: float = 0.85,
+    extended_stats: bool = False,
 ) -> ExploratoryFeatureReport:
     """Perform exploratory analysis of predictor-target associations and predictor redundancy.
 
@@ -226,6 +230,17 @@ def explore_features(
         key=lambda p: (-abs(p.value), p.feature_a, p.feature_b)
     )
 
+    extended_diagnostics: MappingProxyType[str, Any] | None = None
+    if extended_stats:
+        extended_diagnostics = MappingProxyType(
+            _compute_extended_feature_diagnostics(
+                view=view,
+                candidate_features=list(candidate_features),
+                target_arr=view.columns[target_name],
+                task_type=task_type,
+            )
+        )
+
     return ExploratoryFeatureReport(
         scope=SCOPE_EXPLORATORY_FULL_DATA,
         dataset_hash=view.dataset_hash,
@@ -239,7 +254,105 @@ def explore_features(
             "n_candidate_features": n_feats,
             "target_col": target_name,
         }),
+        extended_diagnostics=extended_diagnostics,
     )
 
 
-__all__ = ["explore_features"]
+def _compute_extended_feature_diagnostics(
+    *,
+    view: SanitizedDatasetView,
+    candidate_features: list[str],
+    target_arr: np.ndarray,
+    task_type: TaskType,
+) -> dict[str, Any]:
+    """Compute opt-in exploratory VIF, Distance Correlation, and linearity diagnostics."""
+    num_feats = [f for f in candidate_features if _is_numeric(view.columns[f])]
+    vif_by_feature: dict[str, float | None] = {}
+    dcor_by_feature: dict[str, float | None] = {}
+    linearity_score: float | None = None
+
+    if num_feats:
+        cols_imputed: list[np.ndarray] = []
+        for f in num_feats:
+            arr = np.asarray(view.columns[f], dtype=np.float64).copy()
+            finite = np.isfinite(arr)
+            if np.any(finite):
+                arr[~finite] = float(np.mean(arr[finite]))
+            else:
+                arr[:] = 0.0
+            cols_imputed.append(arr)
+
+        x_mat = np.column_stack(cols_imputed)
+        vifs, vif_status = compute_vif(x_mat)
+        if vif_status == MetricStatus.VALID and len(vifs) == len(num_feats):
+            for fname, v in zip(num_feats, vifs):
+                vif_by_feature[fname] = float(v) if math.isfinite(float(v)) else None
+
+        if _is_numeric(target_arr):
+            y_num = np.asarray(target_arr, dtype=np.float64)
+            for fname, x_col in zip(num_feats, cols_imputed):
+                dval, dstat = compute_distance_correlation(x_col, y_num)
+                dcor_by_feature[fname] = float(dval) if dstat == MetricStatus.VALID else None
+
+        lin_val, lin_stat = compute_linearity_score(x_mat, target_arr, task_type)
+        if lin_stat == MetricStatus.VALID:
+            linearity_score = float(lin_val)
+
+    valid_vifs = [v for v in vif_by_feature.values() if v is not None]
+    valid_dcors = [v for v in dcor_by_feature.values() if v is not None]
+
+    return {
+        "scope": SCOPE_EXPLORATORY_FULL_DATA,
+        "vif_by_feature": vif_by_feature,
+        "max_vif": float(max(valid_vifs)) if valid_vifs else None,
+        "mean_vif": float(np.mean(valid_vifs)) if valid_vifs else None,
+        "distance_correlation_to_target": dcor_by_feature,
+        "mean_distance_correlation_target": float(np.mean(valid_dcors)) if valid_dcors else None,
+        "linearity_score": linearity_score,
+    }
+
+
+def build_dataset_meta_features(
+    profile: Any,
+    report: ExploratoryFeatureReport,
+) -> dict[str, Any]:
+    """Build standardized exploratory dataset_meta_features dictionary (Rivolli et al., 2022)."""
+    skews: list[float] = []
+    kurts: list[float] = []
+    outliers: list[float] = []
+    for col_prof in profile.columns.values():
+        if col_prof.role in ("target", "observation_id", "group", "time"):
+            continue
+        ns = col_prof.numeric_stats
+        if ns is None:
+            continue
+        if ns.skewness is not None and math.isfinite(ns.skewness):
+            skews.append(abs(float(ns.skewness)))
+        if ns.kurtosis is not None and math.isfinite(ns.kurtosis):
+            kurts.append(float(ns.kurtosis))
+        if ns.outlier_rate_iqr is not None and math.isfinite(ns.outlier_rate_iqr):
+            outliers.append(float(ns.outlier_rate_iqr))
+
+    ext = dict(report.extended_diagnostics) if report.extended_diagnostics is not None else {}
+    return {
+        "schema_version": "1.0",
+        "scope": SCOPE_EXPLORATORY_FULL_DATA,
+        "dataset_hash": profile.source_dataset_hash,
+        "task_type": profile.target.task_type.value,
+        "n_rows": int(profile.n_rows),
+        "n_cols": int(profile.n_cols),
+        "n_candidate_features": int(report.metadata.get("n_candidate_features", 0)),
+        "samples_to_features_ratio": profile.samples_to_features_ratio,
+        "intrinsic_dim_ratio_95": profile.intrinsic_dim_ratio_95,
+        "target_entropy_norm": profile.target_entropy_norm,
+        "mean_abs_skewness": float(np.mean(skews)) if skews else None,
+        "mean_excess_kurtosis": float(np.mean(kurts)) if kurts else None,
+        "mean_outlier_rate_iqr": float(np.mean(outliers)) if outliers else None,
+        "max_vif": ext.get("max_vif"),
+        "mean_vif": ext.get("mean_vif"),
+        "mean_distance_correlation_target": ext.get("mean_distance_correlation_target"),
+        "linearity_score": ext.get("linearity_score"),
+    }
+
+
+__all__ = ["explore_features", "build_dataset_meta_features"]

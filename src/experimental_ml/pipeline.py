@@ -230,6 +230,8 @@ def run_experiment(
     collect_train_metrics: bool = False,
     check_ks_drift: bool = False,
     analyze_oof_residuals: bool = False,
+    extended_stats: bool = False,
+    export_meta_features: bool = False,
 ) -> ExperimentRunSummary:
     """Executa ponta a ponta as Etapas 1 a 6 de forma segura e reproduzível.
 
@@ -266,7 +268,8 @@ def run_experiment(
         quotechar=quotechar,
         csv_format=csv_format,
     )
-    profile = profile_dataset(bundle)
+    use_extended = bool(extended_stats or export_meta_features)
+    profile = profile_dataset(bundle, extended_stats=use_extended)
     prep_plan = create_preparation_plan(profile, list(rules))
     if prep_plan.status != "READY":
         issues = "; ".join(f"{u.finding_code} ({u.column or 'dataset'})" for u in prep_plan.unresolved_findings)
@@ -510,8 +513,12 @@ def run_experiment(
     write_splits_csv_gz(exp_dir / SPLITS_CSV_GZ_REL_PATH, part_plan, overwrite=force)
     write_splits_schema(exp_dir / SPLITS_SCHEMA_REL_PATH, part_plan, overwrite=force)
 
-    exp_report = explore_features(view)
+    from experimental_ml.features.exploration import build_dataset_meta_features, explore_features
+    exp_report = explore_features(view, extended_stats=use_extended)
     write_json_atomic(exp_dir / EXPLORATORY_FEATURES_REL_PATH, exp_report.to_dict(), overwrite=force)
+    if export_meta_features:
+        meta_features = build_dataset_meta_features(profile, exp_report)
+        write_json_atomic(exp_dir / "dataset_meta_features.json", meta_features, overwrite=force)
     reports_dir = exp_dir / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
     from experimental_ml.features.visualization import (

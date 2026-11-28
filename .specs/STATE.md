@@ -349,15 +349,23 @@
 - **Date**: 2026-11-28
 - **Status**: active
 
+### AD-040: Escopo de ativação e definição operacional em `M11.3` (`VAL-ENH-007`)
+- **Decision**: (1) Métricas leves (`skewness`, excesso de `kurtosis` de Fisher, `outlier_rate_iqr`) são calculadas no perfil básico de `NumericDistributionStats` em `data/profiling.py`; (2) Métricas estruturais pesadas (`VIF`, *Distance Correlation*, `intrinsic_dim_ratio_95` via SVD em matriz padronizada >=95% variância / $p_{\text{num}}$, `linearity_score` via OLS $R^2$ em regressão e separabilidade linear Ridge/LDA NumPy em classificação, `samples_to_features_ratio` e `target_entropy_norm`) e a exportação de `dataset_meta_features.json` são estritamente **opt-in (`False` por padrão)** via `extended_stats: bool = False` e `export_meta_features: bool = False`; (3) Quando `export_meta_features=True`, gravar `dataset_meta_features.json` e exibir tabela resumida em `report.md`/`report.html`.
+- **Reason**: Preservar desempenho e transparência sem cálculos pesados ocultos, mantendo o núcleo 100% NumPy puro (`XCUT-02`) e sem *data leakage* (`EXPLORATORY_FULL_DATA`).
+- **Trade-off**: Pesquisador ativa `extended_stats=True` / `export_meta_features=True` quando desejar caracterização estrutural completa.
+- **Scope**: `data/profiling.py`, `features/stats.py`, `features/exploration.py`, `reporting/`, `pipeline.py`, `docs/`.
+- **Date**: 2026-11-28
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: Submarco `M11.2` (`m11-2-ks-drift-residuals` — `VAL-ENH-006`) Implementado e Verificado (`PASS`)
-- **Phase / Task**: `M11.2` concluído (`T1`–`T4`, `642 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`. Próximo submarco: `M11.3`.
+- **Feature**: Submarco `M11.3` (`m11-3-dataset-characterization` — `VAL-ENH-007`) Implementado e Verificado (`PASS`)
+- **Phase / Task**: `M11.3` concluído (`T1`–`T4`, `647 passed`, `verification.md: PASS`). Aguardando aceite (`ACCEPTANCE.md`) e merge em `main`.
 - **Completed**:
-  - `M8`, `M9`, `M10`, planejamento de Onda 1 / Onda 2 e `M11.1` integrados em `main` (`9d9f8f3`).
-  - `M11.2` (`T1`–`T4` + fix `79b91ce`: `f0ab8f8`, `a70bef8`, `e29f822`, `282f650`, `79b91ce`) implementado, provado (`proofs.md`) e verificado (`verification.md: PASS`, `C1`–`C3`), com `642 passed`.
-  - `VAL-ENH-006` atualizado para `VERIFICADO (M11.2)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
-- **In-progress**: Homologação/aceite do `M11.2` (`ACCEPTANCE.md`) pelo desenvolvedor.
-- **Next step**: Push/merge da branch `feat/m11-2-ks-drift-residuals` e início da rodada TLC do submarco `M11.3`.
+  - `M8`, `M9`, `M10`, `M11.1` e `M11.2` integrados em `main` (`5c01f90`).
+  - `M11.3` (`T1`–`T4`: `cafd596`, `52e8974`, `871811d`, `bc994e5`) implementado, provado (`proofs.md`) e verificado (`verification.md: PASS`, `C1`–`C3`), com `647 passed`.
+  - `VAL-ENH-007` atualizado para `VERIFICADO (M11.3)` em `REGISTRO_DE_VALIDACAO_DO_MVP.md`.
+- **In-progress**: Homologação/aceite do `M11.3` (`ACCEPTANCE.md`) pelo desenvolvedor.
+- **Next step**: Push/merge da branch `feat/m11-3-dataset-characterization` e decisão sobre próximos itens em aberto (`VAL-ENH-004`, `VAL-QUAL-004` ou fechamento da Onda 1).
 - **Blockers**: none
-- **Branch**: feat/m11-2-ks-drift-residuals
+- **Branch**: feat/m11-3-dataset-characterization

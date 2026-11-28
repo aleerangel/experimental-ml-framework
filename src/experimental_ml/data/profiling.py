@@ -86,6 +86,9 @@ class NumericDistributionStats:
     max: float | None
     range: float | None
     iqr: float | None
+    skewness: float | None = None
+    kurtosis: float | None = None
+    outlier_rate_iqr: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,6 +171,9 @@ class DatasetProfile:
     target: TargetProfile
     groups: GroupProfile | None
     findings: tuple[Finding, ...]
+    samples_to_features_ratio: float | None = None
+    intrinsic_dim_ratio_95: float | None = None
+    target_entropy_norm: float | None = None
 
 
 def compute_numeric_distribution_stats(
@@ -223,6 +229,9 @@ def compute_numeric_distribution_stats(
             max=v,
             range=0.0,
             iqr=0.0,
+            skewness=None,
+            kurtosis=None,
+            outlier_rate_iqr=0.0,
         )
 
     mean_val = float(np.mean(valid))
@@ -232,6 +241,23 @@ def compute_numeric_distribution_stats(
     q1_val, med_val, q3_val = [float(x) for x in np.percentile(valid, [25, 50, 75], method="linear")]
     range_val = float(max_val - min_val)
     iqr_val = float(q3_val - q1_val)
+
+    centered = valid - mean_val
+    m2 = float(np.mean(centered * centered))
+    skew_val: float | None = None
+    kurt_val: float | None = None
+    if m2 > 1e-15:
+        if n_valid >= 3:
+            m3 = float(np.mean(centered ** 3))
+            skew_val = float(m3 / (m2 ** 1.5))
+        if n_valid >= 4:
+            m4 = float(np.mean(centered ** 4))
+            kurt_val = float(m4 / (m2 * m2) - 3.0)
+
+    lower_fence = q1_val - 1.5 * iqr_val
+    upper_fence = q3_val + 1.5 * iqr_val
+    n_outliers = int(np.count_nonzero((valid < lower_fence) | (valid > upper_fence)))
+    outlier_rate = float(n_outliers / n_valid)
 
     return NumericDistributionStats(
         mean=mean_val,
@@ -243,6 +269,9 @@ def compute_numeric_distribution_stats(
         max=max_val,
         range=range_val,
         iqr=iqr_val,
+        skewness=skew_val,
+        kurtosis=kurt_val,
+        outlier_rate_iqr=outlier_rate,
     )
 
 
@@ -812,9 +841,76 @@ def evaluate_findings(
     return tuple(findings)
 
 
+def _compute_extended_dataset_indicators(
+    bundle: DatasetBundle,
+    col_profiles: MappingProxyType[str, ColumnProfile] | dict[str, ColumnProfile],
+    target_profile: TargetProfile,
+) -> tuple[float | None, float | None, float | None]:
+    """Compute opt-in structural indicators (n/p, SVD intrinsic dim ratio, normalized target entropy)."""
+    feature_cols = [
+        name for name, prof in col_profiles.items()
+        if prof.role not in ("target", "observation_id", "group", "time")
+    ]
+    n_features = len(feature_cols)
+    samples_to_features_ratio = (
+        float(bundle.n_rows / n_features) if n_features > 0 else None
+    )
+
+    numeric_cols: list[np.ndarray] = []
+    for name in feature_cols:
+        prof = col_profiles[name]
+        if prof.numeric_stats is None:
+            continue
+        raw = bundle.columns[name]
+        arr = np.empty(bundle.n_rows, dtype=np.float64)
+        for i, val in enumerate(raw):
+            if is_missing_scalar(val):
+                arr[i] = float("nan")
+            else:
+                try:
+                    arr[i] = float(val)
+                except (TypeError, ValueError):
+                    arr[i] = float("nan")
+        valid_mask = np.isfinite(arr)
+        if np.count_nonzero(valid_mask) < 2:
+            continue
+        col_mean = float(np.mean(arr[valid_mask]))
+        arr[~valid_mask] = col_mean
+        std = float(np.std(arr, ddof=0))
+        if std > 1e-12:
+            numeric_cols.append((arr - col_mean) / std)
+
+    intrinsic_dim_ratio_95: float | None = None
+    if numeric_cols and bundle.n_rows >= 2:
+        p_num = len(numeric_cols)
+        mat = np.column_stack(numeric_cols)
+        singular_values = np.linalg.svd(mat, full_matrices=False, compute_uv=False)
+        sq = singular_values * singular_values
+        total_var = float(np.sum(sq))
+        if total_var > 1e-15:
+            cum_var = np.cumsum(sq) / total_var
+            k_95 = int(np.searchsorted(cum_var, 0.95, side="left")) + 1
+            k_95 = min(k_95, p_num)
+            intrinsic_dim_ratio_95 = float(k_95 / p_num)
+
+    target_entropy_norm: float | None = None
+    if target_profile.class_frequencies and len(target_profile.class_frequencies) >= 2:
+        probs = np.array(
+            [cf.proportion for cf in target_profile.class_frequencies if cf.proportion > 0.0],
+            dtype=np.float64,
+        )
+        if len(probs) >= 2:
+            entropy = -float(np.sum(probs * np.log(probs)))
+            target_entropy_norm = float(entropy / np.log(len(probs)))
+
+    return samples_to_features_ratio, intrinsic_dim_ratio_95, target_entropy_norm
+
+
 def profile_dataset(
     bundle: DatasetBundle,
     config: ProfileConfig | None = None,
+    *,
+    extended_stats: bool = False,
 ) -> DatasetProfile:
     """Generate comprehensive, immutable structural profile and diagnostic findings for a DatasetBundle.
 
@@ -932,6 +1028,14 @@ def profile_dataset(
         config=config,
     )
 
+    samples_to_features_ratio: float | None = None
+    intrinsic_dim_ratio_95: float | None = None
+    target_entropy_norm: float | None = None
+    if extended_stats:
+        samples_to_features_ratio, intrinsic_dim_ratio_95, target_entropy_norm = (
+            _compute_extended_dataset_indicators(bundle, col_profiles, target_profile)
+        )
+
     return DatasetProfile(
         source_dataset_hash=bundle.dataset_hash,
         n_rows=bundle.n_rows,
@@ -942,6 +1046,9 @@ def profile_dataset(
         target=target_profile,
         groups=group_profile,
         findings=findings,
+        samples_to_features_ratio=samples_to_features_ratio,
+        intrinsic_dim_ratio_95=intrinsic_dim_ratio_95,
+        target_entropy_norm=target_entropy_norm,
     )
 
 

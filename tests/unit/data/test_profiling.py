@@ -665,5 +665,46 @@ def test_prof_10_immutability_and_determinism() -> None:
     assert profile_1.findings == profile_2.findings
 
 
+def test_m11_3_numeric_moments_and_extended_profile() -> None:
+    """M113-01: NumericDistributionStats calcula momentos leves e profile_dataset(extended_stats=True) preenche SVD/razão/entropia."""
+    import numpy as np
+    from experimental_ml.core.enums import TaskType
+    from experimental_ml.data import DatasetSchemaSpec, load_dataset, profile_dataset
+    from experimental_ml.data.profiling import compute_numeric_distribution_stats
+    from experimental_ml.data.codecs import dataset_profile_from_dict, dataset_profile_to_dict
+
+    # Assimetria positiva com outlier claro
+    vals = np.array([1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 100.0])
+    stats = compute_numeric_distribution_stats(vals)
+    assert stats.skewness is not None and stats.skewness > 1.5
+    assert stats.kurtosis is not None and stats.kurtosis > 1.0
+    assert stats.outlier_rate_iqr is not None and np.isclose(stats.outlier_rate_iqr, 1.0 / 7.0)
+
+    # Perfil padrão (extended_stats=False) mantém indicadores estruturais None
+    x1 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    x2 = 2.0 * x1  # colinear -> dimensão intrínseca deve ser 1/2 = 0.5
+    bundle = load_dataset(
+        {"x1": x1, "x2": x2, "y": [0, 0, 0, 1, 1, 1]},
+        schema=DatasetSchemaSpec(target_col="y", task_type=TaskType.BINARY_CLASSIFICATION),
+    )
+    prof_default = profile_dataset(bundle)
+    assert prof_default.samples_to_features_ratio is None
+    assert prof_default.intrinsic_dim_ratio_95 is None
+    assert prof_default.target_entropy_norm is None
+
+    # Perfil estendido opt-in (extended_stats=True)
+    prof_ext = profile_dataset(bundle, extended_stats=True)
+    assert prof_ext.samples_to_features_ratio == 3.0
+    assert prof_ext.intrinsic_dim_ratio_95 == 0.5
+    assert prof_ext.target_entropy_norm is not None and np.isclose(prof_ext.target_entropy_norm, 1.0)
+
+    # Round-trip JSON retrocompatível
+    restored = dataset_profile_from_dict(dataset_profile_to_dict(prof_ext))
+    assert restored.samples_to_features_ratio == 3.0
+    assert restored.intrinsic_dim_ratio_95 == 0.5
+    assert restored.target_entropy_norm is not None and np.isclose(restored.target_entropy_norm, 1.0)
+
+
+
 
 

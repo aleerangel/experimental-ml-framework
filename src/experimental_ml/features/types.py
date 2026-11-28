@@ -174,6 +174,7 @@ class ExploratoryFeatureReport:
     high_redundancy_pairs: tuple[RedundancyPair, ...]
     warnings: tuple[str, ...] = METHODOLOGICAL_WARNINGS
     metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+    extended_diagnostics: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.scope != SCOPE_EXPLORATORY_FULL_DATA:
@@ -208,6 +209,9 @@ class ExploratoryFeatureReport:
         if not isinstance(self.metadata, MappingProxyType):
             object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
 
+        if self.extended_diagnostics is not None and not isinstance(self.extended_diagnostics, MappingProxyType):
+            object.__setattr__(self, "extended_diagnostics", MappingProxyType(dict(self.extended_diagnostics)))
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a JSON-compliant primitive dictionary."""
         # Convert nested matrix to plain dicts with safe floats
@@ -218,7 +222,7 @@ class ExploratoryFeatureReport:
                 for feat_b, val in row.items()
             }
 
-        return {
+        out = {
             "scope": self.scope,
             "dataset_hash": self.dataset_hash,
             "task_type": self.task_type.value,
@@ -228,6 +232,9 @@ class ExploratoryFeatureReport:
             "warnings": list(self.warnings),
             "metadata": dict(self.metadata),
         }
+        if self.extended_diagnostics is not None:
+            out["extended_diagnostics"] = dict(self.extended_diagnostics)
+        return out
 
     def ranked_target_features(
         self,

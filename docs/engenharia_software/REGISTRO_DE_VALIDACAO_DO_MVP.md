@@ -97,7 +97,7 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 | [`VAL-ENH-004`](#val-enh-004) | Suporte a múltiplos objetivos de Pareto e `planned_pairs` em `stats_config.json` na CLI e na fachada `run_experiment` | `ENHANCEMENT` | `P2` | `cli/cmd_stats.py`, `pipeline.py`, `statistics/comparisons.py` | Onda 1 (MVP Clássico) | `PLANEJADO (Aguardando Aprovação de Escopo)` |
 | [`VAL-ENH-005`](#val-enh-005) | Avaliação de erro em treino (`train_metrics`) e visualização/comparação Treino vs. Teste (diagnóstico de overfitting) | `ENHANCEMENT` | `P1` | `orchestration/types.py`, `orchestration/execution.py`, `statistics/`, `reporting/` | Onda 1 (MVP Clássico) | `VERIFICADO (M11.1 — 33ffe60)` |
 | [`VAL-ENH-006`](#val-enh-006) | Teste Kolmogorov-Smirnov (1 e 2 amostras / Lilliefors), detecção de *drift* entre partições e diagnóstico de resíduos (Q-Q Plot + Normal vs. Student-$t$) | `ENHANCEMENT` | `P1` | `data/profiling.py`, `validation/`, `statistics/`, `reporting/` | Onda 1 (MVP Clássico) | `VERIFICADO (M11.2)` |
-| [`VAL-ENH-007`](#val-enh-007) | Caracterização estatística ampliada dos datasets (assimetria, curtose, outliers, VIF, Distance Correlation, linearidade, SVD $p/n$) e exportação de `dataset_meta_features` | `ENHANCEMENT` | `P1` | `data/profiling.py`, `features/stats.py`, `reporting/` | Onda 1 (MVP Clássico) | `PLANEJADO (Aguardando Aprovação de Escopo)` |
+| [`VAL-ENH-007`](#val-enh-007) | Caracterização estatística ampliada dos datasets (assimetria, curtose, outliers, VIF, Distance Correlation, linearidade, SVD $p/n$) e exportação de `dataset_meta_features` | `ENHANCEMENT` | `P1` | `data/profiling.py`, `features/stats.py`, `reporting/` | Onda 1 (MVP Clássico) | `VERIFICADO (M11.3)` |
 
 ---
 

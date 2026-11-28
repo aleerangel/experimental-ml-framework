@@ -79,6 +79,27 @@ def _render_html_table(table: TableModel) -> str:
     return "\n".join(parts)
 
 
+def _meta_feature_rows(dmf: Mapping[str, Any]) -> list[tuple[str, str]]:
+    """Format standardized dataset_meta_features entries as (label, formatted_value)."""
+    specs = (
+        ("Razão Amostras / Atributos (n/p)", "samples_to_features_ratio"),
+        ("Dimensionalidade Intrínseca (SVD 95%)", "intrinsic_dim_ratio_95"),
+        ("Entropia Normalizada do Alvo", "target_entropy_norm"),
+        ("|Assimetria| Média", "mean_abs_skewness"),
+        ("Curtose Excedente Média", "mean_excess_kurtosis"),
+        ("Taxa Média de Outliers (IQR)", "mean_outlier_rate_iqr"),
+        ("VIF Máximo", "max_vif"),
+        ("VIF Médio", "mean_vif"),
+        ("Distance Correlation Média (Alvo)", "mean_distance_correlation_target"),
+        ("Indicador Exploratório de Linearidade", "linearity_score"),
+    )
+    rows: list[tuple[str, str]] = []
+    for label, key in specs:
+        val = dmf.get(key)
+        rows.append((label, f"{float(val):.4f}" if isinstance(val, (int, float)) else "—"))
+    return rows
+
+
 def render_full_report(
     loaded_data: LoadedExperimentData,
     fmt: str = "markdown",
@@ -148,6 +169,16 @@ def render_full_report(
                     f"| {cfg['model_id']}/{cfg['scenario_id']} | {cfg['n_samples']} | {cfg['lilliefors_d']:.4f} | "
                     f"{cfg['lilliefors_p']:.4f} | {cfg['normal_aic']:.2f} | {cfg['student_t_aic']:.2f} | {cfg['preferred_family']} |"
                 )
+            lines.append("")
+        if loaded_data.dataset_meta_features:
+            lines.extend([
+                "### Caracterização Estatística Ampliada (Meta-Features)",
+                "",
+                "| Indicador Estrutural (`EXPLORATORY_FULL_DATA`) | Valor |",
+                "| :--- | ---: |",
+            ])
+            for label, val_str in _meta_feature_rows(loaded_data.dataset_meta_features):
+                lines.append(f"| {label} | {val_str} |")
             lines.append("")
         if figure_paths:
             lines.extend(["### Figuras Científicas", ""])
@@ -237,6 +268,12 @@ def render_full_report(
                 f"<td>{cfg['n_samples']}</td><td>{cfg['lilliefors_d']:.4f}</td><td>{cfg['lilliefors_p']:.4f}</td>"
                 f"<td>{cfg['normal_aic']:.2f}</td><td>{cfg['student_t_aic']:.2f}</td><td>{html.escape(str(cfg['preferred_family']))}</td></tr>"
             )
+        parts.append("</tbody></table>")
+    if loaded_data.dataset_meta_features:
+        parts.append("<h3>Caracterização Estatística Ampliada (Meta-Features)</h3>")
+        parts.append("<table><thead><tr><th>Indicador Estrutural (EXPLORATORY_FULL_DATA)</th><th>Valor</th></tr></thead><tbody>")
+        for label, val_str in _meta_feature_rows(loaded_data.dataset_meta_features):
+            parts.append(f"<tr><td>{html.escape(label)}</td><td>{html.escape(val_str)}</td></tr>")
         parts.append("</tbody></table>")
     if figure_paths:
         parts.append("<h3>Figuras Científicas</h3>")
