@@ -26,7 +26,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/orchestration/ -q`
 
 ### T2: Consolidação descritiva isolada de `aggregated_train_metrics` em `statistics` (`M111-02`)
-- [ ] Implement & test T2
+- [x] Implement & test T2
 **Where**: `src/experimental_ml/statistics/types.py`, `src/experimental_ml/statistics/consolidation.py`, `src/experimental_ml/statistics/storage.py`, `tests/unit/statistics/test_consolidation.py`
 **Depends on**: T1
 **Tests**: Teste verificando que `aggregated_train_metrics` consolida médias/DP de treino sem alterar `aggregated_metrics`, `fold_metrics` nem comparações pareadas de `DEV_CV`, com round-trip JSON.
