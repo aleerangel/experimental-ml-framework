@@ -31,7 +31,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/tuning/ tests/unit/orchestration/ -q`
 
 ### T3: Sincronização documental (`VAL-QUAL-004`) e suíte completa (`M114-03`)
-- [ ] Implement & test T3
+- [x] Implement & test T3
 **Where**: `docs/engenharia_software/ARQUITETURA_E_CONTRATOS.md`, `docs/referencia/api_python.md`, `docs/engenharia_software/REGISTRO_DE_VALIDACAO_DO_MVP.md`
 **Depends on**: T1, T2
 **Tests**: Conferência de nomenclatura e símbolos + suíte completa `.venv/bin/pytest tests/ -q`.

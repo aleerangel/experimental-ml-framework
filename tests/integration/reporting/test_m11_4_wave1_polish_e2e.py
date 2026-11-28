@@ -68,3 +68,16 @@ def test_m11_4_run_experiment_planned_pairs_and_pareto(tmp_path: Path) -> None:
     assert pairs_seen == {(("lina", "todas_features"), ("linc", "todas_features"))}
     pareto_json = json.loads((out_dir / "statistics" / "pareto_summary.json").read_text(encoding="utf-8"))
     assert [o["name"] for o in pareto_json["objectives"]] == ["rmse", "fit_mean_s"]
+
+
+def test_m11_4_docs_symbols_synced() -> None:
+    """M114-03: ARQUITETURA_E_CONTRATOS.md e api_python.md refletem enums e símbolos públicos atuais."""
+    repo_root = Path(__file__).resolve().parents[3]
+    arq_text = (repo_root / "docs" / "engenharia_software" / "ARQUITETURA_E_CONTRATOS.md").read_text(encoding="utf-8")
+    api_text = (repo_root / "docs" / "referencia" / "api_python.md").read_text(encoding="utf-8")
+
+    assert "CV_AND_HOLDOUT" in arq_text
+    assert "CROSS_VALIDATION_ONLY" not in arq_text
+    for sym in ("compute_vif", "ks_2samp", "build_dataset_meta_features", "render_residuals_diagnostic_figure"):
+        assert sym in api_text
+

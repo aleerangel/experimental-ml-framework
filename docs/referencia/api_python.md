@@ -46,7 +46,7 @@ Esta referência cataloga a **API pública oficial** do `experimental-ml`, delim
 
 ## 4. `experimental_ml.features` (Etapa 2 — Exploração e Cenários)
 
-- **Análise Exploratória e Visualização:** `explore_features`, `ExploratoryFeatureReport` (métodos `.ranked_target_features()` e `.summary(top_n=15)`), `RedundancyPair`, `AssociationMeasure`, `SCOPE_EXPLORATORY_FULL_DATA`, `METHODOLOGICAL_WARNINGS`, `compute_pearson`, `compute_spearman`, `compute_correlation_ratio`, `compute_cramers_v`, `render_exploratory_report`, `render_exploratory_target_chart`, `render_exploratory_redundancy_heatmap`, `render_exploratory_target_csv`, `render_exploratory_redundancy_csv`.
+- **Análise Exploratória e Visualização:** `explore_features`, `build_dataset_meta_features`, `ExploratoryFeatureReport` (métodos `.ranked_target_features()` e `.summary(top_n=15)`), `RedundancyPair`, `AssociationMeasure`, `SCOPE_EXPLORATORY_FULL_DATA`, `METHODOLOGICAL_WARNINGS`, `compute_pearson`, `compute_spearman`, `compute_correlation_ratio`, `compute_cramers_v`, `compute_vif`, `compute_distance_correlation`, `compute_linearity_score`, `render_exploratory_report`, `render_exploratory_target_chart`, `render_exploratory_redundancy_heatmap`, `render_exploratory_target_csv`, `render_exploratory_redundancy_csv`.
 - **Cenários de Features:** `FeatureScenario`, `ScenarioMode` (`FIXED`, `DYNAMIC`), `ScenariosCatalog`, `validate_scenarios`, `save_scenarios`, `load_scenarios`.
 - **Seleção Intra-Fold e Estabilidade:** `select_features_in_fold`, `apply_feature_selection`, `SelectionResult`, `compute_selection_stability`, `SelectionStabilityReport` (Jaccard e Kuncheva corrigido).
 
@@ -54,9 +54,9 @@ Esta referência cataloga a **API pública oficial** do `experimental-ml`, delim
 
 ## 5. `experimental_ml.models` (Etapa 3A — Especificação e Execução Isolada)
 
-- **Especificação e Capacidades:** `ModelSpec`, `ModelCapabilities`, `ModelFamily`, `ModelsCatalog`, `validate_model_spec`, `validate_models_catalog`, `save_models_catalog`, `load_models_catalog`.
+- **Especificação e Capacidades:** `ModelSpec`, `ModelCapabilities`, `ModelFamily`, `ModelsCatalog`, `validate_model_spec`, `validate_models_catalog`, `save_models_catalog`, `load_models_catalog`, `callable_to_reference`, `resolve_estimator_factory`, `model_spec_to_dict`, `model_spec_from_dict`, `models_catalog_to_dict`, `models_catalog_from_dict`.
 - **Execução e Isolamento:** `instantiate_fresh_model(spec, seed=None)`, `fit_model`, `predict_model`, `extract_model_diagnostics`, `ModelDiagnostics`, `reset_active_instances`.
-- **Pré-processamento em 2 Camadas (`experimental_ml.models.preprocessing`):** `TwoLayerPreprocessingSpec`, `TwoLayerPreprocessingState`, `ScalerType`, `PrecomputedKernelAdapter`, `validate_two_layer_preprocessing`, `fit_two_layer_preprocessing`, `apply_two_layer_preprocessing`.
+- **Pré-processamento em 2 Camadas (`experimental_ml.models.preprocessing`):** `TwoLayerPreprocessingSpec`, `TwoLayerPreprocessingState`, `PreprocessingStepSpec`, `ScalerType`, `StandardScaler`, `MinMaxScaler`, `RobustScaler`, `MaxAbsScaler`, `AngularScaler`, `PrecomputedKernelAdapter`, `validate_two_layer_preprocessing`, `fit_two_layer_preprocessing`, `apply_two_layer_preprocessing`.
 - **Baselines Embutidos:** `DummyBaselineModel`, `AnalyticalBiometricModel` (`requires_fit=False`).
 
 ---
@@ -86,15 +86,16 @@ Esta referência cataloga a **API pública oficial** do `experimental-ml`, delim
 ## 9. `experimental_ml.statistics` (Etapa 5 — Consolidação e Estatística)
 
 - **Entrada e Consolidação (5A):** `validate_stage5_entry`, `consolidate_descriptive`, `DescriptiveConsolidation`, `ConfigurationSummary`, `CoverageStatus`, `AggregatedMetricStats`, `AggregatedTimingStats`.
-- **Adequação e Inferência (5B):** `evaluate_method_suitability`, `MethodSuitabilityReport`, `ApplicableMethod`, `ApplicabilityStatus`, `paired_nadeau_bengio_test`, `NadeauBengioResult`, `paired_wilcoxon_test`, `WilcoxonResult`, `compute_paired_cohens_d`, `EffectSizeResult`, `adjust_pvalues_holm`, `adjust_pvalues_bh`, `run_statistical_comparisons`, `ComparisonSpec`, `StatisticalComparisonBundle`.
-- **Multiobjetivo e Síntese (5C):** `compute_pareto_frontier`, `MultiObjectiveSpec`, `ObjectiveSpec`, `ObjectiveSource`, `MultiObjectiveSummary`, `score_candidate_acquisition`, `synthesize_conclusions`, `StructuredConclusion`.
+- **Adequação e Inferência (5B):** `evaluate_method_suitability`, `check_pairwise_comparison_eligibility`, `MethodSuitabilityReport`, `ApplicableMethod`, `ApplicabilityStatus`, `IncompleteComparisonPolicy`, `ComparisonScope`, `MultiplicityMethod`, `EffectSizeMagnitude`, `PracticalRelevanceStatus`, `paired_nadeau_bengio_test`, `NadeauBengioResult`, `paired_wilcoxon_test`, `WilcoxonResult`, `compute_paired_cohens_d`, `EffectSizeResult`, `adjust_pvalues_holm`, `adjust_pvalues_bh`, `run_statistical_comparisons`, `ComparisonSpec`, `PairwiseComparisonResult`, `SkippedComparison`, `StatisticalComparisonBundle`.
+- **Multiobjetivo, Síntese e Persistência (5C):** `compute_pareto_frontier`, `MultiObjectiveSpec`, `ObjectiveSpec`, `ObjectiveSource`, `ParetoConfigurationPoint`, `ExcludedParetoConfiguration`, `MultiObjectiveSummary`, `AcquisitionCriterion`, `CandidatePrediction`, `AcquisitionScoreRecord`, `score_candidate_acquisition`, `synthesize_conclusions`, `StructuredConclusion`, `LoadedStatisticsArtifacts`, `save_statistics_artifacts`, `load_statistics_artifacts`.
+- **Diagnósticos Distribucionais e de Resíduos (`M11.2`):** `KSTestResult`, `ResidualDistributionFit`, `PartitionDriftEntry`, `PartitionDriftReport`, `OofResidualDiagnosticEntry`, `ks_2samp`, `ks_normal_lilliefors`, `compare_normal_vs_student_t`, `compute_partition_ks_drift`, `analyze_oof_residuals_map`, `partition_drift_to_dict`, `oof_residuals_to_dict`.
 
 ---
 
 ## 10. `experimental_ml.reporting` (Etapa 6 — Relatórios e Reprodutibilidade)
 
 - **Acesso Somente-Leitura:** `load_experiment_artifacts_readonly`, `select_report_content`, `LoadedExperimentData`, `ReportContentSelection`, `ReportAudience`, `ReportFamily`, `ResearcherDeclarations`.
-- **Tabelas e Figuras:** `build_table_model`, `render_table_csv`, `render_table_markdown`, `render_table_latex`, `TableModel`, `build_figure_spec`, `render_figure`, `PlotSpecification`, `PlotType`, `render_full_report`.
+- **Tabelas e Figuras:** `build_table_model`, `render_table_csv`, `render_table_markdown`, `render_table_latex`, `TableModel`, `build_figure_spec`, `render_figure`, `render_residuals_diagnostic_figure`, `PlotSpecification`, `PlotType`, `render_full_report`.
 - **Empacotamento:** `build_reproducibility_package`, `PackageMode` (`FULL_PACKAGE`, `REDUCED_NO_RAW_DATA`), `ReproducibilityPackageManifest`, `ArtifactProvenance`.
 
 ---
