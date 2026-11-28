@@ -202,3 +202,27 @@ def test_m11_2_report_includes_ks_drift_and_residuals(tmp_path: Path) -> None:
     assert "Diagnóstico de Resíduos OOF" in md
     assert "Diagnóstico de Dataset Shift" in html_doc
     assert "Diagnóstico de Resíduos OOF" in html_doc
+
+
+def test_m11_3_report_includes_dataset_meta_features(tmp_path: Path) -> None:
+    """M113-03: render_full_report exibe Caracterização Estatística Ampliada quando dataset_meta_features está presente."""
+    from dataclasses import replace
+
+    _create_report_experiment(tmp_path)
+    loaded = load_experiment_artifacts_readonly(tmp_path)
+    enriched = replace(
+        loaded,
+        dataset_meta_features={
+            "samples_to_features_ratio": 12.5,
+            "intrinsic_dim_ratio_95": 0.6,
+            "max_vif": 8.2,
+            "linearity_score": 0.91,
+        },
+    )
+    md = render_full_report(enriched, fmt="markdown")
+    html_doc = render_full_report(enriched, fmt="html")
+    assert "Caracterização Estatística Ampliada (Meta-Features)" in md
+    assert "12.5000" in md
+    assert "Caracterização Estatística Ampliada (Meta-Features)" in html_doc
+    assert "0.9100" in html_doc
+

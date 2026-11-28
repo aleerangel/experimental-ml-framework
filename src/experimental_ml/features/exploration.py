@@ -312,4 +312,47 @@ def _compute_extended_feature_diagnostics(
     }
 
 
-__all__ = ["explore_features"]
+def build_dataset_meta_features(
+    profile: Any,
+    report: ExploratoryFeatureReport,
+) -> dict[str, Any]:
+    """Build standardized exploratory dataset_meta_features dictionary (Rivolli et al., 2022)."""
+    skews: list[float] = []
+    kurts: list[float] = []
+    outliers: list[float] = []
+    for col_prof in profile.columns.values():
+        if col_prof.role in ("target", "observation_id", "group", "time"):
+            continue
+        ns = col_prof.numeric_stats
+        if ns is None:
+            continue
+        if ns.skewness is not None and math.isfinite(ns.skewness):
+            skews.append(abs(float(ns.skewness)))
+        if ns.kurtosis is not None and math.isfinite(ns.kurtosis):
+            kurts.append(float(ns.kurtosis))
+        if ns.outlier_rate_iqr is not None and math.isfinite(ns.outlier_rate_iqr):
+            outliers.append(float(ns.outlier_rate_iqr))
+
+    ext = dict(report.extended_diagnostics) if report.extended_diagnostics is not None else {}
+    return {
+        "schema_version": "1.0",
+        "scope": SCOPE_EXPLORATORY_FULL_DATA,
+        "dataset_hash": profile.source_dataset_hash,
+        "task_type": profile.target.task_type.value,
+        "n_rows": int(profile.n_rows),
+        "n_cols": int(profile.n_cols),
+        "n_candidate_features": int(report.metadata.get("n_candidate_features", 0)),
+        "samples_to_features_ratio": profile.samples_to_features_ratio,
+        "intrinsic_dim_ratio_95": profile.intrinsic_dim_ratio_95,
+        "target_entropy_norm": profile.target_entropy_norm,
+        "mean_abs_skewness": float(np.mean(skews)) if skews else None,
+        "mean_excess_kurtosis": float(np.mean(kurts)) if kurts else None,
+        "mean_outlier_rate_iqr": float(np.mean(outliers)) if outliers else None,
+        "max_vif": ext.get("max_vif"),
+        "mean_vif": ext.get("mean_vif"),
+        "mean_distance_correlation_target": ext.get("mean_distance_correlation_target"),
+        "linearity_score": ext.get("linearity_score"),
+    }
+
+
+__all__ = ["explore_features", "build_dataset_meta_features"]

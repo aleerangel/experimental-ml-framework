@@ -32,7 +32,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/features/test_stats.py tests/unit/features/test_exploration.py -q`
 
 ### T3: Implementar `build_dataset_meta_features`, loader e tabela `pt-BR` no relatório (`M113-03`)
-- [ ] Implement & test T3
+- [x] Implement & test T3
 **Where**: `src/experimental_ml/features/exploration.py`, `src/experimental_ml/reporting/types.py`, `src/experimental_ml/reporting/loader.py`, `src/experimental_ml/reporting/report.py`, `tests/unit/reporting/test_reporting_report.py`
 **Depends on**: T1, T2
 **Tests**: Testes verificando construção de `dataset_meta_features`, carregamento opcional em `LoadedExperimentData` e tabela `Caracterização Estatística Ampliada (Meta-Features)` em `report.md` e `report.html`.
