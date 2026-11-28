@@ -2,6 +2,7 @@
 
 - **Feature**: `m11-1-train-test-diagnostics`
 - **Branch**: `feat/m11-1-train-test-diagnostics`
+**Approved**: 2026-11-28 - user: "aprovado"
 
 ---
 
@@ -18,8 +19,8 @@ flowchart LR
 ## Execution Plan
 
 ### T1: Coleta opt-in e persistência de `train_metrics` em `orchestration` (`M111-01`)
-- [ ] Implement & test T1
-**Where**: `src/experimental_ml/orchestration/types.py`, `src/experimental_ml/orchestration/execution.py`, `src/experimental_ml/orchestration/engine.py`, `src/experimental_ml/orchestration/storage.py`, `tests/unit/orchestration/test_single_cell_execution.py`
+- [x] Implement & test T1
+**Where**: `src/experimental_ml/orchestration/types.py`, `src/experimental_ml/orchestration/execution.py`, `src/experimental_ml/orchestration/engine.py`, `src/experimental_ml/orchestration/codecs.py`, `tests/unit/orchestration/test_cell_execution.py`
 **Depends on**: none
 **Tests**: Testes unitários verificando que `collect_train_metrics=False` mantém `train_metrics` vazio, e `collect_train_metrics=True` preenche `train_metrics` e faz round-trip JSON retrocompatível.
 **Gate**: `.venv/bin/pytest tests/unit/orchestration/ -q`
@@ -57,7 +58,7 @@ Build: none - pacote Python puro sem etapa de compilação separada; validação
 
 | Requisito | Tarefa | Teste(s) |
 | :--- | :--- | :--- |
-| M111-01 | T1, T4 | `tests/unit/orchestration/test_single_cell_execution.py::test_m11_1_train_metrics_opt_in_and_storage` |
+| M111-01 | T1, T4 | `tests/unit/orchestration/test_cell_execution.py::test_m11_1_train_metrics_opt_in_and_storage` |
 | M111-02 | T2 | `tests/unit/statistics/test_consolidation.py::test_m11_1_train_metrics_consolidated_isolated_from_dev_cv` |
 | M111-03 | T3, T4 | `tests/integration/reporting/test_m11_1_train_test_e2e.py::test_m11_1_e2e_train_vs_test_table_and_figure` |
 
@@ -65,7 +66,7 @@ Build: none - pacote Python puro sem etapa de compilação separada; validação
 
 ## Checks
 
-**Run m11_1_unit**: `.venv/bin/pytest tests/unit/orchestration/test_single_cell_execution.py tests/unit/statistics/test_consolidation.py -v`
+**Run m11_1_unit**: `.venv/bin/pytest tests/unit/orchestration/test_cell_execution.py tests/unit/statistics/test_consolidation.py -v`
 **Run m11_1_e2e**: `.venv/bin/pytest tests/integration/reporting/test_m11_1_train_test_e2e.py -v`
 
 **C1** - `collect_train_metrics=False` por padrão não avalia treino; quando `True`, `CellResultRecord.train_metrics` é preenchido e serializado com retrocompatibilidade (`M111-01`)

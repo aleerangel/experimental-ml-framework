@@ -378,3 +378,45 @@ def test_m51_02_09_anti_leakage_adversarial() -> None:
     assert pred_clean is not None and pred_pert is not None
     assert pred_clean.y_pred == pred_pert.y_pred
     assert cell_res_clean.selected_features == cell_res_pert.selected_features
+
+
+def test_m11_1_train_metrics_opt_in_and_storage() -> None:
+    """C1 (M11.1): collect_train_metrics=False skips train metrics; True evaluates and round-trips JSON safely."""
+    from experimental_ml.orchestration.codecs import cell_result_from_dict, cell_result_to_dict
+
+    view, part_plan, scenario, model_spec = _create_synthetic_environment()
+    fold = part_plan.folds[0]
+
+    # Default (opt-in off)
+    res_off, _ = execute_single_cell(
+        model_spec=model_spec,
+        scenario=scenario,
+        fold=fold,
+        sanitized_view=view,
+        partition_plan=part_plan,
+        metrics=("rmse",),
+    )
+    assert len(res_off.train_metrics) == 0
+
+    # Explicit opt-in on
+    res_on, _ = execute_single_cell(
+        model_spec=model_spec,
+        scenario=scenario,
+        fold=fold,
+        sanitized_view=view,
+        partition_plan=part_plan,
+        metrics=("rmse",),
+        collect_train_metrics=True,
+    )
+    assert "rmse" in res_on.train_metrics
+    assert res_on.train_metrics["rmse"].n_samples == len(fold.train_ids)
+    assert res_on.metrics["rmse"].n_samples == len(fold.val_ids)
+
+    # JSON round-trip & backward compatibility when train_metrics key is absent
+    encoded = cell_result_to_dict(res_on)
+    decoded = cell_result_from_dict(encoded)
+    assert decoded.train_metrics["rmse"].value == pytest.approx(res_on.train_metrics["rmse"].value)
+
+    legacy = dict(encoded)
+    legacy.pop("train_metrics", None)
+    assert len(cell_result_from_dict(legacy).train_metrics) == 0

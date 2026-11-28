@@ -128,6 +128,38 @@ def resolve_deferred_preprocessing(
     )
 
 
+def _evaluate_metrics_dict(
+    metrics: Sequence[str],
+    y_true: np.ndarray,
+    pred_outputs: Mapping[str, Any],
+    model_id: str,
+) -> dict[str, MetricValue]:
+    """Compute requested per-fold metrics from model prediction outputs."""
+    from experimental_ml.metrics.catalog import get_metric_spec
+
+    y_pred = np.asarray(pred_outputs["y_pred"])
+    y_proba_raw = pred_outputs.get("y_proba")
+    computed: dict[str, MetricValue] = {}
+    for metric_name in metrics:
+        m_spec = get_metric_spec(metric_name)
+        if m_spec.requires_probabilities:
+            if y_proba_raw is None:
+                raise ConfigurationError(
+                    f"Metric '{metric_name}' requires predicted probabilities ('y_proba'), "
+                    f"but model '{model_id}' did not return them."
+                )
+            eval_pred = np.asarray(y_proba_raw)
+        else:
+            eval_pred = y_pred
+        computed[metric_name] = compute_metric(
+            metric_name,
+            y_true,
+            eval_pred,
+            scope=MetricEvaluationScope.PER_FOLD,
+        )
+    return computed
+
+
 def execute_single_cell(
     model_spec: ModelSpec,
     scenario: FeatureScenario,
@@ -139,6 +171,7 @@ def execute_single_cell(
     cell_seed: int | None = None,
     cell_id: CellId | None = None,
     phase: str = "DEV_CV",
+    collect_train_metrics: bool = False,
 ) -> tuple[CellResultRecord, PredictionRecord | None]:
     """Execute a single experimental cell (m, c, f) under strict anti-leakage isolation.
 
@@ -366,29 +399,22 @@ def execute_single_cell(
         current_phase = CellPhase.METRIC_COMPUTATION
         t_phase_start = time.perf_counter()
 
-        from experimental_ml.metrics.catalog import get_metric_spec
-
         y_pred = np.asarray(pred_outputs["y_pred"])
-        y_proba_raw = pred_outputs.get("y_proba")
-        computed_metrics: dict[str, MetricValue] = {}
-        for metric_name in metrics:
-            m_spec = get_metric_spec(metric_name)
-            if m_spec.requires_probabilities:
-                if y_proba_raw is None:
-                    raise ConfigurationError(
-                        f"Metric '{metric_name}' requires predicted probabilities ('y_proba'), "
-                        f"but model '{effective_spec.model_id}' did not return them."
-                    )
-                eval_pred = np.asarray(y_proba_raw)
-            else:
-                eval_pred = y_pred
-            m_val = compute_metric(
-                metric_name,
-                y_val,
-                eval_pred,
-                scope=MetricEvaluationScope.PER_FOLD,
+        computed_metrics = _evaluate_metrics_dict(
+            metrics=metrics,
+            y_true=y_val,
+            pred_outputs=pred_outputs,
+            model_id=str(effective_spec.model_id),
+        )
+        computed_train_metrics: dict[str, MetricValue] = {}
+        if collect_train_metrics:
+            train_pred_outputs = predict_model(fitted_model, effective_spec, X_train_proc)
+            computed_train_metrics = _evaluate_metrics_dict(
+                metrics=metrics,
+                y_true=y_train,
+                pred_outputs=train_pred_outputs,
+                model_id=str(effective_spec.model_id),
             )
-            computed_metrics[metric_name] = m_val
 
         residuals: tuple[float, ...] | None = None
         if sanitized_view.schema.task_type == TaskType.REGRESSION:
@@ -439,6 +465,7 @@ def execute_single_cell(
             effective_parameters=effective_spec.parameters,
             timing=timing,
             metrics=computed_metrics,
+            train_metrics=computed_train_metrics,
             diagnostics=diagnostics,
         )
 
