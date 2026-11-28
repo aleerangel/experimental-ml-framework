@@ -62,3 +62,14 @@ Todas as deduções, premissas e limitações estão documentadas em [REFERENCIA
 | Controle de falsas descobertas (FDR) | **Benjamini & Hochberg (1995)** — *Controlling the False Discovery Rate* (JRSS-B, 57(1)) | Equilíbrio entre poder estatístico e controle de FDR em matrizes grandes de modelos/cenários. |
 | Alinhamento de Kernel (`kta`) | **Cristianini et al. (2001)** — *On Kernel-Target Alignment* (NeurIPS) | Avaliação de qualidade de matrizes de Gram e kernels quânticos/pré-computados. |
 | Estabilidade de seleção de features | **Kuncheva (2007)** — *A Stability Index for Feature Selection* (AIA) | Medição de consistência inter-dobras descontando sobreposição aleatória. |
+
+---
+
+## Diagnóstico Opcional: Comparação Treino vs. Teste (`collect_train_metrics`)
+
+Por transparência metodológica, o framework **não** calcula métricas sobre o conjunto de treino de forma oculta (`collect_train_metrics=False` por padrão). Quando você desejar investigar *overfitting* (erro baixo em treino e alto em validação) ou *underfitting* (ambos elevados), recomenda-se ativar explicitamente a coleta diagnóstica:
+
+- **Via Python (`run_experiment`):** passe `collect_train_metrics=True`.
+- **Via CLI (`expml`):** adicione `--collect-train-metrics` em `expml run start` ou `expml quickrun`.
+
+Quando ativada, a Tabela D exibe a coluna `Train Mean` ao lado de `Mean` (`DEV_CV`) e a Figura D plota barras comparativas `Treino` vs. `DEV_CV`, mantendo os testes pareados (`Nadeau-Bengio` / `Wilcoxon`) estritamente isolados sobre os folds de validação.

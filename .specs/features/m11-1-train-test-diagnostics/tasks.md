@@ -40,8 +40,8 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/reporting/ -q`
 
 ### T4: Expor `collect_train_metrics` em `pipeline.py` / CLI, documentar e validar E2E (`M111-01`, `M111-03`)
-- [ ] Implement & test T4
-**Where**: `src/experimental_ml/pipeline.py`, `src/experimental_ml/cli/main.py`, `src/experimental_ml/cli/cmd_run.py`, `src/experimental_ml/cli/cmd_quickrun.py`, `docs/guia/03_interpretando_resultados.md`, `tests/integration/reporting/test_m11_1_train_test_e2e.py`
+- [x] Implement & test T4
+**Where**: `src/experimental_ml/pipeline.py`, `src/experimental_ml/cli/main.py`, `src/experimental_ml/cli/cmd_run.py`, `src/experimental_ml/cli/cmd_init.py`, `docs/guia/03_interpretando_resultados.md`, `tests/integration/reporting/test_m11_1_train_test_e2e.py`
 **Depends on**: T1, T3
 **Tests**: Teste E2E via `run_experiment(..., collect_train_metrics=True)` validando `Train Mean` na Tabela D, gráfico comparativo e integridade documental.
 **Gate**: `.venv/bin/pytest tests/ -q`

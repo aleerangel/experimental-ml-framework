@@ -108,6 +108,7 @@ def handle_run_start(args: argparse.Namespace) -> int:
                 outer_n_jobs=n_workers,
                 overwrite=force,
                 auto_consolidate_oof=auto_consolidate,
+                collect_train_metrics=bool(getattr(args, "collect_train_metrics", False)),
             )
         except Exception as exc:
             if error_policy == ErrorPolicy.FAIL_FAST:

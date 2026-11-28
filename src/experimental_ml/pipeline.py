@@ -227,6 +227,7 @@ def run_experiment(
     column_names: Sequence[str] | None = None,
     quotechar: str = '"',
     csv_format: CsvFormatSpec | None = None,
+    collect_train_metrics: bool = False,
 ) -> ExperimentRunSummary:
     """Executa ponta a ponta as Etapas 1 a 6 de forma segura e reproduzível.
 
@@ -331,6 +332,7 @@ def run_experiment(
         metrics=selected_metrics,
         master_seed=master_seed,
         overwrite=force,
+        collect_train_metrics=collect_train_metrics,
     )
 
     # 5. Estatística (Etapa 5)

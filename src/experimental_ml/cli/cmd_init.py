@@ -246,6 +246,7 @@ def handle_quickrun(args: argparse.Namespace) -> int:
             error_policy="fault_tolerant",
             no_oof=False,
             metrics=getattr(args, "metrics", None),
+            collect_train_metrics=bool(getattr(args, "collect_train_metrics", False)),
             force=force,
         )
     )
