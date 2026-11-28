@@ -2,6 +2,7 @@
 
 - **Feature**: `m11-2-ks-drift-residuals`
 - **Branch**: `feat/m11-2-ks-drift-residuals`
+**Approved**: 2026-11-28 - user: "aprovado"
 
 ---
 
@@ -18,7 +19,7 @@ flowchart LR
 ## Execution Plan
 
 ### T1: Implementar `ks_2samp`, `ks_normal_lilliefors` e comparação AIC Normal vs. Student-$t$ em NumPy puro (`M112-01`)
-- [ ] Implement & test T1
+- [x] Implement & test T1
 **Where**: `src/experimental_ml/statistics/distributions_diagnostics.py`, `src/experimental_ml/statistics/__init__.py`, `tests/unit/statistics/test_ks_diagnostics.py`
 **Depends on**: none
 **Tests**: Testes unitários verificando `ks_2samp` (mesma distribuição vs. deslocada), `ks_normal_lilliefors` (Normal vs. exponencial/cauda pesada) e AIC Student-$t$ < AIC Normal em dados com outliers.
