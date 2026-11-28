@@ -94,9 +94,10 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 | [`VAL-ENH-001`](#val-enh-001) | Arquitetura desacoplada de visualização científica com backend `Matplotlib`/`Pandas` e revisão controlada do `XCUT-02` | `ENHANCEMENT` | `P1` | `reporting/figures.py`, `features/visualization.py` | Marco `M10` + Revisão de ADR (`XCUT-02`) | `VERIFICADO (M10 — 5fc348c)` |
 | [`VAL-ENH-002`](#val-enh-002) | Pipeline completo de Imputação (`MEAN`, `MEDIAN`, `MODE`) e Codificação Categórica (`ONE_HOT`, `ORDINAL`) Intra-Fold | `ENHANCEMENT` | `P1` | `models/preprocessing/`, `orchestration/execution.py`, `data/preparation.py` | Marco `M9` | `VERIFICADO (M9 — 4a2ae0a)` |
 | [`VAL-ENH-003`](#val-enh-003) | Execução, persistência e consolidação estatística de células `FINAL_HOLDOUT` no regime `CV_AND_HOLDOUT` | `ENHANCEMENT` | `P1` | `orchestration/`, `statistics/`, `reporting/` | Marco `M9` | `VERIFICADO (M9 — 31fefba)` |
-| [`VAL-ENH-004`](#val-enh-004) | Suporte a múltiplos objetivos de Pareto e `planned_pairs` em `stats_config.json` na CLI e na fachada `run_experiment` | `ENHANCEMENT` | `P2` | `cli/cmd_stats.py`, `pipeline.py`, `statistics/comparisons.py` | Marco `M8` / `M10` | `PLANEJADO (Aguardando Aprovação de Escopo)` |
-| [`VAL-ENH-005`](#val-enh-005) | Avaliação de erro em treino (`train_metrics`) e visualização/comparação Treino vs. Teste (diagnóstico de overfitting) | `ENHANCEMENT` | `P1` | `orchestration/types.py`, `orchestration/execution.py`, `statistics/`, `reporting/` | Marco `M11` | `IDENTIFICADO (Aguardando Decisão)` |
-| [`VAL-ENH-006`](#val-enh-006) | Teste Kolmogorov-Smirnov (1 e 2 amostras / Lilliefors), detecção de *drift* entre partições e diagnóstico de resíduos (Q-Q Plot) | `ENHANCEMENT` | `P1` | `data/profiling.py`, `validation/`, `statistics/`, `reporting/` | Marco `M11` | `IDENTIFICADO (Aguardando Decisão)` |
+| [`VAL-ENH-004`](#val-enh-004) | Suporte a múltiplos objetivos de Pareto e `planned_pairs` em `stats_config.json` na CLI e na fachada `run_experiment` | `ENHANCEMENT` | `P2` | `cli/cmd_stats.py`, `pipeline.py`, `statistics/comparisons.py` | Marco `M11` (MVP Onda 1) | `PLANEJADO (Aguardando Aprovação de Escopo)` |
+| [`VAL-ENH-005`](#val-enh-005) | Avaliação de erro em treino (`train_metrics`) e visualização/comparação Treino vs. Teste (diagnóstico de overfitting) | `ENHANCEMENT` | `P1` | `orchestration/types.py`, `orchestration/execution.py`, `statistics/`, `reporting/` | Marco `M11` (MVP Onda 1) | `IDENTIFICADO (Aguardando Decisão)` |
+| [`VAL-ENH-006`](#val-enh-006) | Teste Kolmogorov-Smirnov (1 e 2 amostras / Lilliefors), detecção de *drift* entre partições e diagnóstico de resíduos (Q-Q Plot + Normal vs. Student-$t$) | `ENHANCEMENT` | `P1` | `data/profiling.py`, `validation/`, `statistics/`, `reporting/` | Marco `M11` (MVP Onda 1) | `IDENTIFICADO (Aguardando Decisão)` |
+| [`VAL-ENH-007`](#val-enh-007) | Caracterização estatística ampliada dos datasets (assimetria, curtose, outliers, VIF, Distance Correlation, linearidade, SVD $p/n$) e exportação de `dataset_meta_features` | `ENHANCEMENT` | `P1` | `data/profiling.py`, `features/stats.py`, `reporting/` | Marco `M11` (MVP Onda 1) | `PLANEJADO (Aguardando Aprovação de Escopo)` |
 
 ---
 
@@ -546,6 +547,31 @@ Ao receber qualquer relato desse tipo, o agente executará automaticamente o pro
 - **Destino:** Marco `M11` (junto com `VAL-ENH-005`).
 - **Status:** `IDENTIFICADO (Aguardando Decisão)`
 - **Decisão e justificativa:** Proposto e aprovado pelo desenvolvedor para registro no roadmap com fundamentação bibliográfica explícita, para planejamento no próximo ciclo (`M11`).
+
+---
+
+### `VAL-ENH-007`
+- **Identificador único:** `VAL-ENH-007`
+- **Título:** Caracterização estatística ampliada dos datasets e exportação de `dataset_meta_features`
+- **Categoria:** `ENHANCEMENT`
+- **Data de identificação:** 2026-11-28
+- **Módulo afetado:** `data/profiling.py`, `features/stats.py`, `reporting/`
+- **Descrição:** Estender os módulos já existentes (sem criar pacote paralelo) em NumPy puro (`XCUT-02`): (1) em `data/profiling.py`, adicionar `skewness`, excesso de `kurtosis` (Fisher) e `outlier_rate_iqr` em `NumericDistributionStats`, além de `samples_to_features_ratio` ($n/p$), `intrinsic_dim_ratio_95` (via SVD) e `target_entropy_norm` em `DatasetProfile`; (2) em `features/stats.py` (`EXPLORATORY_FULL_DATA`), adicionar VIF (`np.linalg.pinv`), *Distance Correlation* (Székely et al., 2007) e indicador exploratório de linearidade ($R^2$ linear / separabilidade linear; Lorena et al., 2018, 2019); e (3) exportar um bloco padronizado `dataset_meta_features` (Rivolli et al., 2022) para futura análise *cross-experiment* na Onda 2.
+- **Referências científicas:**
+  - Lorena, A. C. et al. (2018). *Data Complexity Meta-features for Regression Problems*. *Machine Learning*, 107, 209–246. DOI: `10.1007/s10994-017-5681-1`.
+  - Lorena, A. C. et al. (2019). *How Complex Is Your Classification Problem? A Survey on Measuring Classification Complexity*. *ACM Computing Surveys*, 52(5), Art. 107. DOI: `10.1145/3347711`.
+  - Rivolli, A. et al. (2022). *Meta-features for meta-learning*. *Knowledge-Based Systems*, 240, 108101. DOI: `10.1016/j.knosys.2021.108101`.
+  - Székely, G. J., Rizzo, M. L., & Bakirov, N. K. (2007). *Measuring and testing dependence by correlation of distances*. *The Annals of Statistics*, 35(6), 2769–2794. DOI: `10.1214/009053607000000505`.
+  - Wolpert, D. H. (1996). *The Lack of A Priori Distinctions Between Learning Algorithms*. *Neural Computation*, 8(7), 1341–1390. DOI: `10.1162/neco.1996.8.7.1341`.
+- **Comportamento observado:** Hoje `NumericDistributionStats` não calcula assimetria, curtose nem taxa de outliers; `features/stats.py` não calcula VIF, dependência não-linear geral nem linearidade; e não há exportação padronizada de meta-features.
+- **Comportamento esperado:** Disponibilizar caracterização estrutural completa estritamente rotulada como exploratória (sem *data leakage*) e preparar a base tabular para estudos futuros de *Algorithm Selection* na Onda 2.
+- **Evidências:** `src/experimental_ml/data/profiling.py:L173-L246`, `src/experimental_ml/features/stats.py`.
+- **Impacto:** Alto para interpretação científica da adequação de famílias de modelos às propriedades estruturais dos dados.
+- **Prioridade:** `P1`
+- **Dependências:** Subsistema visual/tabular (`M10`).
+- **Destino:** Marco `M11` (Fechamento Diagnóstico do MVP Onda 1).
+- **Status:** `PLANEJADO (Aguardando Aprovação de Escopo)`
+- **Decisão e justificativa:** Aprovado para compor o fechamento do MVP clássico (`M11`), deixando o motor de *Meta-Learning / Algorithm Selection* multi-dataset e o ajuste MLE iterativo multi-distribuição para a Onda 2.
 
 ---
 

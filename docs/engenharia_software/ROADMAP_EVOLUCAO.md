@@ -186,15 +186,28 @@ As evoluções priorizadas foram organizadas em quatro marcos coesos e sequencia
 
 ---
 
-### 4.4. Horizonte `Onda 2` — Expansão Estatística Multi-Comparação, Predição Conforme e QML
+### 4.4. Marco `M11` — Fechamento Diagnóstico do MVP Clássico (Onda 1)
 
 | Campo | Definição |
 | :--- | :--- |
-| **Identificador** | `Onda 2` (`M11+` — Planejamento Futuro Pós-Homologação do MVP Clássico) |
-| **Nome** | Expansão Estatística Avançada, Predição Conforme e Aprendizado de Máquina Quântico (QML) |
-| **Problema que resolve** | Implementa as capacidades científicas planejadas desde a concepção para a Onda 2 em `ESPECIFICACAO_REQUISITOS.md` e `REFERENCIAS_E_FUNDAMENTACAO.md`. |
-| **Escopo modular previsto** | 1. **Marco `M11` (Estatística Onda 2):** Teste omnibus de Friedman, post-hoc de Nemenyi, Diagramas de Diferença Crítica (CD Diagrams), Bootstrap BCa, $g$ de Hedges, $\delta$ de Cliff e estabilidade de Nogueira et al. (2018).<br>2. **Marco `M12` (Quantificação de Incerteza):** Predição Conforme (*Split Conformal* e *Cross-Conformal / CV+*) com garantia de cobertura empírica $1 - \alpha$.<br>3. **Marco `M13` (QML — Aprendizado de Máquina Quântico e Híbrido):** Adaptadores concretos para Kernels Quânticos, Circuitos Variacionais (VQC) e resolvedores lineares quânticos (HHL) consumindo o `AngularScaler` e os metadados quânticos já preparados na Onda 1. |
-| **Prioridade** | **`P2` (Iniciar apenas após a homologação completa do MVP clássico nos marcos `M8` a `M10`)**. |
+| **Identificador** | `M11` (`.specs/features/m11-diagnostic-characterization-train-test/` — a especificar) |
+| **Nome** | Caracterização Estatística Ampliada, Diagnóstico de Resíduos/Drift e Comparação Treino vs. Teste |
+| **Problema que resolve** | Fecha o ciclo diagnóstico do MVP clássico (Onda 1) sobre um experimento individual: instrumenta `train_metrics` para diagnóstico de *overfitting* (`VAL-ENH-005`), adiciona testes KS (1 e 2 amostras / Lilliefors), detecção de *dataset shift* (`DEV` vs. `HOLDOUT`/Temporal) e análise de resíduos OOF (Normal vs. Student-$t$, Q-Q Plot) (`VAL-ENH-006`), amplia `profiling.py`/`features/stats.py` com assimetria, curtose, outliers, VIF, *Distance Correlation*, linearidade, dimensionalidade SVD $p/n$ e exportação de `dataset_meta_features` (`VAL-ENH-007`), e expõe múltiplos objetivos de Pareto / `planned_pairs` na CLI (`VAL-ENH-004`). |
+| **Escopo modular previsto** | `data/profiling.py`, `features/stats.py`, `orchestration/{types,execution}.py`, `statistics/`, `reporting/{tables,figures,report}.py`, `cli/cmd_stats.py`, `pipeline.py` (sem criar módulos redundantes, 100% NumPy puro no núcleo `XCUT-02`). |
+| **Fronteira metodológica** | Toda caracterização global permanece rotulada `EXPLORATORY_FULL_DATA` sem disparar seleção automática pré-split; comparação MLE completa (Gamma/Weibull/Beta iterativos) e *Meta-Learning* multi-dataset ficam explicitamente na **Onda 2**. |
+| **Prioridade** | **`P1` (Último marco da Onda 1 / MVP Clássico, após validação do `M10`)**. |
+
+---
+
+### 4.5. Horizonte `Onda 2` — Estatística Multi-Dataset, Meta-Learning, Predição Conforme e QML
+
+| Campo | Definição |
+| :--- | :--- |
+| **Identificador** | `Onda 2` (`M12+` — Segunda Onda do MVP, Pós-Homologação da Onda 1) |
+| **Nome** | Estatística Multi-Dataset, *Algorithm Selection* / MLE Avançado, Predição Conforme e QML |
+| **Problema que resolve** | Expande o framework de experimentos individuais para estudos comparativos em múltiplos datasets, quantificação de incerteza e computação quântica conforme `ESPECIFICACAO_REQUISITOS.md` e `REFERENCIAS_E_FUNDAMENTACAO.md`. |
+| **Escopo modular previsto** | 1. **Marco `M12` (Estatística Multi-Dataset, Meta-Análise & MLE Avançado):** Teste omnibus de Friedman, post-hoc de Nemenyi, Diagramas de Diferença Crítica (CD Diagrams; Demšar, 2006), Bootstrap BCa, $g$ de Hedges, $\delta$ de Cliff, estabilidade de Nogueira et al. (2018); agregador *cross-experiment* relacionando `dataset_meta_features` × desempenho de famílias de modelos (*Algorithm Selection*, Rice 1976; Rivolli et al., 2022); e ajuste exploratório multi-distribuição por MLE (Gamma, Weibull, Beta, Log-normal, Student-$t$) com AIC/BIC e Anderson-Darling para $P(Y)$.<br>2. **Marco `M13` (Quantificação de Incerteza):** Predição Conforme (*Split Conformal* e *Cross-Conformal / CV+*) com garantia de cobertura empírica $1 - \alpha$.<br>3. **Marco `M14` (QML — Aprendizado de Máquina Quântico e Híbrido):** Adaptadores concretos para Kernels Quânticos (`QSVM`), Circuitos Variacionais (`VQC`) e resolvedores lineares quânticos (`HHL`) consumindo o `AngularScaler` e os metadados quânticos já preparados na Onda 1. |
+| **Prioridade** | **`P2` (Iniciar apenas após o fechamento e homologação completa da Onda 1 em `M8`–`M11`)**. |
 
 ---
 
@@ -203,19 +216,12 @@ As evoluções priorizadas foram organizadas em quatro marcos coesos e sequencia
 ```mermaid
 flowchart TD
     Auditoria["Auditoria Geral e Base de Validação Contínua<br/>(Concluída em 24/11/2026)"]
-    M8["Marco M8 (P0): Estabilização do MVP e Alinhamento Contratual<br/>(Tabelas A/G, None Categórico, ADR-003 Nested CV, Interop run_experiment, Kuncheva)"]
-    ValCont["Validação Experimental Contínua pelo Pesquisador<br/>(Execução do PLANO_DE_VALIDACAO_DO_MVP.md com dados reais)"]
-    M9["Marco M9 (P1): Imputação e Encoding Intra-Fold (DEFER_INTRA_FOLD)<br/>+ Execução de Células FINAL_HOLDOUT em CV_AND_HOLDOUT"]
-    M10["Marco M10 (P1): Redesenho do Subsistema de Visualização Científica<br/>e Relatórios (Backend Matplotlib + Relatório PT-BR)"]
-    Onda2["Onda 2 (P2): Friedman/Nemenyi, Nogueira 2018,<br/>Predição Conforme e Modelos Quânticos (QML)"]
+    M8["Marco M8 (P0): Estabilização do MVP (Concluído)"]
+    M9["Marco M9 (P1): Intra-Fold e FINAL_HOLDOUT (Concluído)"]
+    M10["Marco M10 (P1): Visualização Matplotlib e Relatórios pt-BR (Verificado)"]
+    ValCont["Validação Experimental Contínua pelo Pesquisador<br/>(PLANO_DE_VALIDACAO_DO_MVP.md com dados reais)"]
+    M11["Marco M11 (P1 - Fechamento Onda 1): Treino vs. Teste,<br/>KS/Drift/Resíduos e Caracterização Estatística"]
+    Onda2["Onda 2 (P2 - M12..M14): Friedman/Nemenyi, Meta-Learning,<br/>MLE Multi-Distribuição, Predição Conforme e QML"]
 
-    Auditoria --> M8
-    Auditoria --> ValCont
-    M8 --> ValCont
-    M8 --> M9
-    M8 --> M10
-    ValCont --> M9
-    ValCont --> M10
-    M9 --> Onda2
-    M10 --> Onda2
+    Auditoria --> M8 --> M9 --> M10 --> ValCont --> M11 --> Onda2
 ```
