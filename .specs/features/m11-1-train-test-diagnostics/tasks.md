@@ -33,7 +33,7 @@ flowchart LR
 **Gate**: `.venv/bin/pytest tests/unit/statistics/ -q`
 
 ### T3: Exibição de `Train Mean` na Tabela D e barras `Treino` vs. `DEV_CV` na Figura D (`M111-03`)
-- [ ] Implement & test T3
+- [x] Implement & test T3
 **Where**: `src/experimental_ml/reporting/tables.py`, `src/experimental_ml/reporting/figures.py`, `tests/unit/reporting/test_reporting_tables.py`, `tests/unit/reporting/test_reporting_figures.py`
 **Depends on**: T2
 **Tests**: Testes verificando coluna `train_mean` na Tabela D e série `Treino (DEV_CV)` na Figura D renderizada em `PNG`, `SVG` e `PDF`.

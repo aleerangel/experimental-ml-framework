@@ -256,6 +256,12 @@ def build_table_model(
 
     if family == ReportFamily.D_PREDICTIVE_PERFORMANCE:
         consol = loaded_data.statistics.consolidation
+        has_train = any(
+            summary.aggregated_train_metrics
+            for (m_id, sc_id), summary in consol.configurations.items()
+            if (not sel.model_ids or m_id in sel.model_ids)
+            and (not sel.scenario_ids or sc_id in sel.scenario_ids)
+        )
         has_holdout = any(
             summary.holdout_metrics
             for (m_id, sc_id), summary in consol.configurations.items()
@@ -267,12 +273,16 @@ def build_table_model(
             TableColumn("scenario_id", "Scenario", ColumnAlignment.LEFT),
             TableColumn("metric", "Metric", ColumnAlignment.LEFT),
             TableColumn("status", "Status", ColumnAlignment.CENTER),
+        ]
+        if has_train:
+            base_cols.append(TableColumn("train_mean", "Train Mean", ColumnAlignment.RIGHT, "{:.4f}"))
+        base_cols.extend([
             TableColumn("mean", "Mean", ColumnAlignment.RIGHT, "{:.4f}"),
             TableColumn("std", "SD", ColumnAlignment.RIGHT, "{:.4f}"),
             TableColumn("median", "Median", ColumnAlignment.RIGHT, "{:.4f}"),
             TableColumn("iqr", "IQR", ColumnAlignment.RIGHT, "{:.4f}"),
             TableColumn("coverage", "Coverage", ColumnAlignment.RIGHT, "{:.2%}"),
-        ]
+        ])
         if has_holdout:
             base_cols.append(TableColumn("holdout_mean", "Holdout", ColumnAlignment.RIGHT, "{:.4f}"))
         cols = tuple(base_cols)
@@ -295,6 +305,13 @@ def build_table_model(
                     "iqr": agg.iqr,
                     "coverage": summary.coverage,
                 }
+                if has_train:
+                    t_agg = summary.aggregated_train_metrics.get(met_name)
+                    row_dict["train_mean"] = (
+                        float("nan")
+                        if (t_agg is None or t_agg.status == MetricStatus.UNDEFINED_NAN)
+                        else t_agg.mean
+                    )
                 if has_holdout:
                     hmv = summary.holdout_metrics.get(met_name)
                     row_dict["holdout_mean"] = (
